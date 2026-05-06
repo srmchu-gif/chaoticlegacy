@@ -1,0 +1,1729 @@
+Creature Drop Alias Report
+generated_at=2026-05-06T03:01:53.881Z
+creature_entries=531
+unresolved_refs=0
+resolved_exact=402
+resolved_family=38
+resolved_environment=219
+resolved_multi_variant_refs=2
+
+Aa'une the Oligarch, Avatar
+  resolved [exact] source="The Oligarch's Path" token="The Oligarch's Path" mode=direct somente=yes -> the oligarch's path
+
+Aa'une the Oligarch, Projection
+  resolved [exact] source="The Oligarch's Path" token="The Oligarch's Path" mode=direct somente=yes -> the oligarch's path
+
+Abin-wor
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Accato
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Aer'dak
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Afjak
+  resolved [exact] source="Kiru Village" token="Kiru Village" mode=direct somente=yes -> kiru village
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Aggroar
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Agitos
+  resolved [exact] source="UnderWorld City" token="UnderWorld City" mode=direct somente=yes -> underworld city
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Agitos, Eloquent Motivator
+  resolved [exact] source="UnderWorld City" token="UnderWorld City" mode=direct somente=yes -> underworld city
+
+Agrino Jaldar
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ailav
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Aimukk
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Aivenna
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Aivenna, OverWorld Lieutenant
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ajara
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold, Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold" mode=direct somente=yes -> dranakis threshold
+  resolved [family] source="Dranakis Threshold, Portal to the Past" token="Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+
+Akkalbi
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Akkerbal
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Akkrean
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Alazdan
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Ambolx
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Anarkiar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Anger'keem
+  resolved [exact] source="Psi-fanger's Shelf" token="Psi-fanger's Shelf" mode=direct somente=yes -> psi-fanger's shelf
+
+Antidaeon, (Comic Con)
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Aokua
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Appelai
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Arbeid
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Arctus, Heptadd's Squire
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po, Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po" mode=direct somente=yes -> lake ken-i-po
+  resolved [family] source="Lake Ken-I-Po, Ritual Site" token="Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Arctus, Heptadd's Squire (Pre-Release)
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po, Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po" mode=direct somente=yes -> lake ken-i-po
+  resolved [family] source="Lake Ken-I-Po, Ritual Site" token="Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Arias
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ario
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Ario, (Misprint)
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Arkanin
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Arrthoa
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Arrthoa, Captain of the Ezoa
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Asadab
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ast'imal
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Aszil, the Young Queen
+  resolved [exact] source="Queen's Gate" token="Queen's Gate" mode=direct somente=yes -> queen's gate
+
+Atrapol
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Attacat
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Attacat, Tactical Aide
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Aureban
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Aval'par
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains, M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Melting Camp" token="M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+
+Bahrakatan, The Coralsmith
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains, M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Heat Cannon" token="M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+
+Balaan
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Banshor
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Barath Beyond
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Barath Beyond
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Barath Beyond, UnderWorld General
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Biakan
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Bidua
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Bierk
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Biondu
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Bivike
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Blaaxa
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Bladez
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Blak'drin
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains, M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Melting Camp" token="M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+
+Blazier
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Blazier
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Blazier, Citadel Cartographer
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Blazvatan, The Epic Warbeast
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Blazvatan, The Epic Warbeast
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Blügon
+  resolved [exact] source="Glacier Plains" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Blügon, (New York Comic Con)
+  resolved [exact] source="Glacier Plains" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+
+Blügon, Winter Warrior
+  resolved [exact] source="Glacier Plains" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+
+Bo'aam
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains, M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Heat Cannon" token="M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+
+Bodal
+  resolved [exact] source="Bodal's Arsenal" token="Bodal's Arsenal" mode=direct somente=yes -> bodal's arsenal
+
+Bodal, Flamedrill Researcher
+  resolved [exact] source="Bodal's Arsenal" token="Bodal's Arsenal" mode=direct somente=yes -> bodal's arsenal
+
+Borth-Majar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Borth-Majar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Brathe
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Brimflame
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Bylkian
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Cerbie
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Chaac
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Chaor
+  resolved [exact] source="UnderWorld City" token="UnderWorld City" mode=direct somente=yes -> underworld city
+
+Chaor
+  resolved [exact] source="UnderWorld City" token="UnderWorld City" mode=direct somente=yes -> underworld city
+
+Chaor (Alpha)
+  resolved [exact] source="UnderWorld City" token="UnderWorld City" mode=direct somente=yes -> underworld city
+
+Chaor, The Fierce
+  resolved [exact] source="UnderWorld City" token="UnderWorld City" mode=direct somente=yes -> underworld city
+
+Chargola
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Clodor
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Crawsectus
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Crawsectus
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Cromaxx
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold, Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold" mode=direct somente=yes -> dranakis threshold
+  resolved [family] source="Dranakis Threshold, Portal to the Past" token="Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+
+Cyrenox
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Daj Huun
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Dakkamal, Melee Trainer
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Dalgad
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Dardemus
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Dasalin
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Dhilas
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Dibanni
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Donmar
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Donmar, Tablet Translator
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Drabe
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Dractyl
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Drakness
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Drazz
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Drazz, (Tangath Toborn In Training Stats Misprint)
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Dreg'ora
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Drimesse
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Dror'niq
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Dubin
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Dyrtax
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ebberim
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Ebbikka
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Ebena'bakku
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains, M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Heat Cannon" token="M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+
+Ebkeex, Patchwork Minion
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ekuud
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Elhadd
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Elna
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Em'swa
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Emna'ool
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Enre-hep
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Enre-hep
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+
+Enre-hep, High Muge of the Desert
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+
+Epitrinne
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Erak'tabb
+  resolved [exact] source="Riverlands, Erak'tabb's Foothold" token="Riverlands, Erak'tabb's Foothold" mode=direct somente=yes -> riverlands, erak'tabb's foothold
+  resolved [exact] source="Riverlands, Erak'tabb's Foothold" token="Riverlands" mode=direct somente=yes -> riverlands
+  resolved [family] source="Riverlands, Erak'tabb's Foothold" token="Erak'tabb's Foothold" mode=direct somente=yes -> riverlands, erak'tabb's foothold
+
+Ere
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Eremia
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ettala
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ettala, Mind Controlled Brute (Best Buy)
+  resolved [exact] source="Castle Mommark" token="Castle Mommark" mode=direct somente=yes -> castle mommark
+
+Eximiar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Faash
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Fal'makin
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Fal'makin, AZAIA Inquisitor
+  resolved [exact] source="AZAIA Mindscrying Chamber" token="AZAIA Mindscrying Chamber" mode=direct somente=yes -> azaia mindscrying chamber
+
+Farhkaj
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Fasseph
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Fazkaal
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Fivarth
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Fivarth
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Fla'gamp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains, M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Melting Camp" token="M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+
+Fliandar
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Formicidor
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Frafdo
+  resolved [exact] source="Castle Bodhran" token="Castle Bodhran" mode=direct somente=yes -> castle bodhran
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Frafdo, The Hero
+  resolved [exact] source="Castle Bodhran" token="Castle Bodhran" mode=direct somente=yes -> castle bodhran
+
+Gaffat-ra
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Gaffat-ra, (Pre-Release)
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Gal'drad
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Galin
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Galmedar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Gambreor
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Gan'nim
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Gan'trak
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Gareep
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Garv
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Gazarbash, Infecting Terraformer
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Geltod
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Gespedan
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Getterek
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ghar'lag
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Ghatup
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Ghundac
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ghuul
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Gimwei
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ginar'rash, The Extinguisher
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Gintanai, The Forgotten
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Glapaal
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Glost
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Gnarlus
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Gnarlus
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Gorram, Danian General
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Grantkae, Mipedian General
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Grindaald
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Gronmor
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Grook
+  resolved [exact] source="The Passage, UnderWorld" token="The Passage, UnderWorld" mode=direct somente=yes -> the passage, underworld
+  resolved [family] source="The Passage, UnderWorld" token="The Passage" mode=direct somente=yes -> the passage, overworld, the passage, underworld
+  resolved [environment] source="The Passage, UnderWorld" token="UnderWorld" mode=direct somente=yes -> underworld
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+H'earring
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+H'earring, Tainted
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Habekh
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Hammerdoom Chantcaller
+  resolved [exact] source="UnderWorld Colosseum" token="UnderWorld Colosseum" mode=direct somente=yes -> underworld colosseum
+
+Hammerdoom Chantcaller
+  resolved [exact] source="UnderWorld Colosseum" token="UnderWorld Colosseum" mode=direct somente=yes -> underworld colosseum
+
+Hammerdoom Chantcaller, Assimilated
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Hammerdoom Chantcaller, Assimilated
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Headmaster Ankhyja
+  resolved [exact] source="Royal Mipedian Academy of Melee Arts" token="Royal Mipedian Academy of Melee Arts" mode=direct somente=yes -> royal mipedian academy of melee arts
+
+Headmaster Ankhyja, Seeker of the Art
+  resolved [exact] source="Royal Mipedian Academy of Melee Arts" token="Royal Mipedian Academy of Melee Arts" mode=direct somente=yes -> royal mipedian academy of melee arts
+
+Heptadd
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Heptadd (Alpha)
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Heptadd, (2008 Hawaii Trade Conference)
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Heptadd, (Tin Misprint)
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Herken
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Hermatred
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Hiadrom
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Hiadrom, Rock Ripper
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Hifdan
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Hota
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Hoton
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Hune Canin
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Hune Marquard
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Hune Marquard, Brainwashed Scholar
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Hune Paltanin
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ibiaan
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ifjann
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Iflar, The Crown Prince
+  resolved [exact] source="Royal Mipedian Academy of Melee Arts" token="Royal Mipedian Academy of Melee Arts" mode=direct somente=yes -> royal mipedian academy of melee arts
+
+Ihun'kalin
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Ihun'kalin, Psionic Master
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Ikkatosh, Guardian of Nature
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po, Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po" mode=direct somente=yes -> lake ken-i-po
+  resolved [family] source="Lake Ken-I-Po, Ritual Site" token="Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ikub'ra
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Illazar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Illexia, The Danian Queen
+  resolved [exact] source="Queen's Gate" token="Queen's Gate" mode=direct somente=yes -> queen's gate
+
+Illexia, The Danian Queen (Misprint)
+  resolved [exact] source="Queen's Gate" token="Queen's Gate" mode=direct somente=yes -> queen's gate
+
+Illiar
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ilx
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Intress
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Intress
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Intress, Natureforce
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Iparu
+  resolved [exact] source="Iparu Jungle" token="Iparu Jungle" mode=direct somente=yes -> iparu jungle
+
+Iparu
+  resolved [exact] source="Iparu Jungle" token="Iparu Jungle" mode=direct somente=yes -> iparu jungle
+
+Iparu, Metallic Ally
+  resolved [exact] source="Iparu Jungle" token="Iparu Jungle" mode=direct somente=yes -> iparu jungle
+
+Irrabeq
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Issaley
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ivelaan
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ixxik
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Jaal
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Jaidwarl
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Jorre, Mipedian Lieutenant
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Jumbad
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Junda
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Jus'hebban
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Kaal
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold, Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold" mode=direct somente=yes -> dranakis threshold
+  resolved [family] source="Dranakis Threshold, Portal to the Past" token="Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+
+Kalanju
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Kalt
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Kamangareth
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Kamangareth, Unstable Ally
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Kannen
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Kapalor, (Walmart)
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Karraba
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Karraba
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Katharaz
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Kebna
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Kelvedran
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Kepiaan, Danian Lieutenant
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Kerric
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ketacc
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ketun
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Khavakk
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Khenti
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Khorror
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Khritlaan
+  resolved [exact] source="Queen's Gate" token="Queen's Gate" mode=direct somente=yes -> queen's gate
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Khritlaan
+  resolved [exact] source="Queen's Gate" token="Queen's Gate" mode=direct somente=yes -> queen's gate
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Khybon
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Khybon, Magma Dam Overseer
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Khybon, The Renegade
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Khybon's Engineered Automaton
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ki'bro
+  resolved [exact] source="The Storm Tunnel, Ki'bro's Foothold" token="The Storm Tunnel, Ki'bro's Foothold" mode=direct somente=yes -> the storm tunnel, ki'bro's foothold
+  resolved [exact] source="The Storm Tunnel, Ki'bro's Foothold" token="The Storm Tunnel" mode=direct somente=yes -> the storm tunnel
+  resolved [family] source="The Storm Tunnel, Ki'bro's Foothold" token="Ki'bro's Foothold" mode=direct somente=yes -> the storm tunnel, ki'bro's foothold
+
+Kileron, Warbeast of the Dust Storm
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Kinnianne, Ambassador to the Mipedians
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Kinnianne, Ambassador to the Mipedians
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Kiru
+  resolved [exact] source="Kiru Village" token="Kiru Village" mode=direct somente=yes -> kiru village
+
+Klar'nok
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains, M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Melting Camp" token="M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+
+Klasp
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Klawam
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Klencka
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Klencka, Avenger
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Klik'ssi
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Kobarri
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Kojjbel
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Kolmo
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Kolmo
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Kolmo, Assimilated
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Kolmo, Assimilated
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Kolmo, Purified
+  resolved [exact] source="Royal Mipedian Academy of Melee Arts" token="Royal Mipedian Academy of Melee Arts" mode=direct somente=yes -> royal mipedian academy of melee arts
+
+Kolmo, Purified (Pre-Release)
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Kopond
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Kopond
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Kopond, High Muge of the Hearth
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Korg
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Kraade
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Kreaal
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Krekk
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Krekk, Phalanx Recon
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Kughar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Laarina
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Lam'inkal
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Lanker
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Lendai
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Lhad
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Lobanne
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Loderool
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Lomma
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Lomma
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Lomma, Desert Wanderer
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Lord Van Bloot
+  resolved [exact] source="Gothos Tower" token="Gothos Tower" mode=direct somente=yes -> gothos tower
+  resolved [exact] source="Van Bloot's Banquet" token="Van Bloot's Banquet" mode=direct somente=yes -> van bloot's banquet
+
+Lord Van Bloot, Servant of Aa'une
+  resolved [exact] source="UnderWorld City, During Van Bloot's Ascent" token="UnderWorld City, During Van Bloot's Ascent" mode=direct somente=yes -> underworld city, during van bloot's ascent
+  resolved [exact] source="UnderWorld City, During Van Bloot's Ascent" token="UnderWorld City" mode=direct somente=yes -> underworld city
+  resolved [family] source="UnderWorld City, During Van Bloot's Ascent" token="During Van Bloot's Ascent" mode=direct somente=yes -> underworld city, during van bloot's ascent
+
+Lore
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Lore
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Lore, Ancestral Caller
+  resolved [exact] source="Lore's Chamber of Recall" token="Lore's Chamber of Recall" mode=direct somente=yes -> lore's chamber of recall
+
+Lore, High Muge of the Hive
+  resolved [exact] source="Lore's Chamber of Recall" token="Lore's Chamber of Recall" mode=direct somente=yes -> lore's chamber of recall
+
+Lyssta
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Lystone
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Maglax
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Maglax, Lodestone Seeker
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Magmon
+  resolved [exact] source="Lava Pond" token="Lava Pond" mode=direct somente=yes -> lava pond
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Magmon, Engulfed
+  resolved [exact] source="Lava Pond" token="Lava Pond" mode=direct somente=yes -> lava pond
+  resolved [exact] source="Lava Pond, Milla'iin's Foothold" token="Lava Pond, Milla'iin's Foothold" mode=direct somente=yes -> lava pond, milla'iin's foothold
+  resolved [exact] source="Lava Pond, Milla'iin's Foothold" token="Lava Pond" mode=direct somente=yes -> lava pond
+  resolved [family] source="Lava Pond, Milla'iin's Foothold" token="Milla'iin's Foothold" mode=direct somente=yes -> lava pond, milla'iin's foothold
+
+Magmon, Retalliator
+  resolved [exact] source="Lava Pond" token="Lava Pond" mode=direct somente=yes -> lava pond
+  resolved [exact] source="Lava Pond, Milla'iin's Foothold" token="Lava Pond, Milla'iin's Foothold" mode=direct somente=yes -> lava pond, milla'iin's foothold
+  resolved [exact] source="Lava Pond, Milla'iin's Foothold" token="Lava Pond" mode=direct somente=yes -> lava pond
+  resolved [family] source="Lava Pond, Milla'iin's Foothold" token="Milla'iin's Foothold" mode=direct somente=yes -> lava pond, milla'iin's foothold
+
+Mahrrant
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Mahrrant
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Majjcan
+  resolved [exact] source="Sha-Kree Flats" token="Sha-Kree Flats" mode=direct somente=yes -> sha-kree flats
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Makanaz
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Makrabon
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Makromil
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold, Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold" mode=direct somente=yes -> dranakis threshold
+  resolved [family] source="Dranakis Threshold, Portal to the Past" token="Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+
+Maliph, Guard of the Palace
+  resolved [exact] source="Royal Mipedian Academy of Melee Arts" token="Royal Mipedian Academy of Melee Arts" mode=direct somente=yes -> royal mipedian academy of melee arts
+
+Mallash
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Malvadine
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Malvadine, The King's Herald
+  resolved [exact] source="Royal Mipedian Academy of Melee Arts" token="Royal Mipedian Academy of Melee Arts" mode=direct somente=yes -> royal mipedian academy of melee arts
+
+Marquis Darini
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Masilbaat
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Maxxor
+  resolved [exact] source="Kiru City" token="Kiru City" mode=direct somente=yes -> kiru city
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Maxxor
+  resolved [exact] source="Kiru City" token="Kiru City" mode=direct somente=yes -> kiru city
+
+Maxxor, Elemental Champion
+  resolved [exact] source="Kiru City" token="Kiru City" mode=direct somente=yes -> kiru city
+  resolved [exact] source="Kiru City Tunnels" token="Kiru City Tunnels" mode=direct somente=yes -> kiru city tunnels
+
+Maxxor, Protector of Perim
+  resolved [exact] source="Kiru City" token="Kiru City" mode=direct somente=yes -> kiru city
+  resolved [exact] source="Kiru City Tunnels" token="Kiru City Tunnels" mode=direct somente=yes -> kiru city tunnels
+
+Melke
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Mezzmarr
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Mhein
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Mik'banin
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Miklon
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Milla'iin
+  resolved [exact] source="Lava Pond, Milla'iin's Foothold" token="Lava Pond, Milla'iin's Foothold" mode=direct somente=yes -> lava pond, milla'iin's foothold
+  resolved [exact] source="Lava Pond, Milla'iin's Foothold" token="Lava Pond" mode=direct somente=yes -> lava pond
+  resolved [family] source="Lava Pond, Milla'iin's Foothold" token="Milla'iin's Foothold" mode=direct somente=yes -> lava pond, milla'iin's foothold
+
+Milla'iin, Foothold Commander
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains, M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Melting Camp" token="M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+
+Mishmoshmish
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Mivindal
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Mizkio
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Mock'adyn
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Mock'adyn, Fluid Master
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Mommark
+  resolved [exact] source="Castle Mommark" token="Castle Mommark" mode=direct somente=yes -> castle mommark
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Mommark, Clonemaster
+  resolved [exact] source="Castle Mommark" token="Castle Mommark" mode=direct somente=yes -> castle mommark
+  resolved [exact] source="Mommark's Catapult Tower" token="Mommark's Catapult Tower" mode=direct somente=yes -> mommark's catapult tower
+
+Munnari
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Na-inna
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Na-inna, Rebel of the Rao'Pa Sahkk
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Najarin
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Lake Ken-I-Po" token="Lake Ken-I-Po" mode=proximo somente=no -> lake ken-i-po
+
+Najarin, Fluidmorphers' Foe
+  resolved [exact] source="Najarin's Castle" token="Najarin's Castle" mode=direct somente=yes -> najarin's castle
+  resolved [exact] source="Lake Ken-I-Po" token="Lake Ken-I-Po" mode=proximo somente=no -> lake ken-i-po
+
+Najarin, High Muge of the Lake
+  resolved [exact] source="Najarin's Castle" token="Najarin's Castle" mode=direct somente=yes -> najarin's castle
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po, Ritual Site" mode=proximo somente=no -> lake ken-i-po, ritual site
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po" mode=proximo somente=no -> lake ken-i-po
+  resolved [family] source="Lake Ken-I-Po, Ritual Site" token="Ritual Site" mode=proximo somente=no -> lake ken-i-po, ritual site
+
+Najarin, Younger
+  resolved [exact] source="Kiru Village" token="Kiru Village" mode=direct somente=yes -> kiru village
+
+Nakal
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Narfall
+  resolved [exact] source="Carnival of Confusion" token="Carnival of Confusion" mode=direct somente=yes -> carnival of confusion
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Nauthilax
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Nauthilax, Aquatic Spy
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Nauthilax, Tainted
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Nebres
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Necrabe
+  resolved [exact] source="Queen's Gate" token="Queen's Gate" mode=direct somente=yes -> queen's gate
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Neekwin
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Neffa
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Neth'uar
+  resolved [exact] source="Mount Pillar Reservoir, Neth'uar's Foothold" token="Mount Pillar Reservoir, Neth'uar's Foothold" mode=direct somente=yes -> mount pillar reservoir, neth'uar's foothold
+  resolved [exact] source="Mount Pillar Reservoir, Neth'uar's Foothold" token="Mount Pillar Reservoir" mode=direct somente=yes -> mount pillar reservoir
+  resolved [family] source="Mount Pillar Reservoir, Neth'uar's Foothold" token="Neth'uar's Foothold" mode=direct somente=yes -> mount pillar reservoir, neth'uar's foothold
+
+Nimmei
+  resolved [exact] source="Queen's Gate" token="Queen's Gate" mode=direct somente=yes -> queen's gate
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Nimmei, Expedition Overseer
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ninren
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Nis'dabba
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Nivenna
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Nivenna, UnderWorld Lieutenant
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Noaz, Mipedian Cavalerist
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Nom, Servant of Earth
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Nukasai
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Nunk'worn
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains, M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Melting Camp" token="M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+
+Nunk'worn, (Toys "R" Us)
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Nunk'worn, Assimilated
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Odu-Bathax
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Odu-Bathax, Reservoir Reclaimer
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Okaxor
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Olkiex
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Olkiex
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Olkiex, Driver Extraordinaire
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ooloo
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Opto, (Convention)
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Orbaat
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ornathor
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ørth, The Empowerer
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Otinee
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Owayki
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Owis
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ozlai, Chaor's Pilot
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Part'soa
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Phelphor
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Phelphor
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Phelphor, Of the Deep
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Piddan
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Porthyn
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Prantix
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Prince Mudeenu
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Prince Mudeenu, (Dardemus Stats Misprint)
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Prince Mudeenu, Champion of the Guard
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Prince Mudeenu, Champion of the Guard (Online Promo)
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Proboscar
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold, Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold" mode=direct somente=yes -> dranakis threshold
+  resolved [family] source="Dranakis Threshold, Portal to the Past" token="Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+
+Psimion
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Pyrithion
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Quadore
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Qwun
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Qwun, Solitary Scout
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Ragetrod
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Raimusa
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ramarhvir, The Danian Hivebringer
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ramarhvir, The Danian Hivebringer
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ranun
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Raquanni
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Rarran
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Rarran, Tainted
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Rasbma Darini
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Rath'tab
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains, M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Heat Cannon" token="M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+
+Rath'tab, Mind Scryer
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains, M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Melting Camp" token="M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+
+Raznus, Ambassador to the Danians
+  resolved [exact] source="OverWorld Embassy at Mount Pillar" token="OverWorld Embassy at Mount Pillar" mode=direct somente=yes -> overworld embassy at mount pillar
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Raznus, Ambassador to the Danians
+  resolved [exact] source="OverWorld Embassy at Mount Pillar" token="OverWorld Embassy at Mount Pillar" mode=direct somente=yes -> overworld embassy at mount pillar
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Raznus, Assimilated
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Rebant
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Rellim
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Rellim, Watermaster
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ri'oha
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Ribbian
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Ribbian
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Riggan
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ritzu'dag
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains, M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Melting Camp" token="M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+
+Rol'doi
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Rothar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Rothar, Forceful Negotiator
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ruhban
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Saand
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Savell
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Savitsa
+  resolved [exact] source="Carnival of Confusion" token="Carnival of Confusion" mode=direct somente=yes -> carnival of confusion
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Seeryn, Servant of Fire
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Sepmek
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Shimmark
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Shinadd
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Siado
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Siado (Alpha), Invisible Striker
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Silchaw
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Silv, Servant of Air
+  resolved [exact] source="Sha-Kree Flats" token="Sha-Kree Flats" mode=direct somente=yes -> sha-kree flats
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Simalin, (Retail Packs)
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Siril'ean, The Songthief
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains, M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+  resolved [exact] source="Glacier Plains, M'arrillian Heat Cannon" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Heat Cannon" token="M'arrillian Heat Cannon" mode=direct somente=yes -> glacier plains, m'arrillian heat cannon
+
+Sirri
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Skartalas
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Skithia
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Skithia, Gothos Spy
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Skorblust
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold, Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold" mode=direct somente=yes -> dranakis threshold
+  resolved [family] source="Dranakis Threshold, Portal to the Past" token="Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+
+Skreeth
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Slufurah
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=proximo somente=no -> grand hall of muge's summit
+
+Slufurah, Treacherous Translator
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=proximo somente=no -> grand hall of muge's summit
+
+Slurhk
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Smildon
+  resolved [exact] source="Prexxor Chasm" token="Prexxor Chasm" mode=direct somente=yes -> prexxor chasm
+
+Sobtjek
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Solvis
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Somnort
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Son'las
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Staluk
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Stelgar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Stelgar, Vicious Mutation
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Strikto
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Sukoval
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Swassa
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Tabaal
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Taffial
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Taffial, Cothica Hunter
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Takinom
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Takinom
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Takinom, The Shadowknight
+  resolved [exact] source="UnderWorld City" token="UnderWorld City" mode=direct somente=yes -> underworld city
+
+Takinom, The Shadowknight (Perim Tour)
+  resolved [exact] source="UnderWorld City" token="UnderWorld City" mode=direct somente=yes -> underworld city
+
+Tangath Toborn
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Tangath Toborn
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Tangath Toborn, In Training
+  resolved [exact] source="Quarters of the Quartet" token="Quarters of the Quartet" mode=direct somente=yes -> quarters of the quartet
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Tangath Toborn, OverWorld General
+  resolved [exact] source="Quarters of the Quartet" token="Quarters of the Quartet" mode=direct somente=yes -> quarters of the quartet
+  resolved [exact] source="The Barracks" token="The Barracks" mode=direct somente=yes -> the barracks
+
+Tangath Toborn, OverWorld General (Pre-Release)
+  resolved [exact] source="The Barracks" token="The Barracks" mode=direct somente=yes -> the barracks
+
+Tarbok
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Targubaj
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Tarin
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Tartarek
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Tartarek, Psi Overloader
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Tarteme
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Tasqa
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Tassanil
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Tassanil, High Elementalist
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Thar'lyn, AZAIA Spy
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Tharc, Tablet Translator
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Tiaane
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Tinnoi
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Tir'baleen
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Titanix
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Toadore
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Tomugar
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Topar
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Torrna
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Toxis
+  resolved [exact] source="Carnival of Confusion" token="Carnival of Confusion" mode=direct somente=yes -> carnival of confusion
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Trimdaal
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ubliqun
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Uboraan
+  resolved [exact] source="Catacombs of the Conjurors" token="Catacombs of the Conjurors" mode=direct somente=yes -> catacombs of the conjurors
+
+Uholdan
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Uksum
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ulfhedinn
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Ulmar
+  resolved [exact] source="Ulmar's Projection Cavern" token="Ulmar's Projection Cavern" mode=direct somente=yes -> ulmar's projection cavern
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ulmar
+  resolved [exact] source="Ulmar's Projection Cavern" token="Ulmar's Projection Cavern" mode=direct somente=yes -> ulmar's projection cavern
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ulmar, Perithon Racer
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ulmar, Wavescrambler
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Ulmquad
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Ultadur
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Unda, Servant of Water
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Uro
+  resolved [exact] source="Sha-Kree Flats" token="Sha-Kree Flats" mode=direct somente=yes -> sha-kree flats
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Ursis
+  resolved [exact] source="Prexxor Chasm, The Blight" token="Prexxor Chasm, The Blight" mode=direct somente=yes -> prexxor chasm, the blight
+  resolved [exact] source="Prexxor Chasm, The Blight" token="Prexxor Chasm" mode=direct somente=yes -> prexxor chasm
+  resolved [family] source="Prexxor Chasm, The Blight" token="The Blight" mode=direct somente=yes -> prexxor chasm, the blight
+
+Ustabe
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Valanii Levaan
+  resolved [exact] source="Queen's Gate" token="Queen's Gate" mode=direct somente=yes -> queen's gate
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Valban
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Vasquin
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Velreth
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Vidav
+  resolved [exact] source="Vidav's Refectorium" token="Vidav's Refectorium" mode=direct somente=yes -> vidav's refectorium
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Vidav, Master Strategist
+  resolved [exact] source="Vidav's Refectorium" token="Vidav's Refectorium" mode=direct somente=yes -> vidav's refectorium
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Vilrik Landfarer
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Vinta
+  resolved [exact] source="Mipedian Dew Farm" token="Mipedian Dew Farm" mode=proximo somente=no -> mipedian dew farm
+
+Viqtarr
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Vitar'zu
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Vix'ben
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains, M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+  resolved [exact] source="Glacier Plains, M'arrillian Melting Camp" token="Glacier Plains" mode=direct somente=yes -> glacier plains
+  resolved [family] source="Glacier Plains, M'arrillian Melting Camp" token="M'arrillian Melting Camp" mode=direct somente=yes -> glacier plains, m'arrillian melting camp
+
+Vlar
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold, Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold" mode=direct somente=yes -> dranakis threshold
+  resolved [family] source="Dranakis Threshold, Portal to the Past" token="Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+
+Voorx
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold, Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+  resolved [exact] source="Dranakis Threshold, Portal to the Past" token="Dranakis Threshold" mode=direct somente=yes -> dranakis threshold
+  resolved [family] source="Dranakis Threshold, Portal to the Past" token="Portal to the Past" mode=direct somente=yes -> dranakis threshold, portal to the past
+
+Vunhra
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Vyll
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Wamma
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Wamma, Flame Guard
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Wamma, Hive Ordnance
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Wilt'dred
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Wistanne
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Wrenges
+  resolved [exact] source="Grand Hall of Muge's Summit" token="Grand Hall of Muge's Summit" mode=direct somente=yes -> grand hall of muge's summit
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Wytod
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Xaerv
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po, Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po" mode=direct somente=yes -> lake ken-i-po
+  resolved [family] source="Lake Ken-I-Po, Ritual Site" token="Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Xaerv, Monsoon Defender
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po, Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [exact] source="Lake Ken-I-Po, Ritual Site" token="Lake Ken-I-Po" mode=direct somente=yes -> lake ken-i-po
+  resolved [family] source="Lake Ken-I-Po, Ritual Site" token="Ritual Site" mode=direct somente=yes -> lake ken-i-po, ritual site
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Xelfe
+  resolved [exact] source="Mipedim Mirage" token="Mipedim Mirage" mode=proximo somente=no -> mipedim mirage
+
+Xield
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Xis'torq
+  resolved [exact] source="Open Doors of the Deepmines" token="Open Doors of the Deepmines" mode=proximo somente=no -> open doors of the deepmines
+
+Ylinné
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Yokkis
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Yokkis
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Yokkis, Spooker
+  resolved [environment] source="OverWorld" token="OverWorld" mode=proximo somente=no -> overworld
+
+Yondaf
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Yondaf, Symbiotic Infector
+  resolved [exact] source="Mount Pillar" token="Mount Pillar" mode=proximo somente=no -> mount pillar
+
+Yterio
+  resolved [exact] source="Mipedim Lounge" token="Mipedim Lounge" mode=proximo somente=no -> mipedim lounge
+
+Zalic
+  resolved [exact] source="The Passage, OverWorld" token="The Passage, OverWorld" mode=direct somente=yes -> the passage, overworld
+  resolved [family] source="The Passage, OverWorld" token="The Passage" mode=direct somente=yes -> the passage, overworld, the passage, underworld
+  resolved [environment] source="The Passage, OverWorld" token="OverWorld" mode=direct somente=yes -> overworld
+
+Zamool, Lord Van Bloot's Enforcer
+  resolved [exact] source="Gothos Tower" token="Gothos Tower" mode=direct somente=yes -> gothos tower
+
+Zapetur
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Zaur
+  resolved [environment] source="Underworld" token="Underworld" mode=proximo somente=no -> underworld
+
+Zhade
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis
+
+Zhade, Dig Site Defender
+  resolved [exact] source="Mipedim Oasis" token="Mipedim Oasis" mode=proximo somente=no -> mipedim oasis

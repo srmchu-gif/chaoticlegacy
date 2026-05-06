@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+debug-logs
+downloads
+db
+runtime
+caddy_data
+caddy_config
+duckdns
+backups
+*.exe
+*.log
+*.tmp
+*.bak
+~$*.xlsx

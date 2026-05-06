@@ -1,0 +1,207 @@
+
+>   // Multiplayer Logic
+    const menuNav = document.getElementById('menu-nav');
+    const mpPanel = document.getElementById('multiplayer-panel');
+    const mpCreateView = document.getElementById('mp-create-view');
+    const mpJoinView = document.getElementById('mp-join-view');
+    const mpJoinDeckSection = document.getElementById('mp-join-deck-section');
+    const btnMultiplayer = document.getElementById('btn-multiplayer');
+    const btnMpBack = document.getElementById('btn-mp-back');
+    const btnMpCreate = document.getElementById('btn-mp-create');
+    const btnMpJoin = document.getElementById('btn-mp-join');
+    const btnMpConfirmCreate = document.getElementById('btn-mp-confirm-create');
+    const btnMpConfirmJoin = document.getElementById('btn-mp-confirm-join');
+    const selMpDeckCreate = document.getElementById('mp-deck-select-create');
+    const selMpDeckJoin = document.getElementById('mp-deck-select-join');
+    const mpWaitingMessage = document.getElementById('mp-waiting-message');
+    const mpRoomsList = document.getElementById('mp-rooms-list');
+    let selectedRoomIdToJoin = null;
+  
+    async function populateDecks(selectEl) {
+      try {
+        const res = await fetch('/api/decks');
+        const data = await res.json();
+        selectEl.innerHTML = '';
+        if (data.decks && data.decks.length) {
+          data.decks.forEach(deck => {
+            const opt = document.createElement('option');
+            opt.value = deck.name;
+            opt.textContent = deck.name;
+            selectEl.appendChild(opt);
+          });
+        } else {
+          const opt = document.createElement('option');
+          opt.value = "";
+          opt.textContent = "Nenhum deck encontrado";
+          selectEl.appendChild(opt);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  
+    if (btnMultiplayer) {
+      if(btnMultiplayer) btnMultiplayer.addEventListener('click', async () => {
+        menuNav.style.display = 'none';
+        mpPanel.style.display = 'block';
+        mpCreateView.style.display = 'none';
+        mpJoinView.style.display = 'none';
+        await populateDecks(selMpDeckCreate);
+        await populateDecks(selMpDeckJoin);
+      });
+    }
+  
+    if (btnMpBack) {
+      if(btnMpBack) btnMpBack.addEventListener('click', () => {
+        mpPanel.style.display = 'none';
+        menuNav.style.display = 'flex';
+      });
+    }
+  
+    if (btnMpCreate) {
+      if(btnMpCreate) btnMpCreate.addEventListener('click', () => {
+        mpCreateView.style.display = 'block';
+        mpJoinView.style.display = 'none';
+        mpWaitingMessage.style.display = 'none';
+        btnMpConfirmCreate.style.display = 'block';
+      });
+    }
+  
+    if (btnMpJoin) {
+      mpJoinView.style.display = 'block';
+      mpCreateView.style.display = 'none';
+      mpJoinDeckSection.style.display = 'none';
+      selectedRoomIdToJoin = null;
+      mpRoomsList.innerHTML = '<div style="text-align:center; color:#889bb4;">Buscando salas...</div>';
+      
+      try {
+        const res = await fetch('/api/multiplayer/rooms');
+        const data = await res.json();
+        mpRoomsList.innerHTML = '';
+        if (data.rooms && data.rooms.length) {
+          data.rooms.forEach(room => {
+            const roomDiv = document.createElement('div');
+            roomDiv.style.padding = '0.5rem';
+            roomDiv.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+            roomDiv.style.display = 'flex';
+            roomDiv.style.justifyContent = 'space-between';
+            roomDiv.style.alignItems = 'center';
+            
+            const textDiv = document.createElement('div');
+            textDiv.innerHTML = `<strong>ID: ${room.id}</strong> <br> <small>Host: ${room.hostName} | Status: 
+${room.status}</small>`;
+            roomDiv.appendChild(textDiv);
+  
+            const actionBtn = document.createElement('button');
+            if (room.status === '1/2 jogadores') {
+              actionBtn.className = 'menu-btn primary-btn';
+              actionBtn.style.padding = '0.3rem 0.6rem';
+              actionBtn.textContent = 'Entrar';
+              actionBtn.onclick = () => {
+                selectedRoomIdToJoin = room.id;
+                mpJoinDeckSection.style.display = 'block';
+              };
+            } else {
+              actionBtn.className = 'menu-btn ghost-btn';
+              actionBtn.style.padding = '0.3rem 0.6rem';
+              actionBtn.textContent = 'Assistir';
+              actionBtn.onclick = () => {
+                window.location.href = \`/index.html?view=battle&multiplayer=true&roomId=\${room.id}&role=spectator\`;
+              };
+            }
+            roomDiv.appendChild(actionBtn);
+            mpRoomsList.appendChild(roomDiv);
+          });
+        } else {
+          mpRoomsList.innerHTML = '<div style="text-align:center; color:#889bb4;">Nenhuma sala encontrada.</div>';
+        }
+      } catch (err) {
+        mpRoomsList.innerHTML = '<div style="text-align:center; color:#ff6a5c;">Erro ao buscar salas.</div>';
+      }
+    });
+  
+    if(btnMpConfirmCreate) btnMpConfirmCreate.addEventListener('click', async () => {
+      const deckName = selMpDeckCreate.value;
+      if (!deckName) return alert('Selecione um deck!');
+      
+      // Buscar os detalhes do deck completo para enviar ao host
+      const deckRes = await fetch(\`/api/decks/\${encodeURIComponent(deckName)}\`);
+      const deckData = await deckRes.json();
+      
+      btnMpConfirmCreate.style.display = 'none';
+      mpWaitingMessage.style.display = 'block';
+  
+      try {
+        const res = await fetch('/api/multiplayer/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerName: username, deck: deckData })
+        });
+        const data = await res.json();
+        
+        // Conectar ao SSE
+        const evtSource = new EventSource(\`/api/multiplayer/events/\${data.roomId}\`);
+        evtSource.onmessage = (event) => {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'player_joined') {
+            evtSource.close();
+            window.location.href = \`/index.html?view=battle&multiplayer=true&roomId=\${data.roomId}&role=host\`;
+          }
+        };
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao criar sala');
+        btnMpConfirmCreate.style.display = 'block';
+        mpWaitingMessage.style.display = 'none';
+      }
+    });
+  
+    if(btnMpConfirmJoin) btnMpConfirmJoin.addEventListener('click', async () => {
+      if (!selectedRoomIdToJoin) return;
+      const deckName = selMpDeckJoin.value;
+      if (!deckName) return alert('Selecione um deck!');
+      
+      const deckRes = await fetch(\`/api/decks/\${encodeURIComponent(deckName)}\`);
+      const deckData = await deckRes.json();
+  
+      try {
+        const res = await fetch(\`/api/multiplayer/rooms/\${selectedRoomIdToJoin}/join\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ spectator: false, deck: deckData })
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json();
+          alert('Erro: ' + errorData.error);
+          return;
+        }
+        
+        window.location.href = \`/index.html?view=battle&multiplayer=true&roomId=\${selectedRoomIdToJoin}&role=guest\`;
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao entrar na sala');
+      }
+    });
+  
+    // Footer Actions
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      localStorage.removeItem(DB_SESSION);
+      window.location.href = '/auth.html';
+    });
+  
+    document.getElementById('btn-exit').addEventListener('click', () => {
+      if (confirm("Deseja realmente sair do jogo?")) {
+        // Hit the shutdown endpoint
+        fetch('/api/shutdown', { method: 'POST' }).catch(() => {});
+        
+        // Attempt to close
+        window.close();
+        
+        // Show final message if window doesn't close immediately
+        document.body.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; 
+text-align:center;">
+
+
+

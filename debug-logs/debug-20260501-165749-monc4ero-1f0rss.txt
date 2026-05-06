@@ -1,0 +1,123 @@
+Chaotic Debug Session
+sessionId=monc4ero-1f0rss
+startedAt=2026-05-01T19:57:49.380Z
+url=http://localhost:3000/index.html?view=battle&multiplayer=true&roomId=1000&role=host&seatToken=516e02a2dc23d7fd8be63f53c56deada
+userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0
+---
+{"type":"session_start","payload":{"url":"http://localhost:3000/index.html?view=battle&multiplayer=true&roomId=1000&role=host&seatToken=516e02a2dc23d7fd8be63f53c56deada","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0","settings":{"schemaVersion":1,"updatedAt":"2026-05-01T19:53:57.383Z","screen":{"fullscreenAuto":true,"resolution":"high"},"audio":{"enabled":true,"master":100,"sfx":100,"music":5},"language":{"cards":"pt","ui":"pt"},"gameplay":{"animations":true,"hints":false},"controls":{"mouseSensitivity":100,"keybinds":{"confirmAction":"Enter","confirmAttack":"Space","autoStep":"KeyN","switchBuilder":"Digit1","switchBattle":"Digit2","switchSettings":"Digit3","cancel":"Escape"}},"extras":{"theme":"dark","fpsCounter":true,"debugMode":true},"musicPlayer":{"enabled":true,"loopTrack":false,"lastTrackIndex":4,"volume":22}}}}
+{"at":"2026-05-01T19:57:49.385Z","type":"debug","message":"Debug mode enabled.","payload":null}
+{"at":"2026-05-01T19:57:49.567Z","type":"battle_log","message":"Partida iniciada.","payload":null}
+{"at":"2026-05-01T19:57:49.567Z","type":"battle_log","message":"Jogador 2 comeca a partida.","payload":null}
+{"at":"2026-05-01T19:57:49.567Z","type":"battle_log","message":"Perfil de regras: official_master.","payload":null}
+{"at":"2026-05-01T19:57:49.567Z","type":"battle_log","message":"Turno 1 - admin.","payload":null}
+{"at":"2026-05-01T19:57:49.567Z","type":"battle_log","message":"Location: Bodal's Arsenal.","payload":null}
+{"at":"2026-05-01T19:57:49.567Z","type":"battle_log","message":"Janela de prioridade (pre_move_priority): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:57:49.598Z","type":"music","message":"play","payload":{"track":"Nexus of Cards"}}
+{"at":"2026-05-01T19:58:07.986Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:58:07.986Z","type":"battle_log","message":"Modo 1v1: combate iniciado automaticamente.","payload":null}
+{"at":"2026-05-01T19:58:07.986Z","type":"battle_log","message":"SrChuu: Prism of Sloth revelado no inicio do combate.","payload":null}
+{"at":"2026-05-01T19:58:07.986Z","type":"battle_log","message":"admin: Algal Wings of Attraction revelado no inicio do combate.","payload":null}
+{"at":"2026-05-01T19:58:07.986Z","type":"battle_log","message":"admin vence a iniciativa.","payload":null}
+{"at":"2026-05-01T19:58:17.735Z","type":"battle_log","message":"admin joga Burning Rain.","payload":null}
+{"at":"2026-05-01T19:58:17.735Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:58:19.929Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:58:19.929Z","type":"battle_log","message":"admin ativa 1 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:58:19.929Z","type":"battle_log","message":"admin prepara 5 dano com Burning Rain.","payload":null}
+{"at":"2026-05-01T19:58:19.929Z","type":"battle_log","message":"SrChuu recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T19:58:19.929Z","type":"battle_log","message":"Ataque resolvido: admin -> Burning Rain.","payload":null}
+{"at":"2026-05-01T19:58:26.628Z","type":"battle_log","message":"SrChuu joga Valor Continuum.","payload":null}
+{"at":"2026-05-01T19:58:26.628Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:58:27.941Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:58:27.941Z","type":"battle_log","message":"SrChuu ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:58:27.941Z","type":"battle_log","message":"SrChuu prepara 0 dano com Valor Continuum.","payload":null}
+{"at":"2026-05-01T19:58:27.941Z","type":"battle_log","message":"Ataque resolvido: SrChuu -> Valor Continuum.","payload":null}
+{"at":"2026-05-01T19:59:02.594Z","type":"battle_log","message":"admin joga Dexterous Storm.","payload":null}
+{"at":"2026-05-01T19:59:02.594Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:03.834Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:03.834Z","type":"battle_log","message":"admin ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:03.834Z","type":"battle_log","message":"admin prepara 5 dano com Dexterous Storm.","payload":null}
+{"at":"2026-05-01T19:59:03.834Z","type":"battle_log","message":"SrChuu recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T19:59:03.834Z","type":"battle_log","message":"Ataque resolvido: admin -> Dexterous Storm.","payload":null}
+{"at":"2026-05-01T19:59:07.933Z","type":"battle_log","message":"SrChuu joga Sunder Ground.","payload":null}
+{"at":"2026-05-01T19:59:07.933Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:09.076Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:09.076Z","type":"battle_log","message":"SrChuu ativa 1 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:09.076Z","type":"battle_log","message":"SrChuu prepara 10 dano com Sunder Ground.","payload":null}
+{"at":"2026-05-01T19:59:09.076Z","type":"battle_log","message":"admin recebe 10 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T19:59:09.076Z","type":"battle_log","message":"Ataque resolvido: SrChuu -> Sunder Ground.","payload":null}
+{"at":"2026-05-01T19:59:13.304Z","type":"battle_log","message":"admin joga Combustion Carnage.","payload":null}
+{"at":"2026-05-01T19:59:13.304Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:14.764Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:14.764Z","type":"battle_log","message":"admin ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:14.764Z","type":"battle_log","message":"admin prepara 20 dano com Combustion Carnage.","payload":null}
+{"at":"2026-05-01T19:59:14.764Z","type":"battle_log","message":"SrChuu recebe 20 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T19:59:14.764Z","type":"battle_log","message":"Ataque resolvido: admin -> Combustion Carnage.","payload":null}
+{"at":"2026-05-01T19:59:18.379Z","type":"battle_log","message":"SrChuu joga Thunder Shout.","payload":null}
+{"at":"2026-05-01T19:59:18.379Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:19.462Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:19.462Z","type":"battle_log","message":"SrChuu ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:19.462Z","type":"battle_log","message":"SrChuu prepara 0 dano com Thunder Shout.","payload":null}
+{"at":"2026-05-01T19:59:19.462Z","type":"battle_log","message":"Ataque resolvido: SrChuu -> Thunder Shout.","payload":null}
+{"at":"2026-05-01T19:59:22.780Z","type":"battle_log","message":"admin joga Electro-Web.","payload":null}
+{"at":"2026-05-01T19:59:22.780Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:24.903Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:24.903Z","type":"battle_log","message":"admin ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:24.903Z","type":"battle_log","message":"admin prepara 15 dano com Electro-Web.","payload":null}
+{"at":"2026-05-01T19:59:24.903Z","type":"battle_log","message":"SrChuu recebe 15 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T19:59:24.903Z","type":"battle_log","message":"Ataque resolvido: admin -> Electro-Web.","payload":null}
+{"at":"2026-05-01T19:59:27.009Z","type":"battle_log","message":"SrChuu joga Reefquake.","payload":null}
+{"at":"2026-05-01T19:59:27.009Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:28.022Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:28.023Z","type":"battle_log","message":"SrChuu ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:28.023Z","type":"battle_log","message":"SrChuu prepara 10 dano com Reefquake.","payload":null}
+{"at":"2026-05-01T19:59:28.023Z","type":"battle_log","message":"admin recebe 10 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T19:59:28.023Z","type":"battle_log","message":"Ataque resolvido: SrChuu -> Reefquake.","payload":null}
+{"at":"2026-05-01T19:59:33.050Z","type":"battle_log","message":"admin joga Delerium.","payload":null}
+{"at":"2026-05-01T19:59:33.050Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:35.051Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:35.051Z","type":"battle_log","message":"admin ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:35.051Z","type":"battle_log","message":"admin prepara 5 dano com Delerium.","payload":null}
+{"at":"2026-05-01T19:59:35.051Z","type":"battle_log","message":"SrChuu recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T19:59:35.051Z","type":"battle_log","message":"Ataque resolvido: admin -> Delerium.","payload":null}
+{"at":"2026-05-01T19:59:38.606Z","type":"battle_log","message":"SrChuu joga Petrifying Power.","payload":null}
+{"at":"2026-05-01T19:59:38.606Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:39.499Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:39.499Z","type":"battle_log","message":"SrChuu ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:39.499Z","type":"battle_log","message":"SrChuu prepara 0 dano com Petrifying Power.","payload":null}
+{"at":"2026-05-01T19:59:39.499Z","type":"battle_log","message":"Ataque resolvido: SrChuu -> Petrifying Power.","payload":null}
+{"at":"2026-05-01T19:59:43.745Z","type":"battle_log","message":"admin joga Degenervate.","payload":null}
+{"at":"2026-05-01T19:59:43.745Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:48.227Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:48.227Z","type":"battle_log","message":"admin ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:48.227Z","type":"battle_log","message":"admin prepara 0 dano com Degenervate.","payload":null}
+{"at":"2026-05-01T19:59:48.227Z","type":"battle_log","message":"Ataque resolvido: admin -> Degenervate.","payload":null}
+{"at":"2026-05-01T19:59:50.321Z","type":"battle_log","message":"SrChuu joga Swarming Destruction.","payload":null}
+{"at":"2026-05-01T19:59:50.321Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:51.633Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:51.633Z","type":"battle_log","message":"SrChuu ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:51.633Z","type":"battle_log","message":"SrChuu prepara 0 dano com Swarming Destruction.","payload":null}
+{"at":"2026-05-01T19:59:51.633Z","type":"battle_log","message":"Ataque resolvido: SrChuu -> Swarming Destruction.","payload":null}
+{"at":"2026-05-01T19:59:55.393Z","type":"battle_log","message":"admin joga Dry Liquid.","payload":null}
+{"at":"2026-05-01T19:59:55.393Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T19:59:57.772Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T19:59:57.772Z","type":"battle_log","message":"admin ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T19:59:57.772Z","type":"battle_log","message":"admin prepara 15 dano com Dry Liquid.","payload":null}
+{"at":"2026-05-01T19:59:57.772Z","type":"battle_log","message":"SrChuu recebe 15 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T19:59:57.772Z","type":"battle_log","message":"Ataque resolvido: admin -> Dry Liquid.","payload":null}
+{"at":"2026-05-01T20:00:00.226Z","type":"battle_log","message":"SrChuu joga Reverberate.","payload":null}
+{"at":"2026-05-01T20:00:00.226Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T20:00:01.659Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T20:00:01.659Z","type":"battle_log","message":"SrChuu ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T20:00:01.659Z","type":"battle_log","message":"SrChuu prepara 10 dano com Reverberate.","payload":null}
+{"at":"2026-05-01T20:00:01.659Z","type":"battle_log","message":"admin recebe 10 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T20:00:01.659Z","type":"battle_log","message":"Ataque resolvido: SrChuu -> Reverberate.","payload":null}
+{"at":"2026-05-01T20:00:09.418Z","type":"battle_log","message":"admin joga Acceleration.","payload":null}
+{"at":"2026-05-01T20:00:09.418Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-05-01T20:00:11.419Z","type":"battle_log","message":"SrChuu passa prioridade.","payload":null}
+{"at":"2026-05-01T20:00:11.419Z","type":"battle_log","message":"admin ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-05-01T20:00:11.419Z","type":"battle_log","message":"admin prepara 30 dano com Acceleration.","payload":null}
+{"at":"2026-05-01T20:00:11.419Z","type":"battle_log","message":"SrChuu recebe 30 dano e 0 cura.","payload":null}
+{"at":"2026-05-01T20:00:11.419Z","type":"battle_log","message":"Ursis foi derrotada.","payload":null}
+{"at":"2026-05-01T20:00:11.419Z","type":"battle_log","message":"Ataque resolvido: admin -> Acceleration.","payload":null}
+{"at":"2026-05-01T20:00:11.419Z","type":"battle_log","message":"Vitoria de admin.","payload":null}
+{"type":"session_end","at":"2026-05-01T20:00:17.530Z","reason":"beforeunload"}

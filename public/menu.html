@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chaotic Legacy - Menu Principal</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/menu.css" />
+  <link rel="stylesheet" href="css/music.css?v=2" />
+</head>
+<body>
+  <div class="bg-shape shape-a"></div>
+  <div class="bg-shape shape-b"></div>
+
+  <main class="menu-wrapper">
+    <div class="menu-panel">
+      <img id="menu-main-logo" src="logo.png" alt="Chaotic Legacy Logo" class="menu-main-logo" />
+      
+      <!-- Secao do Perfil -->
+      <section class="profile-section">
+        <div class="profile-avatar-wrapper" id="avatar-container" title="Clique para abrir perfil">
+          <div class="profile-avatar">
+            <div class="profile-avatar-inner">
+              <img id="player-avatar-img" src="fundo%20cartas.png" alt="Avatar do Jogador">
+              <div class="avatar-overlay">
+                <span>&#128247;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="profile-info">
+          <h2 id="player-name">Carregando...</h2>
+          <div class="profile-stats">
+            <div class="stat-box">
+              <span class="stat-label">Pontua&ccedil;&atilde;o</span>
+              <strong class="stat-value accent-text" id="player-score">1200</strong>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Taxa de Vit&oacute;rias</span>
+              <strong class="stat-value" id="player-winrate">54%</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Navegacao Principal -->
+      <nav class="menu-nav" id="menu-nav">
+        <button id="btn-dromos" class="menu-btn primary-btn pulse-btn">
+          <span>DROMOS</span>
+          <small>Battlefield</small>
+        </button>
+        <button id="btn-perim" class="menu-btn standard-btn">
+          <span>PERIM</span>
+          <small>Explora&ccedil;&atilde;o e Scans</small>
+        </button>
+        <button id="btn-builder" class="menu-btn standard-btn">
+          <span>DECK BUILDER</span>
+          <small>Monte suas estrat&eacute;gias</small>
+        </button>
+        <button id="btn-multiplayer" class="menu-btn primary-btn">
+          <span>MULTIPLAYER</span>
+          <small>Jogue com outros</small>
+        </button>
+        <button id="btn-trades" class="menu-btn standard-btn">
+          <span>TROCAS</span>
+          <small>Troca de cartas</small>
+        </button>
+        <button id="btn-settings" class="menu-btn standard-btn">
+          <span>CONFIGURA&Ccedil;&Otilde;ES</span>
+          <small>Op&ccedil;&otilde;es do jogo</small>
+        </button>
+      </nav>
+
+      <section class="perim-panel" id="perim-panel" style="display: none;">
+        <h2 class="panel-title">PERIM</h2>
+        <div class="perim-status" id="perim-status"></div>
+
+        <div class="perim-filters">
+          <input id="perim-filter-search" type="search" placeholder="Buscar local por nome..." />
+        </div>
+
+        <div class="perim-layout">
+          <div class="perim-locations-wrap">
+            <h3>Locais do Jogador</h3>
+            <div id="perim-locations-grid" class="perim-locations-grid"></div>
+          </div>
+          <div class="perim-detail-wrap">
+            <h3>Detalhes do Local</h3>
+            <div id="perim-location-detail" class="perim-location-detail"></div>
+          </div>
+          <div class="perim-actions-wrap">
+            <h3>A&ccedil;&otilde;es</h3>
+            <div id="perim-actions-list" class="perim-actions-list"></div>
+            <button id="perim-start-action" class="menu-btn primary-btn pulse-btn compact-action-btn">Iniciar A&ccedil;&atilde;o</button>
+            <button id="perim-events-btn" class="menu-btn ghost-btn compact-action-btn">Eventos</button>
+          </div>
+        </div>
+
+        <div id="perim-active-run" class="perim-active-run"></div>
+        <div id="perim-news-ticker" class="perim-news-ticker hidden">
+          <div class="perim-ticker-content">
+            <span class="perim-ticker-text"></span>
+          </div>
+        </div>
+        <div id="perim-pending-rewards" class="perim-pending-rewards"></div>
+
+        <button id="btn-perim-back" class="menu-btn ghost-btn panel-back-btn">Voltar ao Menu Principal</button>
+      </section>
+
+      <section class="multiplayer-panel" id="trades-panel" style="display: none;">
+        <h2 class="panel-title">Trocas</h2>
+        <div id="trades-status" class="trades-status">Monte uma sala e troque cartas em tempo real.</div>
+
+        <div id="trades-hub-view" class="trades-hub-view">
+          <button id="btn-trades-create-room" class="menu-btn primary-btn compact-action-btn">Criar sala de troca</button>
+          <div class="trades-join-row">
+            <input id="trades-room-code-input" type="text" maxlength="6" placeholder="Codigo da sala" />
+            <button id="btn-trades-join-room" class="menu-btn standard-btn compact-action-btn">Entrar</button>
+          </div>
+        </div>
+
+        <div id="trades-room-view" class="trades-room-view" style="display:none;">
+          <div class="trades-room-head">
+            <span>Sala: <strong id="trades-room-code-label">------</strong></span>
+            <span>Assento: <strong id="trades-seat-label">-</strong></span>
+          </div>
+          <div id="trades-room-presence" class="trades-room-presence">Aguardando jogador...</div>
+
+          <div class="trades-offers-grid">
+            <div class="trades-offer-column">
+              <h3>Minha oferta</h3>
+              <div id="trades-my-offer" class="trades-offer-list"></div>
+            </div>
+            <div class="trades-offer-column">
+              <h3>Oferta do oponente</h3>
+              <div id="trades-opponent-offer" class="trades-offer-list"></div>
+            </div>
+          </div>
+
+          <div class="trades-inventory-controls">
+            <label for="trades-inventory-type">Filtro de tipo:</label>
+            <select id="trades-inventory-type">
+              <option value="all">Todas</option>
+              <option value="creatures">Creatures</option>
+              <option value="attacks">Attacks</option>
+              <option value="battlegear">Battlegear</option>
+              <option value="locations">Locations</option>
+              <option value="mugic">Mugic</option>
+            </select>
+          </div>
+          <div id="trades-inventory-list" class="trades-inventory-list"></div>
+
+          <div class="trades-room-actions">
+            <button id="btn-trades-accept-toggle" class="menu-btn standard-btn compact-action-btn">Aceitar troca</button>
+            <button id="btn-trades-finalize" class="menu-btn primary-btn compact-action-btn">Concluir troca</button>
+            <button id="btn-trades-cancel-room" class="menu-btn ghost-btn compact-action-btn">Cancelar sala</button>
+          </div>
+        </div>
+        <button id="btn-trades-back" class="menu-btn ghost-btn panel-back-btn">Voltar ao Menu Principal</button>
+      </section>
+
+      <div id="perim-location-preview-modal" class="perim-location-preview-modal hidden">
+        <div id="perim-location-preview-backdrop" class="perim-location-preview-backdrop"></div>
+        <div class="perim-location-preview-card">
+          <button id="perim-location-preview-close" class="perim-location-preview-close" type="button" aria-label="Fechar">&times;</button>
+          <img id="perim-location-preview-image" src="fundo%20cartas.png" alt="Preview de local" />
+          <div class="perim-location-preview-meta">
+            <strong id="perim-location-preview-name">Local</strong>
+            <span id="perim-location-preview-set">Set</span>
+            <span id="perim-location-preview-rarity">Raridade</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="perim-reward-modal" class="perim-reward-modal hidden" aria-hidden="true">
+        <div id="perim-reward-backdrop" class="perim-reward-backdrop"></div>
+        <div class="perim-reward-card">
+          <button id="perim-reward-close" class="perim-reward-close" type="button" aria-label="Fechar">&times;</button>
+          <h3>Recompensas Coletadas</h3>
+          <div id="perim-reward-list" class="perim-reward-list"></div>
+        </div>
+      </div>
+
+      <div id="perim-events-modal" class="perim-reward-modal hidden" aria-hidden="true">
+        <div id="perim-events-backdrop" class="perim-reward-backdrop"></div>
+        <div class="perim-reward-card">
+          <button id="perim-events-close" class="perim-reward-close" type="button" aria-label="Fechar">&times;</button>
+          <h3>Eventos Ativos</h3>
+          <div id="perim-events-list" class="perim-reward-list">
+            <div style="font-size:0.72rem;color:#8ea8bf;">Nenhum evento ativo no momento.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel Multiplayer -->
+      <section class="multiplayer-panel" id="multiplayer-panel" style="display: none;">
+        <h2 class="panel-title">Lobby Multiplayer</h2>
+
+        <div class="multiplayer-actions">
+          <button id="btn-mp-create" class="menu-btn primary-btn compact-action-btn">Criar Partida</button>
+          <button id="btn-mp-join" class="menu-btn standard-btn compact-action-btn">Entrar em Partida</button>
+        </div>
+
+        <div id="mp-create-view" class="mp-view" style="display: none;">
+          <h3>Regra da Sala:</h3>
+          <select id="mp-rules-mode" class="deck-select">
+            <option value="competitive">Competitivo</option>
+            <option value="casual">Casual</option>
+            <option value="1v1">1v1</option>
+          </select>
+          <h3>Selecione seu Deck:</h3>
+          <select id="mp-deck-select-create" class="deck-select"></select>
+          <button id="btn-mp-confirm-create" class="menu-btn primary-btn pulse-btn fullwidth-action-btn">Confirmar e Criar Sala</button>
+          <div id="mp-waiting-message" class="mp-waiting-message" style="display: none;">
+            Aguardando outro jogador entrar...
+          </div>
+        </div>
+
+        <div id="mp-join-view" class="mp-view" style="display: none;">
+          <h3>Salas Dispon&iacute;veis:</h3>
+          <div id="mp-rooms-list" class="mp-rooms-list">
+            <div class="mp-rooms-loading">Buscando salas...</div>
+          </div>
+          <div id="mp-join-deck-section" style="display: none;">
+            <h3>Selecione seu Deck para entrar:</h3>
+            <select id="mp-deck-select-join" class="deck-select"></select>
+            <button id="btn-mp-confirm-join" class="menu-btn primary-btn pulse-btn fullwidth-action-btn">Conectar &agrave; Sala</button>
+          </div>
+        </div>
+
+        <button id="btn-mp-back" class="menu-btn ghost-btn panel-back-btn">Voltar ao Menu Principal</button>
+      </section>
+
+      <!-- Rodape -->
+      <div class="menu-footer">
+        <button id="btn-logout" class="footer-btn">Desconectar</button>
+        <button id="btn-exit" class="footer-btn danger-btn">Sair</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Player de Musica (Injetado via HTML/JS) -->
+  <button id="toggle-music-panel" class="music-floating-btn" title="Mostrar/Ocultar Musica">&#127925; M&uacute;sica</button>
+  <section id="music-player" class="music-player hidden" aria-label="Player de musica">
+    <audio id="music-audio" preload="metadata"></audio>
+    <div class="music-player-head">
+      <strong id="music-track-name">Sem musica</strong>
+    </div>
+    <div class="music-player-controls">
+      <button id="music-prev" type="button" title="Anterior">&#9198;</button>
+      <button id="music-toggle" type="button" title="Play/Pause">&#9654;</button>
+      <button id="music-next" type="button" title="Proxima">&#9197;</button>
+      <button id="music-loop" type="button" title="Loop da faixa">Loop</button>
+    </div>
+    <div class="music-player-progress">
+      <span id="music-current-time">0:00</span>
+      <input id="music-progress" type="range" min="0" max="100" step="0.1" value="0" />
+      <span id="music-duration">0:00</span>
+    </div>
+    <label class="music-player-volume">
+      Vol
+      <input id="music-player-volume" type="range" min="0" max="100" step="1" value="100" />
+    </label>
+  </section>
+
+  <div id="profile-modal" class="profile-modal hidden" aria-hidden="true">
+    <div class="profile-modal-backdrop" id="profile-modal-backdrop"></div>
+    <div class="profile-modal-card">
+      <button id="profile-modal-close" class="profile-modal-close" type="button" aria-label="Fechar perfil">&times;</button>
+      <header class="profile-modal-header">
+        <img id="profile-modal-avatar" src="fundo%20cartas.png" alt="Avatar do jogador" />
+        <div>
+          <h3 id="profile-modal-name">Perfil</h3>
+          <p id="profile-modal-updated">Atualizado agora</p>
+        </div>
+      </header>
+      <section class="profile-modal-grid">
+        <div class="profile-metric">
+          <span>Pontuação</span>
+          <strong id="profile-modal-score">0</strong>
+        </div>
+        <div class="profile-metric">
+          <span>Vitórias / Derrotas</span>
+          <strong id="profile-modal-wl">0 / 0</strong>
+        </div>
+        <div class="profile-metric">
+          <span>Winrate</span>
+          <strong id="profile-modal-winrate">0%</strong>
+        </div>
+        <div class="profile-metric">
+          <span>Total de Scans</span>
+          <strong id="profile-modal-scans-total">0</strong>
+        </div>
+      </section>
+      <section class="profile-modal-section">
+        <h4>Scans por Tipo</h4>
+        <div id="profile-modal-scans-types" class="profile-scans-types"></div>
+      </section>
+      <section class="profile-modal-section">
+        <h4>Progressao do Scanner</h4>
+        <div id="profile-modal-scanners" class="profile-scanners-grid"></div>
+      </section>
+      <section class="profile-modal-section">
+        <h4>Criatura Mais Jogada</h4>
+        <p id="profile-modal-most-played">Nenhuma partida registrada ainda.</p>
+      </section>
+      <section class="profile-modal-section">
+        <h4>Histórico (últimas 50)</h4>
+        <div id="profile-modal-history" class="profile-history-list"></div>
+      </section>
+      <section class="profile-modal-section">
+        <h4>Avatar</h4>
+        <div class="profile-avatar-actions">
+          <button id="profile-avatar-change-btn" type="button" class="menu-btn standard-btn" style="padding:0.5rem 0.75rem;">Alterar foto</button>
+          <input type="file" id="avatar-upload" accept="image/*" style="display:none;" />
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="profile-card-modal" class="perim-location-preview-modal hidden" aria-hidden="true">
+    <div id="profile-card-backdrop" class="perim-location-preview-backdrop"></div>
+    <div class="perim-location-preview-card">
+      <button id="profile-card-close" class="perim-location-preview-close" type="button" aria-label="Fechar">&times;</button>
+      <img id="profile-card-image" src="fundo%20cartas.png" alt="Carta de criatura" />
+      <div class="perim-location-preview-meta">
+        <strong id="profile-card-name">Carta</strong>
+        <span id="profile-card-type">Tipo</span>
+        <span id="profile-card-set">Set</span>
+        <span id="profile-card-rarity">Raridade</span>
+        <span id="profile-card-stats">Stats</span>
+        <span id="profile-card-ability">Habilidade</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script type="module" src="js/menu.js?v=11"></script>
+</body>
+</html>

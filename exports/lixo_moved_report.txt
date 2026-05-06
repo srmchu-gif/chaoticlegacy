@@ -1,0 +1,13 @@
+﻿LIXO Move Report
+GeneratedAt: 2026-05-02T00:10:34.0860736-03:00
+Moved count: 5
+
+Moved files:
+- Chaotic Local.SED
+- Chaotic-20260424-071746.exe
+- onde seguir - Copia.txt
+- tentando.json
+- ~$locais.xlsx
+
+Missing (already absent):
+- (none)

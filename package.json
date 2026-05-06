@@ -1,0 +1,27 @@
+{
+  "name": "chaotic-downloader",
+  "version": "1.0.0",
+  "description": "Chaotic TCG data-driven game from local JSON and image folder",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "render:preflight": "node scripts/render-preflight.js",
+    "test": "node tests/effect-parser.test.js && node tests/library.test.js && node tests/battle-engine.test.js",
+    "analyze:effects": "node scripts/effect-coverage.js",
+    "analyze:habilidades": "node scripts/audit-habilidades.js",
+    "analyze:creatures": "node scripts/audit-creatures-effects.js",
+    "export:effects:xlsx": "node scripts/export-effects-xlsx.js",
+    "build:exe": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-exe.ps1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "fs": "^0.0.1-security",
+    "nodemailer": "^8.0.7",
+    "path": "^0.12.7",
+    "sanitize-filename": "^1.6.3",
+    "xlsx": "^0.18.5"
+  }
+}

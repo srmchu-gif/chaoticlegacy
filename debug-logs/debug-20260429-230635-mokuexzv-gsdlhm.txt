@@ -1,0 +1,13 @@
+Chaotic Debug Session
+sessionId=mokuexzv-gsdlhm
+startedAt=2026-04-30T02:06:35.419Z
+url=http://localhost:3000/deckbuilder
+userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36
+---
+{"type":"session_start","payload":{"url":"http://localhost:3000/deckbuilder","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","settings":{"schemaVersion":1,"updatedAt":"2026-04-30T02:03:53.046Z","screen":{"fullscreenAuto":true,"resolution":"low"},"audio":{"enabled":true,"master":100,"sfx":100,"music":15},"language":{"cards":"pt","ui":"pt"},"gameplay":{"animations":true,"hints":false},"controls":{"mouseSensitivity":100,"keybinds":{"confirmAction":"Enter","confirmAttack":"Space","autoStep":"KeyN","switchBuilder":"Digit1","switchBattle":"Digit2","switchSettings":"Digit3","cancel":"Escape"}},"extras":{"theme":"dark","fpsCounter":true,"debugMode":true},"musicPlayer":{"enabled":true,"loopTrack":false,"lastTrackIndex":0,"volume":0}}}}
+{"at":"2026-04-30T02:06:35.427Z","type":"debug","message":"Debug mode enabled.","payload":null}
+{"at":"2026-04-30T02:06:35.683Z","type":"music","message":"play","payload":{"track":"Battle Protocol"}}
+{"at":"2026-04-30T02:07:31.047Z","type":"promise_rejection","message":"Unhandled promise rejection","payload":{"reason":"Error: Deck excede inventario de scans: The Heart of the Jungle (locations) excede inventario de scans. | Imaginary Walls (locations) excede inventario de scans."}}
+{"at":"2026-04-30T02:07:38.419Z","type":"promise_rejection","message":"Unhandled promise rejection","payload":{"reason":"Error: Deck excede inventario de scans: The Heart of the Jungle (locations) excede inventario de scans. | Imaginary Walls (locations) excede inventario de scans."}}
+{"at":"2026-04-30T02:07:49.482Z","type":"promise_rejection","message":"Unhandled promise rejection","payload":{"reason":"Error: Deck excede inventario de scans: The Heart of the Jungle (locations) excede inventario de scans. | Imaginary Walls (locations) excede inventario de scans."}}
+{"type":"session_end","at":"2026-04-30T02:07:54.716Z","reason":"beforeunload"}

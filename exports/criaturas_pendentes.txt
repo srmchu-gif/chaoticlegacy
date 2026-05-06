@@ -1,0 +1,8 @@
+Chaotic - Efeitos Pendentes (Creatures)
+generatedAt=2026-05-06T20:58:53.628Z
+total=4
+---
+[BASE] kind_pendente | Tipo: creatures | Carta: Erak'tabb | Kind: conditionalDamage | Trecho: Challenge Wisdom 50: Deal 10 damage
+[BASE] kind_pendente | Tipo: creatures | Carta: Gal'drad | Kind: conditionalDamage | Trecho: Challenge Power 50: Deal 10 damage
+[BASE] kind_pendente | Tipo: creatures | Carta: Jus'hebban | Kind: conditionalDamage | Trecho: Challenge Speed 50: Deal 10 damage
+[BASE] kind_pendente | Tipo: creatures | Carta: Neth'uar | Kind: conditionalDamage | Trecho: Challenge Courage 50: Deal 10 damage

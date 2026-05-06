@@ -1,0 +1,133 @@
+[FEITO]adicionar para poder cliacar na imagem no menu para poder definar sua foto de usuário
+
+[FEITO]no menu de login quando for criar uma conta deve colocar para definir a tribo favorita
+outromundo/submundo/danians/mipedians
+
+[FEITO] na criação de deck tem que dar mais uma alinhada na posição das cartas de criaturas
+
+[FEITO]levar em consideração na criação de deck a pontuação total dos ataques (bp), que tbm não deve passar de 20 pontos.
+
+[FEITO]no campo de batalha cartas viradas pra baixo do oponente eu não posso ver/ assim como as cartas de musics dele tbm não posso nem que tribo elas são.
+
+[FEITO]no campo de batalha quando eu passo o mouse por cima da carta da critura e aberto o popup dela, quero que quando eu passe
+o mouse por cima do equipamento tbm abra o popup dela, menos quando for o equipamento do oponente que esta virado para baixo.
+
+
+
+
+
+
+verificar problemas com a jogabilidade em campo e ir corrigindo.
+
+defender
+
+stat check
+
+alvo de habilidades
+
+tipos de creture -
+
+
+==============================================
+
+## Onda de Ataques — Fechamento (parser + engine + pendências TXT)
+
+### Resumo
+Seguimos de um estado bom: testes atuais estão verdes e cobertura de parse está em **79,76%** (**1084/1359** cartas com habilidade parseadas; **275** ainda sem parse).  
+Próximo passo é fechar a reconfiguração dos **Attacks** que você definiu: completar execução dos tipos já parseados, corrigir escopos de Gear em efeitos de ataque e gerar o TXT de pendências automaticamente (base + runtime).
+
+### Implementação (decision-complete)
+
+- **1) Fechar parser de Attacks por padrão de regra (sem hardcode por carta)**
+  - Consolidar famílias que você definiu em metadados canônicos:  
+    elemental, stat check, challenge, stat fail no defensor, checks por tipo/tribo/counters/elementos/equipamento, self-damage, descarte de attacks, buff/debuff, ganho/remoção de mugic counters, flip/destroy gear.
+  - Garantir comparadores explícitos para ataque (`selfGte`, `diffGte`, `defenderLte`, etc.) e condições compostas no mesmo ataque.
+  - Normalizar saída para sempre incluir `kind + target/condition/scope + amount + sourceText`.
+
+- **2) Fechar engine de dano/efeito de Attack**
+  - Pipeline único por strike:
+    1. base + elemental válido  
+    2. modificadores condicionais  
+    3. caps/sets/zero-condicional  
+    4. efeitos colaterais (self-damage, buff/debuff, counters, gear).
+  - Implementar os `kind` de ataque já parseados e ainda sem execução completa, incluindo:
+    - espelhamento/remoção total de mugic counters;
+    - regras de dano por descarte/último ataque/contagem de elementos;
+    - checks por tipo da criatura atacante/alvo usando `creatureTypeKeywords`.
+  - Corrigir `flipBattlegear` vs `destroyBattlegear` por **escopo** (`target`, `engaged`, `engagedAll`, `all`) sem descarte indevido quando for flip.
+
+- **3) Pendências em TXT (base + runtime)**
+  - Criar arquivo único:  
+    `C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\ataques_pendentes.txt`
+  - Na carga/reload da biblioteca:
+    - listar ataques sem parse;
+    - listar ataques com `kind` parseado mas sem resolver.
+  - Em runtime:
+    - quando ocorrer `noop_pending_kind` de Attack, enviar append deduplicado (carta + trecho + motivo).
+  - Manter append via backend (front só reporta), sem quebrar API atual de gameplay.
+
+- **4) Contratos internos**
+  - Sem mudança em regras de target/burst já aprovadas.
+  - Novo endpoint interno de append de pendência de attack (dedupe em servidor).
+  - Estrutura de condição de Attack padronizada para parser/engine compartilharem o mesmo contrato.
+
+### Testes de aceitação
+
+- **Parser**
+  - Casos unitários para: challenge/stat fail, tipo/tribo, mugic counters, descarte, self-damage, buff/debuff, destroy/flip gear.
+- **Engine**
+  - Dano final correto com condições encadeadas.
+  - `Stat Fail` validando no defensor.
+  - Escala por tribos em campo (criaturas vivas controladas).
+  - Ataques com auto-dano aplicando no atacante.
+  - Flip mantém gear anexado face-down; destroy envia ao descarte.
+- **Pendências TXT**
+  - Geração automática no reload.
+  - Append runtime sem linhas duplicadas.
+  - Linha mínima: carta, trecho original, motivo (`sem_parse`/`kind_pendente`).
+- **Regressão**
+  - `npm test` permanece verde.
+  - `npm run analyze:effects` melhora cobertura e reduz no-op de Attack em partidas longas.
+
+### Assunções fechadas
+- Regra base: **Master Rules**.
+- “Quantidade de tribos” em attacks = criaturas em campo que você controla.
+- Ataque não suportado continua jogável com fallback `base + elemental`, mas entra no TXT para fechamento.
+- Implementação 100% data-driven por padrão de texto + metadados.
+
+==============================================
+
+
+
+
+
+
+
+
+
+-----------------------------------------------------------
+
+SISTEMA DE SOM DOS MUSICS
+
+
+Variações de Energia e Status das Cartas
+
+Cada carta possuirá um código único próprio, responsável por identificar suas variações individuais de atributos.
+
+Disciplinas / Status Base
+
+Os atributos das disciplinas serão calculados com base no valor base da carta, podendo receber uma variação aleatória de:
+
+-10 a +10 pontos
+Energia
+
+O atributo de energia seguirá a mesma lógica, porém com uma faixa de variação menor:
+
+-5 a +5 pontos
+
+-----------------------------------------------------------
+
+
+
+
+

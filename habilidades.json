@@ -1,0 +1,4710 @@
+[
+  {
+    "number": 1,
+    "ability": "0{{MC}}: Remove a Mugic counter from target Creature. If you do, put a Mugic counter on another Creature controlled by the same player. This ability can only be used once per turn. (You must choose a Creature that can have Mugic counters put on it.)"
+  },
+  {
+    "number": 2,
+    "ability": "Aa'une the Oligarch begins the game and comes into play with this side face-up."
+  },
+  {
+    "number": 3,
+    "ability": "Activate Hive."
+  },
+  {
+    "number": 4,
+    "ability": "Activate Hive.The caster pays 2 less mugic Counters to play this Mugic if an engaged Creature you control has taken 15 or more attack damage this turn."
+  },
+  {
+    "number": 5,
+    "ability": "Adjacent Creatures to equipped Creature must move into its space if able."
+  },
+  {
+    "number": 6,
+    "ability": "Air 5."
+  },
+  {
+    "number": 7,
+    "ability": "Air 5.Earth 5.Recklessness 25."
+  },
+  {
+    "number": 8,
+    "ability": "Air 5.Recklessness 5."
+  },
+  {
+    "number": 9,
+    "ability": "Air 5.Recklessness 5.If engaged with an unequipped Creature, Ilx has an additional \"Air 5\" and \"Recklessness 5.\""
+  },
+  {
+    "number": 10,
+    "ability": "Air attacks deal an additional 5 damage.Damage dealt by Water attacks is reduced by 5."
+  },
+  {
+    "number": 11,
+    "ability": "Air or Water attacks deal an additional 5 damage to Blak'drin.When Blak'drin is dealt Air or Water damage, deal 10 damage to the Creature which played that attack."
+  },
+  {
+    "number": 12,
+    "ability": "Air, Water: Search your Attack Deck for up to three Attack Cards and put them in your Attack Discard pile, then shuffle your Attack Deck."
+  },
+  {
+    "number": 13,
+    "ability": "Air: Before the Storm counts as your first attack this combat. (This does not count as your first attack while on the burst.)"
+  },
+  {
+    "number": 14,
+    "ability": "Air: Both players shuffle their Attack Decks and Attack Discard piles together."
+  },
+  {
+    "number": 15,
+    "ability": "Air: Flip a face-down Battlegear you control face-up."
+  },
+  {
+    "number": 16,
+    "ability": "Air: Flip engaged Creature's Battlegear face-down."
+  },
+  {
+    "number": 17,
+    "ability": "Air: Flip one Battlegear face-up and one Battlegear face-down."
+  },
+  {
+    "number": 18,
+    "ability": "Air: Gain 10 Power."
+  },
+  {
+    "number": 19,
+    "ability": "Air: Heal 5 damage.Fire: Gain 10 Power."
+  },
+  {
+    "number": 20,
+    "ability": "Air: Look at the top two cards of your Attack Deck. Put one of them on the top of that deck and the other on the bottom."
+  },
+  {
+    "number": 21,
+    "ability": "Air: Opposing engaged Creature loses 25 Power."
+  },
+  {
+    "number": 22,
+    "ability": "Air: Relocate both engaged Creatures to any unoccupied space adjacent to either of them."
+  },
+  {
+    "number": 23,
+    "ability": "Air: The opposing engaged Creature loses Earth."
+  },
+  {
+    "number": 24,
+    "ability": "Air: Your engaged Creature loses Air."
+  },
+  {
+    "number": 25,
+    "ability": "Air: Your engaged Creature loses Air. Discard an Attack Card, then draw an Attack Card."
+  },
+  {
+    "number": 26,
+    "ability": "All attacks also count as Water attacks.Damage dealt by Air attacks is reduced by 5."
+  },
+  {
+    "number": 27,
+    "ability": "All attacks count as Air attacks."
+  },
+  {
+    "number": 28,
+    "ability": "All attacks count as Fire attacks."
+  },
+  {
+    "number": 29,
+    "ability": "At the beginning of combat, Arctus gains all Elemental Types your adjacent Creatures have."
+  },
+  {
+    "number": 30,
+    "ability": "At the beginning of combat, Creatures with Water gain 10 Energy."
+  },
+  {
+    "number": 31,
+    "ability": "At the beginning of combat, Danian Creatures you control gain Earth.Hive: Mandiblor Creatures you control have \"Earth 5.\""
+  },
+  {
+    "number": 32,
+    "ability": "At the beginning of combat, Ebkeex gains all Elemental Types your Creatures have."
+  },
+  {
+    "number": 33,
+    "ability": "At the beginning of combat, Iparu gains or loses Courage, Power, Wisdom and Speed so those values become equal to the opposing engaged Creature's Scanned Courage, Power, Wisdom and Speed."
+  },
+  {
+    "number": 34,
+    "ability": "At the beginning of combat, Uksum gains Energy equal to the lowest Scanned Energy among other Creatures you control."
+  },
+  {
+    "number": 35,
+    "ability": "At the beginning of combat, Valban gains all Elemental Types Infected Creatures have."
+  },
+  {
+    "number": 36,
+    "ability": "At the beginning of combat, all Creatures gain Air."
+  },
+  {
+    "number": 37,
+    "ability": "At the beginning of combat, all Creatures gain Earth."
+  },
+  {
+    "number": 38,
+    "ability": "At the beginning of combat, all Creatures gain Fire."
+  },
+  {
+    "number": 39,
+    "ability": "At the beginning of combat, all Creatures gain Water."
+  },
+  {
+    "number": 40,
+    "ability": "At the beginning of combat, choose \"Fire 5,\" \"Air 5,\" \"Earth 5\" or \"Water 5.\" equipped Creature gains the chosen ability and \"Recklessness 5.\""
+  },
+  {
+    "number": 41,
+    "ability": "At the beginning of combat, deal 10 damage to each engaged Creature with no Mugic counters on them."
+  },
+  {
+    "number": 42,
+    "ability": "At the beginning of combat, deal 15 damage to Infected engaged non-Danian Creatures."
+  },
+  {
+    "number": 43,
+    "ability": "At the beginning of combat, deal 5 damage to each engaged Creature for each Mugic counter on that Creature.When a Creature wins combat, put Mugic counters on that Creature equal to its Mugic Ability."
+  },
+  {
+    "number": 44,
+    "ability": "At the beginning of combat, deal 5 damage to engaged Creatures."
+  },
+  {
+    "number": 45,
+    "ability": "At the beginning of combat, each player can remove two Mugic counters from any Creatures they control. If a player does not, their engaged Creature loses 50 in each Discipline."
+  },
+  {
+    "number": 46,
+    "ability": "At the beginning of combat, each player can return a Mugic Card from their general discard pile to their hand."
+  },
+  {
+    "number": 47,
+    "ability": "At the beginning of combat, each player reveals the top 2 cards of their Attack Deck. Any player who reveals 3 or more total Build Points in Attack Cards puts 2 Mugic counters on their engaged Creature. Put the revealed cards on the bottom of the Attack Deck in any order."
+  },
+  {
+    "number": 48,
+    "ability": "At the beginning of combat, engaged Creatures gain 5 Energy for each Elemental Type they have."
+  },
+  {
+    "number": 49,
+    "ability": "At the beginning of combat, engaged Creatures gain Fire, Water, Air, and Earth."
+  },
+  {
+    "number": 50,
+    "ability": "At the beginning of combat, engaged Creatures gains 5 Energy and 5 to all Disciplines for each Tribe its controller controls."
+  },
+  {
+    "number": 51,
+    "ability": "At the beginning of combat, engaged Creatures gains 5 Energy."
+  },
+  {
+    "number": 52,
+    "ability": "At the beginning of combat, engaged Creatures lose all Elemental Types and gain 10 Energy for each Elemental Type lost this way."
+  },
+  {
+    "number": 53,
+    "ability": "At the beginning of combat, engaged Elementalist Creatures gain an Elemental type of their controller's choice."
+  },
+  {
+    "number": 54,
+    "ability": "At the beginning of combat, engaged M'arrillian Creatures lose 10 Energy. engaged M'arrillian Creatures named Aa'une gain 20 Energy instead."
+  },
+  {
+    "number": 55,
+    "ability": "At the beginning of combat, equipped Creature gains 5 Energy for each Mugic counter on it. The equipped Creature cannot gain more than 40 Energy this way.If equipped Creature has no Mugic counters on it, destroy it."
+  },
+  {
+    "number": 56,
+    "ability": "At the beginning of combat, equipped Creature loses all abilities and gains or loses Courage, Power, Wisdom, Speed and Energy to make those values 70."
+  },
+  {
+    "number": 57,
+    "ability": "At the beginning of combat, flip a coin. If heads, put a Mugic counter on your engaged Creature. If tails, put a Mugic counter on the opposing engaged Creature.Creatures with one or more Mugic counters have an additional 10 Energy."
+  },
+  {
+    "number": 58,
+    "ability": "At the beginning of combat, if Khybon is equipped, it gains 10 Energy."
+  },
+  {
+    "number": 59,
+    "ability": "At the beginning of combat, if Vlar is unequipped, all Battlegear equipped to the opposing engaged Creature becomes equipped to Vlar.(Players control any Battlegear equipped to Creatures they control.)"
+  },
+  {
+    "number": 60,
+    "ability": "At the beginning of combat, if a player controls an engaged Creature with Air, that player can look at the top three cards of their Attack Deck, put one of them on top of that deck and the others on the bottom in any order."
+  },
+  {
+    "number": 61,
+    "ability": "At the beginning of combat, if a player has fewer Mugic Cards in hand than the number of Creatures they control, that player discards a Mugic Card."
+  },
+  {
+    "number": 62,
+    "ability": "At the beginning of combat, if an engaged Creature has higher Power than the opposing engaged Creature, it gains 5 Energy."
+  },
+  {
+    "number": 63,
+    "ability": "At the beginning of combat, if an engaged Creature has higher Wisdom than the opposing engaged Creature, put a Mugic counter on it"
+  },
+  {
+    "number": 64,
+    "ability": "At the beginning of combat, if an engaged Creature has higher Wisdom than the opposing engaged Creature, put a Mugic counter on it."
+  },
+  {
+    "number": 65,
+    "ability": "At the beginning of combat, if an engaged Creature has higher Wisdom than the opposing engaged Creature, that Creature's controller can remove a Mugic counter from a Creature they control. If they do, they can put a Mugic counter on a Creature they control."
+  },
+  {
+    "number": 66,
+    "ability": "At the beginning of combat, if an engaged Creature has lower Courage than the opposing engaged Creature, it loses 10 Energy."
+  },
+  {
+    "number": 67,
+    "ability": "At the beginning of combat, if the Initiative of the active Location is an Elemental Type, your engaged Creature gains that Elemental Type."
+  },
+  {
+    "number": 68,
+    "ability": "At the beginning of combat, if the active Location's Initiative is a Discipline, engaged Creatures with less than 60 in that Discipline lose 10 Energy."
+  },
+  {
+    "number": 69,
+    "ability": "At the beginning of combat, if your engaged Creature has no Elemental Types, it gains 20 Energy."
+  },
+  {
+    "number": 70,
+    "ability": "At the beginning of combat, look at the top three cards of your Attack Deck. Put one of them on top of that deck and the other two on the bottom in any order."
+  },
+  {
+    "number": 71,
+    "ability": "At the beginning of combat, look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom."
+  },
+  {
+    "number": 72,
+    "ability": "At the beginning of combat, look at your opponent's attack hand and choose an Attack Card. They discard it and then draw an Attack Card."
+  },
+  {
+    "number": 73,
+    "ability": "At the beginning of combat, put a Mugic counter on any engaged OverWorld Creatures."
+  },
+  {
+    "number": 74,
+    "ability": "At the beginning of combat, put a Mugic counter on the engaged Creature with the most Elemental types."
+  },
+  {
+    "number": 75,
+    "ability": "At the beginning of combat, sacrifice a Battlegear equipped to your engaged Creature. If you do, that Creature gains Fire and \"Fire 5.\""
+  },
+  {
+    "number": 76,
+    "ability": "At the beginning of combat, your engaged Creature gains 50 to its lowest Discipline."
+  },
+  {
+    "number": 77,
+    "ability": "At the beginning of each turn, Iparu becomes a copy of target opposing Creature.(Iparu's scanned characteristics become the same as the target's including Disciplines, Elemental Types, Energy, and abilities.)"
+  },
+  {
+    "number": 78,
+    "ability": "At the beginning of each turn, equipped Creature swaps spaces  with another unengaged Creature you control.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 79,
+    "ability": "At the beginning of each turn, if Yondaf is Uninfected, Infect it.Uninfect 3 Creatures: Deal 10 damage to target Creature."
+  },
+  {
+    "number": 80,
+    "ability": "At the beginning of each turn, if your opponent controls an UnderWorld Creature, Activate Hive.Hive: Fireproof 10."
+  },
+  {
+    "number": 81,
+    "ability": "At the beginning of each turn, you can look at target face-down Battlegear you do not control.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 82,
+    "ability": "At the beginning of the turn, choose a Creature your opponent controls and they choose a Creature you control. Relocate your Creature into the opposing Creature's space and begin combat. This does not count toward your one combat per turn."
+  },
+  {
+    "number": 83,
+    "ability": "At the beginning of your turn if all Creatures you control have no Mugic counters, return target Mugic Card from your general discard pile to your hand."
+  },
+  {
+    "number": 84,
+    "ability": "At the beginning of your turn, Infect target Uninfected Creature.When an Infected Danian Creature you control is targeted by a Mugic or ability, Uninfect that Creature and negate the Mugic or ability."
+  },
+  {
+    "number": 85,
+    "ability": "At the beginning of your turn, Noaz gains \"Air 10\" and \"Invisibility: Surprise.\"Swift 1"
+  },
+  {
+    "number": 86,
+    "ability": "At the beginning of your turn, UnderWorld Creatures you control gain \"Intimidate: Courage 20\" and \"Intimidate: Power 20.\"{{MC}}{{MC}}: Target Creature gains \"Adjacent Creatures must move into this space if able.\""
+  },
+  {
+    "number": 87,
+    "ability": "At the beginning of your turn, each player puts a Mugic counter on a Creature they control with no Mugic counters."
+  },
+  {
+    "number": 88,
+    "ability": "At the beginning of your turn, flip all Battlegear equipped to Sepmek face-up."
+  },
+  {
+    "number": 89,
+    "ability": "At the beginning of your turn, put a Mugic counter on Mommark.When another Creature you control is sent to the discard, remove all Mugic counters from Mommark. If you have removed 5 or more Mugic counters this way, return that Creature to play in an unoccupied space."
+  },
+  {
+    "number": 90,
+    "ability": "At the beginning of your turn, you can relocate target Creature to any unoccupied space  adjacent to it."
+  },
+  {
+    "number": 91,
+    "ability": "At the beginning of your turn, you can relocate target Creature to any unoccupied space adjacent to it."
+  },
+  {
+    "number": 92,
+    "ability": "At the end of combat, if a Warrior you control was engaged that combat, you can relocate it to any unoccupied space  adjacent to it."
+  },
+  {
+    "number": 93,
+    "ability": "At the end of each turn, put a Growth Counter on Stelgar.Stelgar has an additional 10 Energy and 10 in all Disciplines for each Growth Counter on it."
+  },
+  {
+    "number": 94,
+    "ability": "Attack damage dealt by Past Creatures you control to Creatures with fewer Mugic counters is icreased by 5."
+  },
+  {
+    "number": 95,
+    "ability": "Attacks played by Creatures you control deal an additional 5 damage if there is an Attack Card with the same name in your Attack Discard pile."
+  },
+  {
+    "number": 96,
+    "ability": "Attacks played by Creatures you control have \"Challenge Courage 50: Deal 10 damage.\""
+  },
+  {
+    "number": 97,
+    "ability": "Attacks played by Creatures you control have \"Challenge Power 50: Deal 10 damage.\""
+  },
+  {
+    "number": 98,
+    "ability": "Attacks played by Creatures you control have \"Challenge Speed 50: Deal 10 damage.\""
+  },
+  {
+    "number": 99,
+    "ability": "Attacks played by Creatures you control have \"Challenge Wisdom 50: Deal 10 damage.\""
+  },
+  {
+    "number": 100,
+    "ability": "Attacks played by Creatures you control reduce the opposing engaged Creature's Disciplines by an amount equal to the damage they would deal instead of dealing damage.If a Creature has 0 in all Disciplines, destroy it."
+  },
+  {
+    "number": 101,
+    "ability": "Attacks played by Hammerdoom Chantcaller deal an additional 5 damage to Danian Creatures. If Hive is active, attacks played by Hammerdoom Chantcaller deal an additional 5 damage to UnderWorld Creatures instead."
+  },
+  {
+    "number": 102,
+    "ability": "Attacks played by UnderWorld Creatures have \"Challenge Power 15: Deal 5 damage.\""
+  },
+  {
+    "number": 103,
+    "ability": "Attacks played by equipped Creature also count as Water attacks.When Liquid Thought Evaporator is flipped face-down, put a Mugic counter on the equipped Fluidmorpher Creature."
+  },
+  {
+    "number": 104,
+    "ability": "Attacks that are either Air or Earth deal an additional 5 damage. (Attacks which are both Air and Earth deal only 5 additional damage.)When a Water attack is played, that attack's controller reveals a new active Location.Mirage: When combat ends, put a Mugic counter on Creatures in this space who were engaged."
+  },
+  {
+    "number": 105,
+    "ability": "Attacks that would deal more than 20 damage to Creatures with Earth deal 20 damage instead."
+  },
+  {
+    "number": 106,
+    "ability": "Battlegear cannot be destroyed. (Battlegear can still be sacrificed or flipped face-down.)"
+  },
+  {
+    "number": 107,
+    "ability": "Battlegear equipped to Creatures without Air is not flipped face-up at the beginning of combat."
+  },
+  {
+    "number": 108,
+    "ability": "Battlegear equipped to OverWorld Creatures you control have \"Untargetable.\""
+  },
+  {
+    "number": 109,
+    "ability": "Battlegear have no abilities."
+  },
+  {
+    "number": 110,
+    "ability": "Caster gains 15 Energy and Creatures engaged with caster lose 15 Energy."
+  },
+  {
+    "number": 111,
+    "ability": "Caster heals 25 Damage."
+  },
+  {
+    "number": 112,
+    "ability": "Challenge Courage 15, Challenge Wisdom 15: Deal 10 damage and heal 10 damage."
+  },
+  {
+    "number": 113,
+    "ability": "Challenge Courage 15: Deal 10 damage."
+  },
+  {
+    "number": 114,
+    "ability": "Challenge Courage 15: Deal 10 damage.Challenge Power 15: Deal 10 damage.Challenge Wisdom 15: Deal 10 damage.Challenge Speed 15: Deal 10 damage."
+  },
+  {
+    "number": 115,
+    "ability": "Challenge Courage 15: Deal 10 damage.Stat Check Courage 50: Opposing engaged Creature loses 15 Courage."
+  },
+  {
+    "number": 116,
+    "ability": "Challenge Courage 15: Deal 5 damage.Challenge Speed 15: Deal 5 damage.If you win both challenges, deal 15 damage."
+  },
+  {
+    "number": 117,
+    "ability": "Challenge Courage 15: Heal 10 damage."
+  },
+  {
+    "number": 118,
+    "ability": "Challenge Courage 5: Deal 10 damage.Challenge Courage 30: Deal 10 damage.Challenge Courage 50: Deal 10 damage."
+  },
+  {
+    "number": 119,
+    "ability": "Challenge Mugic counters 1: Deal 20 damage"
+  },
+  {
+    "number": 120,
+    "ability": "Challenge Mugic counters 1: Deal 5 damage.Challenge Mugic counters 3: Deal 5 damage.Challenge Mugic counters 5: Deal 5 damage."
+  },
+  {
+    "number": 121,
+    "ability": "Challenge Power 15: Deal 10 damage."
+  },
+  {
+    "number": 122,
+    "ability": "Challenge Power 15: Deal 10 damage.Stat Check Power 50: Opposing engaged Creature loses 15 Power."
+  },
+  {
+    "number": 123,
+    "ability": "Challenge Power 15: Deal 10 damage. (Compare the Discipline of the Creature that played this Attack with the opposing engaged Creature. If yours has that amount or more higher, deal the damage.)"
+  },
+  {
+    "number": 124,
+    "ability": "Challenge Power 30: Deal 10 damage. If you lose this Challenge, gain 15 Power.Challenge Speed 30: Deal 10 damage. If you lose this Challenge, gain 15 Speed."
+  },
+  {
+    "number": 125,
+    "ability": "Challenge Power 5: Deal 10 damage.Challenge Power 30: Deal 10 damage.Challenge Power 50: Deal 10 damage."
+  },
+  {
+    "number": 126,
+    "ability": "Challenge Speed 15: Deal 10 damage."
+  },
+  {
+    "number": 127,
+    "ability": "Challenge Speed 15: Deal 10 damage.Stat Check Speed 50: Opposing engaged Creature loses 15 Speed."
+  },
+  {
+    "number": 128,
+    "ability": "Challenge Speed 5: Deal 10 damage.Challenge Speed 30: Deal 10 damage.Challenge Speed 50: Deal 10 damage."
+  },
+  {
+    "number": 129,
+    "ability": "Challenge Wisdom 15: Deal 10 damage."
+  },
+  {
+    "number": 130,
+    "ability": "Challenge Wisdom 15: Deal 10 damage.Stat Check Wisdom 50: Opposing engaged Creature loses 15 Wisdom."
+  },
+  {
+    "number": 131,
+    "ability": "Challenge Wisdom 15: Deal 10 damage.Water: Uninfect all engaged Creatures. Those Creatures cannot be Infected."
+  },
+  {
+    "number": 132,
+    "ability": "Challenge Wisdom 5: Deal 10 damage.Challenge Wisdom 30: Deal 10 damage.Challenge Wisdom 50: Deal 10 damage."
+  },
+  {
+    "number": 133,
+    "ability": "Challenge Wisdom vs Courage 5: Deal 15 damage.Challenge Wisdom vs Power 5: Deal 15 damage.Challenge Wisdom vs Speed 5: Deal 15 damage."
+  },
+  {
+    "number": 134,
+    "ability": "Change the target of target Mugic or ability with a single target."
+  },
+  {
+    "number": 135,
+    "ability": "Chaor may expend 3 MP to dispel an OW spell targeted at him."
+  },
+  {
+    "number": 136,
+    "ability": "Chieftain Creatures have an additional 10 Energy.Creatures pay 4 less Mugic counters to play Mugic named Calling of Aa'une."
+  },
+  {
+    "number": 137,
+    "ability": "Chieftain Creatures have an additional 15 in all Disciplines and \"Water 5.\""
+  },
+  {
+    "number": 138,
+    "ability": "Choose a Tribe. Creatures of that Tribe cannot have Mugic counters put on them."
+  },
+  {
+    "number": 139,
+    "ability": "Choose one:If the Active Location is a Mirage, put it into play on any space  and reveal a new active Location.Move target Mirage Location in play to any place ."
+  },
+  {
+    "number": 140,
+    "ability": "Choose one: Heal 10 damage to target Creature.Deal 10 damage to target Creature."
+  },
+  {
+    "number": 141,
+    "ability": "Choose one: Shuffle target Mirage Location into its controller's Location Deck.If the active Location is a Mirage, shuffle it into its controller's Location deck and that player reveals a new active Location."
+  },
+  {
+    "number": 142,
+    "ability": "Commander Creatures you control have Fire and \"Recklessness 5.\"Ultadur cannot have Mugic counters put on it."
+  },
+  {
+    "number": 143,
+    "ability": "Creatures are considered Past Creatures.Creatures have no Tribes."
+  },
+  {
+    "number": 144,
+    "ability": "Creatures can play Mugic of any Tribe or affiliation."
+  },
+  {
+    "number": 145,
+    "ability": "Creatures cannot be relocated by Mugic, abilities or Attacks."
+  },
+  {
+    "number": 146,
+    "ability": "Creatures cannot gain or lose Elemental Types from Mugic, Attacks or abilities."
+  },
+  {
+    "number": 147,
+    "ability": "Creatures do not have and cannot gain Defender."
+  },
+  {
+    "number": 148,
+    "ability": "Creatures do not have and cannot gain Invisibility."
+  },
+  {
+    "number": 149,
+    "ability": "Creatures engaged with Dreg'ora have 10 less Energy for each Discipline they have below 30."
+  },
+  {
+    "number": 150,
+    "ability": "Creatures engaged with Scouts do not have and cannot gain Invisibility."
+  },
+  {
+    "number": 151,
+    "ability": "Creatures engaged with Scouts you control do not have and cannot gain Invisibility."
+  },
+  {
+    "number": 152,
+    "ability": "Creatures engaged with equipped Creature fail all Challenges on attacks they play.Equipped Creature takes 10 less damage from Mugic."
+  },
+  {
+    "number": 153,
+    "ability": "Creatures engaged with equipped Creature have 10 less in all Disciplines for each Elemental Type they have."
+  },
+  {
+    "number": 154,
+    "ability": "Creatures engaged with the caster lose all Elemental Types."
+  },
+  {
+    "number": 155,
+    "ability": "Creatures have \"Fireproof 10.\"Danian Creatures have \"Water 5.\""
+  },
+  {
+    "number": 156,
+    "ability": "Creatures have \"Swift 1.\"Mirage: If an adjacent Creature can move into this space, it must do so."
+  },
+  {
+    "number": 157,
+    "ability": "Creatures have 10 less in all Disciplines."
+  },
+  {
+    "number": 158,
+    "ability": "Creatures must pay an additional Mugic counter to play OverWorld Mugic Cards."
+  },
+  {
+    "number": 159,
+    "ability": "Creatures must pay an additional Mugic counter to play UnderWorld Mugic Cards."
+  },
+  {
+    "number": 160,
+    "ability": "Creatures not named Lord Van Bloot have 10 less Courage.Attack Cards played by Minion Creatures have \"Challenge Courage 15: Deal 5 damage.\""
+  },
+  {
+    "number": 161,
+    "ability": "Creatures not named Lord Van Bloot have 10 less Courage.Lord Van Bloot has \"Invisibility: Strike 15.\""
+  },
+  {
+    "number": 162,
+    "ability": "Creatures take 5 less damage from attacks they share an Elemental Type with."
+  },
+  {
+    "number": 163,
+    "ability": "Creatures that are a M'arrillian or a Minion have an additional 5 Energy.When your engaged Creature loses Initiative, it gains 20 to all Disciplines."
+  },
+  {
+    "number": 164,
+    "ability": "Creatures with 35 or more Scanned Energy deal 10 less attack damage.When any player shuffles their Attack Deck, that player reveals a new active Location."
+  },
+  {
+    "number": 165,
+    "ability": "Creatures with Air have \"Invisibility: Strike 10.\""
+  },
+  {
+    "number": 166,
+    "ability": "Creatures with Air have Earth.If Hive is Active, Danian Creatures have Air and Earth."
+  },
+  {
+    "number": 167,
+    "ability": "Creatures with Defender deal an additional 5 attack damage. Mirage: Creatures in this space have \"Defender.\""
+  },
+  {
+    "number": 168,
+    "ability": "Creatures with Earth have \"Range\" and \"Swift 1.\""
+  },
+  {
+    "number": 169,
+    "ability": "Creatures with Earth have an additional 10 Energy."
+  },
+  {
+    "number": 170,
+    "ability": "Creatures with Fire deal an additional 10 damage on their first attack each combat."
+  },
+  {
+    "number": 171,
+    "ability": "Creatures with Water have \"Water 5.\" Fluidmorpher Creatures cannot have Mugic counters put on them or use Mugic counters to pay for Mugic or abilities."
+  },
+  {
+    "number": 172,
+    "ability": "Creatures with less than 50 Courage deal 5 less attack damage.Creatures with more than 100 Courage deal an additional 5 attack damage."
+  },
+  {
+    "number": 173,
+    "ability": "Creatures without Fire have \"Recklessness 5.\""
+  },
+  {
+    "number": 174,
+    "ability": "Creatures without Water cannot spend Mugic counters to play Mugic or abilities."
+  },
+  {
+    "number": 175,
+    "ability": "Creatures you control gain \"Defender.\""
+  },
+  {
+    "number": 176,
+    "ability": "Creatures you control gain the Creature Type \"Mandiblor\" in addition to their other types."
+  },
+  {
+    "number": 177,
+    "ability": "Creatures you control have \"Elementproof all Elemental Types 10.\""
+  },
+  {
+    "number": 178,
+    "ability": "Creatures you control have \"Fireproof 5.\"If a Creature's Discipline would decrease, that Discipline decreases by 10 less instead."
+  },
+  {
+    "number": 179,
+    "ability": "Creatures you control with Invisibility deal an additional 5 damage with their first attack each combat."
+  },
+  {
+    "number": 180,
+    "ability": "Dalgad deals an additional 5 damage with Elemental Attacks."
+  },
+  {
+    "number": 181,
+    "ability": "Damage dealt by Mugic or activated abilities to equipped Creature with Earth is reduced by 10. This Battlegear begins the game face-up."
+  },
+  {
+    "number": 182,
+    "ability": "Damage dealt by Recklessness to Creatures you control is reduced by 10."
+  },
+  {
+    "number": 183,
+    "ability": "Damage dealt by Recklessness to Warbeast Creatures you control is reduced by 10 for each Mugic counter on Appelai.When a Warbeast Creature you control is targeted by an opposing Mugic or ability, put a Mugic counter on Appelai."
+  },
+  {
+    "number": 184,
+    "ability": "Damage dealt by Recklessness to Warbeast Creatures you control is reduced by 5.Warbeast Creatures you control have \"Waterproof: 25.\""
+  },
+  {
+    "number": 185,
+    "ability": "Damage dealt by attacks to the caster is reduced by 5."
+  },
+  {
+    "number": 186,
+    "ability": "Damage dealt by equipped Creature to Creatures with no Elemental Types is icreased by 5."
+  },
+  {
+    "number": 187,
+    "ability": "Damage dealt by the next attack that resolves this turn is dealt to target engaged Creature instead. (Damage is calculated with target as the recipient.)"
+  },
+  {
+    "number": 188,
+    "ability": "Damage dealt to Cromaxx by Mugic is reduced to 0.Cromaxx's Energy cannot be reduced by Mugic.(Cromaxx can still take damage and have its Energy reduced by triggered abilities created by Mugic.)"
+  },
+  {
+    "number": 189,
+    "ability": "Damage dealt to Epitrinne by Mugic is reduced to 0."
+  },
+  {
+    "number": 190,
+    "ability": "Damage dealt to Farhkaj by Water attacks is reduced by 5."
+  },
+  {
+    "number": 191,
+    "ability": "Damage dealt to Gnarlus by Mugic is reduced to 0.{{MC}}{{MC}}: Damage dealt to target Creature by Mugic is reduced to 0."
+  },
+  {
+    "number": 192,
+    "ability": "Damage dealt to Illiar by Attacks with 2 Build Points is reduced to 0."
+  },
+  {
+    "number": 193,
+    "ability": "Damage dealt to Warbeast Creatures by Recklessness is reduced by 5.Conjuror Creatures have \"Recklessness 5.\""
+  },
+  {
+    "number": 194,
+    "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10 for each Elemental Type that Warbeast Creature has."
+  },
+  {
+    "number": 195,
+    "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10 for each Mugic counter on Savell."
+  },
+  {
+    "number": 196,
+    "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10.If Drimesse has no Mugic counters on it, sacrifice it."
+  },
+  {
+    "number": 197,
+    "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10.{{MC}}: Damage dealt to Warbeast Creatures you control by Recklessness is reduced by an additional 10."
+  },
+  {
+    "number": 198,
+    "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10.{{MC}}: Heal 10 damage to target Creature."
+  },
+  {
+    "number": 199,
+    "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 5.Untargetable."
+  },
+  {
+    "number": 200,
+    "ability": "Damage dealt to Warbeast Creatures you control is reduced by 5."
+  },
+  {
+    "number": 201,
+    "ability": "Damage dealt to target Creature by Fire or Air attacks is reduced by 5. (An attack which is both Fire and Air is still reduced by 5.)"
+  },
+  {
+    "number": 202,
+    "ability": "Danian Creatures you control can play OverWorld Mugic."
+  },
+  {
+    "number": 203,
+    "ability": "Danian Creatures you control can play OverWorld Mugic.Fireproof 10."
+  },
+  {
+    "number": 204,
+    "ability": "Deactivate Hive."
+  },
+  {
+    "number": 205,
+    "ability": "Deactivate Hive.As Hive Unsung is played, its caster can pay a Mugic counter. If the caster does, return Hive Unsung to your hand when it resolves."
+  },
+  {
+    "number": 206,
+    "ability": "Deactivate Hive: Faash gains \"Fire 5.\" Hive cannot be Activated again this turn. (Hive must be active to Deactivate it.)"
+  },
+  {
+    "number": 207,
+    "ability": "Deal 10 damage for each Tribe you control."
+  },
+  {
+    "number": 208,
+    "ability": "Deal 10 damage to Xield: Target Creature gains 10 Energy. This ability can only be used once per turn."
+  },
+  {
+    "number": 209,
+    "ability": "Deal 10 damage to a Creature you control: That Creature gains \"Swift 2.\" This ability can only be used once per turn."
+  },
+  {
+    "number": 210,
+    "ability": "Deal 10 damage to target Creature for each Elemental Type it has."
+  },
+  {
+    "number": 211,
+    "ability": "Deal 10 damage to target Creature for each Mugic counter on it."
+  },
+  {
+    "number": 212,
+    "ability": "Deal 10 damage to target Creature with Air or Fire."
+  },
+  {
+    "number": 213,
+    "ability": "Deal 10 damage to target Creature with Earth or Water."
+  },
+  {
+    "number": 214,
+    "ability": "Deal 10 damage to target Creature."
+  },
+  {
+    "number": 215,
+    "ability": "Deal 10 damage to target Creature.The caster pays 2 less mugic Counters to play this Mugic if an engaged Creature you control dealt 20 or more attack damage this turn."
+  },
+  {
+    "number": 216,
+    "ability": "Deal 10 damage to target Creature. Another target Creature gains \"Fire 5.\""
+  },
+  {
+    "number": 217,
+    "ability": "Deal 10 damage to target Creature. If you control only UnderWorld Creatures, also destroy all Battlegear equipped to it."
+  },
+  {
+    "number": 218,
+    "ability": "Deal 15 damage to Kamangareth while engaged: Deactivate Hive."
+  },
+  {
+    "number": 219,
+    "ability": "Deal 15 damage to target Creature."
+  },
+  {
+    "number": 220,
+    "ability": "Deal 15 damage to target M'arrillian Creature."
+  },
+  {
+    "number": 221,
+    "ability": "Deal 20 damage for each Minion Creature Card in your general discard pile."
+  },
+  {
+    "number": 222,
+    "ability": "Deal 20 damage to target Creature on your side of the Battleboard.That Creature's controller discards a random Mugic Card from their hand."
+  },
+  {
+    "number": 223,
+    "ability": "Deal 20 damage to target Creature that has no Disciplines greater than 25."
+  },
+  {
+    "number": 224,
+    "ability": "Deal 20 damage to target Creature."
+  },
+  {
+    "number": 225,
+    "ability": "Deal 20 damage to target Creature. If the caster of this Mugic has Fire, deal an additional 10 damage."
+  },
+  {
+    "number": 226,
+    "ability": "Deal 5 damage for each Attack Card in your Attack Discard pile. If you have 7 or more Attack Cards in your Attack Discard pile, deal 0 damage instead."
+  },
+  {
+    "number": 227,
+    "ability": "Deal 5 damage for each Elemental Type shared by both engaged Creatures."
+  },
+  {
+    "number": 228,
+    "ability": "Deal 5 damage for each Kha'rall Creature you control."
+  },
+  {
+    "number": 229,
+    "ability": "Deal 5 damage for each Mandiblor Creature you control adjacent to your engaged Creature."
+  },
+  {
+    "number": 230,
+    "ability": "Deal 5 damage for each Mipedian Creature you control."
+  },
+  {
+    "number": 231,
+    "ability": "Deal 5 damage for each Mugic counter on Creatures you control.Morphwrath deals 5 less damage for each Mugic counter on opposing Creatures. (Attacks which would deal less than 0 damage deal 0 instead.)"
+  },
+  {
+    "number": 232,
+    "ability": "Deal 5 damage for each Tribe you control beyond the first."
+  },
+  {
+    "number": 233,
+    "ability": "Deal 5 damage to target Creature for each Mandiblor you control and each Infected Creature in play, then Uninfect all Creatures."
+  },
+  {
+    "number": 234,
+    "ability": "Deal 5 damage to target Creature for each Mugic counter spent to play Chromatic Postlude."
+  },
+  {
+    "number": 235,
+    "ability": "Deal 5 damage to target Creature."
+  },
+  {
+    "number": 236,
+    "ability": "Deal 5 damage to target Creature.If the caster of this Mugic is a Muge, deal an additional 10 damage."
+  },
+  {
+    "number": 237,
+    "ability": "Deal 5 damage to target Creature. Deal an additional 10 damage to it if it has Water."
+  },
+  {
+    "number": 238,
+    "ability": "Deal 5 damage to target engaged Creature for each Mugic counter on opposing Creatures."
+  },
+  {
+    "number": 239,
+    "ability": "Deal an additional 5 damage for each Mugic counter on your engaged Creature."
+  },
+  {
+    "number": 240,
+    "ability": "Defender{{MC}}{{MC}}: Target Elemental Attack deals 0 damage to Lomma."
+  },
+  {
+    "number": 241,
+    "ability": "Defender.On an opponent's turn, Tangath Toborn has:\"Fire 5\" while you control an UnderWorld Creature.\"Disarm\" while you control a Mipedian Creature.\"Elementproof all Elemental Types 5\" while you control a Danian Creature."
+  },
+  {
+    "number": 242,
+    "ability": "Defender.Water 5.The first attack against Lomma each combat deals 10 less damage."
+  },
+  {
+    "number": 243,
+    "ability": "Defender: Conjuror.Non-attack damage dealt to adjacent Royal Creatures is dealt to Gaffat-ra instead.Recklessness 10."
+  },
+  {
+    "number": 244,
+    "ability": "Defender: Earth{{MC}}: The active Location loses all abilities."
+  },
+  {
+    "number": 245,
+    "ability": "Defender: Fire.Defender: Earth."
+  },
+  {
+    "number": 246,
+    "ability": "Defender: Water."
+  },
+  {
+    "number": 247,
+    "ability": "Destroy Lore to return one spell to your hand from the Graveyard. This counts as a Danian Mugicburst and may be dispelled."
+  },
+  {
+    "number": 248,
+    "ability": "Destroy all Battlegear equipped to Creatures in the same space as target Mirage Location.  Shuffle it into its controller's Location Deck."
+  },
+  {
+    "number": 249,
+    "ability": "Destroy all Battlegear equipped to engaged Creatures with less than 50 Power or Speed."
+  },
+  {
+    "number": 250,
+    "ability": "Destroy all Battlegear equipped to target engaged Creature. That Creature gains 10 Energy."
+  },
+  {
+    "number": 251,
+    "ability": "Destroy engaged Creatures' Battlegear. Then, if you only control Mipedian Creatures and your engaged Creature is unequipped, return a Battlegear Card from your general discard pile to play equipped to your engaged Creature."
+  },
+  {
+    "number": 252,
+    "ability": "Destroy target Battlegear equipped to an engaged Creature."
+  },
+  {
+    "number": 253,
+    "ability": "Destroy target Battlegear."
+  },
+  {
+    "number": 254,
+    "ability": "Destroy target Creature with 0 Courage."
+  },
+  {
+    "number": 255,
+    "ability": "Destroy target Creature with 0 Power."
+  },
+  {
+    "number": 256,
+    "ability": "Destroy target Creature with 0 Speed and 0 Power."
+  },
+  {
+    "number": 257,
+    "ability": "Destroy target Creature with 0 Speed."
+  },
+  {
+    "number": 258,
+    "ability": "Destroy target Creature with 0 Wisdom."
+  },
+  {
+    "number": 259,
+    "ability": "Destroy target Creature with no Mugic counters on it."
+  },
+  {
+    "number": 260,
+    "ability": "Destroy two target Battlegear."
+  },
+  {
+    "number": 261,
+    "ability": "Discard a Mugic Card: Ihun'kalin deals 10 additional damage with its next attack this turn."
+  },
+  {
+    "number": 262,
+    "ability": "Discard a Mugic Card: Opposing Creatures lose and cannot gain Range and Swift."
+  },
+  {
+    "number": 263,
+    "ability": "Discard a Mugic Card: Remove all Mugic counters on target engaged Creature."
+  },
+  {
+    "number": 264,
+    "ability": "Discard a Mugic Card: Swap two Shard Battlegear equipped to two Kha'rall Creatures you control."
+  },
+  {
+    "number": 265,
+    "ability": "Discard a Mugic Card: Target Chieftain Creature gains \"Untargetable.\""
+  },
+  {
+    "number": 266,
+    "ability": "Discard a Mugic Card: Target Creature with 0 in any Discipline loses an Elemental Type of your choice."
+  },
+  {
+    "number": 267,
+    "ability": "Discard a Mugic Card: Target Elemental Attack deals 15 less damage."
+  },
+  {
+    "number": 268,
+    "ability": "Discard a Mugic Card: Target Minion Creature is treated as if its controller did not also control a Chieftain."
+  },
+  {
+    "number": 269,
+    "ability": "Discard an UnderWorld Mugic Card: Deal 5 damage to target Creature."
+  },
+  {
+    "number": 270,
+    "ability": "Discard two Mugic Cards: Destroy target engaged Creature with 0 Courage."
+  },
+  {
+    "number": 271,
+    "ability": "Discard two Mugic Cards: Destroy target engaged Creature with 0 Power."
+  },
+  {
+    "number": 272,
+    "ability": "Discard two Mugic Cards: Destroy target engaged Creature with 0 Speed."
+  },
+  {
+    "number": 273,
+    "ability": "Discard two Mugic Cards: Destroy target engaged Creature with 0 Wisdom."
+  },
+  {
+    "number": 274,
+    "ability": "Draw two Attack Cards, then discard two Attack Cards."
+  },
+  {
+    "number": 275,
+    "ability": "Each Battlegear has \"Untargetable.\""
+  },
+  {
+    "number": 276,
+    "ability": "Each Mugic has \"Untargetable.\""
+  },
+  {
+    "number": 277,
+    "ability": "Earth 5Expend Earth: Odu-Bathax gains \"Outperform Courage 5.\""
+  },
+  {
+    "number": 278,
+    "ability": "Earth 5."
+  },
+  {
+    "number": 279,
+    "ability": "Earth 5.Swift 1."
+  },
+  {
+    "number": 280,
+    "ability": "Earth attacks deal an additional 5 damage.Damage dealt by Fire attacks is reduced by 5."
+  },
+  {
+    "number": 281,
+    "ability": "Earth, Air: The next attack played this combat deals 0 damage."
+  },
+  {
+    "number": 282,
+    "ability": "Earth, Water: Deal 5 damage, then gain 5 Energy."
+  },
+  {
+    "number": 283,
+    "ability": "Earth: Gain 10 Speed."
+  },
+  {
+    "number": 284,
+    "ability": "Earth: Heal 5 damage.Air: Gain 10 Speed."
+  },
+  {
+    "number": 285,
+    "ability": "Earth: If an Attack Card named Desiccate the Land is in your attack discard pile, heal 10 damage."
+  },
+  {
+    "number": 286,
+    "ability": "Earth: Look at the top three cards of your Location Deck and put them back in any order. You can reveal a new active Location."
+  },
+  {
+    "number": 287,
+    "ability": "Earth: Opposing engaged Creature loses 25 Speed."
+  },
+  {
+    "number": 288,
+    "ability": "Earth: Reveal a new active Location. Your engaged Creature loses Earth."
+  },
+  {
+    "number": 289,
+    "ability": "Earth: The opposing engaged Creature loses Air."
+  },
+  {
+    "number": 290,
+    "ability": "Earth: When Gravel Grind deals damage, remove a card in a general discard pile from the game."
+  },
+  {
+    "number": 291,
+    "ability": "Earth: Your engaged Creature loses Earth."
+  },
+  {
+    "number": 292,
+    "ability": "Earth: Your engaged Creature loses Earth. Look at the top two cards of your Location Deck and choose one. It becomes the active Location. Put the other on the bottom of your deck."
+  },
+  {
+    "number": 293,
+    "ability": "Elemental Attacks deal 5 less damage to Ketun."
+  },
+  {
+    "number": 294,
+    "ability": "Engaged Creatures do not have Water and cannot gain it.Mirage: Creatures in this space do not have Water and cannot gain it."
+  },
+  {
+    "number": 295,
+    "ability": "Engaged Creatures have \"Disarm.\""
+  },
+  {
+    "number": 296,
+    "ability": "Engaged Creatures have \"Exhaust  Courage 5\" and \"Exhaust Wisdom 5.\""
+  },
+  {
+    "number": 297,
+    "ability": "Engaged Creatures have \"Exhaust Power 5\" and \"Exhaust Speed 5.\""
+  },
+  {
+    "number": 298,
+    "ability": "Engaged Creatures have \"Outperform Courage 5.\" Damage dealt by Power Attacks is reduced by 5."
+  },
+  {
+    "number": 299,
+    "ability": "Engaged Creatures have \"Outperform Power 5.\"Damage dealt by Speed Attacks is reduced by 5."
+  },
+  {
+    "number": 300,
+    "ability": "Engaged Creatures have \"Outperform Speed 5.\"Damage dealt by Wisdom Attacks is reduced by 5."
+  },
+  {
+    "number": 301,
+    "ability": "Engaged Creatures have \"Outperform Wisdom 5.\"Damage dealt by Courage Attacks is reduced by 5."
+  },
+  {
+    "number": 302,
+    "ability": "Engaged Creatures have \"Water 5.\"Creatures with Air that became engaged this turn have an additional 10 Energy."
+  },
+  {
+    "number": 303,
+    "ability": "Engaged UnderWorld Creatures pay 1 less Mugic counter to play their first Mugic this turn."
+  },
+  {
+    "number": 304,
+    "ability": "Equipped Creature and Creatures engaged with it cannot lose Elemental Types from Mugic, Attacks or abilities."
+  },
+  {
+    "number": 305,
+    "ability": "Equipped Creature can play Mugic from any Tribe you control.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 306,
+    "ability": "Equipped Creature can play Mugic of any tribe.When a Mugic or ability is played by equipped Creature, deal 10 damage to it.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 307,
+    "ability": "Equipped Creature cannot be targeted by Mugic or abilities played by Creatures with lower Wisdom than it.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 308,
+    "ability": "Equipped Creature cannot be targeted by Mugic.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 309,
+    "ability": "Equipped Creature cannot be targeted by abilities.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 310,
+    "ability": "Equipped Creature cannot move.Equipped Creature has an additional 50 Energy.All damage dealt to equipped Creature is increased by 5.Equipped Creature has no abilities and cannot gain abilities."
+  },
+  {
+    "number": 311,
+    "ability": "Equipped Creature deals an additional 10 damage with non-Elemental and non-Discipline Attacks."
+  },
+  {
+    "number": 312,
+    "ability": "Equipped Creature deals an additional 5 Attack damage to UnderWorld and Danian Creatures.Equipped Danian Creature has \"Earth 5.\"Equipped UnderWorld Creature has an additional 50 Power."
+  },
+  {
+    "number": 313,
+    "ability": "Equipped Creature deals an additional 5 damage with attacks. If equipped Creature deals more than 20 damage with a single attack, sacrifice Ulmar's Bionic Steam Arms and deal 20 damage to the equipped Creature."
+  },
+  {
+    "number": 314,
+    "ability": "Equipped Creature has \"Air 10.\"When combat ends, destroy Mipedian Fulgurite."
+  },
+  {
+    "number": 315,
+    "ability": "Equipped Creature has \"Air 5.\""
+  },
+  {
+    "number": 316,
+    "ability": "Equipped Creature has \"Discard a Mugic Card: Relocate target opposing unengaged Creature to any unoccupied space adjacent to this Creature.\""
+  },
+  {
+    "number": 317,
+    "ability": "Equipped Creature has \"Earth 5\" and \"Recklessness 5.\"If equipped Creature is destroyed while engaged, destroy all Battlegear equipped to the opposing engaged Creature. Then, if that Creature is Unequipped, equip Ur-Shard to it.(Players control any Battlegear equipped to Creatures they control.)"
+  },
+  {
+    "number": 318,
+    "ability": "Equipped Creature has \"Earth 5.\""
+  },
+  {
+    "number": 319,
+    "ability": "Equipped Creature has \"Expend Air: Gain 50 Speed.\""
+  },
+  {
+    "number": 320,
+    "ability": "Equipped Creature has \"Expend Earth: Gain 50 Courage.\""
+  },
+  {
+    "number": 321,
+    "ability": "Equipped Creature has \"Expend Fire: Gain 50 Power.\""
+  },
+  {
+    "number": 322,
+    "ability": "Equipped Creature has \"Expend Water: Gain 50 Wisdom.\""
+  },
+  {
+    "number": 323,
+    "ability": "Equipped Creature has \"Fire 5\" and \"Water 5.\"When equipped Creature deals 25 or more damage with a single attack, flip Bodal's Element Converter face-down."
+  },
+  {
+    "number": 324,
+    "ability": "Equipped Creature has \"Fire 5.\""
+  },
+  {
+    "number": 325,
+    "ability": "Equipped Creature has \"Intimidate: Courage 10\" and \"Intimidate: Power 10.\""
+  },
+  {
+    "number": 326,
+    "ability": "Equipped Creature has \"Intimidate: Wisdom 10\" and \"Intimidate: Speed 10.\""
+  },
+  {
+    "number": 327,
+    "ability": "Equipped Creature has \"Outperform Courage 5.\" (Outperform increases the damage of attacks that success at least one Stat Check, Challenge, or Stat Fail of the indicated Discipline.)"
+  },
+  {
+    "number": 328,
+    "ability": "Equipped Creature has \"Outperform Power 5.\" (Outperform increases the damage of attacks that success at least one Stat Check, Challenge, or Stat Fail of the indicated Discipline.)"
+  },
+  {
+    "number": 329,
+    "ability": "Equipped Creature has \"Outperform Speed 5.\" (Outperform increases the damage of attacks that success at least one Stat Check, Challenge, or Stat Fail of the indicated Discipline.)"
+  },
+  {
+    "number": 330,
+    "ability": "Equipped Creature has \"Outperform Wisdom 5.\" (Outperform increases the damage of attacks that success at least one Stat Check, Challenge, or Stat Fail of the indicated Discipline.)"
+  },
+  {
+    "number": 331,
+    "ability": "Equipped Creature has \"Range\" and \"Swift 1\" for each Creature Card in your general discard pile.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 332,
+    "ability": "Equipped Creature has \"Range\" and \"Swift 1.\"Sacrifice Bi-Mowercycle: Target Creature gains \"Range\" and \"Swift 1.\"This Battlegear begins the game face-up."
+  },
+  {
+    "number": 333,
+    "ability": "Equipped Creature has \"Range\" and \"Swift 1.\"This Battlegear begins the game face-up."
+  },
+  {
+    "number": 334,
+    "ability": "Equipped Creature has \"Swift 1.\" If equipped Creature has Air, it has \"Surprise.\"This Battlegear begins the game face-up."
+  },
+  {
+    "number": 335,
+    "ability": "Equipped Creature has \"Swift 2.\"This Battlegear begins the game face-up."
+  },
+  {
+    "number": 336,
+    "ability": "Equipped Creature has \"Untargetable\" if it has moved this turn."
+  },
+  {
+    "number": 337,
+    "ability": "Equipped Creature has \"Water 5.\""
+  },
+  {
+    "number": 338,
+    "ability": "Equipped Creature has \"When equipped Creature becomes engaged, flip  all Battlegear equipped to the opposing engaged Creature face-down.\""
+  },
+  {
+    "number": 339,
+    "ability": "Equipped Creature has 10 less Energy.When equipped Creature is destroyed while engaged, return it from the discard pile to play to any unoccupied space on your side of the Battleboard."
+  },
+  {
+    "number": 340,
+    "ability": "Equipped Creature has Creature Type \"Chieftain\" in addition to its other types. (Minions use Brainwashed text. Minions can only play Generic Mugic.)"
+  },
+  {
+    "number": 341,
+    "ability": "Equipped Creature has Creature Type \"Mandiblor\" in addition to its other types.Equipped Creature has \"Hive: equipped Creature has an additional 5 Energy.\""
+  },
+  {
+    "number": 342,
+    "ability": "Equipped Creature has Fire. Sacrifice Obliterators: Deal 5 damage to target Creature. Play this ability only while you control Dread Tread."
+  },
+  {
+    "number": 343,
+    "ability": "Equipped Creature has Water.Equipped Kha'rall Creature has an additional 15 Energy and \"Defender: Water.\"This Battlegear begins the game face-up."
+  },
+  {
+    "number": 344,
+    "ability": "Equipped Creature has an additional 10 Courage and an additional 10 Speed.If equipped Creature has at least 50 Power, it has an additional 10 Energy."
+  },
+  {
+    "number": 345,
+    "ability": "Equipped Creature has an additional 10 Courage. Sacrifice Parasite Tablet: equipped Creature gains Creature Type \"Mandiblor\" in addition to its other types. Play this ability only while equipped Creature is engaged."
+  },
+  {
+    "number": 346,
+    "ability": "Equipped Creature has an additional 10 Energy."
+  },
+  {
+    "number": 347,
+    "ability": "Equipped Creature has an additional 10 Energy. If equipped Creature has Earth, it has an additional 10 Energy."
+  },
+  {
+    "number": 348,
+    "ability": "Equipped Creature has an additional 10 Power and an additional 10 Wisdom.If equipped Creature has at least 50 Courage, it has an additional 10 Energy."
+  },
+  {
+    "number": 349,
+    "ability": "Equipped Creature has an additional 10 Power. Sacrifice The Pit Token: Deal 10 damage to target engaged Creature. Play this ability only while equipped Creature is engaged."
+  },
+  {
+    "number": 350,
+    "ability": "Equipped Creature has an additional 10 Speed.Sacrifice Breath of the Desert: equipped Creature gains \"Air 5.\" Play this ability only while equipped Creature is engaged."
+  },
+  {
+    "number": 351,
+    "ability": "Equipped Creature has an additional 10 Wisdom. Sacrifice Manual of Vidav: Heal 15 damage to equipped Creature. Play this ability only while equipped Creature is engaged."
+  },
+  {
+    "number": 352,
+    "ability": "Equipped Creature has an additional 15 Courage and 15 Power. Sacrifice Wing-Fin: Relocate equipped Creature to any unoccupied space . Play this ability only while equipped Creature is unengaged."
+  },
+  {
+    "number": 353,
+    "ability": "Equipped Creature has an additional 15 Courage.Equipped OverWorld Creature has \"When equipped Creature deals Water damage, heal 5 damage to it.\""
+  },
+  {
+    "number": 354,
+    "ability": "Equipped Creature has an additional 15 Courage. Attacks played by equipped Creature have \"The opposing engaged Creature loses 10 Courage.\""
+  },
+  {
+    "number": 355,
+    "ability": "Equipped Creature has an additional 15 Power.Equipped UnderWorld Creature has \"Fire 5.\""
+  },
+  {
+    "number": 356,
+    "ability": "Equipped Creature has an additional 15 Speed.Equipped Danian Creature has \"Sacrifice equipped Creature: Return a Mandiblor Creature Card in your general discard pile to play to any unoccupied space .\""
+  },
+  {
+    "number": 357,
+    "ability": "Equipped Creature has an additional 15 Wisdom and 15 Speed. Sacrifice Flitflut: Relocate equipped Creature to any unoccupied space . Play this ability only while equipped Creature is unengaged."
+  },
+  {
+    "number": 358,
+    "ability": "Equipped Creature has an additional 15 Wisdom and 5 Energy.When equipped Creature wins combat, put a Mugic counter on it."
+  },
+  {
+    "number": 359,
+    "ability": "Equipped Creature has an additional 15 Wisdom.Equipped Mipedian Creature has \"{{MC}}: equipped Creature can move to any space on the board as if it were adjacent.\""
+  },
+  {
+    "number": 360,
+    "ability": "Equipped Creature has an additional 20 Speed. If an opposing Creature has Range, equipped Creature has \"Defender.\"This Battlegear begins the game face-up."
+  },
+  {
+    "number": 361,
+    "ability": "Equipped Creature has an additional 25 Courage."
+  },
+  {
+    "number": 362,
+    "ability": "Equipped Creature has an additional 25 Power."
+  },
+  {
+    "number": 363,
+    "ability": "Equipped Creature has an additional 25 Speed."
+  },
+  {
+    "number": 364,
+    "ability": "Equipped Creature has an additional 25 Wisdom."
+  },
+  {
+    "number": 365,
+    "ability": "Equipped Creature has an additional 40 Courage and 5 Energy."
+  },
+  {
+    "number": 366,
+    "ability": "Equipped Creature has an additional 40 Power and 5 Energy."
+  },
+  {
+    "number": 367,
+    "ability": "Equipped Creature has an additional 40 Speed and 5 Energy."
+  },
+  {
+    "number": 368,
+    "ability": "Equipped Creature has an additional 40 Wisdom and 5 Energy."
+  },
+  {
+    "number": 369,
+    "ability": "Equipped Creature has an additional 5 Energy and 15 Power.Equipped Elementalist Creature has all Elemental Types your Creatures have."
+  },
+  {
+    "number": 370,
+    "ability": "Equipped Creature has an additional 5 Energy and 15 Speed.Equipped Warrior Creature has \"When equipped Creature deals 20 or more attack damage, deal 5 damage to target Creature.\""
+  },
+  {
+    "number": 371,
+    "ability": "Equipped Creature has an additional 5 Energy and 15 Wisdom.Equipped Scout Creature has \"{{MC}}: Turn target face-down Battlegear face-up.\""
+  },
+  {
+    "number": 372,
+    "ability": "Equipped Creature has an additional 5 Energy and 5 in each Discipline for each Elemental Type it has."
+  },
+  {
+    "number": 373,
+    "ability": "Equipped Creature has an additional 5 Energy and Air.If equipped Kha'rall Creature is engaged, Creatures play attacks at random."
+  },
+  {
+    "number": 374,
+    "ability": "Equipped Creature has an additional 5 Energy.Equipped Chieftain Creature has \"Water 5.\""
+  },
+  {
+    "number": 375,
+    "ability": "Equipped Creature has an additional 5 Energy.Equipped Warbeast Creature has \"Recklessness 5,\" has an additional 5 Energy for each Conjuror Creature you control and deals an additional 5 damage with attacks."
+  },
+  {
+    "number": 376,
+    "ability": "Equipped Creature has an additional 5 Energy.If equipped Kha'rall Creature is engaged, unengaged Creatures cannot play Mugic or activated abilities."
+  },
+  {
+    "number": 377,
+    "ability": "Equipped Creature has an additional 5 Energy.Sacrifice Aqua Shield: Heal 15 damage to target Creature."
+  },
+  {
+    "number": 378,
+    "ability": "Equipped Creature has an additional 5 Energy.Sacrifice Nexus Fuse: Deal 15 damage to target Creature."
+  },
+  {
+    "number": 379,
+    "ability": "Equipped Creature has an additional 5 Energy.Sacrifice Prism of Fright: Target Creature loses 20 Courage."
+  },
+  {
+    "number": 380,
+    "ability": "Equipped Creature has an additional 5 Energy.Sacrifice Prism of Mindlessness: Target Creature loses 20 Wisdom."
+  },
+  {
+    "number": 381,
+    "ability": "Equipped Creature has an additional 5 Energy.Sacrifice Prism of Sloth: Target Creature loses 20 Speed."
+  },
+  {
+    "number": 382,
+    "ability": "Equipped Creature has an additional 5 Energy.Sacrifice Prism of Vacuity: Target Creature loses 20 Power."
+  },
+  {
+    "number": 383,
+    "ability": "Equipped Creature has an additional 5 Energy. Sacrifice Ravita Flower: Put 2 Mugic counters on target Conjuror Creature."
+  },
+  {
+    "number": 384,
+    "ability": "Equipped Creature has an additional 5 Energy. When Lightning Canister is put into your general discard pile from face-up, deal 5 damage to target engaged Creature."
+  },
+  {
+    "number": 385,
+    "ability": "Equipped Creature has an additional 50 Energy.When equipped Creature is dealt 15 or more attack damage, the next attack played by the equipped Creature this turn deals 0 damage."
+  },
+  {
+    "number": 386,
+    "ability": "Equipped Creature has an additional 50 Speed.When equipped Creature is dealt attack damage, deal 5 damage to the opposing engaged Creature."
+  },
+  {
+    "number": 387,
+    "ability": "Equipped Creature with Earth deals an additional 5 attack damage.When you shuffle your Attack Deck, destroy Vlaric Shard."
+  },
+  {
+    "number": 388,
+    "ability": "Equipped Creature's first attack each combat has \"Untargetable.\""
+  },
+  {
+    "number": 389,
+    "ability": "Equipped M'arrillian or Minion Creature has \"Water 5.\"At the beginning of combat, equipped Kha'rall Creature gains 40 Energy if there are 8 or more Mugic counters among Creatures you control.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 390,
+    "ability": "Equipped M'arrillian or Minion Creature has Air.Equipped Kha'rall Creature has an additional 25 Energy and \"Defender: Kha'rall.\"This Battlegear begins the game face-up."
+  },
+  {
+    "number": 391,
+    "ability": "Equipped M'arrillian or Minion Creature has Earth.Equipped Kha'rall Creature has an additional 25 Energy and \"Defender: Minion.\"This Battlegear begins the game face-up."
+  },
+  {
+    "number": 392,
+    "ability": "Equipped M'arrillian or Minion Creature has Fire.Equipped Kha'rall Creature has an additional 25 Energy and \"Defender: Chieftain.\" This Battlegear begins the game face-up."
+  },
+  {
+    "number": 393,
+    "ability": "Equipped M'arrillian or Minion Creature has Water.Equipped Kha'rall Creature has an additional 25 Energy and \"Defender: Fluidmorpher.\"This Battlegear begins the game face-up."
+  },
+  {
+    "number": 394,
+    "ability": "Equipped Mipedian Creature has Air.If equipped Creature is a Conjuror Creature, Warbeast Creatures you control have \"Recklessness 5.\""
+  },
+  {
+    "number": 395,
+    "ability": "Equipped OverWorld Creature has an additional 5 Energy.Sacrifice Girgeth Tar: Heal 20 damage to target Creature. If the target is a Caretaker Creature, put a Mugic counter on it."
+  },
+  {
+    "number": 396,
+    "ability": "Exhaust all Disciplines 10."
+  },
+  {
+    "number": 397,
+    "ability": "Exhaust all Disciplines 5.When Nauthilax wins a Power Challenge, it gains an Elemental Type of your choice."
+  },
+  {
+    "number": 398,
+    "ability": "Expend Air while engaged: Flip all Battlegear equipped to the opposing engaged Creature face-down."
+  },
+  {
+    "number": 399,
+    "ability": "Expend Air: Target adjacent Creature gains \"Untargetable.\""
+  },
+  {
+    "number": 400,
+    "ability": "Expend Earth while engaged: Target attack deals 15 damage."
+  },
+  {
+    "number": 401,
+    "ability": "Expend Earth while engaged: The active player reveals a new active Location."
+  },
+  {
+    "number": 402,
+    "ability": "Expend Earth while engaged: The opposing engaged Creature loses Invisibility."
+  },
+  {
+    "number": 403,
+    "ability": "Expend Earth: Discard an Attack Card. If you do, return an Attack Card with Build Points less than or equal to the discarded Attack Card to your hand. If you cannot, draw an Attack Card."
+  },
+  {
+    "number": 404,
+    "ability": "Expend Earth: Hiadrom gains 20 Energy."
+  },
+  {
+    "number": 405,
+    "ability": "Expend Earth: Look at the top card of your Location Deck. You can put that card on the bottom of that deck."
+  },
+  {
+    "number": 406,
+    "ability": "Expend Earth: Return target Battlegear Card in your general discard pile to play equipped to another unequipped Creature you control.Expend Fire: Destroy a Battlegear you control. If you do, destroy target Battlegear."
+  },
+  {
+    "number": 407,
+    "ability": "Expend Fire while engaged: Both players discard two Attack Cards and draw two Attack Cards."
+  },
+  {
+    "number": 408,
+    "ability": "Expend Fire while engaged: Destroy all Battlegear equipped to engaged Creatures."
+  },
+  {
+    "number": 409,
+    "ability": "Expend Fire while engaged: When target attack deals damage, deal the same amount of damage to the Creature that played that attack."
+  },
+  {
+    "number": 410,
+    "ability": "Expend Fire: Deal 10 damage to target Creature."
+  },
+  {
+    "number": 411,
+    "ability": "Expend Fire: Put a Magma Counter on Khybon.Remove 5 Magma Counters from Khybon: Deal 40 damage to all engaged Creatures."
+  },
+  {
+    "number": 412,
+    "ability": "Expend Fire: Target Creature gains or loses all Disciplines so they become their scanned values."
+  },
+  {
+    "number": 413,
+    "ability": "Expend Fire: The next attack played by Maxxor this turn deals an additional 10 damage.Expend Earth: The next attack played by the opposing engaged Creature this turn deals 10 less damage to Maxxor."
+  },
+  {
+    "number": 414,
+    "ability": "Expend Water while engaged: When Thar'lyn next deals attack damage this turn, the opposing engaged Creature loses X to all Disciplines, where X is the damage dealt."
+  },
+  {
+    "number": 415,
+    "ability": "Expend Water: Heal 10 damage to target Creature."
+  },
+  {
+    "number": 416,
+    "ability": "Expend Water: Infect target Creature."
+  },
+  {
+    "number": 417,
+    "ability": "Expend Water: Put a Mugic counter on Mock'adyn."
+  },
+  {
+    "number": 418,
+    "ability": "Expend Water: The controller of target unengaged Creature chooses another unengaged Creature they control. Those two creatures swap spaces."
+  },
+  {
+    "number": 419,
+    "ability": "Expend any Elemental Type: Target Danian Creature gains the expended Elemental Type. Use this ability only once per turn."
+  },
+  {
+    "number": 420,
+    "ability": "Fire 10."
+  },
+  {
+    "number": 421,
+    "ability": "Fire 5"
+  },
+  {
+    "number": 422,
+    "ability": "Fire 5{{MC}}: Deal 5 damage to target Creature for each Creature you control on your opponent's side of the Battleboard."
+  },
+  {
+    "number": 423,
+    "ability": "Fire 5."
+  },
+  {
+    "number": 424,
+    "ability": "Fire 5.Intimidate: Power 10.Recklessness 5."
+  },
+  {
+    "number": 425,
+    "ability": "Fire 5.Intimidate: Power 10. Recklessness 5."
+  },
+  {
+    "number": 426,
+    "ability": "Fire 5.Recklessness 5."
+  },
+  {
+    "number": 427,
+    "ability": "Fire 5.When Gimwei is dealt 20 or more damage from a single source, deal 5 damage to target Creature."
+  },
+  {
+    "number": 428,
+    "ability": "Fire attacks deal an additional 5 damage.Damage dealt by Air attacks is reduced by 5.Creatures named Magmon have \"Fire 5.\""
+  },
+  {
+    "number": 429,
+    "ability": "Fire, Air, Earth, Water: Flip opposing engaged Creature's Battlegear face-down, draw an Attack Card, discard an Attack Card, deal 5 damage and gain 5 Energy."
+  },
+  {
+    "number": 430,
+    "ability": "Fire, Air, Earth, Water: Flip opposing engaged Creature's Battlegear face-down., draw an Attack Card, discard an Attack Card, deal 5 damage and gain 5 Energy."
+  },
+  {
+    "number": 431,
+    "ability": "Fire, Air: Draw an Attack Card and discard an Attack Card."
+  },
+  {
+    "number": 432,
+    "ability": "Fire, Earth: Flip all Battlegear equipped to the opposing engaged Creature face-down."
+  },
+  {
+    "number": 433,
+    "ability": "Fire: Destroy all Battlegear equipped to the opposing engaged Creature."
+  },
+  {
+    "number": 434,
+    "ability": "Fire: Gain 10 Wisdom."
+  },
+  {
+    "number": 435,
+    "ability": "Fire: Heal 5 damage.Water: Gain 10 Wisdom."
+  },
+  {
+    "number": 436,
+    "ability": "Fire: Opposing engaged Creature loses 25 Wisdom."
+  },
+  {
+    "number": 437,
+    "ability": "Fire: Reduce opposing engaged Creature's Power to 0.Air: Reduce opposing engaged Creature's Speed to 0.Earth: Reduce opposing engaged Creature's Courage to 0.Water: Reduce opposing engaged Creature's Wisdom to 0."
+  },
+  {
+    "number": 438,
+    "ability": "Fire: The opposing engaged Creature loses Water."
+  },
+  {
+    "number": 439,
+    "ability": "Fire: You can sacrifice an unengaged Creature you control. If you do, deal 20 damage."
+  },
+  {
+    "number": 440,
+    "ability": "Fire: Your engaged Creature loses Fire."
+  },
+  {
+    "number": 441,
+    "ability": "Fireproof 10.Earthproof 10."
+  },
+  {
+    "number": 442,
+    "ability": "Fireproof 10.Waterproof 10.Recklessness 15."
+  },
+  {
+    "number": 443,
+    "ability": "Fireproof 20When Ginar'rash deals Water attack damage to a Creature, that Creature loses Fire."
+  },
+  {
+    "number": 444,
+    "ability": "Flip all face-up Battlegear face-down."
+  },
+  {
+    "number": 445,
+    "ability": "Flip target Battlegear face-down."
+  },
+  {
+    "number": 446,
+    "ability": "Flip target Battlegear face-up or face-down."
+  },
+  {
+    "number": 447,
+    "ability": "Flip target face-down Battlegear face-up. Destroy that Battlegear at the beginning of the next turn."
+  },
+  {
+    "number": 448,
+    "ability": "FluidmorphWhen combat ends, remove all Mugic counters from Nunk'worn."
+  },
+  {
+    "number": 449,
+    "ability": "Fluidmorph{{MC}}{{MC}}: Heal 5 damage to target Creature.{{MC}}{{MC}}{{MC}}{{MC}}: Heal 25 damage to all Creatures you control."
+  },
+  {
+    "number": 450,
+    "ability": "Fluidmorph{{MC}}{{MC}}: Target Creature loses 20 to all Disciplines."
+  },
+  {
+    "number": 451,
+    "ability": "Fluidmorph{{MC}}{{MC}}: Target attack also counts as a Water attack.6{{MC}}: Target attack deals 0 damage if it is a Water attack."
+  },
+  {
+    "number": 452,
+    "ability": "Fluidmorph {{MC}}: Look at the top card of target player's Location Deck.{{MC}}: Put the top card of target player's Location Deck on the bottom of that deck.{{MC}}{{MC}}: Your opponent reveals a new active Location."
+  },
+  {
+    "number": 453,
+    "ability": "Fluidmorph.Attacks played by Nunk'worn also count as Fire and Water attacks.When Nunk'worn is destroyed and had exactly three Mugic counters on it, you can return it to play to any unoccupied space on your side of the Battleboard."
+  },
+  {
+    "number": 454,
+    "ability": "Fluidmorph.Attacks played by Nunk'worn also count as Fire and Water attacks.When Nunk'worn is sent to the discard and had exactly three Mugic counters on it, you can return it to play to any unoccupied space on your side of the Battleboard."
+  },
+  {
+    "number": 455,
+    "ability": "Fluidmorph.Swift 2."
+  },
+  {
+    "number": 456,
+    "ability": "Fluidmorph.When a Mugic played by an opposing Creature, remove all Mugic counters from Vix'ben. If the Mugic's cost is less than the number of Mugic counters removed this way, negate that Mugic."
+  },
+  {
+    "number": 457,
+    "ability": "Fluidmorph.{{MC}}: Relocate target opposing unengaged Creature to any unoccupied space  adjacent to it.{{MC}}{{MC}}{{MC}}{{MC}}: Creatures lose Swift and cannot move or relocate into unoccupied spaces."
+  },
+  {
+    "number": 458,
+    "ability": "Fluidmorph.{{MC}}: Target Creature loses Range.{{MC}}{{MC}}{{MC}}: Deal 20 damage to target Creature with Swift.10{{MC}}: Destroy all opposing Creatures with Range."
+  },
+  {
+    "number": 459,
+    "ability": "Fluidmorph.{{MC}}: When Dror'niq is next dealt attack damage this turn, deal 10 damage to the Creature which played that attack.{{MC}}{{MC}}{{MC}}{{MC}}: Whenever target Creature is dealt attack damage this turn, deal 10 damage to the Creature which played that attack."
+  },
+  {
+    "number": 460,
+    "ability": "Fluidmorph.{{MC}}{{MC}}: Swap all Battlegear equipped to two target Kha'rall Creatures controlled by the same player.{{MC}}{{MC}}{{MC}}{{MC}}: Return target Shard Battlegear Card in your general discard pile to play equipped to an unequipped Kha'rall Creature you control."
+  },
+  {
+    "number": 461,
+    "ability": "Fluidmorph.{{MC}}{{MC}}{{MC}}{{MC}} Negate target non-M'arrillian Mugic.5 {{MC}} Play a Mugic Card of any tribe or affiliation from the opposing general discard pile without paying its Mugic cost. Mugic Cards played in this way are removed from the game when they leave the burst."
+  },
+  {
+    "number": 462,
+    "ability": "Fluidmorph.{{MC}}{{MC}}{{MC}}{{MC}}: Target Creature loses an Elemental Type of your choice."
+  },
+  {
+    "number": 463,
+    "ability": "Fluidmorph.{{MC}}{{MC}}{{MC}}{{MC}}: Target attack deals 25 damage."
+  },
+  {
+    "number": 464,
+    "ability": "For each Discipline over 50 the opposing engaged Creature has, damage dealt by Rancorous Projection is reduced by 10."
+  },
+  {
+    "number": 465,
+    "ability": "Gain 100 Speed. Lose Courage, Power, and Wisdom so those Disciplines equal 0."
+  },
+  {
+    "number": 466,
+    "ability": "Gain Air."
+  },
+  {
+    "number": 467,
+    "ability": "Gain Earth."
+  },
+  {
+    "number": 468,
+    "ability": "Gain Fire"
+  },
+  {
+    "number": 469,
+    "ability": "Gain Water"
+  },
+  {
+    "number": 470,
+    "ability": "Glost has an additional 5 Energy, \"Earth 5\", and \"Air 5\" for each Conjuror Creature Card in your general discard pile.Recklessness 20."
+  },
+  {
+    "number": 471,
+    "ability": "Heal 10 damage to target Creature."
+  },
+  {
+    "number": 472,
+    "ability": "Heal 10 damage to target Creature.If the target of Recurring Rescue has 30 or less Scanned Energy, return Recurring Rescue to your hand when it resolves."
+  },
+  {
+    "number": 473,
+    "ability": "Heal 10 damage to target Creature. That Creature gains \"Air 5.\""
+  },
+  {
+    "number": 474,
+    "ability": "Heal 10 damage to target OverWorld Creature. Damage dealt to that Creature by Fire attacks is reduced by 5."
+  },
+  {
+    "number": 475,
+    "ability": "Heal 15 damage to target Creature with Air or Fire."
+  },
+  {
+    "number": 476,
+    "ability": "Heal 15 damage to target Creature with Earth or Water."
+  },
+  {
+    "number": 477,
+    "ability": "Heal 15 damage to target Creature.The caster pays 2 less mugic Counters to play this Mugic if an engaged Creature you control won a Wisdom Challenge this turn."
+  },
+  {
+    "number": 478,
+    "ability": "Heal 15 damage to target Mandiblor Creature."
+  },
+  {
+    "number": 479,
+    "ability": "Heal 20 damage to target Creature."
+  },
+  {
+    "number": 480,
+    "ability": "Heal 20 damage to target Fluidmorpher Creature."
+  },
+  {
+    "number": 481,
+    "ability": "Heal 25 damage to target Creature. If the caster of this Mugic has Water, also put a Mugic counter on the target Creature."
+  },
+  {
+    "number": 482,
+    "ability": "Heal 30 damage to target Creature. If you control only OverWorld Creatures, it gains 30 Energy instead."
+  },
+  {
+    "number": 483,
+    "ability": "Heal 5 damage to target Creature and deal 5 damage to another target Creature for each Danian Creature you control with Water."
+  },
+  {
+    "number": 484,
+    "ability": "Heal 5 damage to target Creature for each Tribe you control."
+  },
+  {
+    "number": 485,
+    "ability": "Heal 5 damage to target engaged Creature for each Mugic counter on opposing Creatures."
+  },
+  {
+    "number": 486,
+    "ability": "Heal 5 damage to your engaged Creature for each Elemental Type it has. If you control only Danian Creatures, also deal 5 damage to the opposing engaged Creature for each Elemental Type that Creature has."
+  },
+  {
+    "number": 487,
+    "ability": "Heptad may play spells of any clan."
+  },
+  {
+    "number": 488,
+    "ability": "Heptadd can play Mugic of any tribe."
+  },
+  {
+    "number": 489,
+    "ability": "Hive: Agrino Jaldar has an additional 5 Energy for each Danian Creature you control.Damage dealt by Agrino Jaldar to Minion Creatures is icreased by 5."
+  },
+  {
+    "number": 490,
+    "ability": "Hive: Chaac has an additional 15 Energy.{{MC}}: Infect target Uninfected Creature."
+  },
+  {
+    "number": 491,
+    "ability": "Hive: Ekuud has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 492,
+    "ability": "Hive: Fireproof 10.Attacks played by Hammerdoom Chantcaller deal an additional 5 damage to UnderWorld Creatures."
+  },
+  {
+    "number": 493,
+    "ability": "Hive: Formicidor has an additional 10 Courage for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 494,
+    "ability": "Hive: Galin has an additional 10 Speed for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 495,
+    "ability": "Hive: Ghundac has \"Range\" and \"Swift 3.\""
+  },
+  {
+    "number": 496,
+    "ability": "Hive: Hiadrom has an additional 15 Energy and Creatures engaged with it have 15 less Energy."
+  },
+  {
+    "number": 497,
+    "ability": "Hive: Ibiaan has an additional 5 Wisdom for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 498,
+    "ability": "Hive: Katharaz has \"Elementproof all Elemental Types 15.\""
+  },
+  {
+    "number": 499,
+    "ability": "Hive: Kebna has an additional 5 Energy for each Mandiblor you control  and each Infected Creature in play."
+  },
+  {
+    "number": 500,
+    "ability": "Hive: Mallash has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 501,
+    "ability": "Hive: Nimmei has an additional 5 Energy and 5 in all Disciplines for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 502,
+    "ability": "Hive: Valanii Levaan has an additional 10 Power for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 503,
+    "ability": "Hive: Wamma has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 504,
+    "ability": "If Aa'une the Oligarch, Projection won combat this turn while equipped with Baton of Aa'une and Rage of Aa'une was played by a Creature you control this turn, flip over Aa'une the Oligarch, Projection."
+  },
+  {
+    "number": 505,
+    "ability": "If Bivike is engaged with a M'arrillian Creature, it has \"Invisibility: Strike 20.\"If Bivike is in a space with a Mirage Location, its Disciplines cannot be increased or decreased."
+  },
+  {
+    "number": 506,
+    "ability": "If Brimflame is equipped, it has \"Fire 5.\""
+  },
+  {
+    "number": 507,
+    "ability": "If Burning Rain would deal more than 10 damage, it deals 10 damage instead."
+  },
+  {
+    "number": 508,
+    "ability": "If Drazz is Infected, it has \"Earth 5.\"Hive: Outperform Courage 5."
+  },
+  {
+    "number": 509,
+    "ability": "If Elhadd is in your general discard pile, Mandiblor Creatures you control have \"Outperform Courage 5.\""
+  },
+  {
+    "number": 510,
+    "ability": "If Elna is in your general discard pile, at the beginning of combat, activate Hive."
+  },
+  {
+    "number": 511,
+    "ability": "If Hive is active, deal 5 damage."
+  },
+  {
+    "number": 512,
+    "ability": "If Ivelaan is in your general discard pile, Mandiblor Creatures you control have an additional 25 in all Disciplines."
+  },
+  {
+    "number": 513,
+    "ability": "If Khritlaan is in your general discard pile, Mandiblor Creature Cards in your general discard pile count as Mandiblors you control when counting Mandiblors."
+  },
+  {
+    "number": 514,
+    "ability": "If Klik'ssi is equipped with a Shard Battlegear, it has \"Water 5.\""
+  },
+  {
+    "number": 515,
+    "ability": "If Lendai is Uninfected, it has \"Water 5.\"If Lendai is Infected, it has \"Untargetable.\""
+  },
+  {
+    "number": 516,
+    "ability": "If Makanaz is in your general discard pile, Mandiblor Creatures you control have an additional 15 Energy."
+  },
+  {
+    "number": 517,
+    "ability": "If Neekwin is unequipped, it has \"Water 5\" and \"Untargetable.\""
+  },
+  {
+    "number": 518,
+    "ability": "If Orbaat is in your general discard pile, if you would reveal a new active Location, instead look at the top two cards of your Location Deck and choose one. It becomes the new active Location."
+  },
+  {
+    "number": 519,
+    "ability": "If Ozlai is equipped, it has \"Outperform Speed 5.\"When a Battlegear goes to the opposing general discard pile, deal 5 damage to target Creature."
+  },
+  {
+    "number": 520,
+    "ability": "If Rothar can move into an adjacent occupied space, it must do so."
+  },
+  {
+    "number": 521,
+    "ability": "If Shinadd would become engaged on your turn, you can swaps spaces with an UnderWorld Creature you control. If you do, that Creature becomes engaged instead."
+  },
+  {
+    "number": 522,
+    "ability": "If Viqtarr has both higher Courage and Wisdom than the opposing engaged Creature, the first attack against it each combat deals 0 damage."
+  },
+  {
+    "number": 523,
+    "ability": "If Zamool is engaged, opposing Creatures cannot play Mugic or abilities."
+  },
+  {
+    "number": 524,
+    "ability": "If a player would draw and play an Attack, they return an Attack from their Attack Discard pile to their hand and play an Attack instead. If an Attack played this way would go to the discard pile, place it on the bottom of its owner's Attack Deck instead.If any Attack Discard pile is empty, reveal a new active location."
+  },
+  {
+    "number": 525,
+    "ability": "If all Creatures a player controls share a Tribe, that player's engaged Creature deals an additional 5 attack damage."
+  },
+  {
+    "number": 526,
+    "ability": "If all Creatures you control have Fire, Cyrenox deals an additional 5 damage with attacks."
+  },
+  {
+    "number": 527,
+    "ability": "If an Attack Card named Poison Panic is in your attack discard pile, damage dealt by Poison Panic is reduced by 5."
+  },
+  {
+    "number": 528,
+    "ability": "If an Attack Card named Reverberate is in your Attack Discard pile, deal 10 damage."
+  },
+  {
+    "number": 529,
+    "ability": "If an attack played by Bladez would deal 0 damage, it deals 15 damage instead."
+  },
+  {
+    "number": 530,
+    "ability": "If an engaged Creature has lower Speed than the opposing engaged Creature, it deals 0 damage on its first attack each combat."
+  },
+  {
+    "number": 531,
+    "ability": "If an opponent would reveal a new active Location on your turn, instead you reveal a new active Location."
+  },
+  {
+    "number": 532,
+    "ability": "If any Creature engaged with Galmedar has Power less than 65, that Creature cannot be healed or gain Energy from non-innate abilities."
+  },
+  {
+    "number": 533,
+    "ability": "If any Creature engaged with Lord Van Bloot has less than 65 Courage, it does not have and cannot gain any Elemental Types."
+  },
+  {
+    "number": 534,
+    "ability": "If any Creature engaged with Lord Van Bloot has less than 65 Courage, that Creature has 10 less Energy."
+  },
+  {
+    "number": 535,
+    "ability": "If engaged with an Infected Creature, equipped Creature has \"Outperform all Disciplines 5.\""
+  },
+  {
+    "number": 536,
+    "ability": "If equipped Creature has moved and won a combat this turn, it may move a second time, this move may begin an additonal combat"
+  },
+  {
+    "number": 537,
+    "ability": "If equipped Creature moved this turn, at the beginning of combat reveal a new active Location."
+  },
+  {
+    "number": 538,
+    "ability": "If equipped Creature would deal 20 or more Fire attack damage, it can deal 10 damage to a Creature of your choice instead."
+  },
+  {
+    "number": 539,
+    "ability": "If equipped Creature would take more than 20 damage from an attack, it takes 20 damage instead."
+  },
+  {
+    "number": 540,
+    "ability": "If target Creature has Fire, it gains \"Fireproof 10\"; if it has Air, it gains \"Airproof 10\"; if it has Earth, it gains \"Earthproof 10\"; if it has Water, it gains \"Waterproof 10.\""
+  },
+  {
+    "number": 541,
+    "ability": "If target Creature with 30 or less Scanned Energy would take greater than 10 damage from a single source, it takes 10 damage instead."
+  },
+  {
+    "number": 542,
+    "ability": "If the Initiative of the active Location is an Elemental Type, your engaged Creature has \"Element 5\" in that Elemental Type."
+  },
+  {
+    "number": 543,
+    "ability": "If the active Location's Initiative is a Discipline, deal 15 damage."
+  },
+  {
+    "number": 544,
+    "ability": "If the caster is engaged, the opposing engaged Creature and the caster each gain Energy equal to their lowest Discipline."
+  },
+  {
+    "number": 545,
+    "ability": "If the opposing engaged Creature has Air, damage dealt by Airize is reduced to 0."
+  },
+  {
+    "number": 546,
+    "ability": "If the opposing engaged Creature has Air, deal 5 damage. If the opposing engaged Creature has Earth, deal 5 damage."
+  },
+  {
+    "number": 547,
+    "ability": "If the opposing engaged Creature has Earth, damage dealt by Clean Slide is reduced to 0."
+  },
+  {
+    "number": 548,
+    "ability": "If the opposing engaged Creature has Fire, damage dealt by Smokesurge is reduced to 0."
+  },
+  {
+    "number": 549,
+    "ability": "If the opposing engaged Creature has Recklessness, deal damage equal to that Creature's Recklessness value."
+  },
+  {
+    "number": 550,
+    "ability": "If the opposing engaged Creature has Water, damage dealt by Neuro Freeze is reduced by 10."
+  },
+  {
+    "number": 551,
+    "ability": "If the opposing engaged Creature has Water, damage dealt by Sleet Slide is reduced to 0."
+  },
+  {
+    "number": 552,
+    "ability": "If the opposing engaged Creature has Water, deal 10 damage."
+  },
+  {
+    "number": 553,
+    "ability": "If the opposing engaged Creature has a Mugic counter, damage dealt by Tidal Surge is reduced to 0."
+  },
+  {
+    "number": 554,
+    "ability": "If the opposing engaged Creature is Infected, deal 10 damage."
+  },
+  {
+    "number": 555,
+    "ability": "If the opposing engaged Creature is a Danian Creature, Activate Hive. Hive cannot be Deactivated."
+  },
+  {
+    "number": 556,
+    "ability": "If the opposing engaged Creature is a Danian Creature, damage dealt by Pillar Quake is reduced to 0."
+  },
+  {
+    "number": 557,
+    "ability": "If the opposing engaged Creature is a Danian Creature, deal 10 damage."
+  },
+  {
+    "number": 558,
+    "ability": "If the opposing engaged Creature is equipped, damage dealt by Fire Stream is reduced to 0."
+  },
+  {
+    "number": 559,
+    "ability": "If there are an odd number of Creatures in play, deal 10 damage.If there are an even number of Creatures in play, your engaged Creature loses 10 Energy."
+  },
+  {
+    "number": 560,
+    "ability": "If you control non-Danian Creatures, damage dealt by Swarming Destruction is reduced to 0."
+  },
+  {
+    "number": 561,
+    "ability": "If you control non-Mipedian Creatures, damage dealt by Sandstrike is reduced to 0."
+  },
+  {
+    "number": 562,
+    "ability": "If you control non-OverWorld Creatures, damage dealt by Force Balls is reduced to 0."
+  },
+  {
+    "number": 563,
+    "ability": "If you control non-UnderWorld Creatures, damage dealt by Mightswing is reduced to 0."
+  },
+  {
+    "number": 564,
+    "ability": "If you control:An OverWorld Creature, gain 10 Energy. An UnderWorld Creature, destroy all Battlegear equipped to the opposing engaged Creature.A Mipedian Creature, the next attack played this turn deals 10 less damage. A Danian Creature, deal 10 damage."
+  },
+  {
+    "number": 565,
+    "ability": "If you have fewer Mugic Cards in your hand than your opponent, damage dealt by Poison Steam is reduced to 0."
+  },
+  {
+    "number": 566,
+    "ability": "If your Creature's Courage is more than opposing engaged Creature's Power, deal 5 damage. If it isn't, opposing engaged Creature loses 10 Courage."
+  },
+  {
+    "number": 567,
+    "ability": "If your Creature's Power is more than opposing engaged Creature's Wisdom, deal 5 damage. If it isn't, opposing engaged Creature loses 10 Power."
+  },
+  {
+    "number": 568,
+    "ability": "If your Creature's Speed is more than opposing engaged Creature's Courage, deal 5 damage. If it isn't, opposing engaged Creature loses 10 Speed."
+  },
+  {
+    "number": 569,
+    "ability": "If your Creature's Wisdom is more than opposing engaged Creature's Speed, deal 5 damage. If it isn't, opposing engaged Creature loses 10 Wisdom."
+  },
+  {
+    "number": 570,
+    "ability": "If your engaged Creature does not share a Tribe with the opposing engaged Creature, deal 10 damage."
+  },
+  {
+    "number": 571,
+    "ability": "If your engaged Creature has 30 or less Scanned Energy, deal 50 damage."
+  },
+  {
+    "number": 572,
+    "ability": "If your engaged Creature has Defender, deal 10 damage."
+  },
+  {
+    "number": 573,
+    "ability": "If your engaged Creature has Invisibility, deal 5 damage."
+  },
+  {
+    "number": 574,
+    "ability": "If your engaged Creature has Recklessness, deal 5 damage."
+  },
+  {
+    "number": 575,
+    "ability": "If your engaged Creature has Recklessness, deal damage equal to its Recklessness value."
+  },
+  {
+    "number": 576,
+    "ability": "If your engaged Creature has Recklessness, deal damage equal to twice its Recklessness value."
+  },
+  {
+    "number": 577,
+    "ability": "If your engaged Creature has a Mugic counter, deal 5 damage."
+  },
+  {
+    "number": 578,
+    "ability": "If your engaged Creature has lower Courage, Power, Wisdom, Speed and Current Energy than the opposing engaged Creature, deal 40 damage."
+  },
+  {
+    "number": 579,
+    "ability": "If your engaged Creature has more Mugic counters than the opposing engaged Creature, your opponent must play Attack Cards at random."
+  },
+  {
+    "number": 580,
+    "ability": "If your engaged Creature is Mipedian Creature, it gains Air."
+  },
+  {
+    "number": 581,
+    "ability": "If your engaged Creature is a Chieftain Creature, deal an additional 10 damage."
+  },
+  {
+    "number": 582,
+    "ability": "If your engaged Creature is a Danian Creature, it gains Earth."
+  },
+  {
+    "number": 583,
+    "ability": "If your engaged Creature is a Warbeast Creature, deal 20 damage."
+  },
+  {
+    "number": 584,
+    "ability": "If your engaged Creature is a Warrior, deal 10 damage unless your opponent removes a Mugic counter from their engaged Creature."
+  },
+  {
+    "number": 585,
+    "ability": "If your engaged Creature is equipped with a Shard, deal an additional 10 damage."
+  },
+  {
+    "number": 586,
+    "ability": "If your opponent controls the active Location, damage dealt by Petrifying Power is reduced to 0."
+  },
+  {
+    "number": 587,
+    "ability": "If your opponent controls the active Location, deal an additional 5 damage."
+  },
+  {
+    "number": 588,
+    "ability": "Infect X Uninfected Creatures. If you control a non-Danian Creature, Infect another X Uninfected Creatures."
+  },
+  {
+    "number": 589,
+    "ability": "Infect target Uninfected engaged Creature. If Hive is Active, Uninfect all Creatures controlled by an opponent and deal 5 damage to target engaged Creature for each Creature Uninfected this way instead."
+  },
+  {
+    "number": 590,
+    "ability": "Infect up to two target Uninfected Creatures."
+  },
+  {
+    "number": 591,
+    "ability": "Intimidate: Courage 10."
+  },
+  {
+    "number": 592,
+    "ability": "Intimidate: Courage 10.Intimidate: Wisdom 10."
+  },
+  {
+    "number": 593,
+    "ability": "Intimidate: Courage 10.Recklessness 5."
+  },
+  {
+    "number": 594,
+    "ability": "Intimidate: Courage 30.Waterproof 25.Rol'doi deals an additional 5 attack damage to Danian Creatures."
+  },
+  {
+    "number": 595,
+    "ability": "Intimidate: Courage 50.Intimidate: Speed 50.Recklessness 20."
+  },
+  {
+    "number": 596,
+    "ability": "Intimidate: Energy 10Recklessness 10"
+  },
+  {
+    "number": 597,
+    "ability": "Intimidate: Power 10Range"
+  },
+  {
+    "number": 598,
+    "ability": "Intimidate: Power 10Recklessness 5"
+  },
+  {
+    "number": 599,
+    "ability": "Intimidate: Power 10."
+  },
+  {
+    "number": 600,
+    "ability": "Intimidate: Power 10.Intimidate: Wisdom 10."
+  },
+  {
+    "number": 601,
+    "ability": "Intimidate: Power 30Intimidate: Speed 30Recklessness 5"
+  },
+  {
+    "number": 602,
+    "ability": "Intimidate: Power 30.Airproof 25.Mik'banin deals an additional 5 attack damage to UnderWorld Creatures."
+  },
+  {
+    "number": 603,
+    "ability": "Intimidate: Speed 30.Earthproof 25.Vitar'zu deals an additional 5 attack damage to Mipedian Creatures."
+  },
+  {
+    "number": 604,
+    "ability": "Intimidate: Wisdom 30.Fireproof 25.Ikub'ra deals an additional 5 attack damage to OverWorld Creatures."
+  },
+  {
+    "number": 605,
+    "ability": "Invisibility: Disarm."
+  },
+  {
+    "number": 606,
+    "ability": "Invisibility: Disarm.Air 5.Damage dealt to a Creature by itself is increased by 5."
+  },
+  {
+    "number": 607,
+    "ability": "Invisibility: Disarm.If engaged with a Danian Noble Creature, Kolmo has \"Invisibility: Strike 20.\"Range.Swift 1."
+  },
+  {
+    "number": 608,
+    "ability": "Invisibility: Strike 1"
+  },
+  {
+    "number": 609,
+    "ability": "Invisibility: Strike 10"
+  },
+  {
+    "number": 610,
+    "ability": "Invisibility: Strike 10Expend Air: Khenti gains \"Range\" and \"Swift 1.\""
+  },
+  {
+    "number": 611,
+    "ability": "Invisibility: Strike 10 While you control a Royal, Malvadine has \"Defender\" and \"Air 5.\""
+  },
+  {
+    "number": 612,
+    "ability": "Invisibility: Strike 10."
+  },
+  {
+    "number": 613,
+    "ability": "Invisibility: Strike 10.If a Mirage Location is on the Battleboard, Melke has an additional \"Invisibility: Strike 10.\""
+  },
+  {
+    "number": 614,
+    "ability": "Invisibility: Strike 10.Invisibility: Surprise."
+  },
+  {
+    "number": 615,
+    "ability": "Invisibility: Strike 15"
+  },
+  {
+    "number": 616,
+    "ability": "Invisibility: Strike 15."
+  },
+  {
+    "number": 617,
+    "ability": "Invisibility: Strike 15.Creatures cannot lose Invisibility from Mugic or abilities.Invisibility abilities work against Creatures with Invisibility.If you lost Initiative, your engaged Creature has \"Strike 10.\""
+  },
+  {
+    "number": 618,
+    "ability": "Invisibility: Strike 20."
+  },
+  {
+    "number": 619,
+    "ability": "Invisibility: Strike 5.Invisibility: Surprise."
+  },
+  {
+    "number": 620,
+    "ability": "Invisibility: SurpriseSwift 1"
+  },
+  {
+    "number": 621,
+    "ability": "Invisibility: Surprise."
+  },
+  {
+    "number": 622,
+    "ability": "Invisibility: Surprise.Air 5.At the beginning of your turn, you can sacrifice Saand. If you do, each player removes a total of 3 Mugic counters from among any Creatures they control.If Saand has any Mugic counters on it, sacrifice it."
+  },
+  {
+    "number": 623,
+    "ability": "Invisibility: Surprise.Earth 5."
+  },
+  {
+    "number": 624,
+    "ability": "Invisibility: Surprise.If engaged with a Mipedian Royal Creature, Kolmo has \"Invisibility: Strike 20.\"{{MC}}: If Kolmo is not engaged, relocate it to any unoccupied space ."
+  },
+  {
+    "number": 625,
+    "ability": "Invisibility: Surprise.If engaged with a Mipedian Royal Creature, Kolmo has \"Invisibility: Strike 20.\"{{MC}}: If Kolmo is not engaged, relocate it to any unoccupied space."
+  },
+  {
+    "number": 626,
+    "ability": "Invisibility: Surprise.Invisibility: Strike 10.Earth 5."
+  },
+  {
+    "number": 627,
+    "ability": "Invisibility: Surprise.Invisibility: Strike 15.When Maliph wins combat, relocate it to any unoccupied space adjacent to it."
+  },
+  {
+    "number": 628,
+    "ability": "Invisibility: Surprise.Invisibility: Strike 20.Untargetable."
+  },
+  {
+    "number": 629,
+    "ability": "Kapalor has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play.If Kapalor is unequipped, it has an additional 10 Energy."
+  },
+  {
+    "number": 630,
+    "ability": "Kepiaan has an additional 10 Energy and 10 in all Disciplines for each Tribe you control."
+  },
+  {
+    "number": 631,
+    "ability": "Lanker loses 5 Energy: Choose Courage, Power, Wisdom, or Speed. Target Creature gains 15 in the chosen Discipline."
+  },
+  {
+    "number": 632,
+    "ability": "Look at the top two cards of target player's Attack Deck or Location Deck. Put one of them on top of that deck and the other on the bottom."
+  },
+  {
+    "number": 633,
+    "ability": "Look at the top two cards of your Attack Deck. Put one of them on top of that deck and the other on the bottom."
+  },
+  {
+    "number": 634,
+    "ability": "Look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom."
+  },
+  {
+    "number": 635,
+    "ability": "Lore can play Mugic Cards in your general discard pile as if they were in your hand. Mugic Cards played in this way are removed from the game when they leave the burst."
+  },
+  {
+    "number": 636,
+    "ability": "Magmon deals an additional 5 attack damage to Creatures that are a M'arrillian or a Minion.Recklessness 5."
+  },
+  {
+    "number": 637,
+    "ability": "Makromil has an additional 5 Energy for each other Danian Creature you control.Makromil has an additional 5 Energy for each other Past Creature you control."
+  },
+  {
+    "number": 638,
+    "ability": "Maxxor may spend 2 MC to restore 25 energy. Counts as a Mugic burst."
+  },
+  {
+    "number": 639,
+    "ability": "Mhein has an additional 5 Energy for each Creature Card in all general discard piles."
+  },
+  {
+    "number": 640,
+    "ability": "Minion Creatures are treated as if their controller also controlled a Chieftain."
+  },
+  {
+    "number": 641,
+    "ability": "Minion Creatures cannot play activated abilities if their controller also controls a Chieftain Creature.Ulmar cannot be targeted by Mugic."
+  },
+  {
+    "number": 642,
+    "ability": "Minion Creatures' activated abilities cost an additional Mugic counter to play."
+  },
+  {
+    "number": 643,
+    "ability": "Mipedian Creatures deal an additional 10 damage with their first attack each combat."
+  },
+  {
+    "number": 644,
+    "ability": "Mipedian Creatures have Water and \"Water 5.\""
+  },
+  {
+    "number": 645,
+    "ability": "Mipedian Creatures you control are healed an additional 5 damage.Kinnianne can play Mipedian Mugic."
+  },
+  {
+    "number": 646,
+    "ability": "Mipedian Creatures you control have \"Invisibility: Surprise.\""
+  },
+  {
+    "number": 647,
+    "ability": "Mipedian Creatures you control have \"{{MC}}: Deal 10 damage to target engaged Creature.\" When combat ends, flip Warriors of Owayki face-down."
+  },
+  {
+    "number": 648,
+    "ability": "Mipedian Creatures you control with Invisibility have an additional 20 Speed and \"Invisibility: Strike 5.\"Air 5."
+  },
+  {
+    "number": 649,
+    "ability": "Mirage: When an Attack Card is played by a Creature in this space, its controller can flip a coin. If tails, that player sacrifices his engaged Creature. If heads, the attack deals an additional 10 damage, and that player can flip again."
+  },
+  {
+    "number": 650,
+    "ability": "Muges have \"Sacrifice this Creature: Deal 10 damage to target Creature.\""
+  },
+  {
+    "number": 651,
+    "ability": "Mugic and activated abilities cannot be played."
+  },
+  {
+    "number": 652,
+    "ability": "Mugic and activated abilities cannot be played. (Mugic and activated abilities played before this resolves are unaffected.)"
+  },
+  {
+    "number": 653,
+    "ability": "Mugic played by Creatures you control that deal damage deal an additional 5 damage."
+  },
+  {
+    "number": 654,
+    "ability": "Mugic played by Kopond that deals damage deals an additional 10 damage."
+  },
+  {
+    "number": 655,
+    "ability": "Najarin pays 1 less Mugic counter to play Mugic Cards to a minimum of 1."
+  },
+  {
+    "number": 656,
+    "ability": "Negate target Elemental Attack."
+  },
+  {
+    "number": 657,
+    "ability": "Negate target Generic or OverWorld Mugic."
+  },
+  {
+    "number": 658,
+    "ability": "Negate target M'arrillian or Generic Mugic."
+  },
+  {
+    "number": 659,
+    "ability": "Negate target Mugic and return that card to its controller's hand."
+  },
+  {
+    "number": 660,
+    "ability": "Negate target Mugic or ability that targets a Creature with Invisibility."
+  },
+  {
+    "number": 661,
+    "ability": "Negate target Mugic unless the caster pays an additional Mugic counter."
+  },
+  {
+    "number": 662,
+    "ability": "Negate target Mugic."
+  },
+  {
+    "number": 663,
+    "ability": "Negate target OverWorld or UnderWorld Mugic."
+  },
+  {
+    "number": 664,
+    "ability": "Negate target activated Creature ability."
+  },
+  {
+    "number": 665,
+    "ability": "Negate target attack. The next attack played this turn deals 0 damage."
+  },
+  {
+    "number": 666,
+    "ability": "Non-Caretaker Creatures cannot be healed or gain Energy from non-innate abilities.Mirage: Creatures in this space have 20 less Energy."
+  },
+  {
+    "number": 667,
+    "ability": "Non-Danian Creatures you control deal 5 additional attack damage to Infected Creatures."
+  },
+  {
+    "number": 668,
+    "ability": "Non-attack damage is reduced to 0. Mirage: Creatures in this space cannot be targeted by Mugic."
+  },
+  {
+    "number": 669,
+    "ability": "Odu-Bathax has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 670,
+    "ability": "On your turn, other Creatures you control have an additional: 25 in all Disciplines while you control an OverWorld Creature;\"Intimidate: Energy 10\" while you control an UnderWorld Creature;\"Waterproof 25\" while you control a Danian Creature."
+  },
+  {
+    "number": 671,
+    "ability": "Opposing Creatures on your side of the Battleboard have \"Recklessness 5.\""
+  },
+  {
+    "number": 672,
+    "ability": "Opposing engaged Creature cannot be healed. (Opposing engaged Creatures can be healed before this resolves.)"
+  },
+  {
+    "number": 673,
+    "ability": "Opposing engaged Creature loses 20 Courage."
+  },
+  {
+    "number": 674,
+    "ability": "Opposing engaged Creature loses 20 Power."
+  },
+  {
+    "number": 675,
+    "ability": "Opposing engaged Creature loses 20 Speed."
+  },
+  {
+    "number": 676,
+    "ability": "Opposing engaged Creature loses 20 Wisdom."
+  },
+  {
+    "number": 677,
+    "ability": "Other Creatures you control have 10 less Energy."
+  },
+  {
+    "number": 678,
+    "ability": "Other Creatures you control with Water have an additional 10 Energy."
+  },
+  {
+    "number": 679,
+    "ability": "Outperform Courage 5.Hive: Hermatred has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 680,
+    "ability": "Outperform Courage 5.Outperform Wisdom 5.While you control a Muge Creature, Aivenna has \"Support: all Disciplines 5.\""
+  },
+  {
+    "number": 681,
+    "ability": "Outperform Power 5.If Eximiar is engaged with an UnderWorld Creature, it has \"Fire 5\" and \"Recklessness 5.\""
+  },
+  {
+    "number": 682,
+    "ability": "Outperform Power 5.Recklessness 10.While you control an OverWorld Creature, Damage dealt by Recklessness to Anarkiar is reduced to 0."
+  },
+  {
+    "number": 683,
+    "ability": "Outperform Power 5.Recklessness 5."
+  },
+  {
+    "number": 684,
+    "ability": "Outperform all Disciplines 20.Discard a Mugic Card: Your opponent sacrifices a Creature."
+  },
+  {
+    "number": 685,
+    "ability": "OverWorld Creatures have an additional 10 Energy."
+  },
+  {
+    "number": 686,
+    "ability": "Past Creatures have an additional 10 Energy."
+  },
+  {
+    "number": 687,
+    "ability": "Proboscar can move into any unoccupied space as if it were adjacent.If Proboscar would move into an opposing Creature's space, it relocates that opposing Creature into Proboscar's space instead."
+  },
+  {
+    "number": 688,
+    "ability": "Put 2 Mugic counters on target Minion Creature."
+  },
+  {
+    "number": 689,
+    "ability": "Put a Mugic counter on each Creature controlled by an opponent."
+  },
+  {
+    "number": 690,
+    "ability": "RangeSwift 1"
+  },
+  {
+    "number": 691,
+    "ability": "RangeSwift 1Kolmo has \"Invisibility: Strike 10\" for each Elemental Type the opposing engaged Creature has."
+  },
+  {
+    "number": 692,
+    "ability": "RangeSwift 1Recklessness 25"
+  },
+  {
+    "number": 693,
+    "ability": "Range."
+  },
+  {
+    "number": 694,
+    "ability": "Range.Swift 1."
+  },
+  {
+    "number": 695,
+    "ability": "Range.Swift 1.Kolmo has \"Invisibility: Strike 10\" for each Elemental Type the opposing engaged Creature has."
+  },
+  {
+    "number": 696,
+    "ability": "Range.Swift 4.Recklessness 10."
+  },
+  {
+    "number": 697,
+    "ability": "Recklessness 25. Air 5.Earth 5.Creatures and Battlegear Cards that would be placed in a general discard pile are removed from the game instead."
+  },
+  {
+    "number": 698,
+    "ability": "Recklessness 5"
+  },
+  {
+    "number": 699,
+    "ability": "Recklessness 5Sacrifice Klasp: Deal 10 damage to target Creature."
+  },
+  {
+    "number": 700,
+    "ability": "Recklessness 5."
+  },
+  {
+    "number": 701,
+    "ability": "Recklessness 50"
+  },
+  {
+    "number": 702,
+    "ability": "Relocate target Creature you control to any unoccupied space ."
+  },
+  {
+    "number": 703,
+    "ability": "Relocate target Mirage Location to any space ."
+  },
+  {
+    "number": 704,
+    "ability": "Remove 50 Mugic counters from among Creatures you control: Win the game. Any player can play this ability."
+  },
+  {
+    "number": 705,
+    "ability": "Remove X Mugic counters from the opposing engaged Creature, where X is the number of Mugic counters on your engaged Creature."
+  },
+  {
+    "number": 706,
+    "ability": "Remove a Creature Card in your general discard pile from the game. If you do, activate Hive."
+  },
+  {
+    "number": 707,
+    "ability": "Remove a Minion Creature Card in your general discard pile from the game. If you do, deal damage to target engaged Creature equal to the removed card's Scanned Energy."
+  },
+  {
+    "number": 708,
+    "ability": "Remove a Mugic counter from engaged Creatures with less than 50 Wisdom or Courage"
+  },
+  {
+    "number": 709,
+    "ability": "Remove any number of OverWorld Creatures in your general discard pile from the game. Heal 10 damage to target Creature for each card you remove this way."
+  },
+  {
+    "number": 710,
+    "ability": "Remove up to three target cards in one general discard pile from the game."
+  },
+  {
+    "number": 711,
+    "ability": "Retaliatory Strike deals additional damage equal to the damage dealt by the last attack played this combat."
+  },
+  {
+    "number": 712,
+    "ability": "Return target Mugic Card from your general discard pile to your hand."
+  },
+  {
+    "number": 713,
+    "ability": "Return target UnderWorld Creature Card in your general discard pile to play to any unoccupied space ."
+  },
+  {
+    "number": 714,
+    "ability": "Reveal a new active Location."
+  },
+  {
+    "number": 715,
+    "ability": "Reveal an Attack Card from your hand: Target attack with the same name as the revealed card deals 0 damage."
+  },
+  {
+    "number": 716,
+    "ability": "Sacrifice Afjak: Put a Mugic counter on target Creature you control."
+  },
+  {
+    "number": 717,
+    "ability": "Sacrifice Balaan: Activate Hive.When Balaan is put into your general discard pile, Infect target Uninfected Creature."
+  },
+  {
+    "number": 718,
+    "ability": "Sacrifice Cyclance: equipped Creature gains Air until the end of combat."
+  },
+  {
+    "number": 719,
+    "ability": "Sacrifice Diamond of Vlaric: equipped Creature gains Earth until the end of combat."
+  },
+  {
+    "number": 720,
+    "ability": "Sacrifice Dractyl Scales: equipped Creature gains 10 Energy and target Creature loses 10 to all Disciplines. If Dractyl Scales was equipped to H'earring, it gains an additional 10 Energy."
+  },
+  {
+    "number": 721,
+    "ability": "Sacrifice Droskin: Negate target attack. Play this ability only while equipped Creature is engaged."
+  },
+  {
+    "number": 722,
+    "ability": "Sacrifice Entropy Modulator: Target attack deals 15 damage."
+  },
+  {
+    "number": 723,
+    "ability": "Sacrifice Hive Amber: Activate Hive.If Hive Amber is in your general discard pile, when a Mandiblor Creature you control leaves play, you can return Hive Amber to play equipped to an Unequipped Creature you control."
+  },
+  {
+    "number": 724,
+    "ability": "Sacrifice Hunter's Lure: Relocate both engaged Creatures to any unoccupied space ."
+  },
+  {
+    "number": 725,
+    "ability": "Sacrifice Klawam: Deal 20 damage to target engaged Creature."
+  },
+  {
+    "number": 726,
+    "ability": "Sacrifice Liquilizer: equipped Creature gains Water until the end of combat."
+  },
+  {
+    "number": 727,
+    "ability": "Sacrifice Maxxor's Torch: Target opponent chooses a M'arrillian or Minion Creature they control. Maxxor's Torch deals 25 damage to the chosen Creature."
+  },
+  {
+    "number": 728,
+    "ability": "Sacrifice Mipedian Balladeers' Flute: Put a Mugic counter on the equipped Creature. Your opponent can put a Mugic counter on a Creature of their choice.This Battlegear begins the game face-up."
+  },
+  {
+    "number": 729,
+    "ability": "Sacrifice Mivindal: Return target Mandiblor Creature Card in your general discard pile to play to any unoccupied space on your side of the Battleboard."
+  },
+  {
+    "number": 730,
+    "ability": "Sacrifice Mugician's Lyre: Put a Mugic counter on the equipped Creature"
+  },
+  {
+    "number": 731,
+    "ability": "Sacrifice Orb of Unda: Put a Mugic counter on equipped Creature. If equipped Creature has Water, heal 10 damage from it."
+  },
+  {
+    "number": 732,
+    "ability": "Sacrifice Ozlai's Wreck: Destroy target Battlegear equipped to an engaged Creature."
+  },
+  {
+    "number": 733,
+    "ability": "Sacrifice Phoenix Belt: Deal 10 damage to target Creature. If equipped Creature has Fire, deal an additional 10 damage."
+  },
+  {
+    "number": 734,
+    "ability": "Sacrifice Pyroblaster: equipped Creature gains Fire until the end of combat."
+  },
+  {
+    "number": 735,
+    "ability": "Sacrifice Sahrnokk: Creatures cannot end their move in equipped Creature's space."
+  },
+  {
+    "number": 736,
+    "ability": "Sacrifice Skartalas: Activate Hive."
+  },
+  {
+    "number": 737,
+    "ability": "Sacrifice Vial of Liquid Thought: Return an Attack Card from your Attack Discard pile to your hand. If you do, place one Attack Card from your hand on the bottom of your Attack Deck."
+  },
+  {
+    "number": 738,
+    "ability": "Sacrifice Wytod: Choose a new target for target Mugic which only targets a single Creature."
+  },
+  {
+    "number": 739,
+    "ability": "Sacrifice Yterio: Target attack deals 0 damage."
+  },
+  {
+    "number": 740,
+    "ability": "Sacrifice a Battlegear equipped to an unengaged UnderWorld Creature you control. If you do, destroy target Battlegear."
+  },
+  {
+    "number": 741,
+    "ability": "Sacrifice a Battlegear. If you do, return another Battlegear from your general discard pile to play equipped to an unequipped Creature you control."
+  },
+  {
+    "number": 742,
+    "ability": "Sacrifice a Battlegear: Deal 5 damage to target Creature. This ability can only be used once per turn.Sacrifice Zapetur: Destroy target Battlegear."
+  },
+  {
+    "number": 743,
+    "ability": "Sacrifice a Battlegear: Target Taskmaster gains 40 to all Disciplines. Use this ability only once per turn."
+  },
+  {
+    "number": 744,
+    "ability": "Sacrifice a Creature while Barath Beyond is engaged: If you sacrificed, An OverWorld Creature, negate up to one target Mugic.A Mipedian Creature, the next attack played by Barath Beyond this turn deals an additional 20 damage.A Danian Creature, Barath Beyond gains 30 Energy."
+  },
+  {
+    "number": 745,
+    "ability": "Sacrifice a Minion Creature. If you do, target engaged Creature gains Energy equal to the Scanned Energy of the sacrificed Creature."
+  },
+  {
+    "number": 746,
+    "ability": "Sacrifice an UnderWorld Creature: Heal 25 damage to TakinomSwift 1"
+  },
+  {
+    "number": 747,
+    "ability": "Sacrifice an UnderWorld Creature: Heal 25 damage to TakinomSwift 1."
+  },
+  {
+    "number": 748,
+    "ability": "Sacrifice an unengaged Creature. If you do, target engaged Creature loses X from each Discipline where X is the sacrificed Creature's Scanned Disciplines. If you sacrificed a Minion Creature, engaged Creatures also lose 10 Energy."
+  },
+  {
+    "number": 749,
+    "ability": "Sacrifice an unengaged Mandiblor Creature. If you do, return target Danian Creature Card from your general discard pile to play to the space  where the sacrificed Mandiblor was. If you control only Danian Creatures, return it to any unoccupied space  instead."
+  },
+  {
+    "number": 750,
+    "ability": "Scouts have Water.Engaged Creatures with Water have \"{{MC}}: Heal 10 damage to target Creature.\""
+  },
+  {
+    "number": 751,
+    "ability": "Shard Battlegear have \"Equipped Creature deals an additional 5 attack damage.\"Battlegear cannot be flipped face-down."
+  },
+  {
+    "number": 752,
+    "ability": "Shuffle target player's Attack Deck or Location Deck."
+  },
+  {
+    "number": 753,
+    "ability": "Stat Check Courage 100: Deal 15 damage."
+  },
+  {
+    "number": 754,
+    "ability": "Stat Check Courage 100: Gain 5 Energy.Stat Check Wisdom 100: Remove a Mugic counter from a Creature you control. If you do, put a Mugic counter on your engaged Creature."
+  },
+  {
+    "number": 755,
+    "ability": "Stat Check Courage 30: Deal 5 damage.Stat Check Courage 50: Deal 5 damage.Stat Check Courage 70: Deal 5 damage."
+  },
+  {
+    "number": 756,
+    "ability": "Stat Check Courage 50: Deal 5 Damage."
+  },
+  {
+    "number": 757,
+    "ability": "Stat Check Courage 50: Deal 5 damage."
+  },
+  {
+    "number": 758,
+    "ability": "Stat Check Courage 50: Deal 5 damage.Stat Check Power 50: Deal 5 damage."
+  },
+  {
+    "number": 759,
+    "ability": "Stat Check Courage 50: Your engaged Creature gains Earth."
+  },
+  {
+    "number": 760,
+    "ability": "Stat Check Courage 50: equipped Creature has an additional 5 Energy.Stat Check Courage 75: equipped Creature has an additional 15 Energy."
+  },
+  {
+    "number": 761,
+    "ability": "Stat Check Courage 60: Deal 10 damage."
+  },
+  {
+    "number": 762,
+    "ability": "Stat Check Courage 60: Deal 10 damage.Lose 60 Courage."
+  },
+  {
+    "number": 763,
+    "ability": "Stat Check Courage 60: Deal 10 damage.Stat Check Power 60: Deal 10 damage."
+  },
+  {
+    "number": 764,
+    "ability": "Stat Check Courage 60: Deal 10 damage.Stat Check Speed 60: Deal 10 damage."
+  },
+  {
+    "number": 765,
+    "ability": "Stat Check Courage 60: Deal 10 damage.Stat Check Wisdom 60: Deal 10 damage."
+  },
+  {
+    "number": 766,
+    "ability": "Stat Check Courage 60: Deal 5 damage."
+  },
+  {
+    "number": 767,
+    "ability": "Stat Check Courage 70: Deal 10 damage.Stat Check Power 70: Deal 10 damage.Stat Check Wisdom 70: Deal 10 damage.Stat Check Speed 70: Deal 10 damage."
+  },
+  {
+    "number": 768,
+    "ability": "Stat Check Courage 75: Deal 10 damage."
+  },
+  {
+    "number": 769,
+    "ability": "Stat Check Courage 75: Look at the top two cards of your opponent's Attack Deck. Put one on top of that deck and the other on the bottom."
+  },
+  {
+    "number": 770,
+    "ability": "Stat Check Power 100: Deal 15 damage."
+  },
+  {
+    "number": 771,
+    "ability": "Stat Check Power 100: Deal 5 damage.Stat Check Courage 100: Gain 5 Energy."
+  },
+  {
+    "number": 772,
+    "ability": "Stat Check Power 100: Deal 5 damage.Stat Check Speed 100: Draw an Attack Card and discard an Attack Card."
+  },
+  {
+    "number": 773,
+    "ability": "Stat Check Power 30: Deal 5 damage.Stat Check Power 50: Deal 5 damage.Stat Check Power 70: Deal 5 damage."
+  },
+  {
+    "number": 774,
+    "ability": "Stat Check Power 50: Deal 5 Damage."
+  },
+  {
+    "number": 775,
+    "ability": "Stat Check Power 50: Deal 5 damage."
+  },
+  {
+    "number": 776,
+    "ability": "Stat Check Power 50: Deal 5 damage.Stat Check Wisdom 50: Deal 5 damage."
+  },
+  {
+    "number": 777,
+    "ability": "Stat Check Power 50: Your engaged Creature gains Fire."
+  },
+  {
+    "number": 778,
+    "ability": "Stat Check Power 50: equipped Creature has an additional 5 Energy.Stat Check Power 75: equipped Creature has \"Intimidate: Energy 10.\""
+  },
+  {
+    "number": 779,
+    "ability": "Stat Check Power 60: Deal 10 damage."
+  },
+  {
+    "number": 780,
+    "ability": "Stat Check Power 60: Deal 10 damage.Lose 60 Power."
+  },
+  {
+    "number": 781,
+    "ability": "Stat Check Power 60: Deal 10 damage.Stat Check Speed 60: Deal 10 damage."
+  },
+  {
+    "number": 782,
+    "ability": "Stat Check Power 60: Deal 10 damage.Stat Check Wisdom 60: Deal 10 damage."
+  },
+  {
+    "number": 783,
+    "ability": "Stat Check Power 60: Deal 5 damage."
+  },
+  {
+    "number": 784,
+    "ability": "Stat Check Power 75: Choose a Battlegear equipped to an opposing Creature and destroy it."
+  },
+  {
+    "number": 785,
+    "ability": "Stat Check Power 75: Deal 10 damage."
+  },
+  {
+    "number": 786,
+    "ability": "Stat Check Power 75: When Strengthening Bond deals damage, destroy target Battlegear."
+  },
+  {
+    "number": 787,
+    "ability": "Stat Check Speed 100: Deal 15 damage."
+  },
+  {
+    "number": 788,
+    "ability": "Stat Check Speed 30: Deal 5 damage.Stat Check Speed 50: Deal 5 damage.Stat Check Speed 70: Deal 5 damage."
+  },
+  {
+    "number": 789,
+    "ability": "Stat Check Speed 50: Deal 10 damage.If your engaged Creature is a Scout, look at opposing player's Attack and Mugic hands."
+  },
+  {
+    "number": 790,
+    "ability": "Stat Check Speed 50: Deal 5 Damage."
+  },
+  {
+    "number": 791,
+    "ability": "Stat Check Speed 50: Deal 5 damage."
+  },
+  {
+    "number": 792,
+    "ability": "Stat Check Speed 50: Deal 5 damage.Stat Check Courage 50: Deal 5 damage."
+  },
+  {
+    "number": 793,
+    "ability": "Stat Check Speed 50: Your engaged Creature gains Air."
+  },
+  {
+    "number": 794,
+    "ability": "Stat Check Speed 50: equipped Creature has an additional 5 Energy.Stat Check Speed 75: When equipped Creature takes 20 or more damage from a single source, deal 5 damage to the opposing engaged Creature."
+  },
+  {
+    "number": 795,
+    "ability": "Stat Check Speed 60: Deal 10 damage."
+  },
+  {
+    "number": 796,
+    "ability": "Stat Check Speed 60: Deal 10 damage.Lose 60 Speed."
+  },
+  {
+    "number": 797,
+    "ability": "Stat Check Speed 60: Deal 5 damage."
+  },
+  {
+    "number": 798,
+    "ability": "Stat Check Speed 75: Deal 10 damage."
+  },
+  {
+    "number": 799,
+    "ability": "Stat Check Speed 75: You can swap the spaces of two unengaged Creatures that are adjacent to each other."
+  },
+  {
+    "number": 800,
+    "ability": "Stat Check Wisdom 100: Deal 15 damage."
+  },
+  {
+    "number": 801,
+    "ability": "Stat Check Wisdom 100: Remove a Mugic counter from a Creature you control. If you do, put a Mugic counter on your engaged Creature.Stat Check Speed 100: Draw an Attack Card and discard an Attack Card."
+  },
+  {
+    "number": 802,
+    "ability": "Stat Check Wisdom 30: Deal 5 damage.Stat Check Wisdom 50: Deal 5 damage.Stat Check Wisdom 70: Deal 5 damage."
+  },
+  {
+    "number": 803,
+    "ability": "Stat Check Wisdom 50: Deal 5 Damage."
+  },
+  {
+    "number": 804,
+    "ability": "Stat Check Wisdom 50: Deal 5 damage for each Elemental Type your engaged Creature has."
+  },
+  {
+    "number": 805,
+    "ability": "Stat Check Wisdom 50: Deal 5 damage."
+  },
+  {
+    "number": 806,
+    "ability": "Stat Check Wisdom 50: Deal 5 damage.Stat Check Speed 50: Deal 5 damage."
+  },
+  {
+    "number": 807,
+    "ability": "Stat Check Wisdom 50: Heal 5 damage."
+  },
+  {
+    "number": 808,
+    "ability": "Stat Check Wisdom 50: Your engaged Creature gains Water."
+  },
+  {
+    "number": 809,
+    "ability": "Stat Check Wisdom 50: equipped Creature has an additional 5 Energy.Stat Check Wisdom 75: The first attack played by equipped Creature each combat has \"Untargetable.\""
+  },
+  {
+    "number": 810,
+    "ability": "Stat Check Wisdom 60: Deal 10 damage."
+  },
+  {
+    "number": 811,
+    "ability": "Stat Check Wisdom 60: Deal 10 damage.Lose 60 Wisdom."
+  },
+  {
+    "number": 812,
+    "ability": "Stat Check Wisdom 60: Deal 10 damage.Stat Check Speed 60: Deal 10 damage."
+  },
+  {
+    "number": 813,
+    "ability": "Stat Check Wisdom 60: Deal 5 damage."
+  },
+  {
+    "number": 814,
+    "ability": "Stat Check Wisdom 75: Deal 10 damage."
+  },
+  {
+    "number": 815,
+    "ability": "Stat Check Wisdom 75: You can put a Mugic counter on any Creature."
+  },
+  {
+    "number": 816,
+    "ability": "Stat Fail Courage 100: Deal 5 damage.Stat Fail Courage 50: Deal 10 damage.Stat Fail Courage 5: Deal 15 damage."
+  },
+  {
+    "number": 817,
+    "ability": "Stat Fail Courage 30: Deal 10 damage.Stat Fail Power 30: Deal 10 damage.Stat Fail Wisdom 30: Deal 10 damage.Stat Fail Speed 30: Deal 10 damage."
+  },
+  {
+    "number": 818,
+    "ability": "Stat Fail Courage 50: Deal 10 damage."
+  },
+  {
+    "number": 819,
+    "ability": "Stat Fail Courage, Power, Wisdom and Speed 20: Deal 25 damage."
+  },
+  {
+    "number": 820,
+    "ability": "Stat Fail Power 100: Deal 5 damage.Stat Fail Power 50: Deal 10 damage.Stat Fail Power 5: Deal 15 damage."
+  },
+  {
+    "number": 821,
+    "ability": "Stat Fail Power 50: Flip all Battlegear equipped to the opposing engaged Creature face-down."
+  },
+  {
+    "number": 822,
+    "ability": "Stat Fail Speed 100: Deal 5 damage.Stat Fail Speed 50: Deal 10 damage.Stat Fail Speed 5: Deal 15 damage."
+  },
+  {
+    "number": 823,
+    "ability": "Stat Fail Speed 50: Deal 10 damage."
+  },
+  {
+    "number": 824,
+    "ability": "Stat Fail Wisdom 100: Deal 5 damage.Stat Fail Wisdom 50: Deal 10 damage.Stat Fail Wisdom 5: Deal 15 damage."
+  },
+  {
+    "number": 825,
+    "ability": "Stat Fail Wisdom 50: Deal 10 damage."
+  },
+  {
+    "number": 826,
+    "ability": "Strategist Creatures you control have \"Defender.\""
+  },
+  {
+    "number": 827,
+    "ability": "Strike 1"
+  },
+  {
+    "number": 828,
+    "ability": "Strike 10.{{MC}}: The next attack played by Takinom this turn counts as its first attack this combat.Swift 2."
+  },
+  {
+    "number": 829,
+    "ability": "Support: Courage 5."
+  },
+  {
+    "number": 830,
+    "ability": "Support: Power 5."
+  },
+  {
+    "number": 831,
+    "ability": "Support: Speed 5.Swift 1."
+  },
+  {
+    "number": 832,
+    "ability": "Support: Wisdom 10."
+  },
+  {
+    "number": 833,
+    "ability": "Support: Wisdom 5."
+  },
+  {
+    "number": 834,
+    "ability": "Support: all Disciplines 5."
+  },
+  {
+    "number": 835,
+    "ability": "Support: all Disciplines 5.Fire 5."
+  },
+  {
+    "number": 836,
+    "ability": "Surprise."
+  },
+  {
+    "number": 837,
+    "ability": "Swap any Battlegear on two target Creatures controlled by the same player."
+  },
+  {
+    "number": 838,
+    "ability": "Swap the spaces  of two target unengaged Mipedian Creatures you control."
+  },
+  {
+    "number": 839,
+    "ability": "Swap your attack discard pile with your Attack Deck, then shuffle your Attack Deck."
+  },
+  {
+    "number": 840,
+    "ability": "Swift 1."
+  },
+  {
+    "number": 841,
+    "ability": "Swift 2"
+  },
+  {
+    "number": 842,
+    "ability": "Swift 2."
+  },
+  {
+    "number": 843,
+    "ability": "Swift 2.Hive: Daj Huun cannot move and has an additional 10 Energy."
+  },
+  {
+    "number": 844,
+    "ability": "Swift 3."
+  },
+  {
+    "number": 845,
+    "ability": "Target Creature can play Mugic of any tribe."
+  },
+  {
+    "number": 846,
+    "ability": "Target Creature cannot be healed or gain Energy from non-innate abilities."
+  },
+  {
+    "number": 847,
+    "ability": "Target Creature cannot gain Elemental Types."
+  },
+  {
+    "number": 848,
+    "ability": "Target Creature cannot move."
+  },
+  {
+    "number": 849,
+    "ability": "Target Creature engaged with a non-UnderWorld Creature you control loses an Elemental Type of your choice and loses 30 to all Disciplines."
+  },
+  {
+    "number": 850,
+    "ability": "Target Creature fails all Discipline checks on attacks it plays."
+  },
+  {
+    "number": 851,
+    "ability": "Target Creature gains \"Earth 5\" and \"Air 5.\" If you only control Mipedian Creatures, it also gains \"Outperform Speed 5.\""
+  },
+  {
+    "number": 852,
+    "ability": "Target Creature gains \"Exhaust all Disciplines 15.\""
+  },
+  {
+    "number": 853,
+    "ability": "Target Creature gains \"Exhaust all Disciplines 5.\""
+  },
+  {
+    "number": 854,
+    "ability": "Target Creature gains \"Fire 5\" and \"Air 5.\""
+  },
+  {
+    "number": 855,
+    "ability": "Target Creature gains \"Fireproof 10\", \"Airproof 10\", \"Earthproof 10\", and \"Waterproof 10.\""
+  },
+  {
+    "number": 856,
+    "ability": "Target Creature gains \"Invisibility: Strike 15.\""
+  },
+  {
+    "number": 857,
+    "ability": "Target Creature gains \"Invisibility: Surprise\" and \"Invisibility: Strike 10.\""
+  },
+  {
+    "number": 858,
+    "ability": "Target Creature gains \"Range\" and \"Swift 1.\""
+  },
+  {
+    "number": 859,
+    "ability": "Target Creature gains \"Range\" and \"Swift 3.\" If the caster of this Mugic has Air, the target Creature also gains \"Invisibility: Surprise.\""
+  },
+  {
+    "number": 860,
+    "ability": "Target Creature gains \"Recklessness 5.\"As Vexing Waveform is played, its caster can pay an additional 2 Mugic counters. If the caster does, the target Creature gains an additional \"Recklessness 5.\""
+  },
+  {
+    "number": 861,
+    "ability": "Target Creature gains \"Recklessness: 5.\""
+  },
+  {
+    "number": 862,
+    "ability": "Target Creature gains \"Water 5\", put a Mugic counter on it."
+  },
+  {
+    "number": 863,
+    "ability": "Target Creature gains 10 Courage, Power, Wisdom, and Speed."
+  },
+  {
+    "number": 864,
+    "ability": "Target Creature gains 10 Energy and 10 Wisdom."
+  },
+  {
+    "number": 865,
+    "ability": "Target Creature gains 10 Energy.If Hive is active, that Creature gains an additional 10 Energy."
+  },
+  {
+    "number": 866,
+    "ability": "Target Creature gains 15 Energy and \"Recklessness 5.\""
+  },
+  {
+    "number": 867,
+    "ability": "Target Creature gains 15 Energy and 15 to all Disciplines."
+  },
+  {
+    "number": 868,
+    "ability": "Target Creature gains 20 Wisdom, 15 Courage, 10 Speed and 5 Power."
+  },
+  {
+    "number": 869,
+    "ability": "Target Creature gains 25 Courage and 25 Wisdom. If the target is a Minion Creature, it gains another 25 Courage and 25 Wisdom."
+  },
+  {
+    "number": 870,
+    "ability": "Target Creature gains 25 to a Discipline of your choice. That Creature loses 25 to another Discipline of your choice."
+  },
+  {
+    "number": 871,
+    "ability": "Target Creature gains 30 Energy and \"Recklessness 10.\""
+  },
+  {
+    "number": 872,
+    "ability": "Target Creature gains 30 Wisdom and \"Outperform Wisdom 5.\""
+  },
+  {
+    "number": 873,
+    "ability": "Target Creature gains 30 in the Discipline of your choice."
+  },
+  {
+    "number": 874,
+    "ability": "Target Creature gains 5 Courage, Power, Wisdom, Speed, and Energy."
+  },
+  {
+    "number": 875,
+    "ability": "Target Creature gains 5 Courage, Power, Wisdom, and Speed for each Danian Creature in play."
+  },
+  {
+    "number": 876,
+    "ability": "Target Creature gains 5 to all Disciplines for each Mandiblor you control and each Infected Creature in play."
+  },
+  {
+    "number": 877,
+    "ability": "Target Creature gains 50 Speed.The caster pays 2 less mugic Counters to play this Mugic if an engaged Creature you control won Initiative this turn."
+  },
+  {
+    "number": 878,
+    "ability": "Target Creature gains 50 in the Discipline of your choice.Target Creature gains 50 in another Discipline of your choice.  (You can target the same Creature.)"
+  },
+  {
+    "number": 879,
+    "ability": "Target Creature gains Air. If that Creature already has Air, it gains \"Air 5\" instead."
+  },
+  {
+    "number": 880,
+    "ability": "Target Creature gains Earth. If that Creature already has Earth, it gains \"Earth 5\" instead."
+  },
+  {
+    "number": 881,
+    "ability": "Target Creature gains Fire. If that Creature already has Fire, it gains \"Fire 5\" instead."
+  },
+  {
+    "number": 882,
+    "ability": "Target Creature gains Water. If that Creature already has Water, it gains \"Water 5\" instead."
+  },
+  {
+    "number": 883,
+    "ability": "Target Creature gains all Elemental Types your Creature Cards in your general discard pile have."
+  },
+  {
+    "number": 884,
+    "ability": "Target Creature gains all Elemental Types your Creatures have."
+  },
+  {
+    "number": 885,
+    "ability": "Target Creature gains all of its Scanned Elemental Types."
+  },
+  {
+    "number": 886,
+    "ability": "Target Creature gains an Elemental Type of your choice."
+  },
+  {
+    "number": 887,
+    "ability": "Target Creature gains an Elemental Type of your choice. If you control only OverWorld Creatures, that Creature also gains \"Element 5\" of the chosen Elemental Type."
+  },
+  {
+    "number": 888,
+    "ability": "Target Creature gains or loses Courage, Power, Wisdom and Speed to make its Disciplines equal to its Scanned Disciplines and cannot be targeted by Mugic or abilities."
+  },
+  {
+    "number": 889,
+    "ability": "Target Creature gains:10 Energy if it is an OverWorld Creature.\"Fire 5\" if it is an UnderWorld Creature.20 to all Disciplines if it is a Danian Creature.\"Invisibility: Strike 10\" if it is a Mipedian Creature."
+  },
+  {
+    "number": 890,
+    "ability": "Target Creature loses 15 Courage, Power, Wisdom, and Speed."
+  },
+  {
+    "number": 891,
+    "ability": "Target Creature loses 20 Power, 15 Speed, 10 Courage and 5 Wisdom."
+  },
+  {
+    "number": 892,
+    "ability": "Target Creature loses 20 to a Discipline of your choice."
+  },
+  {
+    "number": 893,
+    "ability": "Target Creature loses 30 in the Discipline of your choice."
+  },
+  {
+    "number": 894,
+    "ability": "Target Creature loses 5 Energy and 5 to all Disciplines."
+  },
+  {
+    "number": 895,
+    "ability": "Target Creature loses 50 in the Discipline of your choice. Target Creature gains 50 in another Discipline of your choice. (You can target the same Creature.)"
+  },
+  {
+    "number": 896,
+    "ability": "Target Creature loses Invisibility."
+  },
+  {
+    "number": 897,
+    "ability": "Target Creature loses X Elemental Types of your choice."
+  },
+  {
+    "number": 898,
+    "ability": "Target Creature loses an Elemental Type of your choice. If that Creature has no Elemental Types, it cannot move instead."
+  },
+  {
+    "number": 899,
+    "ability": "Target Creature with Invisibility gains \"Invisibility: Disarm.\""
+  },
+  {
+    "number": 900,
+    "ability": "Target Creature you control cannot be targeted by Mugic or abilities."
+  },
+  {
+    "number": 901,
+    "ability": "Target Creature's Disciplines cannot be increased or decreased."
+  },
+  {
+    "number": 902,
+    "ability": "Target Danian Creature gains 10 Energy. If Hive is active, it also gains 10 Courage for each Danian Creature you control."
+  },
+  {
+    "number": 903,
+    "ability": "Target M'arrillian or Minion Creature cannot move or play activated abilities."
+  },
+  {
+    "number": 904,
+    "ability": "Target M'arrillian or Minion Creature gains 10 Energy for each Minion Creature Card in each general discard pile."
+  },
+  {
+    "number": 905,
+    "ability": "Target Mandiblor Creature gains \"Outperform Courage 5.\" If it is Infected, it gains \"Earth 5.\" If Hive is active, it also gains 15 Energy."
+  },
+  {
+    "number": 906,
+    "ability": "Target Minion Creature is treated as if its controller did not also control a Chieftain."
+  },
+  {
+    "number": 907,
+    "ability": "Target Minion Creature is treated as if that Creature's controller also controlled a Chieftain."
+  },
+  {
+    "number": 908,
+    "ability": "Target attack counts as the first attack played this combat."
+  },
+  {
+    "number": 909,
+    "ability": "Target attack deals 0 damage."
+  },
+  {
+    "number": 910,
+    "ability": "Target attack deals 10 less damage for each Elemental Type that attack has."
+  },
+  {
+    "number": 911,
+    "ability": "Target attack or Mugic deals 0 damage."
+  },
+  {
+    "number": 912,
+    "ability": "Target engaged Creature gains 10 Energy. Deal 10 damage to another target engaged Creature."
+  },
+  {
+    "number": 913,
+    "ability": "Target engaged Creature gains 10 Energy. Deal 5 damage to another target engaged Creature."
+  },
+  {
+    "number": 914,
+    "ability": "Target engaged Creature gains 30 Energy. Discipline Checks and Challenges on attacks played by that Creature deal 0 damage."
+  },
+  {
+    "number": 915,
+    "ability": "Target engaged Creature gains 5 Energy for each Elemental Type the opposing engaged Creature has. If the caster of this Mugic has Earth, the target Creature gains an additional 5 Energy for each Elemental Type the opposing engaged Creature has."
+  },
+  {
+    "number": 916,
+    "ability": "Target engaged Creature loses 30 to all Disciplines."
+  },
+  {
+    "number": 917,
+    "ability": "Target engaged Creature loses all abilities."
+  },
+  {
+    "number": 918,
+    "ability": "Target non-Mipedian Creature gains \"Invisibility: Strike 30.\""
+  },
+  {
+    "number": 919,
+    "ability": "Target non-OverWorld Creature gains 20 Energy."
+  },
+  {
+    "number": 920,
+    "ability": "Target opposing engaged Creature loses all Elemental Types. If you control only UnderWorld Creatures, deal 5 damage to it for each Elemental Type lost this way."
+  },
+  {
+    "number": 921,
+    "ability": "Target player removes all cards in their general discard pile from the game."
+  },
+  {
+    "number": 922,
+    "ability": "The active Location loses all abilities."
+  },
+  {
+    "number": 923,
+    "ability": "The engaged Creature with the lowest Courage fails all Checks on attacks it plays."
+  },
+  {
+    "number": 924,
+    "ability": "The engaged Creature with the lowest Power deals 5 less damage with attacks."
+  },
+  {
+    "number": 925,
+    "ability": "The engaged Creature with the lowest Speed plays attacks at random."
+  },
+  {
+    "number": 926,
+    "ability": "The first attack against Simalin each combat deals 20 less damage."
+  },
+  {
+    "number": 927,
+    "ability": "The first attack played by a Creature each combat is reduced by 20 damage."
+  },
+  {
+    "number": 928,
+    "ability": "The first time a Creature gains an Elemental Type this turn, it gains 10 Energy."
+  },
+  {
+    "number": 929,
+    "ability": "The first time a Creature loses an Elemental Type this turn, it loses 10 Energy."
+  },
+  {
+    "number": 930,
+    "ability": "The next time an attack would deal damage to a Creature this turn, it deals damage to target engaged Creature of your choice instead."
+  },
+  {
+    "number": 931,
+    "ability": "The opposing engaged Creature cannot have Mugic counters put on it.You can discard another card named Marksman's Preparation. If you do, deal an additional 30 damage and draw an Attack Card."
+  },
+  {
+    "number": 932,
+    "ability": "The opposing engaged Creature must pay an additional Mugic counter to play abilities which cost one or more Mugic counters."
+  },
+  {
+    "number": 933,
+    "ability": "Tribal Mugic cannot be played."
+  },
+  {
+    "number": 934,
+    "ability": "UnderWorld Creatures you control have \"Intimidate: Power 20\" and \"Exhaust all Disciplines 5.\""
+  },
+  {
+    "number": 935,
+    "ability": "UnderWorld Mugic Costs 1 additional Mugic counter to play."
+  },
+  {
+    "number": 936,
+    "ability": "Uninfect 3 Infected Creatures: Activate Hive and heal all damage on Fliandar."
+  },
+  {
+    "number": 937,
+    "ability": "Uninfect three Infected Creatures: Reveal a new active Location."
+  },
+  {
+    "number": 938,
+    "ability": "Uninfect up to three Infected Creatures. Put a Mugic counter on target Danian Creature for each Creature Uninfected by Strain of Infection this way."
+  },
+  {
+    "number": 939,
+    "ability": "Untargetable."
+  },
+  {
+    "number": 940,
+    "ability": "Water +5"
+  },
+  {
+    "number": 941,
+    "ability": "Water 5."
+  },
+  {
+    "number": 942,
+    "ability": "Water 5.Hive: Dasalin does not have \"Water 5\" and has \"{{MC}}: Heal 10 damage to target Mandiblor Creature\"."
+  },
+  {
+    "number": 943,
+    "ability": "Water 5.Hive: Irrabeq has an additional 10 Energy."
+  },
+  {
+    "number": 944,
+    "ability": "Water 5.Hive: Tassanil has an additional 5 Energy for each Elemental Type opposing Creatures have.Tassanil counts as a Mandiblor."
+  },
+  {
+    "number": 945,
+    "ability": "Water attacks deal an additional 5 damage.Damage dealt by Earth attacks is reduced by 5."
+  },
+  {
+    "number": 946,
+    "ability": "Water: Deal an additional 5 damage for each Mugic counter on your engaged Creature."
+  },
+  {
+    "number": 947,
+    "ability": "Water: Gain 10 Courage."
+  },
+  {
+    "number": 948,
+    "ability": "Water: Heal 5 damage.Earth: Gain 10 Courage."
+  },
+  {
+    "number": 949,
+    "ability": "Water: Opposing Creature loses 25 to all Disciplines. Your engaged Creature loses Water."
+  },
+  {
+    "number": 950,
+    "ability": "Water: Opposing engaged Creature loses 25 Courage."
+  },
+  {
+    "number": 951,
+    "ability": "Water: Opposing engaged Creature loses 25 Speed."
+  },
+  {
+    "number": 952,
+    "ability": "Water: Remove a Mugic counter from a Creature, if you do put a Mugic counter on another Creature controlled by the same player. (You must choose a Creature that can have Mugic counters put on it.)"
+  },
+  {
+    "number": 953,
+    "ability": "Water: Remove all Mugic counters from a Creature of your choice."
+  },
+  {
+    "number": 954,
+    "ability": "Water: The opposing engaged Creature loses Fire."
+  },
+  {
+    "number": 955,
+    "ability": "Water: Your engaged Creature loses Water."
+  },
+  {
+    "number": 956,
+    "ability": "Water: Your engaged Creature loses Water. Remove a Mugic counter from the opposing engaged Creature. If you do, put a Mugic counter on your engaged Creature."
+  },
+  {
+    "number": 957,
+    "ability": "Waterproof 10 Xaerv deals an additional 5 attack damage to Creatures with Water."
+  },
+  {
+    "number": 958,
+    "ability": "Waterproof 10."
+  },
+  {
+    "number": 959,
+    "ability": "Waterproof 10.Hive: Aureban has an additional 10 Energy for each Infected Creature your opponent controls."
+  },
+  {
+    "number": 960,
+    "ability": "Waterproof 10.Hive: Outperform Courage 5"
+  },
+  {
+    "number": 961,
+    "ability": "Waterproof 15.Hive: Tarbok has an additional 15 Energy."
+  },
+  {
+    "number": 962,
+    "ability": "When Atrapol wins a Power Challenge on an attack it plays, destroy target Battlegear equipped to the opposing engaged Creature."
+  },
+  {
+    "number": 963,
+    "ability": "When Bo'aam becomes engaged, the opposing engaged Creature loses 5 Energy for each Elemental Type it does not have."
+  },
+  {
+    "number": 964,
+    "ability": "When Clodor wins a Wisdom Challenge on an attack it plays, put a Mugic counter on it."
+  },
+  {
+    "number": 965,
+    "ability": "When Destructozooka is flipped face-up, choose an Elemental Type. Equipped Creature gains the chosen Elemental Type and \"Element 5\" of the chosen Elemental Type."
+  },
+  {
+    "number": 966,
+    "ability": "When Fal'makin deals attack damage, Fal'makin can immediately play a Mugic Card of cost 2 or less without paying its Mugic cost."
+  },
+  {
+    "number": 967,
+    "ability": "When Fire Ring is played, deal 10 damage to your engaged Creature."
+  },
+  {
+    "number": 968,
+    "ability": "When General's Standard is flipped face-up, choose a Tribe. Equipped Creature is considered to belong to that Tribe while General's Standard is face-up. (This ability does not end at the end of the turn.)"
+  },
+  {
+    "number": 969,
+    "ability": "When Gintanai wins combat, sacrifice another Creature. If you cannot, destroy Gintanai.Air 10Earth 10"
+  },
+  {
+    "number": 970,
+    "ability": "When Hive is activated, the next time an Attack would deal damage this turn, it deals 10 damage instead."
+  },
+  {
+    "number": 971,
+    "ability": "When Hive is activated, you can remove a Mugic counter from a Danian Creature you control, if you do put a Mugic counter on Ramarhvir, the Danian Hivebringer.{{MC}}{{MC}}: Return target Mandiblor Creature Card in your general discard pile to play to any unoccupied space ."
+  },
+  {
+    "number": 972,
+    "ability": "When Hive is activated, you can remove a Mugic counter from a Danian Creature you control, if you do put a Mugic counter on Ramarhvir, the Danian Hivebringer.{{MC}}{{MC}}: Return target Mandiblor Creature Card in your general discard pile to play to any unoccupied space."
+  },
+  {
+    "number": 973,
+    "ability": "When Ice Cloak is flipped face-up, if equipped Creature is engaged with a Creature with Fire, equipped Creature gains 10 Energy.Equipped Creature has \"Fireproof 10.\""
+  },
+  {
+    "number": 974,
+    "ability": "When Jaal deals Earth damage to an Uninfected Creature, Infect that Creature.If engaged with an Infected Creature, Jaal has \"Earth 5.\""
+  },
+  {
+    "number": 975,
+    "ability": "When Kiru wins combat put a Leadership Counter on it.Other Creatures you control have an additional 10 Energy for each Leadership Counter on Kiru."
+  },
+  {
+    "number": 976,
+    "ability": "When Lyssta wins Initiative, it gains \"Outperform Power 10\" and \"Air 10.\""
+  },
+  {
+    "number": 977,
+    "ability": "When Makrabon has a Mugic counter put on it, Infect target Uninfected Creature.{{MC}}: Activate or Deactivate Hive"
+  },
+  {
+    "number": 978,
+    "ability": "When Maxxor is dealt attack damage, it gains \"Maxxor deals an additional 5 attack damage.\""
+  },
+  {
+    "number": 979,
+    "ability": "When Narfall becomes engaged, deal 5 damage to opposing engaged Creature for each Elemental Type that Creature has."
+  },
+  {
+    "number": 980,
+    "ability": "When Nimmei takes attack damage, it gains all Elemental Types that attack had. When Nimmei gains an Elemental Type this way, it gains \"Element 5\" in the corresponding Elemental Type."
+  },
+  {
+    "number": 981,
+    "ability": "When Olkiex plays an Attack Card while equipped, it gains 5 Energy."
+  },
+  {
+    "number": 982,
+    "ability": "When Skorblust takes damage from a Fire or Earth attack, deal 5 damage to opposing engaged Creature."
+  },
+  {
+    "number": 983,
+    "ability": "When Son'las becomes engaged, the opposing engaged Creature loses Invisibility and your opponent reveals their attack hand."
+  },
+  {
+    "number": 984,
+    "ability": "When Stelgar deals attack damage, it gains 10 to all Disciplines.If Stelgar has more than 125 Power, destroy it."
+  },
+  {
+    "number": 985,
+    "ability": "When Strikto has a Mugic counter put on it, it loses 10 Energy.When a Creature deals damage to Strikto, that Creature loses 5 Energy."
+  },
+  {
+    "number": 986,
+    "ability": "When Supercharged Alterant is flipped face-up, choose a Discipline. Equipped Creature gains 100 in the chosen Discipline."
+  },
+  {
+    "number": 987,
+    "ability": "When Telebracers is flipped face-up, reveal a new active Location."
+  },
+  {
+    "number": 988,
+    "ability": "When Voorx becomes engaged, your opponent can sacrifice a Battlegear. If they do not, Voorx gains \"Fire 5\" and \"Water 5.\""
+  },
+  {
+    "number": 989,
+    "ability": "When a Battlegear equipped to a Creature engaged with Fasseph is flipped face-up or face-down, deal 10 damage to that Creature."
+  },
+  {
+    "number": 990,
+    "ability": "When a Battlegear is put into a general discard pile, put a Scrap Counter on Khybon's Scrapyard. Then, if it has three or more Scrap counters, return up to one Battlegear Card from your general discard pile to play equipped to an unequipped Creature you control and your opponent reveals a new active Location."
+  },
+  {
+    "number": 991,
+    "ability": "When a Battlegear you control is flipped face-up, look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom."
+  },
+  {
+    "number": 992,
+    "ability": "When a Creature deals 20 or more damage with its first attack each combat, destroy all Battlegear equipped to it."
+  },
+  {
+    "number": 993,
+    "ability": "When a Creature deals Water damage, heal 5 damage to it."
+  },
+  {
+    "number": 994,
+    "ability": "When a Creature has a Mugic counter put on it or removed from it, deal 5 damage to it."
+  },
+  {
+    "number": 995,
+    "ability": "When a Creature you control has Mugic counter put on it, Hifdan gains \"Range\" and \"Swift 2.\""
+  },
+  {
+    "number": 996,
+    "ability": "When a Creature you control has a Mugic counter put on it, flip target face-up Battlegear face-down."
+  },
+  {
+    "number": 997,
+    "ability": "When a Creature you control is put into your general discard pile, if that Creature had one or more Mugic counters on it, remove a Mugic counter from target Creature."
+  },
+  {
+    "number": 998,
+    "ability": "When a Creature you control is put into your general discard pile, put a Mugic counter on Enre-hep for each Mugic counter on that Creature.{{MC}}: Target Creature gains \"Recklessness 5.\""
+  },
+  {
+    "number": 999,
+    "ability": "When a Danian Mugic is played by an opposing Creature, put a Mugic counter on Hune Marquard."
+  },
+  {
+    "number": 1000,
+    "ability": "When a Fluidmorpher Creature deals damage with Fluidmight, put a Mugic counter on it"
+  },
+  {
+    "number": 1001,
+    "ability": "When a Mandiblor Creature Card is put into play from a general discard pile, put a Mugic counter on Wamma.Battlegear equipped to Infected Creatures are not flipped face-up when those Creatures become engaged."
+  },
+  {
+    "number": 1002,
+    "ability": "When a Muge or Elementalist Creature you control wins combat, put a Mugic counter on it."
+  },
+  {
+    "number": 1003,
+    "ability": "When a Mugic Card is put into a general discard pile, discard an Attack Card and draw an Attack Card."
+  },
+  {
+    "number": 1004,
+    "ability": "When a Mugic counter is removed from a Creature, Grand Hall of Muge's Summit deals 10 damage to the engaged Creature controlled by the same player."
+  },
+  {
+    "number": 1005,
+    "ability": "When a Mugic counter is removed from an opposing non-OverWorld Creature, heal 10 damage to target Creature."
+  },
+  {
+    "number": 1006,
+    "ability": "When a Mugic counter is removed from the opposing engaged Creature, that Creature loses 20 to all Disciplines."
+  },
+  {
+    "number": 1007,
+    "ability": "When a player would draw and play an Attack Card, instead they reveal and play the top card of their Attack Deck."
+  },
+  {
+    "number": 1008,
+    "ability": "When a source controlled by an opponent reduces any of equipped Creature's Disciplines, Mindclasp deals 5 damage to target engaged Creature."
+  },
+  {
+    "number": 1009,
+    "ability": "When an Elemental Attack is played by a Creature, heal 5 damage to it."
+  },
+  {
+    "number": 1010,
+    "ability": "When an Infected Creature is put into a general discard pile, put a Mugic counter on Mahrrant.{{MC}}: Activate Hive."
+  },
+  {
+    "number": 1011,
+    "ability": "When an attack is played, flip a coin. If heads, that attack deals double damage. If tails, that attack deals 0 damage."
+  },
+  {
+    "number": 1012,
+    "ability": "When an attack that has both Fire and Water is played by a Creature, its controller can swap one of that Creature's Battlegear with a Battlegear Card in its controller's general discard pile."
+  },
+  {
+    "number": 1013,
+    "ability": "When an opposing Creature not named Najarin has a Mugic counter put on it, put a Mugic counter on Najarin.{{MC}}: Target Creature gains 5 Energy.{{MC}}{{MC}}: Negate target M'arrillian Mugic."
+  },
+  {
+    "number": 1014,
+    "ability": "When an opposing Uninfected Creature is targeted by a Mugic you control, Infect that Creature."
+  },
+  {
+    "number": 1015,
+    "ability": "When another Creature you control loses an Elemental Type, Eremia gains that Elemental Type."
+  },
+  {
+    "number": 1016,
+    "ability": "When any Creature engaged with Gan'nim fails a Stat Check or Challenge on an attack it played, deal 10 damage to it."
+  },
+  {
+    "number": 1017,
+    "ability": "When any Creature engaged with the equipped Creature fails a Discipline check on an attack it played, the equipped Creature gains 10 Energy."
+  },
+  {
+    "number": 1018,
+    "ability": "When equipped Creature becomes engaged, Creatures engaged with it lose and cannot gain Invisibility."
+  },
+  {
+    "number": 1019,
+    "ability": "When equipped Creature becomes engaged, it gains Air."
+  },
+  {
+    "number": 1020,
+    "ability": "When equipped Creature becomes engaged, it gains Earth."
+  },
+  {
+    "number": 1021,
+    "ability": "When equipped Creature becomes engaged, it gains Fire."
+  },
+  {
+    "number": 1022,
+    "ability": "When equipped Creature becomes engaged, it gains Water."
+  },
+  {
+    "number": 1023,
+    "ability": "When equipped Creature deals 15 or more attack damage, opposing engaged Creature loses 10 in a Discipline of your choice."
+  },
+  {
+    "number": 1024,
+    "ability": "When equipped Creature deals 30 or more Fire damage with a single attack, destroy target Battlegear."
+  },
+  {
+    "number": 1025,
+    "ability": "When equipped Creature deals Air damage, you can look at the top four cards of your Attack Deck and put them back on top in any order."
+  },
+  {
+    "number": 1026,
+    "ability": "When equipped Creature deals Earth damage, you can look at the top two cards of your Location Deck. Put one of them on top and the other on the bottom."
+  },
+  {
+    "number": 1027,
+    "ability": "When equipped Creature deals Water damage, it gains 10 to all Disciplines."
+  },
+  {
+    "number": 1028,
+    "ability": "When equipped Creature deals damage to an Uninfected Creature, Infect that Creature.When the equipped Creature is destroyed while engaged, destroy all Battlegear equipped to the opposing engaged Creature. Then, if that Creature is Unequipped, equip Danian carapace to it.(Players control any Battlegear equipped to Creatures they control.)"
+  },
+  {
+    "number": 1029,
+    "ability": "When equipped Creature enters a space with a Mirage Location, shuffle that Mirage Location into its controller's Location Deck.Mirage Locations cannot be placed in equipped Creature's space."
+  },
+  {
+    "number": 1030,
+    "ability": "When equipped Creature makes an attack, reveal the top card of your attack deck. Deal that card's base damage to all engaged Creatures.Double Edge cannot reduce equipped Creature's energy below 5."
+  },
+  {
+    "number": 1031,
+    "ability": "When one engaged Creature increases or decreases a Discipline except from this ability, increases or decreases that Discipline of the other engaged Creature by the same amount.Mirage: Creatures in this space have an additional 10 in all Disciplines."
+  },
+  {
+    "number": 1032,
+    "ability": "When target attack deals damage, deal the same amount of damage to the Creature that played that attack."
+  },
+  {
+    "number": 1033,
+    "ability": "When target opposing Creature heals or gains Energy from a Mugic or activated ability, the caster of this Mugic also heals or gains that much Energy."
+  },
+  {
+    "number": 1034,
+    "ability": "When this becomes the active Location, Creatures lose all Elemental Types."
+  },
+  {
+    "number": 1035,
+    "ability": "When this becomes the active Location, Creatures lose all Elemental Types. If a Creature lost Fire, it gains Water. If a Creature lost Water, it gains Air. If a Creature lost Air, it gains Earth. If a Creature lost Earth, it gains Fire.Elemental Attacks deal an additional 5 damage."
+  },
+  {
+    "number": 1036,
+    "ability": "When this becomes the active Location, Creatures you control gain \"Swift 1.\""
+  },
+  {
+    "number": 1037,
+    "ability": "When this becomes the active Location, Mipedian Creatures gain \"Invisibility: Surprise.\"At the beginning of combat, reveal a new active Location.Mirage: Creatures in this space cannot lose Invisibility from Mugic or abilities. Invisibility abilities of Creatures in this space work against Creatures with Invisibility."
+  },
+  {
+    "number": 1038,
+    "ability": "When this becomes the active Location, Uninfect all Creatures."
+  },
+  {
+    "number": 1039,
+    "ability": "When this becomes the active Location, activate Hive."
+  },
+  {
+    "number": 1040,
+    "ability": "When this becomes the active Location, both players shuffle their Attack Decks and attack discard piles together.All Creatures have \"Outperform all Disciplines 5.\""
+  },
+  {
+    "number": 1041,
+    "ability": "When this becomes the active Location, choose a Tribe. All Creatures also count as that Tribe.Mirage: Creatures in this space count as all Tribes."
+  },
+  {
+    "number": 1042,
+    "ability": "When this becomes the active Location, each player Infects an Uninfected Creature they control."
+  },
+  {
+    "number": 1043,
+    "ability": "When this becomes the active Location, each player can discard a Mugic Card. If they do, they can return a Mugic Card from their general discard pile to their hand."
+  },
+  {
+    "number": 1044,
+    "ability": "When this becomes the active Location, each player can return a Battlegear Card from their general discard pile to play equipped to an unequipped Creature that player controls."
+  },
+  {
+    "number": 1045,
+    "ability": "When this becomes the active Location, each player can return a Chieftain Creature Card from their general discard pile to play to any unoccupied space on their side of the Battleboard. Creatures that are a M'arrillian or a Minion have \"Water 5.\""
+  },
+  {
+    "number": 1046,
+    "ability": "When this becomes the active Location, each player can sacrifice a Creature they control. If they do, they can return another Creature Card from their general discard pile to play to any unoccupied space on their side of the Battleboard."
+  },
+  {
+    "number": 1047,
+    "ability": "When this becomes the active Location, each player discards a Mugic Card."
+  },
+  {
+    "number": 1048,
+    "ability": "When this becomes the active Location, each player draws two Attack Cards, then discards two Attack Cards."
+  },
+  {
+    "number": 1049,
+    "ability": "When this becomes the active Location, each player puts a Mugic counter on a Creature they control."
+  },
+  {
+    "number": 1050,
+    "ability": "When this becomes the active Location, each player removes a Mugic counter from a Creature they control.Attacks deal 5 less damage to Creatures that are a M'arrillian or a Minion."
+  },
+  {
+    "number": 1051,
+    "ability": "When this becomes the active Location, each player reveals a random Mugic Card from their hand.Cards with the same name as the revealed cards cannot be played.Creatures that are a M'arrillian or a Minion take 5 less non-attack damage ."
+  },
+  {
+    "number": 1052,
+    "ability": "When this becomes the active Location, each player sacrifices a Battlegear.When a M'arrillian or Minion Creature wins a Challenge on an Attack it plays, that Creature gains 5 Energy."
+  },
+  {
+    "number": 1053,
+    "ability": "When this becomes the active Location, each player shuffles their attack hand into their Attack Deck and draws two Attack Cards."
+  },
+  {
+    "number": 1054,
+    "ability": "When this becomes the active Location, flip a coin. If heads, Creatures with Water take an additional 5 attack damage. If tails, Creatures with Water take 5 less attack damage."
+  },
+  {
+    "number": 1055,
+    "ability": "When this becomes the active Location, flip a coin. If tails, shuffle Iparu Jungle into its controller's Location Deck and that player reveals a new active Location.Mirage: At the beginning of combat, each engaged Creature in this space gains or loses Energy so its Energy is equal to its Scanned Energy."
+  },
+  {
+    "number": 1056,
+    "ability": "When this becomes the active Location, flip all face-up Battlegear face-down."
+  },
+  {
+    "number": 1057,
+    "ability": "When this becomes the active Location, put 10 Jade counters on it. As an attack deals damage, remove 1 Jade Counter for each 5 damage dealt.When the last Counter is removed, Jade Pillar deals 50 damage to the Creature that played the last attack."
+  },
+  {
+    "number": 1058,
+    "ability": "When this becomes the active Location, remove all cards in each general discard pile from the game.Mirage: At the beginning of combat, engaged Creatures in this space with 30 or less Scanned Energy gain 30 Energy."
+  },
+  {
+    "number": 1059,
+    "ability": "When this becomes the active Location, shuffle any Mirage Locations  into their controllers' Location Decks. Mipedian Creatures have Water."
+  },
+  {
+    "number": 1060,
+    "ability": "When this becomes the active Location, you can sacrifice a non-Conjuror Creature you control. If you do, return a Conjuror Creature Card in your general discard pile to play to any unoccupied space ."
+  },
+  {
+    "number": 1061,
+    "ability": "When this becomes the active Location, your opponent can return a Mugic Card in their general discard pile to their hand.Attacks deal 10 less damage to Creatures that are a M'arrillian or a Minion."
+  },
+  {
+    "number": 1062,
+    "ability": "When this becomes the active Location, your opponent reveals a new active Location.Mirage: At the beginning of each player's turn, if this space is unoccupied, that player can relocate one of their Creatures to this space ."
+  },
+  {
+    "number": 1063,
+    "ability": "When your engaged Creature is destroyed this turn, draw two Attack Cards and discard two Attack Cards."
+  },
+  {
+    "number": 1064,
+    "ability": "While a player controls exactly four Tribes, that player's Creatures have \"Untargetable by opponents.\""
+  },
+  {
+    "number": 1065,
+    "ability": "While an opposing Creature has Water, Arrthoa has \"Range\" and \"Swift 1.\""
+  },
+  {
+    "number": 1066,
+    "ability": "While any player controls a Chieftain Creature, equipped Creature has an additional 10 in all Disciplines."
+  },
+  {
+    "number": 1067,
+    "ability": "While in battle, Takinom may spend 1 MP and sacrifice one other UW Creature you control to restore 25 energy. Use only once per battle. Counts as a mugic burst."
+  },
+  {
+    "number": 1068,
+    "ability": "While you control a Danian Creature, Majjcan has \"Earth 5.\""
+  },
+  {
+    "number": 1069,
+    "ability": "While you control a Danian Creature, unequipped Creatures you control have \"Outperform Power 5.\""
+  },
+  {
+    "number": 1070,
+    "ability": "While you control a Mipedian Creature, Torrna has \"Disarm.\""
+  },
+  {
+    "number": 1071,
+    "ability": "While you control a Mipedian Creature, damage dealt by the first Attack to Akkerbal each combat is reduced to 0."
+  },
+  {
+    "number": 1072,
+    "ability": "While you control an OverWorld Creature, when Klencka deals damage with its first attack each combat, it gains Energy equal to the damage it dealt."
+  },
+  {
+    "number": 1073,
+    "ability": "While you control an UnderWorld Creature, Loderool has \"Fire 5.\""
+  },
+  {
+    "number": 1074,
+    "ability": "While you control an UnderWorld Creature, if Masilbaat would take damage from a Mugic or activated ability, it gains that amount of Energy instead."
+  },
+  {
+    "number": 1075,
+    "ability": "While you control no other Creatures, Frafdo has an additional 45 Energy."
+  },
+  {
+    "number": 1076,
+    "ability": "While your general discard pile has:An OverWorld Creature Card, your Creatures have \"Water 5.\"An UnderWorld Creature Card, your Creatures have \"Fire 5.\"A Mipedian Creature Card, your Creatures have \"Air 5.\""
+  },
+  {
+    "number": 1077,
+    "ability": "You can choose to have Mineral Mayhem deal 0 damage. If you do, gain 100 Courage."
+  },
+  {
+    "number": 1078,
+    "ability": "You can choose to have Obscuring Winds deal 0 damage. If you do, gain 100 Speed."
+  },
+  {
+    "number": 1079,
+    "ability": "You can choose to have Outfreeze deal 0 damage. If you do, gain 100 Wisdom."
+  },
+  {
+    "number": 1080,
+    "ability": "You can choose to have Primordial Rage deal 0 damage. If you do, gain 100 Power."
+  },
+  {
+    "number": 1081,
+    "ability": "You can remove a Mugic counter from a Creature you control. If you do, activate Hive."
+  },
+  {
+    "number": 1082,
+    "ability": "Your Creatures have 10 less Energy. Mirage: Creatures cannot move off this space unless their controller removes a Mugic counter from any Creature they control."
+  },
+  {
+    "number": 1083,
+    "ability": "Your adjacent Creatures have \"Defender.\"When a Mandiblor Creature or an Infected Creature is put into a general discard pile, put a Mugic counter on Illexia.{{MC}}: Activate Hive.Hive: Mugic counters on Illexia count as Mandiblors you control when counting Mandiblors."
+  },
+  {
+    "number": 1084,
+    "ability": "Your engaged Creature gains 10 Courage, Power, Wisdom and Speed.If your engaged Creature is a Muge, deal 10 damage."
+  },
+  {
+    "number": 1085,
+    "ability": "Your opponent cannot play Mugic Cards. (Your opponent can play Mugic Cards before this resolves.)"
+  },
+  {
+    "number": 1086,
+    "ability": "Your opponent cannot play activated abilities. (Your opponent can activate abilities before this resolves.)"
+  },
+  {
+    "number": 1087,
+    "ability": "Your opponent removes a total of 4 Mugic counters from among any Creatures they control."
+  },
+  {
+    "number": 1088,
+    "ability": "Your opponent reveals X Mugic Cards from their hand and you choose one of them. Your opponent discards the chosen card."
+  },
+  {
+    "number": 1089,
+    "ability": "Your opponent turns all face-down Battlegear Cards they control face-up."
+  },
+  {
+    "number": 1090,
+    "ability": "Your other Creatures with Air cannot be targeted by opposing Mugic or abilities."
+  },
+  {
+    "number": 1091,
+    "ability": "Your other Creatures with Earth have an additional 10 Energy."
+  },
+  {
+    "number": 1092,
+    "ability": "Your other Creatures with Fire have \"Recklessness 5\" and \"Fire 5.\""
+  },
+  {
+    "number": 1093,
+    "ability": "Your other Creatures with Water succeed on all Stat Checks on attacks they play."
+  },
+  {
+    "number": 1094,
+    "ability": "{{MC}} {{MC}}: Target Creature you control cannot be targeted by Mugic or abilities."
+  },
+  {
+    "number": 1095,
+    "ability": "{{MC}}, Sacrifice Sobtjek: Deal 25 damage to target Creature."
+  },
+  {
+    "number": 1096,
+    "ability": "{{MC}}, Sacrifice Tiaane: Deal 25 damage to target Creature."
+  },
+  {
+    "number": 1097,
+    "ability": "{{MC}}, Sacrifice a Battlegear: Heal 15 damage to target Creature."
+  },
+  {
+    "number": 1098,
+    "ability": "{{MC}}: Activate Hive."
+  },
+  {
+    "number": 1099,
+    "ability": "{{MC}}: Activate Hive.Hive: Uholdan has an additional 10 Energy."
+  },
+  {
+    "number": 1100,
+    "ability": "{{MC}}: Activate Hive.Sacrifice Kannen: Return a Mandiblor Creature Card from your general discard pile to play to any unoccupied space."
+  },
+  {
+    "number": 1101,
+    "ability": "{{MC}}: Activate Hive.The first time a Creature you control is put into your general discard pile each turn, put a Mugic counter on Gareep."
+  },
+  {
+    "number": 1102,
+    "ability": "{{MC}}: All non-attack damage that would be dealt to target adjacent Creature is dealt to Porthyn instead."
+  },
+  {
+    "number": 1103,
+    "ability": "{{MC}}: Another target Creature gains an Elemental Type of your choice. If the target is an Elementalist Creature, put a Mugic counter on it. This ability can only be used once per turn."
+  },
+  {
+    "number": 1104,
+    "ability": "{{MC}}: Choose a Tribe. Target Creature also counts as the chosen Tribe."
+  },
+  {
+    "number": 1105,
+    "ability": "{{MC}}: Choose an Elemental Type. Target Creature which dealt attack damage this turn gains \"Element 10\" of the chosen Elemental Type. Use this ability only once per turn.Warriors you control have an additional 10 in all Disciplines."
+  },
+  {
+    "number": 1106,
+    "ability": "{{MC}}: Copy target Mugic played by a Creature you control. You may choose new targets for the copy."
+  },
+  {
+    "number": 1107,
+    "ability": "{{MC}}: Creatures you control gain 5 Energy for each Elemental Type they have."
+  },
+  {
+    "number": 1108,
+    "ability": "{{MC}}: Danian Creatures you control cannot be targeted by Mugic or abilities. This ability can only be used once per turn."
+  },
+  {
+    "number": 1109,
+    "ability": "{{MC}}: Deal 10 damage to target Creature and Ulmquad gains 10 Energy."
+  },
+  {
+    "number": 1110,
+    "ability": "{{MC}}: Deal 10 damage to target Creature and heal 10 damage to Lore."
+  },
+  {
+    "number": 1111,
+    "ability": "{{MC}}: Deal 10 damage to target Creature on your side of the Battleboard."
+  },
+  {
+    "number": 1112,
+    "ability": "{{MC}}: Deal 10 damage to target Creature."
+  },
+  {
+    "number": 1113,
+    "ability": "{{MC}}: Deal 15 damage to target adjacent equipped Creature."
+  },
+  {
+    "number": 1114,
+    "ability": "{{MC}}: Deal 5 damage to target Creature for each Mugic counter on Kopond. This ability can only be used once per turn."
+  },
+  {
+    "number": 1115,
+    "ability": "{{MC}}: Deal 5 damage to target Creature."
+  },
+  {
+    "number": 1116,
+    "ability": "{{MC}}: Deal 5 damage to target Creature.{{MC}}, Deactivate Hive: Deal 15 damage to target Creature."
+  },
+  {
+    "number": 1117,
+    "ability": "{{MC}}: Deal 5 damage to target Creature.{{MC}}: Heal 10 damage to target Creature.Arkanin can pay Mugic counters from other Muge Creatures you control to activate its abilities."
+  },
+  {
+    "number": 1118,
+    "ability": "{{MC}}: Deal 5 damage to the opposing engaged Creature and heal 5 damage to Lore.If an opposing Creature would go to their general discard pile, remove it from the game and put a Mugic counter on Lore instead."
+  },
+  {
+    "number": 1119,
+    "ability": "{{MC}}: Ebberim gains Air."
+  },
+  {
+    "number": 1120,
+    "ability": "{{MC}}: Flip target Battlegear face-up or face-down."
+  },
+  {
+    "number": 1121,
+    "ability": "{{MC}}: For each Mugic counter on Lobanne, choose \"Fireproof 10,\" \"Airproof 10,\" \"Earthproof 10\" or \"Waterproof 10.\" Target Creature gains the chosen abilities. This ability can only be used once per turn."
+  },
+  {
+    "number": 1122,
+    "ability": "{{MC}}: Heal 10 damage to Tangath Toborn."
+  },
+  {
+    "number": 1123,
+    "ability": "{{MC}}: Heal 10 damage to target Creature and it loses 25 Speed."
+  },
+  {
+    "number": 1124,
+    "ability": "{{MC}}: Heal 10 damage to target Creature for each Creature your opponent controls on your side of the Battleboard."
+  },
+  {
+    "number": 1125,
+    "ability": "{{MC}}: Heal 10 damage to target Creature for each Mugic counter on Karraba. This ability can only be used once per turn."
+  },
+  {
+    "number": 1126,
+    "ability": "{{MC}}: Heal 10 damage to target Creature."
+  },
+  {
+    "number": 1127,
+    "ability": "{{MC}}: Heal 10 damage to target Creature. If that Creature has Water, heal 20 damage instead."
+  },
+  {
+    "number": 1128,
+    "ability": "{{MC}}: Heal 10 damage to target Mandiblor Creature.Hive: Danian Mugic played by Creatures you control which deals damage deal an additional 5 damage."
+  },
+  {
+    "number": 1129,
+    "ability": "{{MC}}: Heal 10 damage to target adjacent OverWorld Creature.Swift 2."
+  },
+  {
+    "number": 1130,
+    "ability": "{{MC}}: Heal 10 damage to target engaged Creature."
+  },
+  {
+    "number": 1131,
+    "ability": "{{MC}}: Heal 10 damage to target engaged Mipedian Creature and deal 10 damage to the opposing engaged Creature."
+  },
+  {
+    "number": 1132,
+    "ability": "{{MC}}: Heal 15 damage to Zalic."
+  },
+  {
+    "number": 1133,
+    "ability": "{{MC}}: Heal 15 damage to target Creature."
+  },
+  {
+    "number": 1134,
+    "ability": "{{MC}}: Heal 15 damage to target engaged Creature."
+  },
+  {
+    "number": 1135,
+    "ability": "{{MC}}: Heal 5 damage to target Creature for each Tribe you control. While you control only Aivenna and Nivenna, Aivenna has an additional 20 Energy and \"Defender.\""
+  },
+  {
+    "number": 1136,
+    "ability": "{{MC}}: Heal 5 damage to target Creature. {{MC}}: Heal 10 damage to Owis."
+  },
+  {
+    "number": 1137,
+    "ability": "{{MC}}: Infect target Uninfected Creature."
+  },
+  {
+    "number": 1138,
+    "ability": "{{MC}}: Infect target Uninfected Creature.Hive: If Kalanju is Infected, it has an additional 30 Energy."
+  },
+  {
+    "number": 1139,
+    "ability": "{{MC}}: Infect target Uninfected Creature.If a Creature Card would be returned to play from a general discard pile, remove it from the game and put 2 Mugic counters on Necrabe instead."
+  },
+  {
+    "number": 1140,
+    "ability": "{{MC}}: Infect target Uninfected Creature.If an opponent controls an Infected Creature, Dubin has an additional 5 Energy."
+  },
+  {
+    "number": 1141,
+    "ability": "{{MC}}: Look at the top three cards of target player's Location Deck and put them back in any order."
+  },
+  {
+    "number": 1142,
+    "ability": "{{MC}}: Look at the top two cards of target player's Location Deck. Put one of them on top of that deck and the other on the bottom."
+  },
+  {
+    "number": 1143,
+    "ability": "{{MC}}: Put a Mugic counter on target adjacent Creature."
+  },
+  {
+    "number": 1144,
+    "ability": "{{MC}}: Return target Mugic Card from your general discard pile to your hand, then discard a Mugic Card."
+  },
+  {
+    "number": 1145,
+    "ability": "{{MC}}: Tangath Toborn gains or loses Courage, Power, Wisdom and Speed to make its Disciplines equal to its Scanned Disciplines."
+  },
+  {
+    "number": 1146,
+    "ability": "{{MC}}: Target Creature deals an additional 10 damage with its next attack this turn. If that Creature has Fire, it also gains \"Fire 5.\""
+  },
+  {
+    "number": 1147,
+    "ability": "{{MC}}: Target Creature gains \"Invisibility: Strike 10.\""
+  },
+  {
+    "number": 1148,
+    "ability": "{{MC}}: Target Creature gains \"Invisibility: Strike 10.\" If that Creature has Air, it also gains \"Invisibility: Surprise.\""
+  },
+  {
+    "number": 1149,
+    "ability": "{{MC}}: Target Creature gains \"Range\" and \"Swift X,\" where X is the number of Mugic counters on Xelfe."
+  },
+  {
+    "number": 1150,
+    "ability": "{{MC}}: Target Creature gains \"Range\" and \"Swift X,\" where X is the number of Tribes you control."
+  },
+  {
+    "number": 1151,
+    "ability": "{{MC}}: Target Creature gains \"Swift 1.\""
+  },
+  {
+    "number": 1152,
+    "ability": "{{MC}}: Target Creature gains 10 Speed and 10 Wisdom."
+  },
+  {
+    "number": 1153,
+    "ability": "{{MC}}: Target Creature gains 15 Energy."
+  },
+  {
+    "number": 1154,
+    "ability": "{{MC}}: Target Creature gains 15 Power."
+  },
+  {
+    "number": 1155,
+    "ability": "{{MC}}: Target Creature gains 25 to a Discipline and loses 10 to another."
+  },
+  {
+    "number": 1156,
+    "ability": "{{MC}}: Target Creature gains 25 to a Discipline of your choice."
+  },
+  {
+    "number": 1157,
+    "ability": "{{MC}}: Target Creature gains 35 Wisdom. Discard an OverWorld Mugic Card: Destroy target Chieftain Creature with 100 or more Wisdom."
+  },
+  {
+    "number": 1158,
+    "ability": "{{MC}}: Target Creature gains 50 Courage. If that Creature has Earth, it gains an additional 50 Courage."
+  },
+  {
+    "number": 1159,
+    "ability": "{{MC}}: Target Creature gains Air."
+  },
+  {
+    "number": 1160,
+    "ability": "{{MC}}: Target Creature gains Earth."
+  },
+  {
+    "number": 1161,
+    "ability": "{{MC}}: Target Creature gains Fire."
+  },
+  {
+    "number": 1162,
+    "ability": "{{MC}}: Target Creature gains Water."
+  },
+  {
+    "number": 1163,
+    "ability": "{{MC}}: Target Creature gains all Elemental Types your Creatures have."
+  },
+  {
+    "number": 1164,
+    "ability": "{{MC}}: Target Elemental Attack loses all abilities."
+  },
+  {
+    "number": 1165,
+    "ability": "{{MC}}: Target attack deals 5 damage. This ability can only be used once per turn."
+  },
+  {
+    "number": 1166,
+    "ability": "{{MC}}: Target equipped Creature gains \"Outperform Speed 5.\""
+  },
+  {
+    "number": 1167,
+    "ability": "{{MC}}: The controller of target Creature reveals their attack hand. Deal 5 damage to that engaged Creature for each Elemental Type either of those revealed Attack Cards have."
+  },
+  {
+    "number": 1168,
+    "ability": "{{MC}}: Ubliqun can move to any space  as if it were adjacent."
+  },
+  {
+    "number": 1169,
+    "ability": "{{MC}}: Uninfect all opposing Creatures. For each Creature Uninfected this way, Infect an Uninfected Creature you control."
+  },
+  {
+    "number": 1170,
+    "ability": "{{MC}}{{MC}}, Sacrifice Alazdan: Deal 35 damage to target engaged Creature."
+  },
+  {
+    "number": 1171,
+    "ability": "{{MC}}{{MC}}: Deal 10 damage to target Creature."
+  },
+  {
+    "number": 1172,
+    "ability": "{{MC}}{{MC}}: Deal 5 damage to target Creature for each Tribe you control.While you control only Nivenna and Aivenna, this ability costs 1 less Mugic counter to play."
+  },
+  {
+    "number": 1173,
+    "ability": "{{MC}}{{MC}}: Remove a Mugic counter from target Creature."
+  },
+  {
+    "number": 1174,
+    "ability": "{{MC}}{{MC}}: Return target Mugic Card from your general discard pile to your hand."
+  },
+  {
+    "number": 1175,
+    "ability": "{{MC}}{{MC}}: Target Creature gains 30 to all Disciplines."
+  },
+  {
+    "number": 1176,
+    "ability": "{{MC}}{{MC}}: Target attack counts as the first attack played this combat."
+  },
+  {
+    "number": 1177,
+    "ability": "{{MC}}{{MC}}{{MC}}: Negate target OverWorld Mugic or ability that targets Chaor."
+  }
+]

@@ -1,0 +1,208 @@
+﻿:root {
+  --bg: #121212;
+  --bg-soft: #1a1a1a;
+  --panel: #1e1e1e;
+  --panel-soft: #282828;
+  --ink: #e0e0e0;
+  --ink-soft: #888;
+  --accent: #2196f3;
+  --accent-glow: rgba(33,150,243,.3);
+  --accent-2: #64b5f6;
+  --ok: #4caf50;
+  --danger: #ef5350;
+  --gold: #ffc107;
+  --board-bg: #161616;
+  --board-felt: radial-gradient(ellipse at 50% 50%,#1e1e1e 0%,#141414 60%,#0e0e0e 100%);
+  --card-border: #555;
+  --border: #333;
+  --card-back-image: url("/fundo%20cartas.png");
+  --ui-scale: 1;
+  --font-ui: 'Inter',system-ui,sans-serif;
+  --font-display: 'Orbitron','Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;color:var(--ink);font-family:var(--font-ui);line-height:1.45;background:var(--bg);font-size:calc(16px * var(--ui-scale))}
+body.resolution-low{--ui-scale:.92}
+body.resolution-medium{--ui-scale:1}
+body.resolution-high{--ui-scale:1.06}
+body[data-theme="light"]{
+  --bg:#eceff3;
+  --bg-soft:#e0e5ec;
+  --panel:#f7f9fc;
+  --panel-soft:#e8edf5;
+  --ink:#1c2330;
+  --ink-soft:#5f6f86;
+  --border:#cfd7e5;
+  --board-bg:#dfe4ea;
+  --board-felt:radial-gradient(ellipse at 50% 50%,#f6f8fb 0%,#e5ebf4 60%,#dae2ee 100%);
+  --card-border:#95a6bf;
+}
+body.no-animations *,body.no-animations *::before,body.no-animations *::after{animation:none!important;transition:none!important}
+.bg-shape{position:fixed;pointer-events:none;z-index:-1;filter:blur(80px)}
+.shape-a{width:30rem;height:30rem;top:-12rem;left:-12rem;border-radius:48% 52% 36% 64%/51% 37% 63% 49%;background:linear-gradient(120deg,#2196f340,#1565c040);opacity:.12}
+.shape-b{width:24rem;height:24rem;right:-10rem;bottom:-10rem;border-radius:62% 38% 57% 43%/35% 62% 38% 65%;background:linear-gradient(130deg,#0d47a140,#1a237e40);opacity:.1}
+
+/* â”€â”€â”€ TOPBAR â”€â”€â”€ */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.6rem 1rem;border-bottom:1px solid var(--border);background:#0e0e0e}
+h1,h2,h3,h4{margin:0;font-family:var(--font-display)}
+h1{font-size:clamp(1rem,2vw,1.3rem);letter-spacing:.06em}
+.accent-text{color:var(--accent)}
+#library-meta{margin:.12rem 0 0;font-size:.74rem;color:var(--ink-soft)}
+main{padding:.5rem}
+.hidden{display:none!important}
+.panel{animation:fadeUp 180ms ease-out}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* â”€â”€â”€ CONTROLS â”€â”€â”€ */
+button,input,select{font:inherit}
+button{border:1px solid var(--border);border-radius:4px;background:var(--panel);color:var(--ink);padding:.3rem .65rem;cursor:pointer;transition:all .12s}
+button:hover:not(:disabled){background:#333;border-color:#555}
+button:disabled{cursor:not-allowed;opacity:.35}
+.tab-btn.active,.primary-btn{background:var(--accent);border-color:#42a5f5;color:#fff}
+.primary-btn:hover:not(:disabled){background:#1e88e5}
+.ghost-btn{background:#1a2a3a;border-color:#2a4a5a;color:var(--accent-2)}
+.pulse-btn{animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}50%{box-shadow:0 0 10px 4px var(--accent-glow)}}
+input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;background:#0e0e0e;color:var(--ink);padding:.2rem .45rem}
+.row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
+.inline-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
+.fps-counter{
+  position:fixed;
+  right:.75rem;
+  bottom:.75rem;
+  z-index:3000;
+  border:1px solid #3f5370;
+  border-radius:6px;
+  padding:.18rem .4rem;
+  background:#0a1220e6;
+  color:#cce4ff;
+  font-family:var(--font-display);
+  font-size:.66rem;
+  letter-spacing:.04em;
+}
+
+/* Settings view - unified cyber clean */
+.settings-shell{
+  width:min(1200px,100%);
+  margin:.45rem auto;
+  border:1px solid #244264;
+  border-radius:16px;
+  background:linear-gradient(180deg,#0b1220f0,#0a1422eb);
+  box-shadow:0 18px 38px rgba(0,0,0,.35);
+  padding:1rem;
+}
+.settings-head{margin-bottom:.55rem}
+.settings-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.75rem;
+}
+.settings-section{
+  border:1px solid #275377;
+  border-radius:12px;
+  background:linear-gradient(160deg,#0d1a2ccf,#0b1626cf);
+  padding:.75rem;
+  display:grid;
+  gap:.55rem;
+}
+.settings-section h3{
+  color:#9ad7ff;
+  font-size:.84rem;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.settings-field{
+  display:grid;
+  gap:.3rem;
+  color:#d7e8f7;
+  font-size:.82rem;
+}
+.settings-field.inline{
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+}
+.settings-field select,
+.settings-field input[type="range"]{
+  width:100%;
+}
+.settings-note{
+  font-size:.72rem;
+  color:#98acc4;
+}
+.settings-feedback{
+  margin-top:.6rem;
+  min-height:1.1rem;
+  font-size:.76rem;
+  color:#9dd8ff;
+}
+.admin-observability-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.45rem;
+}
+.admin-observability-item{
+  border:1px solid rgba(120,192,255,.32);
+  border-radius:10px;
+  background:rgba(5,15,28,.72);
+  padding:.45rem .55rem;
+  display:grid;
+  gap:.22rem;
+}
+.admin-observability-item strong{
+  color:#9ad7ff;
+  font-size:.72rem;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.admin-observability-item span{
+  color:#d7ecff;
+  font-size:.84rem;
+}
+.admin-observability-actions{
+  display:flex;
+  align-items:center;
+  gap:.65rem;
+}
+.admin-observability-actions small{
+  color:#93aeca;
+  font-size:.7rem;
+}
+.keybind-list{
+  display:grid;
+  gap:.35rem;
+}
+.keybind-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:.55rem;
+  padding:.32rem .42rem;
+  border:1px solid #234662;
+  border-radius:8px;
+  background:#09111e;
+  font-size:.78rem;
+}
+#reset-progress,
+#keybind-reset-defaults{
+  justify-self:start;
+}
+@media (max-width:900px){
+  .settings-grid{grid-template-columns:1fr}
+}
+@media (max-width:480px){
+  .settings-shell{
+    border-radius:10px;
+    padding:.65rem;
+  }
+  .settings-section{
+    padding:.6rem;
+  }
+  .keybind-row{
+    grid-template-columns:1fr;
+  }
+  .admin-observability-grid{
+    grid-template-columns:1fr;
+  }
+}
+

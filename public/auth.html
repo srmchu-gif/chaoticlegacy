@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chaotic Legacy - Autenticação</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body>
+  <div class="bg-shape shape-a"></div>
+  <div class="bg-shape shape-b"></div>
+
+  <main class="auth-wrapper">
+    <div class="auth-panel" id="auth-panel">
+      <!-- Loading Overlay -->
+      <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- Login View -->
+      <section id="view-login" class="auth-view active">
+        <img src="logo.png" alt="Chaotic Legacy" style="width: 260px; margin: 0 auto 1rem; display: block;" />
+        <p class="auth-subtitle">Acesse sua conta para batalhar</p>
+
+        <form id="form-login" class="auth-form">
+          <div class="input-group">
+            <label for="login-username">Nome de acesso</label>
+            <input type="text" id="login-username" required placeholder="Digite seu nome" autocomplete="username">
+          </div>
+          
+          <div class="input-group">
+            <label for="login-password">Senha</label>
+            <div class="password-wrapper">
+              <input type="password" id="login-password" required placeholder="Sua senha" autocomplete="current-password">
+              <button type="button" class="toggle-password" tabindex="-1" title="Mostrar/ocultar senha">👁️</button>
+            </div>
+          </div>
+
+          <div class="form-options">
+            <label class="checkbox-label">
+              <input type="checkbox" id="login-remember">
+              <span class="checkmark"></span>
+              Lembrar-me
+            </label>
+          </div>
+
+          <div class="error-msg" id="login-error"></div>
+
+          <button type="submit" class="primary-btn pulse-btn auth-submit">ENTRAR</button>
+        </form>
+
+        <p class="auth-switch">Não tem uma conta? <a href="#" id="go-register">Criar conta</a></p>
+      </section>
+
+      <!-- Register View -->
+      <section id="view-register" class="auth-view">
+        <img src="logo.png" alt="Chaotic Legacy" style="width: 220px; margin: 0 auto 1rem; display: block;" />
+        <p class="auth-subtitle">Junte-se à arena</p>
+
+        <form id="form-register" class="auth-form">
+          <div class="input-group">
+            <label for="reg-username">Nome de acesso</label>
+            <input type="text" id="reg-username" required placeholder="Como você será visto" autocomplete="username">
+          </div>
+
+          <div class="input-group">
+            <label for="reg-email">Email</label>
+            <input type="email" id="reg-email" required placeholder="Seu email principal" autocomplete="email">
+          </div>
+          
+          <div class="input-group">
+            <label for="reg-password">Senha</label>
+            <div class="password-wrapper">
+              <input type="password" id="reg-password" required placeholder="Mínimo 6 caracteres" autocomplete="new-password" minlength="6">
+              <button type="button" class="toggle-password" tabindex="-1" title="Mostrar/ocultar senha">👁️</button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>Tribo Favorita</label>
+            <div class="tribe-selector">
+              <label class="tribe-option" title="Outromundo">
+                <input type="radio" name="reg-tribe" value="outromundo" required>
+                <div class="shape-wrapper overworld-wrapper">
+                  <div class="tribe-shape overworld"></div>
+                </div>
+              </label>
+              <label class="tribe-option" title="Submundo">
+                <input type="radio" name="reg-tribe" value="submundo">
+                <div class="shape-wrapper underworld-wrapper">
+                  <div class="tribe-shape underworld"></div>
+                </div>
+              </label>
+              <label class="tribe-option" title="Danians">
+                <input type="radio" name="reg-tribe" value="danians">
+                <div class="shape-wrapper danian-wrapper">
+                  <div class="tribe-shape danian"></div>
+                </div>
+              </label>
+              <label class="tribe-option" title="Mipedians">
+                <input type="radio" name="reg-tribe" value="mipedians">
+                <div class="shape-wrapper mipedian-wrapper">
+                  <div class="tribe-shape mipedian"></div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="error-msg" id="reg-error"></div>
+
+          <button type="submit" class="primary-btn auth-submit">CRIAR CONTA</button>
+        </form>
+
+        <p class="auth-switch">Já possui conta? <a href="#" id="go-login">Fazer login</a></p>
+      </section>
+
+      <!-- Verification View -->
+      <section id="view-verify" class="auth-view">
+        <h1 class="auth-title">Verificar <span class="accent-text">Email</span></h1>
+        <p class="auth-subtitle">Um código de 6 dígitos foi enviado para <br><strong id="verify-email-display"></strong></p>
+
+        <form id="form-verify" class="auth-form">
+          <div class="input-group">
+            <label for="verify-code">Código de verificação</label>
+            <input type="text" id="verify-code" required placeholder="000000" maxlength="6" pattern="\d{6}">
+          </div>
+
+          <div class="error-msg" id="verify-error"></div>
+          <div class="success-msg" id="verify-success"></div>
+
+          <button type="submit" class="primary-btn auth-submit">VALIDAR CÓDIGO</button>
+        </form>
+
+        <p class="auth-switch">Não recebeu? <a href="#" id="resend-code">Reenviar código</a></p>
+        <p class="auth-switch"><a href="#" id="cancel-verify">Voltar ao login</a></p>
+      </section>
+    </div>
+  </main>
+
+  <script src="config.js"></script>
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>

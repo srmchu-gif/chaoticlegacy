@@ -1,0 +1,10958 @@
+﻿const http = require("http");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const XLSX = require("xlsx");
+const nodemailer = require("nodemailer");
+const { URL, pathToFileURL } = require("url");
+const { buildLibrary, ensureCardCatalog, CARD_CATALOG_STORAGE } = require("./lib/library");
+const {
+  initializeCreatureDropTables,
+  setCreatureDropSettings,
+  setLocationAdjacencies,
+} = require("./lib/creature-drops-db");
+
+const ROOT_DIR = process.cwd();
+const PERSIST_DIR = process.env.PERSIST_DIR ? path.resolve(process.env.PERSIST_DIR) : ROOT_DIR;
+const PUBLIC_DIR = path.join(ROOT_DIR, "public");
+const DOWNLOADS_DIR = path.join(ROOT_DIR, "downloads");
+const MUSIC_DIR = path.join(ROOT_DIR, "Music");
+const MUSIC_DIR_FALLBACK = path.join(ROOT_DIR, "music");
+const DB_DIR = path.join(PERSIST_DIR, "db");
+const USERS_FILE = path.join(DB_DIR, "users.json");
+const SCANS_FILE = path.join(PERSIST_DIR, "scans.json");
+const PERIM_STATE_FILE = path.join(PERSIST_DIR, "perim_state.json");
+const PERIM_LOCATIONS_FILE = path.join(ROOT_DIR, "locais.xlsx");
+const PERIM_CREATURES_FILE = path.join(ROOT_DIR, "criaturas.xlsx");
+const PROFILES_FILE = path.join(PERSIST_DIR, "profiles.json");
+const SETTINGS_FILE = path.join(PERSIST_DIR, "settings.json");
+const DEBUG_LOGS_DIR = path.join(PERSIST_DIR, "debug-logs");
+const BACKUPS_DIR = path.join(PERSIST_DIR, "backups");
+const ATTACK_PENDING_FILE = path.join(PERSIST_DIR, "ataques_pendentes.txt");
+const CREATURE_PENDING_FILE = path.join(ROOT_DIR, "exports", "criaturas_pendentes.txt");
+const PERIM_ACTIONS_DROPS_REPORT_FILE = path.join(ROOT_DIR, "exports", "perim_acoes_drops.txt");
+const CREATURE_DROPS_ALIAS_REPORT_FILE = path.join(ROOT_DIR, "exports", "creature_drops_alias_report.txt");
+const ENGINE_FILE = path.join(ROOT_DIR, "public", "js", "battle", "engine.js");
+const DEFAULT_SQLITE_FILE = path.join(ROOT_DIR, "runtime", "chaotic.db");
+const LEGACY_SQLITE_FILE = path.join(ROOT_DIR, "chaotic.db");
+const SQLITE_FILE = process.env.SQLITE_FILE ? path.resolve(process.env.SQLITE_FILE) : DEFAULT_SQLITE_FILE;
+const SQLITE_IS_DEFAULT_PATH = !process.env.SQLITE_FILE;
+const PORT = Number(process.env.PORT) || 3000;
+const MAX_BODY_SIZE = 2 * 1024 * 1024;
+const MULTIPLAYER_DISCONNECT_FORFEIT_MS = 120 * 1000;
+const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || (7 * 24 * 60 * 60 * 1000));
+const AUTH_RATE_LIMIT_WINDOW_MS = Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 60 * 1000);
+const AUTH_RATE_LIMIT_MAX = Number(process.env.AUTH_RATE_LIMIT_MAX || 25);
+const ACTION_RATE_LIMIT_WINDOW_MS = Number(process.env.ACTION_RATE_LIMIT_WINDOW_MS || 10 * 1000);
+const ACTION_RATE_LIMIT_MAX = Number(process.env.ACTION_RATE_LIMIT_MAX || 40);
+const CREATURE_DAILY_ALGO_VERSION = 2;
+const SMTP_HOST = String(process.env.SMTP_HOST || "smtp.gmail.com").trim();
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_SECURE = String(process.env.SMTP_SECURE || "true").toLowerCase() !== "false";
+const SMTP_USER = String(process.env.SMTP_USER || "").trim();
+const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
+const SMTP_FROM = String(process.env.SMTP_FROM || "").trim();
+const SESSION_COOKIE_NAME = "chaotic_sid";
+const USER_CACHE_TTL_MS = Math.max(5 * 1000, Number(process.env.USER_CACHE_TTL_MS || 30 * 1000));
+const METRICS_WINDOW_MS = Math.max(5 * 60 * 1000, Number(process.env.METRICS_WINDOW_MS || 30 * 60 * 1000));
+const METRICS_SAMPLE_LIMIT = Math.max(300, Number(process.env.METRICS_SAMPLE_LIMIT || 2500));
+const DB_BACKUP_RETENTION_DAYS = Math.max(1, Number(process.env.DB_BACKUP_RETENTION_DAYS || 7));
+const DB_BACKUP_HOUR = Math.max(0, Math.min(23, Number(process.env.DB_BACKUP_HOUR || 2)));
+const SQL_V2_SCHEMA_VERSION = 2;
+const SQL_V2_STORAGE_MODE = "sql_v2_cutover";
+const SQL_CATALOG_SCHEMA_VERSION = 3;
+
+if (!fs.existsSync(PERSIST_DIR)) {
+  fs.mkdirSync(PERSIST_DIR, { recursive: true });
+}
+if (!fs.existsSync(DB_DIR)) {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+}
+if (!fs.existsSync(MUSIC_DIR)) {
+  fs.mkdirSync(MUSIC_DIR, { recursive: true });
+}
+if (!fs.existsSync(DEBUG_LOGS_DIR)) {
+  fs.mkdirSync(DEBUG_LOGS_DIR, { recursive: true });
+}
+if (!fs.existsSync(BACKUPS_DIR)) {
+  fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+}
+const SQLITE_DIR = path.dirname(SQLITE_FILE);
+if (!fs.existsSync(SQLITE_DIR)) {
+  fs.mkdirSync(SQLITE_DIR, { recursive: true });
+}
+
+function sqliteDailyLocationCountFromFile(DatabaseSync, dbFilePath) {
+  if (!dbFilePath || !fs.existsSync(dbFilePath)) {
+    return 0;
+  }
+  let probeDb = null;
+  try {
+    probeDb = new DatabaseSync(dbFilePath, { readOnly: true });
+    const table = probeDb
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'creature_daily_locations' LIMIT 1")
+      .get();
+    if (!table) {
+      return 0;
+    }
+    const row = probeDb.prepare("SELECT COUNT(*) AS total FROM creature_daily_locations").get();
+    return Number(row?.total || 0);
+  } catch {
+    return 0;
+  } finally {
+    if (probeDb) {
+      try {
+        probeDb.close();
+      } catch {}
+    }
+  }
+}
+
+function reconcileSqliteSource(DatabaseSync) {
+  if (!SQLITE_IS_DEFAULT_PATH) {
+    return;
+  }
+  const defaultPath = path.resolve(SQLITE_FILE);
+  const legacyPath = path.resolve(LEGACY_SQLITE_FILE);
+  if (defaultPath === legacyPath || !fs.existsSync(legacyPath)) {
+    return;
+  }
+  const defaultCount = sqliteDailyLocationCountFromFile(DatabaseSync, defaultPath);
+  const legacyCount = sqliteDailyLocationCountFromFile(DatabaseSync, legacyPath);
+  if (defaultCount > 0) {
+    if (legacyCount > 0) {
+      console.log(`[DB] Mantendo fonte oficial em runtime (daily rows runtime=${defaultCount}, legacy=${legacyCount}).`);
+    }
+    return;
+  }
+  if (legacyCount <= 0) {
+    return;
+  }
+  const hadDefaultFile = fs.existsSync(defaultPath);
+  if (hadDefaultFile) {
+    const backupPath = `${defaultPath}.bak.${Date.now()}`;
+    fs.copyFileSync(defaultPath, backupPath);
+    console.log(`[DB] Backup do SQLite padrao criado em ${backupPath}`);
+  }
+  fs.copyFileSync(legacyPath, defaultPath);
+  console.log(
+    `[DB] Migracao one-shot aplicada: sqlite legado copiado para runtime (daily rows legacy=${legacyCount}).`
+  );
+}
+
+let sqliteDb = null;
+let sqlStorageMode = "json_fallback";
+let sqlSchemaVersion = 1;
+const SQLITE_CORRUPT_ERROR_CODES = new Set(["SQLITE_CORRUPT", "SQLITE_NOTADB"]);
+const SQLITE_CORRUPT_MESSAGE_TOKENS = ["database disk image is malformed", "malformed", "not a database"];
+const DB_HEALTH_CACHE_MS = 30 * 1000;
+let dbIntegrityProbe = {
+  checkedAt: 0,
+  status: "unknown",
+  details: [],
+};
+let dbCorruptionState = {
+  detected: false,
+  detectedAt: "",
+  lastOperation: "",
+  namespace: "",
+  entityKey: "",
+  message: "",
+};
+
+function isSqliteCorruptionError(error) {
+  if (!error) {
+    return false;
+  }
+  if (SQLITE_CORRUPT_ERROR_CODES.has(String(error.code || "").toUpperCase())) {
+    return true;
+  }
+  const message = String(error.message || "").toLowerCase();
+  return SQLITE_CORRUPT_MESSAGE_TOKENS.some((token) => message.includes(token));
+}
+
+function captureSqliteCorruption(operation, namespace, entityKey, error) {
+  dbCorruptionState = {
+    detected: true,
+    detectedAt: nowIso(),
+    lastOperation: String(operation || ""),
+    namespace: String(namespace || ""),
+    entityKey: String(entityKey || ""),
+    message: String(error?.message || error || "Erro desconhecido de SQLite"),
+  };
+  dbIntegrityProbe = {
+    checkedAt: Date.now(),
+    status: "corrupt",
+    details: [dbCorruptionState.message],
+  };
+  console.error(
+    `[DB][CORRUPT] op=${dbCorruptionState.lastOperation} namespace=${dbCorruptionState.namespace} key=${dbCorruptionState.entityKey} error=${dbCorruptionState.message}`
+  );
+}
+
+function markDbOperationHealthy() {
+  if (!dbCorruptionState.detected) {
+    return;
+  }
+  dbCorruptionState = {
+    detected: false,
+    detectedAt: "",
+    lastOperation: "",
+    namespace: "",
+    entityKey: "",
+    message: "",
+  };
+}
+
+function runIntegrityProbe(force = false) {
+  if (!sqliteDb) {
+    return { status: "unavailable", details: [] };
+  }
+  const now = Date.now();
+  if (!force && now - Number(dbIntegrityProbe.checkedAt || 0) < DB_HEALTH_CACHE_MS) {
+    return {
+      status: dbIntegrityProbe.status || "unknown",
+      details: Array.isArray(dbIntegrityProbe.details) ? dbIntegrityProbe.details : [],
+    };
+  }
+  try {
+    const rows = sqliteDb.prepare("PRAGMA integrity_check").all();
+    const details = Array.isArray(rows)
+      ? rows
+          .map((row) => {
+            if (!row || typeof row !== "object") {
+              return "";
+            }
+            const values = Object.values(row);
+            return String(values[0] || "").trim();
+          })
+          .filter(Boolean)
+      : [];
+    const status = details.length === 1 && String(details[0]).toLowerCase() === "ok" ? "ok" : "corrupt";
+    dbIntegrityProbe = {
+      checkedAt: now,
+      status,
+      details,
+    };
+    if (status === "ok") {
+      markDbOperationHealthy();
+    }
+  } catch (error) {
+    const message = String(error?.message || error || "Falha ao executar integrity_check");
+    dbIntegrityProbe = {
+      checkedAt: now,
+      status: "corrupt",
+      details: [message],
+    };
+    if (isSqliteCorruptionError(error)) {
+      captureSqliteCorruption("integrity_check", "system", "integrity", error);
+    }
+  }
+  return {
+    status: dbIntegrityProbe.status || "unknown",
+    details: Array.isArray(dbIntegrityProbe.details) ? dbIntegrityProbe.details : [],
+  };
+}
+
+try {
+  const { DatabaseSync } = require("node:sqlite");
+  reconcileSqliteSource(DatabaseSync);
+  sqliteDb = new DatabaseSync(SQLITE_FILE);
+  console.log(`[DB] SQLite ativo em: ${SQLITE_FILE}`);
+  sqlStorageMode = "sqlite_legacy_kv";
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS kv_store (
+      namespace TEXT NOT NULL,
+      entity_key TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (namespace, entity_key)
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      password_hash TEXT NOT NULL,
+      tribe TEXT NOT NULL DEFAULT '',
+      verified INTEGER NOT NULL DEFAULT 0,
+      session_token TEXT,
+      session_expires_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  const userColumns = sqliteDb.prepare("PRAGMA table_info(users)").all();
+  const userColumnSet = new Set(userColumns.map((entry) => String(entry?.name || "").toLowerCase()));
+  if (!userColumnSet.has("session_expires_at")) {
+    sqliteDb.exec("ALTER TABLE users ADD COLUMN session_expires_at TEXT;");
+  }
+} catch (error) {
+  console.warn(`[DB] SQLite indisponivel, fallback JSON ativo: ${error.message}`);
+}
+
+// Inicializar tabelas de drops de criaturas
+if (sqliteDb) {
+  initializeCreatureDropTables(sqliteDb);
+}
+
+function sqlGet(namespace, entityKey) {
+  if (!sqliteDb) {
+    return null;
+  }
+  try {
+    const row = sqliteDb
+      .prepare("SELECT payload FROM kv_store WHERE namespace = ? AND entity_key = ?")
+      .get(String(namespace || ""), String(entityKey || ""));
+    if (!row?.payload) {
+      return null;
+    }
+    markDbOperationHealthy();
+    return safeJsonParse(row.payload, null);
+  } catch (error) {
+    if (isSqliteCorruptionError(error)) {
+      captureSqliteCorruption("sqlGet", namespace, entityKey, error);
+      return null;
+    }
+    console.error(
+      `[DB][ERROR] op=sqlGet namespace=${String(namespace || "")} key=${String(entityKey || "")} error=${error?.message || error}`
+    );
+    return null;
+  }
+}
+
+function sqlSet(namespace, entityKey, payload) {
+  if (!sqliteDb) {
+    return false;
+  }
+  try {
+    sqliteDb
+      .prepare(`
+        INSERT INTO kv_store (namespace, entity_key, payload, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(namespace, entity_key)
+        DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+      `)
+      .run(
+        String(namespace || ""),
+        String(entityKey || ""),
+        JSON.stringify(payload || {}),
+        nowIso()
+      );
+    markDbOperationHealthy();
+    return true;
+  } catch (error) {
+    if (isSqliteCorruptionError(error)) {
+      captureSqliteCorruption("sqlSet", namespace, entityKey, error);
+      return false;
+    }
+    console.error(
+      `[DB][ERROR] op=sqlSet namespace=${String(namespace || "")} key=${String(entityKey || "")} error=${error?.message || error}`
+    );
+    return false;
+  }
+}
+
+function sqlDelete(namespace, entityKey) {
+  if (!sqliteDb) {
+    return false;
+  }
+  try {
+    sqliteDb
+      .prepare("DELETE FROM kv_store WHERE namespace = ? AND entity_key = ?")
+      .run(String(namespace || ""), String(entityKey || ""));
+    markDbOperationHealthy();
+    return true;
+  } catch (error) {
+    if (isSqliteCorruptionError(error)) {
+      captureSqliteCorruption("sqlDelete", namespace, entityKey, error);
+      return false;
+    }
+    console.error(
+      `[DB][ERROR] op=sqlDelete namespace=${String(namespace || "")} key=${String(entityKey || "")} error=${error?.message || error}`
+    );
+    return false;
+  }
+}
+
+function sqlList(namespace) {
+  if (!sqliteDb) {
+    return [];
+  }
+  try {
+    const rows = sqliteDb
+      .prepare("SELECT entity_key, payload, updated_at FROM kv_store WHERE namespace = ?")
+      .all(String(namespace || ""));
+    markDbOperationHealthy();
+    return rows;
+  } catch (error) {
+    if (isSqliteCorruptionError(error)) {
+      captureSqliteCorruption("sqlList", namespace, "*", error);
+      return [];
+    }
+    console.error(
+      `[DB][ERROR] op=sqlList namespace=${String(namespace || "")} error=${error?.message || error}`
+    );
+    return [];
+  }
+}
+
+function parseJsonText(value, fallback = null) {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function createSqlV2Tables() {
+  if (!sqliteDb) {
+    return;
+  }
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS schema_meta (
+      version INTEGER NOT NULL PRIMARY KEY,
+      migrated_at TEXT NOT NULL,
+      notes TEXT NOT NULL DEFAULT ''
+    );
+  `);
+
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS deck_headers (
+      deck_key TEXT NOT NULL PRIMARY KEY,
+      owner_key TEXT NOT NULL DEFAULT '',
+      is_ownerless_legacy INTEGER NOT NULL DEFAULT 0,
+      name TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS deck_cards (
+      deck_key TEXT NOT NULL,
+      card_type TEXT NOT NULL,
+      slot_index INTEGER NOT NULL,
+      owner_key_shadow TEXT NOT NULL DEFAULT '',
+      card_id TEXT NOT NULL,
+      scan_entry_id TEXT,
+      variant_json TEXT,
+      PRIMARY KEY (deck_key, card_type, slot_index)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_deck_headers_owner_updated ON deck_headers(owner_key, updated_at);");
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_deck_cards_deck_type ON deck_cards(deck_key, card_type);");
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_deck_cards_owner_type_card ON deck_cards(owner_key_shadow, card_type, card_id);");
+
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS scan_entries (
+      scan_entry_id TEXT NOT NULL PRIMARY KEY,
+      owner_key TEXT NOT NULL,
+      card_type TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      variant_json TEXT,
+      obtained_at TEXT,
+      source TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_scan_entries_owner_type_card ON scan_entries(owner_key, card_type, card_id);");
+
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS player_profiles (
+      owner_key TEXT NOT NULL PRIMARY KEY,
+      favorite_tribe TEXT NOT NULL DEFAULT '',
+      starter_pack_granted_at TEXT NOT NULL DEFAULT '',
+      starter_pack_tribe TEXT NOT NULL DEFAULT '',
+      admin_scanner_maxed_at TEXT NOT NULL DEFAULT '',
+      avatar TEXT NOT NULL DEFAULT '',
+      score INTEGER NOT NULL DEFAULT 1200,
+      wins INTEGER NOT NULL DEFAULT 0,
+      losses INTEGER NOT NULL DEFAULT 0,
+      win_rate REAL NOT NULL DEFAULT 0,
+      most_played_card_id TEXT NOT NULL DEFAULT '',
+      most_played_name TEXT NOT NULL DEFAULT '',
+      most_played_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS profile_scanners (
+      owner_key TEXT NOT NULL,
+      scanner_key TEXT NOT NULL,
+      level INTEGER NOT NULL DEFAULT 1,
+      xp INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (owner_key, scanner_key)
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS profile_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_key TEXT NOT NULL,
+      mode TEXT NOT NULL,
+      result TEXT NOT NULL,
+      opponent TEXT NOT NULL,
+      timestamp TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_profile_history_owner_time ON profile_history(owner_key, timestamp DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS profile_creature_usage (
+      owner_key TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      count INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (owner_key, card_id)
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS profile_discoveries (
+      owner_key TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      discovered INTEGER NOT NULL DEFAULT 1,
+      PRIMARY KEY (owner_key, card_id)
+    );
+  `);
+
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_player_state (
+      owner_key TEXT NOT NULL PRIMARY KEY,
+      history_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_runs (
+      run_id TEXT NOT NULL PRIMARY KEY,
+      owner_key TEXT NOT NULL,
+      location_card_id TEXT NOT NULL,
+      location_name TEXT NOT NULL,
+      location_image TEXT NOT NULL DEFAULT '',
+      action_id TEXT NOT NULL,
+      action_label TEXT NOT NULL,
+      start_at TEXT NOT NULL,
+      end_at TEXT NOT NULL,
+      duration_ms INTEGER NOT NULL DEFAULT 0,
+      scanner_json TEXT,
+      context_json TEXT,
+      rewards_json TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      completed_at TEXT,
+      claimed_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_runs_owner_status_end ON perim_runs(owner_key, status, end_at);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_rewards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_id TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      reward_type TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      variant_json TEXT,
+      is_new INTEGER NOT NULL DEFAULT 0,
+      payload_json TEXT
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_rewards_owner_run ON perim_rewards(owner_key, run_id);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_location_state (
+      location_id TEXT NOT NULL PRIMARY KEY,
+      turn_label TEXT NOT NULL,
+      climate TEXT NOT NULL,
+      creatures_today_count INTEGER NOT NULL DEFAULT 0,
+      event_chance_percent INTEGER NOT NULL DEFAULT 0,
+      hour_token TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL
+    );
+  `);
+
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS seasons (
+      season_key TEXT NOT NULL PRIMARY KEY,
+      starts_at TEXT NOT NULL,
+      ends_at TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS season_player_stats (
+      season_key TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      score INTEGER NOT NULL DEFAULT 0,
+      wins INTEGER NOT NULL DEFAULT 0,
+      losses INTEGER NOT NULL DEFAULT 0,
+      perim_claims INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (season_key, owner_key)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_season_stats_score ON season_player_stats(season_key, score DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS season_rewards (
+      season_key TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      reward_type TEXT NOT NULL,
+      reward_value TEXT NOT NULL,
+      granted_at TEXT NOT NULL,
+      PRIMARY KEY (season_key, owner_key, reward_type, reward_value)
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS daily_missions (
+      mission_key TEXT NOT NULL PRIMARY KEY,
+      mission_date TEXT NOT NULL,
+      mission_type TEXT NOT NULL,
+      target_value INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS daily_mission_progress (
+      mission_key TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      progress_value INTEGER NOT NULL DEFAULT 0,
+      completed_at TEXT,
+      claimed_at TEXT,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (mission_key, owner_key)
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS trade_history (
+      trade_id TEXT NOT NULL PRIMARY KEY,
+      room_code TEXT NOT NULL,
+      host_key TEXT NOT NULL,
+      guest_key TEXT NOT NULL,
+      completed_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS trade_history_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trade_id TEXT NOT NULL,
+      from_owner_key TEXT NOT NULL,
+      to_owner_key TEXT NOT NULL,
+      scan_entry_id TEXT NOT NULL,
+      card_type TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      variant_json TEXT
+    );
+  `);
+}
+
+function getSqlSchemaVersion() {
+  if (!sqliteDb) {
+    return 0;
+  }
+  try {
+    const row = sqliteDb.prepare("SELECT MAX(version) AS version FROM schema_meta").get();
+    return Number(row?.version || 0);
+  } catch {
+    return 0;
+  }
+}
+
+function migrateKvToSqlV2IfNeeded() {
+  if (!sqliteDb) {
+    return;
+  }
+
+  createSqlV2Tables();
+  const currentVersion = getSqlSchemaVersion();
+  if (currentVersion >= SQL_V2_SCHEMA_VERSION) {
+    sqlSchemaVersion = currentVersion;
+    sqlStorageMode = SQL_V2_STORAGE_MODE;
+    return;
+  }
+
+  const now = nowIso();
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    sqliteDb.exec("DELETE FROM deck_cards;");
+    sqliteDb.exec("DELETE FROM deck_headers;");
+    sqliteDb.exec("DELETE FROM scan_entries;");
+    sqliteDb.exec("DELETE FROM player_profiles;");
+    sqliteDb.exec("DELETE FROM profile_scanners;");
+    sqliteDb.exec("DELETE FROM profile_history;");
+    sqliteDb.exec("DELETE FROM profile_creature_usage;");
+    sqliteDb.exec("DELETE FROM profile_discoveries;");
+    sqliteDb.exec("DELETE FROM perim_rewards;");
+    sqliteDb.exec("DELETE FROM perim_runs;");
+    sqliteDb.exec("DELETE FROM perim_player_state;");
+    sqliteDb.exec("DELETE FROM perim_location_state;");
+    sqliteDb.exec("DELETE FROM schema_meta;");
+
+    const deckRows = sqlList("decks");
+    const upsertDeckHeader = sqliteDb.prepare(`
+      INSERT INTO deck_headers (deck_key, owner_key, is_ownerless_legacy, name, mode, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(deck_key) DO UPDATE SET
+        owner_key = excluded.owner_key,
+        is_ownerless_legacy = excluded.is_ownerless_legacy,
+        name = excluded.name,
+        mode = excluded.mode,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at
+    `);
+    const insertDeckCard = sqliteDb.prepare(`
+      INSERT INTO deck_cards (deck_key, card_type, slot_index, owner_key_shadow, card_id, scan_entry_id, variant_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    deckRows.forEach((row) => {
+      const payload = parseJsonText(row?.payload, null);
+      if (!payload || typeof payload !== "object") {
+        return;
+      }
+      const deckKey = normalizeDeckName(payload?.name || row?.entity_key || "");
+      if (!deckKey) {
+        return;
+      }
+      const ownerKey = deckOwnerKey(payload);
+      const isOwnerlessLegacy = ownerKey ? 0 : 1;
+      const deckCreatedAt = String(payload?.createdAt || row?.updated_at || now);
+      const deckUpdatedAt = String(payload?.updatedAt || row?.updated_at || now);
+      const mode = String(payload?.mode || "competitive");
+      upsertDeckHeader.run(
+        deckKey,
+        ownerKey,
+        isOwnerlessLegacy,
+        String(payload?.name || deckKey),
+        mode,
+        deckCreatedAt,
+        deckUpdatedAt
+      );
+
+      DECK_CARD_TYPES.forEach((type) => {
+        const list = Array.isArray(payload?.cards?.[type]) ? payload.cards[type] : [];
+        list.forEach((entry, slotIndex) => {
+          const cardId = deckCardIdFromEntry(type, entry);
+          if (!cardId) {
+            return;
+          }
+          let scanEntryId = null;
+          let variantJson = null;
+          if (type === "creatures" && entry && typeof entry === "object") {
+            const normalizedVariant = normalizeCreatureVariant(entry.variant);
+            scanEntryId = deckCreatureScanEntryId(entry) || null;
+            variantJson = normalizedVariant ? JSON.stringify(normalizedVariant) : null;
+          }
+          insertDeckCard.run(
+            deckKey,
+            type,
+            Number(slotIndex),
+            ownerKey,
+            cardId,
+            scanEntryId,
+            variantJson
+          );
+        });
+      });
+    });
+
+    const scansState = sqlGet("scans", "state");
+    const scansPayload = scansState && typeof scansState === "object"
+      ? normalizeScansFilePayload(scansState)
+      : normalizeScansFilePayload({});
+    const insertScanEntry = sqliteDb.prepare(`
+      INSERT INTO scan_entries (scan_entry_id, owner_key, card_type, card_id, variant_json, obtained_at, source, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    Object.entries(scansPayload.players || {}).forEach(([usernameKey, playerData]) => {
+      const ownerKey = normalizeUserKey(usernameKey);
+      DECK_CARD_TYPES.forEach((type) => {
+        const list = Array.isArray(playerData?.cards?.[type]) ? playerData.cards[type] : [];
+        list.forEach((entry, idx) => {
+          const cardId = scanEntryToCardId(type, entry);
+          if (!cardId) {
+            return;
+          }
+          const createdAt = now;
+          let scanEntryId = "";
+          let variantJson = null;
+          let obtainedAt = null;
+          let source = null;
+          if (type === "creatures") {
+            const normalizedEntry = normalizeScansEntryByType(type, entry);
+            scanEntryId = String(normalizedEntry?.scanEntryId || generateScanEntryId());
+            const variant = normalizeCreatureVariant(normalizedEntry?.variant);
+            variantJson = variant ? JSON.stringify(variant) : null;
+            obtainedAt = normalizedEntry?.obtainedAt ? String(normalizedEntry.obtainedAt) : null;
+            source = normalizedEntry?.source ? String(normalizedEntry.source) : null;
+          } else {
+            scanEntryId = `scan_${ownerKey}_${type}_${idx}_${crypto.randomBytes(6).toString("hex")}`;
+          }
+          insertScanEntry.run(
+            scanEntryId,
+            ownerKey,
+            type,
+            cardId,
+            variantJson,
+            obtainedAt,
+            source,
+            createdAt
+          );
+        });
+      });
+    });
+
+    const profilesState = sqlGet("profiles", "state");
+    const rawProfiles = profilesState && typeof profilesState === "object" && profilesState.profiles && typeof profilesState.profiles === "object"
+      ? profilesState.profiles
+      : {};
+    const upsertProfile = sqliteDb.prepare(`
+      INSERT INTO player_profiles (
+        owner_key, favorite_tribe, starter_pack_granted_at, starter_pack_tribe, admin_scanner_maxed_at, avatar,
+        score, wins, losses, win_rate, most_played_card_id, most_played_name, most_played_count, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(owner_key) DO UPDATE SET
+        favorite_tribe = excluded.favorite_tribe,
+        starter_pack_granted_at = excluded.starter_pack_granted_at,
+        starter_pack_tribe = excluded.starter_pack_tribe,
+        admin_scanner_maxed_at = excluded.admin_scanner_maxed_at,
+        avatar = excluded.avatar,
+        score = excluded.score,
+        wins = excluded.wins,
+        losses = excluded.losses,
+        win_rate = excluded.win_rate,
+        most_played_card_id = excluded.most_played_card_id,
+        most_played_name = excluded.most_played_name,
+        most_played_count = excluded.most_played_count,
+        created_at = excluded.created_at,
+        updated_at = excluded.updated_at
+    `);
+    const insertScanner = sqliteDb.prepare(`
+      INSERT INTO profile_scanners (owner_key, scanner_key, level, xp)
+      VALUES (?, ?, ?, ?)
+    `);
+    const insertHistory = sqliteDb.prepare(`
+      INSERT INTO profile_history (owner_key, mode, result, opponent, timestamp)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    const insertCreatureUsage = sqliteDb.prepare(`
+      INSERT INTO profile_creature_usage (owner_key, card_id, name, count)
+      VALUES (?, ?, ?, ?)
+    `);
+    const insertDiscovery = sqliteDb.prepare(`
+      INSERT INTO profile_discoveries (owner_key, card_id, discovered)
+      VALUES (?, ?, 1)
+    `);
+
+    const usersRows = sqliteDb.prepare("SELECT username, tribe FROM users").all();
+    const allProfileKeys = new Set(Object.keys(rawProfiles).map((key) => normalizeUserKey(key)));
+    usersRows.forEach((row) => allProfileKeys.add(normalizeUserKey(row?.username)));
+    allProfileKeys.forEach((ownerKey) => {
+      const sourceRaw = rawProfiles[ownerKey] || rawProfiles[String(ownerKey).toLowerCase()] || {};
+      const normalized = normalizeProfilePayload(ownerKey, sourceRaw);
+      upsertProfile.run(
+        ownerKey,
+        String(normalized.favoriteTribe || ""),
+        String(normalized.starterPackGrantedAt || ""),
+        String(normalized.starterPackTribe || ""),
+        String(normalized.adminScannerMaxedAt || ""),
+        String(normalized.avatar || ""),
+        Math.max(0, Number(normalized.score || 1200)),
+        Math.max(0, Number(normalized.wins || 0)),
+        Math.max(0, Number(normalized.losses || 0)),
+        Number(normalized.winRate || 0),
+        String(normalized?.mostPlayedCreature?.cardId || ""),
+        String(normalized?.mostPlayedCreature?.name || ""),
+        Math.max(0, Number(normalized?.mostPlayedCreature?.count || 0)),
+        String(normalized.createdAt || now),
+        String(normalized.updatedAt || now)
+      );
+      const scanners = normalizeScannersPayload(normalized.scanners);
+      SCANNER_KEYS.forEach((scannerKey) => {
+        const scanner = scanners[scannerKey] || { level: 1, xp: 0 };
+        insertScanner.run(ownerKey, scannerKey, Number(scanner.level || 1), Number(scanner.xp || 0));
+      });
+      (normalized.battleHistory || []).forEach((entry) => {
+        insertHistory.run(
+          ownerKey,
+          String(entry?.mode || "unknown"),
+          String(entry?.result || "unknown"),
+          String(entry?.opponent || "Oponente"),
+          String(entry?.timestamp || now)
+        );
+      });
+      Object.values(normalized.creatureUsage || {}).forEach((entry) => {
+        const cardId = String(entry?.cardId || "").trim();
+        if (!cardId) {
+          return;
+        }
+        insertCreatureUsage.run(
+          ownerKey,
+          cardId,
+          String(entry?.name || cardId),
+          Math.max(0, Number(entry?.count || 0))
+        );
+      });
+      Object.entries(normalized.discoveredCards || {}).forEach(([cardId, flag]) => {
+        if (!cardId || !flag) {
+          return;
+        }
+        insertDiscovery.run(ownerKey, String(cardId));
+      });
+    });
+
+    const perimState = sqlGet("perim_state", "state");
+    const normalizedPerim = (() => {
+      if (perimState && typeof perimState === "object") {
+        const players = {};
+        Object.entries(perimState?.players || {}).forEach(([key, value]) => {
+          players[normalizePerimPlayerKey(key)] = normalizePerimPlayerState(value);
+        });
+        return {
+          schemaVersion: 1,
+          createdAt: perimState?.createdAt || now,
+          updatedAt: perimState?.updatedAt || now,
+          players,
+        };
+      }
+      return { schemaVersion: 1, createdAt: now, updatedAt: now, players: {} };
+    })();
+
+    const insertPerimRun = sqliteDb.prepare(`
+      INSERT INTO perim_runs (
+        run_id, owner_key, location_card_id, location_name, location_image, action_id, action_label,
+        start_at, end_at, duration_ms, scanner_json, context_json, rewards_json, status, completed_at, claimed_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const insertPerimReward = sqliteDb.prepare(`
+      INSERT INTO perim_rewards (run_id, owner_key, reward_type, card_id, variant_json, is_new, payload_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    const upsertPerimPlayer = sqliteDb.prepare(`
+      INSERT INTO perim_player_state (owner_key, history_json, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(owner_key) DO UPDATE SET
+        history_json = excluded.history_json,
+        updated_at = excluded.updated_at
+    `);
+
+    Object.entries(normalizedPerim.players || {}).forEach(([ownerRawKey, playerState]) => {
+      const ownerKey = normalizePerimPlayerKey(ownerRawKey);
+      const state = normalizePerimPlayerState(playerState);
+      upsertPerimPlayer.run(
+        ownerKey,
+        JSON.stringify(Array.isArray(state?.history) ? state.history.slice(-30) : []),
+        String(state?.updatedAt || now)
+      );
+      const activeRun = state.activeRun && typeof state.activeRun === "object" ? state.activeRun : null;
+      if (activeRun?.runId) {
+        insertPerimRun.run(
+          String(activeRun.runId),
+          ownerKey,
+          String(activeRun.locationId || activeRun.locationCardId || ""),
+          String(activeRun.locationName || ""),
+          String(activeRun.locationImage || ""),
+          String(activeRun.actionId || ""),
+          String(activeRun.actionLabel || ""),
+          String(activeRun.startAt || now),
+          String(activeRun.endAt || now),
+          Number(activeRun.durationMs || 0),
+          JSON.stringify(activeRun.scanner || {}),
+          JSON.stringify(activeRun.contextSnapshot || {}),
+          JSON.stringify(activeRun.rewards || []),
+          "active",
+          null,
+          null,
+          String(activeRun.startAt || now),
+          String(activeRun.updatedAt || state.updatedAt || now)
+        );
+      }
+      (state.pendingRewards || []).forEach((pending) => {
+        const runId = String(pending?.runId || crypto.randomBytes(8).toString("hex"));
+        const rewards = Array.isArray(pending?.rewards) ? pending.rewards : [];
+        insertPerimRun.run(
+          runId,
+          ownerKey,
+          String(pending?.locationId || ""),
+          String(pending?.locationName || ""),
+          String(pending?.locationImage || ""),
+          String(pending?.actionId || ""),
+          String(pending?.actionName || ""),
+          String(pending?.completedAt || pending?.claimedAt || now),
+          String(pending?.completedAt || pending?.claimedAt || now),
+          0,
+          JSON.stringify({}),
+          JSON.stringify({}),
+          JSON.stringify(rewards),
+          pending?.claimedAt ? "claimed" : "pending",
+          String(pending?.completedAt || now),
+          pending?.claimedAt ? String(pending.claimedAt) : null,
+          String(pending?.completedAt || now),
+          String(pending?.claimedAt || pending?.completedAt || now)
+        );
+        rewards.forEach((reward) => {
+          const variant = reward?.variant ? normalizeCreatureVariant(reward.variant) : null;
+          insertPerimReward.run(
+            runId,
+            ownerKey,
+            String(reward?.type || ""),
+            String(reward?.cardId || ""),
+            variant ? JSON.stringify(variant) : null,
+            0,
+            JSON.stringify(reward || {})
+          );
+        });
+      });
+    });
+
+    const perimLocationRows = sqlList("perim_location_state_global");
+    const upsertLocationState = sqliteDb.prepare(`
+      INSERT INTO perim_location_state (location_id, turn_label, climate, creatures_today_count, event_chance_percent, hour_token, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(location_id) DO UPDATE SET
+        turn_label = excluded.turn_label,
+        climate = excluded.climate,
+        creatures_today_count = excluded.creatures_today_count,
+        event_chance_percent = excluded.event_chance_percent,
+        hour_token = excluded.hour_token,
+        updated_at = excluded.updated_at
+    `);
+    perimLocationRows.forEach((row) => {
+      const payload = parseJsonText(row?.payload, null);
+      if (!payload || typeof payload !== "object") {
+        return;
+      }
+      upsertLocationState.run(
+        String(row?.entity_key || ""),
+        String(payload?.turnLabel || ""),
+        String(payload?.climate || "Nublado"),
+        Number(payload?.creaturesTodayCount || 0),
+        Number(payload?.eventChancePercent || 0),
+        String(payload?.hourToken || ""),
+        String(payload?.updatedAt || row?.updated_at || now)
+      );
+    });
+
+    sqliteDb.prepare("INSERT INTO schema_meta (version, migrated_at, notes) VALUES (?, ?, ?)")
+      .run(SQL_V2_SCHEMA_VERSION, now, "cutover from kv_store to normalized sql tables");
+    sqliteDb.exec("COMMIT");
+    sqlSchemaVersion = SQL_V2_SCHEMA_VERSION;
+    sqlStorageMode = SQL_V2_STORAGE_MODE;
+    console.log(`[DB] SQL v${SQL_V2_SCHEMA_VERSION} cutover concluido (dominios: decks/scans/profiles/perim).`);
+  } catch (error) {
+    try {
+      sqliteDb.exec("ROLLBACK");
+    } catch {}
+    console.error(`[DB] Falha ao migrar SQL v${SQL_V2_SCHEMA_VERSION}: ${error?.message || error}`);
+    throw error;
+  }
+}
+
+function isSqlV2Ready() {
+  return Boolean(sqliteDb && Number(sqlSchemaVersion || 0) >= SQL_V2_SCHEMA_VERSION);
+}
+
+function getTodayDailyCreatureRowsCount() {
+  if (!sqliteDb) {
+    return 0;
+  }
+  try {
+    const row = sqliteDb
+      .prepare("SELECT COUNT(*) AS total FROM creature_daily_locations WHERE location_date = ?")
+      .get(String(todayDateKey()));
+    return Number(row?.total || 0);
+  } catch {
+    return 0;
+  }
+}
+
+function areProfilesReadable() {
+  try {
+    const fromSql = sqlGet("profiles", "state");
+    if (fromSql && typeof fromSql === "object") {
+      return true;
+    }
+  } catch (error) {
+    if (isSqliteCorruptionError(error)) {
+      captureSqliteCorruption("profilesHealthCheck", "profiles", "state", error);
+    }
+  }
+
+  if (fs.existsSync(PROFILES_FILE)) {
+    try {
+      const parsed = safeJsonParse(fs.readFileSync(PROFILES_FILE, "utf8"), null);
+      return Boolean(parsed && typeof parsed === "object");
+    } catch {
+      return false;
+    }
+  }
+
+  return Boolean(sqliteDb);
+}
+
+let library = buildLibrary(ROOT_DIR);
+function refreshLibraryCatalog(forceImport = false) {
+  if (sqliteDb) {
+    try {
+      const catalog = ensureCardCatalog(sqliteDb, ROOT_DIR, { forceImport: Boolean(forceImport) });
+      if (catalog?.ok) {
+        sqliteDb
+          .prepare("INSERT OR IGNORE INTO schema_meta (version, migrated_at, notes) VALUES (?, ?, ?)")
+          .run(SQL_CATALOG_SCHEMA_VERSION, nowIso(), "sql catalog cards import");
+        const schemaRow = sqliteDb.prepare("SELECT MAX(version) AS version FROM schema_meta").get();
+        sqlSchemaVersion = Math.max(Number(sqlSchemaVersion || 0), Number(schemaRow?.version || 0));
+      }
+    } catch (error) {
+      console.error(`[LIB] Falha ao sincronizar catalogo SQL: ${error?.message || error}`);
+    }
+  }
+  library = buildLibrary(ROOT_DIR, {
+    db: sqliteDb,
+    preferSql: true,
+    forceImport: Boolean(forceImport),
+  });
+  return library;
+}
+
+const debugSessions = new Map();
+const attackPendingRuntimeKeys = new Set();
+const creaturePendingRuntimeKeys = new Set();
+let effectPendingStats = writeBasePendingEffectsReport();
+let creaturePendingStats = writeBaseCreaturePendingEffectsReport();
+migrateDeckFilesToSqlIfNeeded();
+
+// â”€â”€â”€ Seed admin account â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function seedAdminAccount() {
+  if (!sqliteDb) return;
+  const ADMIN_USER = "admin";
+  const ADMIN_PASS_HASH = "=4WatRWY"; // btoa("admin").split("").reverse().join("")
+  const existing = sqliteDb.prepare("SELECT id FROM users WHERE username = ? COLLATE NOCASE").get(ADMIN_USER);
+  if (!existing) {
+    const now = nowIso();
+    const sessionToken = crypto.randomBytes(32).toString("hex");
+    sqliteDb.prepare(`
+      INSERT INTO users (username, email, password_hash, tribe, verified, session_token, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+    `).run(ADMIN_USER, "admin@chaotic.local", ADMIN_PASS_HASH, "", sessionToken, now, now);
+    console.log(`[SEED] Conta admin criada (usuario: admin, senha: admin)`);
+  }
+  // Give admin 3 copies of every card in the library
+  const adminKey = normalizeUserKey(ADMIN_USER);
+  const scans = loadScansData();
+  const allCards = library?.cards || [];
+  const buckets = createEmptyCardBuckets();
+  const COPIES = 3;
+  allCards.forEach((card) => {
+    const cardId = String(card?.id || "").trim();
+    if (!cardId) return;
+    const type = String(card?.type || "").toLowerCase();
+    let bucketKey = "";
+    if (type === "creature" || type === "creatures") bucketKey = "creatures";
+    else if (type === "attack" || type === "attacks") bucketKey = "attacks";
+    else if (type === "battlegear") bucketKey = "battlegear";
+    else if (type === "location" || type === "locations") bucketKey = "locations";
+    else if (type === "mugic") bucketKey = "mugic";
+    if (!bucketKey || !buckets[bucketKey]) return;
+    for (let i = 0; i < COPIES; i++) {
+      if (bucketKey === "creatures") {
+        buckets[bucketKey].push({
+          cardId,
+          scanEntryId: generateScanEntryId(),
+          variant: buildCreatureScanVariant(),
+          obtainedAt: nowIso(),
+          source: "admin_seed",
+        });
+      } else {
+        buckets[bucketKey].push(cardId);
+      }
+    }
+  });
+  scans.players[adminKey] = { cards: buckets };
+  writeScansData(scans, "admin_seed");
+  console.log(`[SEED] Admin scans: ${allCards.length} cartas x${COPIES} copias = ${allCards.length * COPIES} entradas`);
+}
+// â”€â”€â”€ End seed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+const multiplayerRooms = new Map();
+let nextRoomId = 1000;
+let engineModulePromise = null;
+const tradeRooms = new Map();
+const TRADE_ROOM_CODE_LENGTH = 6;
+const TRADE_ROOM_IDLE_TTL_MS = 30 * 60 * 1000;
+const tradeCardLocks = new Map();
+
+const runtimeMetrics = {
+  requestSamplesByRoute: new Map(),
+  routeErrorCounts: new Map(),
+  tradeCompletedCount: 0,
+  cache: {
+    hits: 0,
+    misses: 0,
+    invalidations: 0,
+  },
+  perimJobs: {
+    lastRunAt: "",
+    lastSuccessAt: "",
+    lastErrorAt: "",
+    lastError: "",
+    queued: false,
+    degraded: false,
+    degradedReason: "",
+  },
+  backups: {
+    lastRunAt: "",
+    lastSuccessAt: "",
+    lastErrorAt: "",
+    lastError: "",
+  },
+};
+
+const userResponseCache = {
+  profile: new Map(),
+  scans: new Map(),
+  perim: new Map(),
+};
+
+let lastKnownDailyCreaturePayload = null;
+let perimDailyJobTimer = null;
+let lastDailyBackupDateKey = "";
+
+function pruneMetricSamples(routeKey, nowMsValue) {
+  const samples = runtimeMetrics.requestSamplesByRoute.get(routeKey);
+  if (!Array.isArray(samples) || !samples.length) {
+    return;
+  }
+  const cutoff = nowMsValue - METRICS_WINDOW_MS;
+  while (samples.length && Number(samples[0]?.at || 0) < cutoff) {
+    samples.shift();
+  }
+  if (samples.length > METRICS_SAMPLE_LIMIT) {
+    samples.splice(0, samples.length - METRICS_SAMPLE_LIMIT);
+  }
+}
+
+function trackRequestMetric(routePath, method, statusCode, durationMs) {
+  const nowValue = Date.now();
+  const routeKey = `${String(method || "GET").toUpperCase()} ${String(routePath || "/")}`;
+  if (!runtimeMetrics.requestSamplesByRoute.has(routeKey)) {
+    runtimeMetrics.requestSamplesByRoute.set(routeKey, []);
+  }
+  const samples = runtimeMetrics.requestSamplesByRoute.get(routeKey);
+  samples.push({
+    at: nowValue,
+    status: Number(statusCode || 0),
+    durationMs: Math.max(0, Number(durationMs || 0)),
+  });
+  pruneMetricSamples(routeKey, nowValue);
+  if (Number(statusCode || 0) >= 400) {
+    runtimeMetrics.routeErrorCounts.set(routeKey, (runtimeMetrics.routeErrorCounts.get(routeKey) || 0) + 1);
+  }
+}
+
+function percentileFromSorted(sortedValues, percentile) {
+  if (!Array.isArray(sortedValues) || !sortedValues.length) {
+    return 0;
+  }
+  const p = Math.max(0, Math.min(1, Number(percentile || 0)));
+  const idx = Math.min(sortedValues.length - 1, Math.max(0, Math.ceil((sortedValues.length * p) - 1)));
+  return Number(sortedValues[idx] || 0);
+}
+
+function countActiveValidSessions() {
+  if (!sqliteDb) {
+    return 0;
+  }
+  const now = nowIso();
+  try {
+    const row = sqliteDb
+      .prepare(`
+        SELECT COUNT(*) AS total
+        FROM users
+        WHERE session_token IS NOT NULL
+          AND session_token != ''
+          AND session_expires_at IS NOT NULL
+          AND session_expires_at > ?
+      `)
+      .get(now);
+    return Math.max(0, Number(row?.total || 0));
+  } catch {
+    return 0;
+  }
+}
+
+function buildRuntimeMetricsSnapshot() {
+  const nowValue = Date.now();
+  const routes = {};
+  runtimeMetrics.requestSamplesByRoute.forEach((samples, routeKey) => {
+    pruneMetricSamples(routeKey, nowValue);
+    const durations = samples.map((entry) => Math.max(0, Number(entry?.durationMs || 0))).sort((a, b) => a - b);
+    routes[routeKey] = {
+      samples: durations.length,
+      p50: Math.round(percentileFromSorted(durations, 0.5) * 100) / 100,
+      p95: Math.round(percentileFromSorted(durations, 0.95) * 100) / 100,
+      p99: Math.round(percentileFromSorted(durations, 0.99) * 100) / 100,
+    };
+  });
+  const perimRoute = routes["GET /api/perim/state"] || { samples: 0, p50: 0, p95: 0, p99: 0 };
+  const errorsByRoute = {};
+  runtimeMetrics.routeErrorCounts.forEach((count, routeKey) => {
+    errorsByRoute[routeKey] = Number(count || 0);
+  });
+  return {
+    generatedAt: nowIso(),
+    windowMs: METRICS_WINDOW_MS,
+    perimStateLatencyMs: perimRoute,
+    routes,
+    errorsByRoute,
+    onlinePlayers: countActiveValidSessions(),
+    activeRooms: {
+      multiplayer: multiplayerRooms.size,
+      trades: tradeRooms.size,
+    },
+    trades: {
+      completed: Number(runtimeMetrics.tradeCompletedCount || 0),
+      locksActive: tradeCardLocks.size,
+    },
+    cache: {
+      hits: Number(runtimeMetrics.cache.hits || 0),
+      misses: Number(runtimeMetrics.cache.misses || 0),
+      invalidations: Number(runtimeMetrics.cache.invalidations || 0),
+      buckets: {
+        profile: userResponseCache.profile.size,
+        scans: userResponseCache.scans.size,
+        perim: userResponseCache.perim.size,
+      },
+      ttlMs: USER_CACHE_TTL_MS,
+    },
+    jobs: {
+      perim: { ...runtimeMetrics.perimJobs },
+      backup: { ...runtimeMetrics.backups },
+    },
+  };
+}
+
+function cacheRead(scopeMap, cacheKey, loader) {
+  const nowValue = Date.now();
+  const cached = scopeMap.get(cacheKey);
+  if (cached && nowValue - Number(cached.at || 0) < USER_CACHE_TTL_MS) {
+    runtimeMetrics.cache.hits += 1;
+    return cached.value;
+  }
+  runtimeMetrics.cache.misses += 1;
+  const value = loader();
+  scopeMap.set(cacheKey, { at: nowValue, value });
+  return value;
+}
+
+function invalidateUserCaches(usernameRaw = "", options = {}) {
+  const key = normalizeUserKey(usernameRaw || "", "");
+  const invalidateAll = Boolean(options.all) || !key;
+  const scanDeckPrefix = `${key}:`;
+  if (invalidateAll) {
+    userResponseCache.profile.clear();
+    userResponseCache.perim.clear();
+    userResponseCache.scans.clear();
+    runtimeMetrics.cache.invalidations += 1;
+    return;
+  }
+  userResponseCache.profile.delete(key);
+  userResponseCache.perim.delete(key);
+  [...userResponseCache.scans.keys()].forEach((entryKey) => {
+    if (String(entryKey).startsWith(scanDeckPrefix)) {
+      userResponseCache.scans.delete(entryKey);
+    }
+  });
+  runtimeMetrics.cache.invalidations += 1;
+}
+
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".m4a": "audio/mp4",
+};
+
+function sendJson(response, statusCode, data) {
+  const payload = JSON.stringify(data);
+  response.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Content-Length": Buffer.byteLength(payload),
+    "Cache-Control": "no-store",
+  });
+  response.end(payload);
+}
+
+function sendText(response, statusCode, text) {
+  response.writeHead(statusCode, { "Content-Type": "text/plain; charset=utf-8" });
+  response.end(text);
+}
+
+function sendFile(response, filePath) {
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    sendText(response, 404, "Not found");
+    return;
+  }
+
+  const extension = path.extname(filePath).toLowerCase();
+  const contentType = MIME_TYPES[extension] || "application/octet-stream";
+  response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-cache' });
+  
+  fs.createReadStream(filePath).pipe(response);
+}
+
+const CORS_ALLOWED_ORIGINS = String(process.env.CORS_ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((value) => String(value || "").trim())
+  .filter(Boolean);
+
+function isAllowedCorsOrigin(origin) {
+  const normalized = String(origin || "").trim();
+  if (!normalized) {
+    return false;
+  }
+  if (CORS_ALLOWED_ORIGINS.includes(normalized)) {
+    return true;
+  }
+  if (/^https:\/\/[a-z0-9-]+\.github\.io$/i.test(normalized)) {
+    return true;
+  }
+  if (/^https?:\/\/localhost(?::\d+)?$/i.test(normalized)) {
+    return true;
+  }
+  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(normalized)) {
+    return true;
+  }
+  return false;
+}
+
+function applyCorsHeaders(request, response) {
+  const origin = String(request?.headers?.origin || "").trim();
+  if (!origin || !isAllowedCorsOrigin(origin)) {
+    return false;
+  }
+  response.setHeader("Access-Control-Allow-Origin", origin);
+  response.setHeader("Vary", "Origin");
+  response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  response.setHeader("Access-Control-Max-Age", "600");
+  return true;
+}
+
+function normalizeDeckName(name) {
+  const trimmed = String(name || "").trim();
+  return trimmed.replace(/[^a-zA-Z0-9 _-]+/g, "").replace(/\s+/g, "-").toLowerCase();
+}
+
+function getDeckFilePath(rawName) {
+  // Obsolete function, retained interface for compatibility but no longer returns a file path
+  return null;
+}
+
+const DECK_CARD_TYPES = ["creatures", "attacks", "battlegear", "locations", "mugic"];
+const INVENTORY_MAX_COPIES = 3;
+const SCANNER_KEYS = ["danian", "overworld", "underworld", "mipedian", "marrillian"];
+const SCANNER_XP_THRESHOLDS = [0, 100, 350, 850];
+
+function createEmptyCardBuckets() {
+  return {
+    creatures: [],
+    attacks: [],
+    battlegear: [],
+    locations: [],
+    mugic: [],
+  };
+}
+
+function cloneCardBuckets(cards) {
+  const out = createEmptyCardBuckets();
+  DECK_CARD_TYPES.forEach((type) => {
+    out[type] = Array.isArray(cards?.[type]) ? [...cards[type]] : [];
+  });
+  return out;
+}
+
+function countBucketCards(cards) {
+  const counts = {};
+  let total = 0;
+  DECK_CARD_TYPES.forEach((type) => {
+    const amount = Array.isArray(cards?.[type]) ? cards[type].length : 0;
+    counts[type] = amount;
+    total += amount;
+  });
+  return { counts, total };
+}
+
+function readBody(request) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    request.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > MAX_BODY_SIZE) {
+        reject(new Error("Body too large"));
+        request.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+    request.on("error", reject);
+  });
+}
+
+function safeJsonParse(text, fallback = {}) {
+  try {
+    return JSON.parse(text || "{}");
+  } catch {
+    return fallback;
+  }
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function nowMs() {
+  return Date.now();
+}
+
+function isoFromMs(value) {
+  return new Date(Number(value || 0)).toISOString();
+}
+
+function getPackageVersion() {
+  try {
+    const pkg = safeJsonParse(fs.readFileSync(path.join(ROOT_DIR, "package.json"), "utf8"), {});
+    return String(pkg?.version || "0.0.0");
+  } catch {
+    return "0.0.0";
+  }
+}
+
+function parseIsoToMs(value) {
+  if (!value) {
+    return 0;
+  }
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getClientIp(request) {
+  const forwarded = String(request.headers["x-forwarded-for"] || "");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  const rawSocket = request.socket?.remoteAddress;
+  return String(rawSocket || "unknown");
+}
+
+function parseCookies(request) {
+  const header = String(request?.headers?.cookie || "");
+  if (!header) {
+    return {};
+  }
+  return header.split(";").reduce((acc, chunk) => {
+    const eqIdx = chunk.indexOf("=");
+    if (eqIdx <= 0) {
+      return acc;
+    }
+    const key = chunk.slice(0, eqIdx).trim();
+    const value = chunk.slice(eqIdx + 1).trim();
+    if (!key) {
+      return acc;
+    }
+    try {
+      acc[key] = decodeURIComponent(value);
+    } catch {
+      acc[key] = value;
+    }
+    return acc;
+  }, {});
+}
+
+function isHttpsRequest(request) {
+  const proto = String(request?.headers?.["x-forwarded-proto"] || "").toLowerCase();
+  if (proto.includes("https")) {
+    return true;
+  }
+  return Boolean(request?.socket?.encrypted);
+}
+
+function buildSessionCookieHeader(request, token, expiresAtIso) {
+  const secure = isHttpsRequest(request);
+  const parts = [
+    `${SESSION_COOKIE_NAME}=${encodeURIComponent(String(token || ""))}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+  ];
+  if (secure) {
+    parts.push("Secure");
+  }
+  if (expiresAtIso) {
+    parts.push(`Expires=${new Date(expiresAtIso).toUTCString()}`);
+  }
+  return parts.join("; ");
+}
+
+function clearSessionCookieHeader(request) {
+  const secure = isHttpsRequest(request);
+  const parts = [
+    `${SESSION_COOKIE_NAME}=`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    "Max-Age=0",
+  ];
+  if (secure) {
+    parts.push("Secure");
+  }
+  return parts.join("; ");
+}
+
+function getRequestSessionToken(request) {
+  const cookies = parseCookies(request);
+  const fromCookie = String(cookies?.[SESSION_COOKIE_NAME] || "").trim();
+  if (fromCookie) {
+    return fromCookie;
+  }
+  const authHeader = String(request?.headers?.authorization || "").trim();
+  if (authHeader.toLowerCase().startsWith("bearer ")) {
+    return authHeader.slice(7).trim();
+  }
+  return "";
+}
+
+function getAuthenticatedUserFromRequest(request) {
+  const token = getRequestSessionToken(request);
+  if (!token) {
+    return null;
+  }
+  return loadUserByValidSessionToken(token);
+}
+
+const rateLimitState = new Map();
+function applyRateLimit(request, response, bucket, options = {}) {
+  const windowMs = Number(options.windowMs || 60 * 1000);
+  const maxHits = Number(options.maxHits || 30);
+  const key = `${bucket}:${getClientIp(request)}`;
+  const now = nowMs();
+  const current = rateLimitState.get(key);
+  if (!current || now >= current.resetAt) {
+    rateLimitState.set(key, {
+      hits: 1,
+      resetAt: now + windowMs,
+    });
+    return false;
+  }
+  if (current.hits >= maxHits) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((current.resetAt - now) / 1000));
+    response.setHeader("Retry-After", String(retryAfterSeconds));
+    sendJson(response, 429, {
+      error: "Muitas requisicoes em pouco tempo. Aguarde alguns segundos e tente novamente.",
+      retryAfterSeconds,
+    });
+    return true;
+  }
+  current.hits += 1;
+  return false;
+}
+
+function applyRateLimitWithUser(request, response, bucket, userKeyRaw = "", options = {}) {
+  const userKey = normalizeUserKey(userKeyRaw || "", "anonymous");
+  const compositeBucket = `${bucket}:${userKey}`;
+  return applyRateLimit(request, response, compositeBucket, options);
+}
+
+function buildSessionExpiryIso(fromMs = nowMs()) {
+  return isoFromMs(fromMs + SESSION_TTL_MS);
+}
+
+function issueSessionForUserId(userId) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const token = crypto.randomBytes(32).toString("hex");
+  const issuedAt = nowIso();
+  const expiresAt = buildSessionExpiryIso(nowMs());
+  sqliteDb
+    .prepare("UPDATE users SET session_token = ?, session_expires_at = ?, updated_at = ? WHERE id = ?")
+    .run(token, expiresAt, issuedAt, Number(userId));
+  return {
+    sessionToken: token,
+    expiresAt,
+  };
+}
+
+function clearSessionToken(token) {
+  if (!sqliteDb || !token) {
+    return;
+  }
+  sqliteDb
+    .prepare("UPDATE users SET session_token = NULL, session_expires_at = NULL, updated_at = ? WHERE session_token = ?")
+    .run(nowIso(), token);
+}
+
+function loadUserByValidSessionToken(token) {
+  if (!sqliteDb || !token) {
+    return null;
+  }
+  const user = sqliteDb
+    .prepare("SELECT id, username, email, tribe, session_expires_at FROM users WHERE session_token = ?")
+    .get(token);
+  if (!user) {
+    return null;
+  }
+  const expiresAtMs = parseIsoToMs(user.session_expires_at);
+  if (!expiresAtMs || nowMs() >= expiresAtMs) {
+    clearSessionToken(token);
+    return null;
+  }
+  return user;
+}
+
+function requireAuthenticatedUser(request, response) {
+  const user = getAuthenticatedUserFromRequest(request);
+  if (!user) {
+    sendJson(response, 401, { error: "Sessao expirada ou invalida." });
+    return null;
+  }
+  return user;
+}
+
+function requireAdminUser(request, response) {
+  const user = requireAuthenticatedUser(request, response);
+  if (!user) {
+    return null;
+  }
+  if (normalizeUserKey(user.username) !== "admin") {
+    sendJson(response, 403, { error: "Acesso restrito ao administrador." });
+    return null;
+  }
+  return user;
+}
+
+function normalizeUserKey(value, fallback = "local-player") {
+  const clean = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return clean || fallback;
+}
+
+function generateSeatToken() {
+  return crypto.randomBytes(16).toString("hex");
+}
+
+function generateScanEntryId() {
+  return `scan_${crypto.randomBytes(10).toString("hex")}`;
+}
+
+function isValidRulesMode(value) {
+  return value === "casual" || value === "competitive" || value === "1v1";
+}
+
+const RULESET_VALIDATION = {
+  casual: {
+    exactCounts: null,
+  },
+  competitive: {
+    exactCounts: {
+      creatures: 6,
+      battlegear: 6,
+      mugic: 6,
+      locations: 10,
+      attacks: 20,
+    },
+  },
+  "1v1": {
+    exactCounts: {
+      creatures: 1,
+      battlegear: 1,
+      mugic: 1,
+      locations: 1,
+      attacks: 20,
+    },
+  },
+};
+
+const RARITY_COPY_LIMITS = {
+  common: 3,
+  uncommon: 3,
+  rare: 2,
+  "super rare": 2,
+  "ultra rare": 1,
+};
+
+function normalizedCardName(card) {
+  return String(card?.normalizedName || card?.name || "").trim().toLowerCase();
+}
+
+function validateDeckForRulesMode(deckData, rulesMode = "competitive") {
+  const modeKey = isValidRulesMode(rulesMode) ? rulesMode : "competitive";
+  const ruleset = RULESET_VALIDATION[modeKey] || RULESET_VALIDATION.competitive;
+  const battleDeck = toBattleDeckFromStoredDeck(deckData);
+  const counts = {
+    creatures: battleDeck.creatures.length,
+    battlegear: battleDeck.battlegear.length,
+    mugic: battleDeck.mugic.length,
+    locations: battleDeck.locations.length,
+    attacks: battleDeck.attacks.length,
+  };
+  const errors = [];
+
+  if (ruleset.exactCounts) {
+    Object.entries(ruleset.exactCounts).forEach(([type, required]) => {
+      if (Number(counts[type] || 0) !== Number(required)) {
+        errors.push(`${type} deve ter ${required} cartas (atual: ${counts[type] || 0}).`);
+      }
+    });
+  }
+
+  const seenCopies = new Map();
+  Object.entries(battleDeck).forEach(([type, cards]) => {
+    cards.forEach((card) => {
+      const key = `${type}:${normalizedCardName(card)}`;
+      if (!seenCopies.has(key)) {
+        seenCopies.set(key, { card, count: 0 });
+      }
+      seenCopies.get(key).count += 1;
+    });
+  });
+  seenCopies.forEach(({ card, count }) => {
+    const rarityKey = String(card?.rarity || "").trim().toLowerCase();
+    const limit = Number.isFinite(Number(RARITY_COPY_LIMITS[rarityKey])) ? RARITY_COPY_LIMITS[rarityKey] : 2;
+    if (count > limit) {
+      errors.push(`${card?.name || "Carta"}: limite ${limit}, atual ${count}.`);
+    }
+  });
+
+  const totalAttackBP = battleDeck.attacks.reduce((sum, card) => sum + Number(card?.stats?.bp || 0), 0);
+  if (totalAttackBP > 20) {
+    errors.push(`Pontuacao total de Ataques excede 20 BP (atual: ${totalAttackBP}).`);
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    counts,
+    mode: modeKey,
+  };
+}
+
+function getLibraryCardIndexes() {
+  const byId = new Map();
+  const byName = new Map();
+  (library?.cards || []).forEach((card) => {
+    const idKey = String(card?.id || "").trim();
+    if (idKey) {
+      byId.set(idKey, card);
+    }
+    const nameKey = String(card?.name || "").trim().toLowerCase();
+    if (nameKey && !byName.has(nameKey)) {
+      byName.set(nameKey, card);
+    }
+  });
+  return { byId, byName };
+}
+
+function resolveDeckCardReference(entry, indexes) {
+  if (!entry) {
+    return null;
+  }
+  if (typeof entry === "string") {
+    return indexes.byId.get(entry) || indexes.byName.get(entry.trim().toLowerCase()) || null;
+  }
+  if (typeof entry === "object") {
+    const idKey = String(entry.cardId || entry.id || "").trim();
+    if (idKey && indexes.byId.has(idKey)) {
+      return indexes.byId.get(idKey);
+    }
+    const nameKey = String(entry.name || "").trim().toLowerCase();
+    if (nameKey && indexes.byName.has(nameKey)) {
+      return indexes.byName.get(nameKey);
+    }
+  }
+  return null;
+}
+
+function toBattleDeckFromStoredDeck(deckData) {
+  const indexes = getLibraryCardIndexes();
+  const out = {
+    creatures: [],
+    attacks: [],
+    battlegear: [],
+    locations: [],
+    mugic: [],
+  };
+  const cards = deckData?.cards && typeof deckData.cards === "object" ? deckData.cards : {};
+  Object.keys(out).forEach((type) => {
+    const list = Array.isArray(cards[type]) ? cards[type] : [];
+    out[type] = list
+      .map((entry) => {
+        const baseCard = resolveDeckCardReference(entry, indexes);
+        if (!baseCard) {
+          return null;
+        }
+        if (type === "creatures" && entry && typeof entry === "object" && entry.variant) {
+          const variant = normalizeCreatureVariant(entry.variant);
+          if (!variant) {
+            return baseCard;
+          }
+          const stats = baseCard.stats || {};
+          return {
+            ...baseCard,
+            stats: {
+              ...stats,
+              energy: Number(stats.energy || 0) + Number(variant.energyDelta || 0),
+              courage: Number(stats.courage || 0) + Number(variant.courageDelta || 0),
+              power: Number(stats.power || 0) + Number(variant.powerDelta || 0),
+              wisdom: Number(stats.wisdom || 0) + Number(variant.wisdomDelta || 0),
+              speed: Number(stats.speed || 0) + Number(variant.speedDelta || 0),
+            },
+            scanVariant: variant,
+            scanEntryId: String(entry.scanEntryId || ""),
+          };
+        }
+        return baseCard;
+      })
+      .filter(Boolean);
+  });
+  return out;
+}
+
+function listDeckFileNames() {
+  if (isSqlV2Ready()) {
+    const rows = sqliteDb
+      .prepare("SELECT deck_key FROM deck_headers ORDER BY deck_key")
+      .all();
+    return rows.map((row) => `${String(row?.deck_key || "").trim()}.json`).filter(Boolean);
+  }
+  if (sqliteDb) {
+    const rows = sqlList("decks");
+    return rows.map((row) => `${row.entity_key}.json`);
+  }
+  return [];
+}
+
+function readDeckFromSqlV2(deckKey) {
+  if (!isSqlV2Ready()) {
+    return null;
+  }
+  const key = normalizeDeckName(deckKey);
+  if (!key) {
+    return null;
+  }
+  const header = sqliteDb
+    .prepare("SELECT deck_key, owner_key, name, mode, created_at, updated_at FROM deck_headers WHERE deck_key = ?")
+    .get(key);
+  if (!header) {
+    return null;
+  }
+  const cardsRows = sqliteDb
+    .prepare(`
+      SELECT card_type, slot_index, card_id, scan_entry_id, variant_json
+      FROM deck_cards
+      WHERE deck_key = ?
+      ORDER BY card_type, slot_index
+    `)
+    .all(key);
+  const cards = createEmptyCardBuckets();
+  cardsRows.forEach((row) => {
+    const type = String(row?.card_type || "");
+    if (!cards[type]) {
+      return;
+    }
+    const cardId = String(row?.card_id || "").trim();
+    if (!cardId) {
+      return;
+    }
+    if (type === "creatures") {
+      const scanEntryId = String(row?.scan_entry_id || "").trim();
+      const variant = normalizeCreatureVariant(parseJsonText(row?.variant_json, null));
+      if (scanEntryId || variant) {
+        const creatureEntry = { cardId };
+        if (scanEntryId) {
+          creatureEntry.scanEntryId = scanEntryId;
+        }
+        if (variant) {
+          creatureEntry.variant = variant;
+        }
+        cards[type].push(creatureEntry);
+      } else {
+        cards[type].push(cardId);
+      }
+      return;
+    }
+    cards[type].push(cardId);
+  });
+  return {
+    name: String(header?.name || key),
+    owner: String(header?.owner_key || ""),
+    createdAt: String(header?.created_at || nowIso()),
+    updatedAt: String(header?.updated_at || nowIso()),
+    mode: String(header?.mode || "competitive"),
+    cards,
+  };
+}
+
+function readDeckFileByName(fileName) {
+  const name = fileName.replace(/\.json$/i, "");
+  const normalized = normalizeDeckName(name);
+  if (!normalized) {
+    return null;
+  }
+  if (isSqlV2Ready()) {
+    return readDeckFromSqlV2(normalized);
+  }
+  const fromDb = sqlGet("decks", normalized);
+  if (fromDb && typeof fromDb === "object") {
+    return fromDb;
+  }
+  return null;
+}
+
+function migrateDeckFilesToSqlIfNeeded() {
+  if (!sqliteDb) {
+    return;
+  }
+  const existing = sqlList("decks");
+  if (existing.length) {
+    return;
+  }
+  // DEPRECATED: No longer reading from file system.
+}
+
+function writeDeckStored(normalizedDeckName, deckData) {
+  if (normalizedDeckName) {
+    if (isSqlV2Ready()) {
+      const key = normalizeDeckName(normalizedDeckName);
+      if (!key) {
+        return;
+      }
+      const owner = deckOwnerKey(deckData);
+      const createdAt = String(deckData?.createdAt || nowIso());
+      const updatedAt = String(deckData?.updatedAt || nowIso());
+      const mode = String(deckData?.mode || "competitive");
+      const name = String(deckData?.name || key);
+      const cards = deckData?.cards && typeof deckData.cards === "object" ? deckData.cards : {};
+      sqliteDb.exec("BEGIN IMMEDIATE");
+      try {
+        sqliteDb.prepare(`
+          INSERT INTO deck_headers (deck_key, owner_key, is_ownerless_legacy, name, mode, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(deck_key) DO UPDATE SET
+            owner_key = excluded.owner_key,
+            is_ownerless_legacy = excluded.is_ownerless_legacy,
+            name = excluded.name,
+            mode = excluded.mode,
+            created_at = excluded.created_at,
+            updated_at = excluded.updated_at
+        `).run(key, owner, owner ? 0 : 1, name, mode, createdAt, updatedAt);
+        sqliteDb.prepare("DELETE FROM deck_cards WHERE deck_key = ?").run(key);
+        const insertCard = sqliteDb.prepare(`
+          INSERT INTO deck_cards (deck_key, card_type, slot_index, owner_key_shadow, card_id, scan_entry_id, variant_json)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `);
+        DECK_CARD_TYPES.forEach((type) => {
+          const list = Array.isArray(cards[type]) ? cards[type] : [];
+          list.forEach((entry, slotIndex) => {
+            const cardId = deckCardIdFromEntry(type, entry);
+            if (!cardId) {
+              return;
+            }
+            let scanEntryId = null;
+            let variantJson = null;
+            if (type === "creatures" && entry && typeof entry === "object") {
+              const scanId = deckCreatureScanEntryId(entry);
+              if (scanId) {
+                scanEntryId = scanId;
+              }
+              const normalizedVariant = normalizeCreatureVariant(entry.variant);
+              if (normalizedVariant) {
+                variantJson = JSON.stringify(normalizedVariant);
+              }
+            }
+            insertCard.run(
+              key,
+              type,
+              Number(slotIndex),
+              owner,
+              cardId,
+              scanEntryId,
+              variantJson
+            );
+          });
+        });
+        sqliteDb.exec("COMMIT");
+        return;
+      } catch (error) {
+        try {
+          sqliteDb.exec("ROLLBACK");
+        } catch {}
+        console.error(`[DB] Falha ao salvar deck SQL v2 (${key}): ${error?.message || error}`);
+        throw error;
+      }
+      return;
+    }
+    sqlSet("decks", normalizedDeckName, deckData);
+  }
+}
+
+function deleteDeckStored(normalizedDeckName) {
+  if (normalizedDeckName) {
+    if (isSqlV2Ready()) {
+      const key = normalizeDeckName(normalizedDeckName);
+      if (key) {
+        sqliteDb.exec("BEGIN IMMEDIATE");
+        try {
+          sqliteDb.prepare("DELETE FROM deck_cards WHERE deck_key = ?").run(key);
+          sqliteDb.prepare("DELETE FROM deck_headers WHERE deck_key = ?").run(key);
+          sqliteDb.exec("COMMIT");
+          return;
+        } catch (error) {
+          try {
+            sqliteDb.exec("ROLLBACK");
+          } catch {}
+          console.error(`[DB] Falha ao remover deck SQL v2 (${key}): ${error?.message || error}`);
+          throw error;
+        }
+      }
+      return;
+    }
+    sqlDelete("decks", normalizedDeckName);
+  }
+}
+
+function deckOwnerKey(deckData) {
+  const rawOwner = String(deckData?.owner || deckData?.username || "").trim();
+  if (!rawOwner) {
+    return "";
+  }
+  return normalizeUserKey(rawOwner);
+}
+
+function claimOwnerlessDeckForUser(deckKeyRaw, requesterKeyRaw = "") {
+  if (!isSqlV2Ready()) {
+    return false;
+  }
+  const deckKey = normalizeDeckName(deckKeyRaw);
+  const requesterKey = normalizeUserKey(requesterKeyRaw, "");
+  if (!deckKey || !requesterKey) {
+    return false;
+  }
+  const header = sqliteDb
+    .prepare("SELECT owner_key, is_ownerless_legacy FROM deck_headers WHERE deck_key = ?")
+    .get(deckKey);
+  if (!header) {
+    return false;
+  }
+  const ownerKey = String(header?.owner_key || "");
+  const isLegacyOwnerless = Number(header?.is_ownerless_legacy || 0) === 1;
+  if (ownerKey || !isLegacyOwnerless) {
+    return false;
+  }
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    const updatedAt = nowIso();
+    sqliteDb
+      .prepare("UPDATE deck_headers SET owner_key = ?, is_ownerless_legacy = 0, updated_at = ? WHERE deck_key = ?")
+      .run(requesterKey, updatedAt, deckKey);
+    sqliteDb
+      .prepare("UPDATE deck_cards SET owner_key_shadow = ? WHERE deck_key = ?")
+      .run(requesterKey, deckKey);
+    sqliteDb.exec("COMMIT");
+    console.log(`[DECK] Deck legado ownerless ${deckKey} atribuido para ${requesterKey}.`);
+    return true;
+  } catch (error) {
+    try {
+      sqliteDb.exec("ROLLBACK");
+    } catch {}
+    console.error(`[DECK] Falha ao atribuir owner no deck ${deckKey}: ${error?.message || error}`);
+    return false;
+  }
+}
+
+function buildScansSeedFromDecks(ownerKey = "") {
+  const targetOwner = ownerKey ? normalizeUserKey(ownerKey) : "";
+  const buckets = createEmptyCardBuckets();
+  const fileNames = listDeckFileNames();
+  fileNames.forEach((fileName) => {
+    const deck = readDeckFileByName(fileName);
+    if (!deck || typeof deck !== "object") {
+      return;
+    }
+    const owner = deckOwnerKey(deck);
+    if (targetOwner && owner !== targetOwner) {
+      return;
+    }
+    const battleDeck = toBattleDeckFromStoredDeck(deck);
+    DECK_CARD_TYPES.forEach((type) => {
+      (battleDeck[type] || []).forEach((card) => {
+        if (card?.id) {
+          buckets[type].push(card.id);
+        }
+      });
+    });
+  });
+  return buckets;
+}
+
+function scanEntryToCardId(type, entry) {
+  if (typeof entry === "string") {
+    return String(entry || "").trim();
+  }
+  if (entry && typeof entry === "object") {
+    if (typeof entry.cardId === "string" && entry.cardId.trim()) {
+      return entry.cardId.trim();
+    }
+    if (type === "creatures" && typeof entry.id === "string" && entry.id.trim()) {
+      return entry.id.trim();
+    }
+  }
+  return "";
+}
+
+function deckCardIdFromEntry(type, entry) {
+  if (type === "creatures") {
+    return scanEntryToCardId(type, entry);
+  }
+  if (typeof entry === "string") {
+    return String(entry || "").trim();
+  }
+  if (entry && typeof entry === "object") {
+    if (typeof entry.cardId === "string" && entry.cardId.trim()) {
+      return entry.cardId.trim();
+    }
+    if (typeof entry.id === "string" && entry.id.trim()) {
+      return entry.id.trim();
+    }
+  }
+  return "";
+}
+
+function deckCreatureScanEntryId(entry) {
+  if (!entry || typeof entry !== "object") {
+    return "";
+  }
+  return String(entry.scanEntryId || "").trim();
+}
+
+function normalizeCreatureVariant(rawVariant) {
+  if (!rawVariant || typeof rawVariant !== "object") {
+    return null;
+  }
+  const variant = {
+    energyDelta: Number(rawVariant.energyDelta || 0),
+    courageDelta: Number(rawVariant.courageDelta || 0),
+    powerDelta: Number(rawVariant.powerDelta || 0),
+    wisdomDelta: Number(rawVariant.wisdomDelta || 0),
+    speedDelta: Number(rawVariant.speedDelta || 0),
+    perfect: Boolean(rawVariant.perfect),
+  };
+  const keys = ["energyDelta", "courageDelta", "powerDelta", "wisdomDelta", "speedDelta"];
+  keys.forEach((key) => {
+    if (!Number.isFinite(variant[key])) {
+      variant[key] = 0;
+    }
+    variant[key] = Math.round(variant[key] / 5) * 5;
+  });
+  variant.energyDelta = Math.max(-5, Math.min(5, variant.energyDelta));
+  variant.courageDelta = Math.max(-5, Math.min(5, variant.courageDelta));
+  variant.powerDelta = Math.max(-5, Math.min(5, variant.powerDelta));
+  variant.wisdomDelta = Math.max(-5, Math.min(5, variant.wisdomDelta));
+  variant.speedDelta = Math.max(-5, Math.min(5, variant.speedDelta));
+  variant.perfect = variant.perfect || (
+    variant.energyDelta === 5
+    && variant.courageDelta === 5
+    && variant.powerDelta === 5
+    && variant.wisdomDelta === 5
+    && variant.speedDelta === 5
+  );
+  return variant;
+}
+
+function normalizeScansEntryByType(type, entry) {
+  const cardId = scanEntryToCardId(type, entry);
+  if (!cardId) {
+    return null;
+  }
+  if (type !== "creatures") {
+    return cardId;
+  }
+  const scanEntryId = typeof entry?.scanEntryId === "string" && entry.scanEntryId.trim()
+    ? entry.scanEntryId.trim()
+    : generateScanEntryId();
+  const variant = normalizeCreatureVariant(entry?.variant);
+  const out = {
+    cardId,
+    scanEntryId,
+  };
+  if (variant) {
+    out.variant = variant;
+  }
+  if (entry.obtainedAt) {
+    out.obtainedAt = String(entry.obtainedAt);
+  }
+  if (entry.source) {
+    out.source = String(entry.source);
+  }
+  return out;
+}
+
+function countCardEntriesByType(entries, type) {
+  const counts = new Map();
+  (Array.isArray(entries) ? entries : []).forEach((entry) => {
+    const cardId = scanEntryToCardId(type, entry);
+    if (!cardId) {
+      return;
+    }
+    counts.set(cardId, (counts.get(cardId) || 0) + 1);
+  });
+  return counts;
+}
+
+function countDeckEntriesByType(entries, type) {
+  const counts = new Map();
+  (Array.isArray(entries) ? entries : []).forEach((entry) => {
+    const cardId = deckCardIdFromEntry(type, entry);
+    if (!cardId) {
+      return;
+    }
+    counts.set(cardId, (counts.get(cardId) || 0) + 1);
+  });
+  return counts;
+}
+
+function trimCardsToInventoryCap(cards, cap = INVENTORY_MAX_COPIES) {
+  const out = createEmptyCardBuckets();
+  DECK_CARD_TYPES.forEach((type) => {
+    const counts = new Map();
+    const inputList = Array.isArray(cards?.[type]) ? cards[type] : [];
+    inputList.forEach((entry) => {
+      const cardId = scanEntryToCardId(type, entry);
+      if (!cardId) {
+        return;
+      }
+      const nextCount = (counts.get(cardId) || 0) + 1;
+      if (nextCount > cap) {
+        return;
+      }
+      counts.set(cardId, nextCount);
+      out[type].push(entry);
+    });
+  });
+  return out;
+}
+
+function normalizeScansPayload(payload) {
+  const cards = createEmptyCardBuckets();
+  const source = payload?.cards && typeof payload.cards === "object" ? payload.cards : payload;
+  DECK_CARD_TYPES.forEach((type) => {
+    const input = Array.isArray(source?.[type]) ? source[type] : [];
+    cards[type] = input
+      .map((entry) => normalizeScansEntryByType(type, entry))
+      .filter(Boolean);
+  });
+  return trimCardsToInventoryCap(cards, INVENTORY_MAX_COPIES);
+}
+
+function buildCardsFromCountMap(countMap, templateEntriesByCardId = new Map()) {
+  const cards = createEmptyCardBuckets();
+  DECK_CARD_TYPES.forEach((type) => {
+    const templates = templateEntriesByCardId.get(type) || new Map();
+    countMap[type].forEach((amount, cardId) => {
+      for (let idx = 0; idx < amount; idx += 1) {
+        const templateList = templates.get(cardId) || [];
+        if (templateList[idx]) {
+          cards[type].push(templateList[idx]);
+        } else {
+          cards[type].push(cardId);
+        }
+      }
+    });
+  });
+  return cards;
+}
+
+function buildScansCountMap(cards) {
+  const out = {
+    creatures: new Map(),
+    attacks: new Map(),
+    battlegear: new Map(),
+    locations: new Map(),
+    mugic: new Map(),
+  };
+  DECK_CARD_TYPES.forEach((type) => {
+    const counts = countCardEntriesByType(cards?.[type], type);
+    counts.forEach((value, cardId) => {
+      out[type].set(cardId, value);
+    });
+  });
+  return out;
+}
+
+function removeAllocatedDeckCardsFromScans(cards, ownerKey) {
+  const baseCounts = buildScansCountMap(cards);
+  const templateEntriesByType = new Map();
+  DECK_CARD_TYPES.forEach((type) => {
+    const map = new Map();
+    (Array.isArray(cards?.[type]) ? cards[type] : []).forEach((entry) => {
+      const cardId = scanEntryToCardId(type, entry);
+      if (!cardId) {
+        return;
+      }
+      if (!map.has(cardId)) {
+        map.set(cardId, []);
+      }
+      map.get(cardId).push(entry);
+    });
+    templateEntriesByType.set(type, map);
+  });
+  const allocated = buildDeckAllocationByKey("", ownerKey);
+  allocated.forEach((amount, key) => {
+    const separator = key.indexOf(":");
+    if (separator <= 0) {
+      return;
+    }
+    const type = key.slice(0, separator);
+    const cardId = key.slice(separator + 1);
+    if (!baseCounts[type]) {
+      return;
+    }
+    const current = baseCounts[type].get(cardId) || 0;
+    baseCounts[type].set(cardId, Math.max(0, current - amount));
+  });
+  return buildCardsFromCountMap(baseCounts, templateEntriesByType);
+}
+
+function normalizeScansFilePayload(payload) {
+  const createdAt = payload?.createdAt || nowIso();
+  const updatedAt = payload?.updatedAt || nowIso();
+  const source = payload?.source || "manual";
+  const schemaVersion = Number(payload?.schemaVersion || 1);
+  const players = {};
+
+  if (payload?.players && typeof payload.players === "object") {
+    Object.entries(payload.players).forEach(([username, value]) => {
+      const key = normalizeUserKey(username);
+      const cards = normalizeScansPayload(value);
+      players[key] = { cards };
+    });
+  } else if (payload?.cards || payload?.creatures || payload?.attacks || payload?.battlegear || payload?.locations || payload?.mugic) {
+    const cards = normalizeScansPayload(payload);
+    players["local-player"] = { cards };
+  }
+
+  if (!Object.keys(players).length) {
+    players["local-player"] = {
+      cards: trimCardsToInventoryCap(buildScansSeedFromDecks("local-player"), INVENTORY_MAX_COPIES),
+    };
+  }
+
+  return {
+    schemaVersion,
+    createdAt,
+    updatedAt,
+    source,
+    players,
+  };
+}
+
+function loadScansData() {
+  if (isSqlV2Ready()) {
+    const players = {};
+    const rows = sqliteDb
+      .prepare(`
+        SELECT owner_key, card_type, card_id, scan_entry_id, variant_json, obtained_at, source
+        FROM scan_entries
+        ORDER BY owner_key ASC, card_type ASC, rowid ASC
+      `)
+      .all();
+    rows.forEach((row) => {
+      const ownerKey = normalizeUserKey(row?.owner_key);
+      if (!players[ownerKey]) {
+        players[ownerKey] = { cards: createEmptyCardBuckets() };
+      }
+      const type = String(row?.card_type || "");
+      if (!DECK_CARD_TYPES.includes(type)) {
+        return;
+      }
+      const cardId = String(row?.card_id || "").trim();
+      if (!cardId) {
+        return;
+      }
+      if (type === "creatures") {
+        const variant = normalizeCreatureVariant(parseJsonText(row?.variant_json, null));
+        const creatureEntry = {
+          cardId,
+          scanEntryId: String(row?.scan_entry_id || generateScanEntryId()),
+        };
+        if (variant) {
+          creatureEntry.variant = variant;
+        }
+        if (row?.obtained_at) {
+          creatureEntry.obtainedAt = String(row.obtained_at);
+        }
+        if (row?.source) {
+          creatureEntry.source = String(row.source);
+        }
+        players[ownerKey].cards[type].push(creatureEntry);
+      } else {
+        players[ownerKey].cards[type].push(cardId);
+      }
+    });
+    if (!Object.keys(players).length) {
+      players["local-player"] = {
+        cards: trimCardsToInventoryCap(buildScansSeedFromDecks("local-player"), INVENTORY_MAX_COPIES),
+      };
+    }
+    Object.keys(players).forEach((ownerKey) => {
+      players[ownerKey].cards = trimCardsToInventoryCap(players[ownerKey].cards, INVENTORY_MAX_COPIES);
+    });
+    return {
+      schemaVersion: 2,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      source: "sql_v2_scan_entries",
+      players,
+    };
+  }
+  const fromSql = sqlGet("scans", "state");
+  if (fromSql && typeof fromSql === "object") {
+    return normalizeScansFilePayload(fromSql);
+  }
+  // Fallback recovery if needed
+  try {
+    const parsed = JSON.parse(fs.readFileSync(SCANS_FILE, "utf8"));
+    let body = normalizeScansFilePayload(parsed);
+    sqlSet("scans", "state", body);
+    return body;
+  } catch {
+    const cards = trimCardsToInventoryCap(buildScansSeedFromDecks("local-player"), INVENTORY_MAX_COPIES);
+    const body = {
+      schemaVersion: 2,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      source: "decks_seed",
+      players: {
+        "local-player": { cards },
+      },
+    };
+    sqlSet("scans", "state", body);
+    return body;
+  }
+}
+
+function writeScansData(payload, source = "manual") {
+  const normalized = normalizeScansFilePayload(payload);
+  const body = {
+    schemaVersion: 2,
+    createdAt: normalized.createdAt || nowIso(),
+    updatedAt: nowIso(),
+    source,
+    players: normalized.players,
+  };
+  if (isSqlV2Ready()) {
+    sqliteDb.exec("BEGIN IMMEDIATE");
+    try {
+      sqliteDb.prepare("DELETE FROM scan_entries").run();
+      const insertScanEntry = sqliteDb.prepare(`
+        INSERT INTO scan_entries (scan_entry_id, owner_key, card_type, card_id, variant_json, obtained_at, source, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      Object.entries(body.players || {}).forEach(([ownerRaw, value]) => {
+        const ownerKey = normalizeUserKey(ownerRaw);
+        DECK_CARD_TYPES.forEach((type) => {
+          const list = Array.isArray(value?.cards?.[type]) ? value.cards[type] : [];
+          list.forEach((entry, index) => {
+            const cardId = scanEntryToCardId(type, entry);
+            if (!cardId) {
+              return;
+            }
+            let scanEntryId = "";
+            let variantJson = null;
+            let obtainedAt = null;
+            let sourceValue = null;
+            if (type === "creatures") {
+              const normalizedEntry = normalizeScansEntryByType(type, entry);
+              scanEntryId = String(normalizedEntry?.scanEntryId || generateScanEntryId());
+              const variant = normalizeCreatureVariant(normalizedEntry?.variant);
+              variantJson = variant ? JSON.stringify(variant) : null;
+              obtainedAt = normalizedEntry?.obtainedAt ? String(normalizedEntry.obtainedAt) : null;
+              sourceValue = normalizedEntry?.source ? String(normalizedEntry.source) : null;
+            } else {
+              scanEntryId = `scan_${ownerKey}_${type}_${index}_${crypto.randomBytes(6).toString("hex")}`;
+            }
+            insertScanEntry.run(
+              scanEntryId,
+              ownerKey,
+              type,
+              cardId,
+              variantJson,
+              obtainedAt,
+              sourceValue,
+              nowIso()
+            );
+          });
+        });
+      });
+      sqliteDb.exec("COMMIT");
+      invalidateUserCaches("", { all: true });
+      return body;
+    } catch (error) {
+      try {
+        sqliteDb.exec("ROLLBACK");
+      } catch {}
+      console.error(`[DB] Falha ao persistir scans SQL v2: ${error?.message || error}`);
+      throw error;
+    }
+  }
+  sqlSet("scans", "state", body);
+  invalidateUserCaches("", { all: true });
+  return body;
+}
+
+function getScansCardsForUser(scansData, username, seedIfMissing = true) {
+  const key = normalizeUserKey(username);
+  let changed = false;
+  if (!scansData.players[key] && seedIfMissing) {
+    scansData.players[key] = {
+      cards: trimCardsToInventoryCap(buildScansSeedFromDecks(key), INVENTORY_MAX_COPIES),
+    };
+    changed = true;
+  }
+  if (!scansData.players[key]) {
+    const cards = createEmptyCardBuckets();
+    scansData.players[key] = { cards };
+    return { key, cards, changed: true };
+  }
+  const rawCards = scansData.players[key]?.cards;
+  const hasAllBuckets = DECK_CARD_TYPES.every((type) => Array.isArray(rawCards?.[type]));
+  if (!hasAllBuckets) {
+    scansData.players[key].cards = trimCardsToInventoryCap(normalizeScansPayload(scansData.players[key] || {}), INVENTORY_MAX_COPIES);
+    changed = true;
+  }
+  return { key, cards: scansData.players[key].cards, changed };
+}
+
+function listAvailableCreatureCopiesForCard(scansData, username, cardId, editingDeck = "") {
+  const normalizedCardId = String(cardId || "").trim();
+  if (!normalizedCardId) {
+    return [];
+  }
+  const ownerKey = normalizeUserKey(username || "local-player");
+  const scansCards = getScansCardsForUser(scansData, ownerKey, true).cards;
+  const availableData = buildAvailableScansForDeck(editingDeck, ownerKey);
+  const availableEntries = Array.isArray(availableData?.available?.creatures) ? availableData.available.creatures : [];
+  const allUserEntries = Array.isArray(scansCards?.creatures) ? scansCards.creatures : [];
+
+  const takenEntryIds = new Set();
+  availableEntries.forEach((entry) => {
+    if (typeof entry === "object" && entry?.scanEntryId) {
+      takenEntryIds.add(String(entry.scanEntryId));
+    }
+  });
+
+  const result = [];
+  allUserEntries.forEach((entry, index) => {
+    const resolvedCardId = scanEntryToCardId("creatures", entry);
+    if (resolvedCardId !== normalizedCardId) {
+      return;
+    }
+    const scanEntryId = typeof entry === "object" && entry?.scanEntryId
+      ? String(entry.scanEntryId)
+      : `legacy_${normalizedCardId}_${index}`;
+    if (!takenEntryIds.has(scanEntryId)) {
+      return;
+    }
+    result.push({
+      scanEntryId,
+      cardId: normalizedCardId,
+      variant: normalizeCreatureVariant(entry?.variant),
+      obtainedAt: entry?.obtainedAt || null,
+      source: entry?.source || null,
+    });
+  });
+  return result;
+}
+
+function buildDeckAllocationByKey(excludedDeckNormalized = "", username = "local-player") {
+  const ownerKey = normalizeUserKey(username);
+  const allocated = new Map();
+  const creatureScanEntryIds = new Set();
+  const fileNames = listDeckFileNames();
+  fileNames.forEach((fileName) => {
+    const normalized = String(fileName).replace(/\.json$/i, "").toLowerCase();
+    if (excludedDeckNormalized && normalized === excludedDeckNormalized) {
+      return;
+    }
+    const deck = readDeckFileByName(fileName);
+    if (!deck || typeof deck !== "object") {
+      return;
+    }
+    const owner = deckOwnerKey(deck);
+    if (owner && owner !== ownerKey) {
+      return;
+    }
+    DECK_CARD_TYPES.forEach((type) => {
+      const list = Array.isArray(deck?.cards?.[type]) ? deck.cards[type] : [];
+      list.forEach((entry) => {
+        const cardId = deckCardIdFromEntry(type, entry);
+        if (!cardId) {
+          return;
+        }
+        if (type === "creatures") {
+          const scanEntryId = deckCreatureScanEntryId(entry);
+          if (scanEntryId) {
+            creatureScanEntryIds.add(scanEntryId);
+          }
+        }
+        const key = `${type}:${cardId}`;
+        allocated.set(key, (allocated.get(key) || 0) + 1);
+      });
+    });
+  });
+  return {
+    allocated,
+    creatureScanEntryIds,
+  };
+}
+
+function countDeckCardsByKey(deckData) {
+  const counts = new Map();
+  DECK_CARD_TYPES.forEach((type) => {
+    const list = Array.isArray(deckData?.cards?.[type]) ? deckData.cards[type] : [];
+    countDeckEntriesByType(list, type).forEach((value, cardId) => {
+      const key = `${type}:${cardId}`;
+      counts.set(key, (counts.get(key) || 0) + value);
+    });
+  });
+  return counts;
+}
+
+function buildAvailableScansForDeck(editingDeckName = "", username = "local-player") {
+  const scans = loadScansData();
+  const { key: ownerKey, cards: userCards } = getScansCardsForUser(scans, username, true);
+
+  // Clone the user's full inventory
+  const available = createEmptyCardBuckets();
+  DECK_CARD_TYPES.forEach((type) => {
+    available[type] = (userCards[type] || []).map((entry) =>
+      typeof entry === "object" ? JSON.parse(JSON.stringify(entry)) : entry
+    );
+  });
+
+  // Subtract cards already allocated to OTHER decks (but not the one being edited)
+  const allocationData = buildDeckAllocationByKey(editingDeckName, ownerKey);
+  const allocated = allocationData.allocated;
+  const allocatedCreatureScanEntryIds = allocationData.creatureScanEntryIds;
+  const allocatedClone = new Map(allocated);
+  DECK_CARD_TYPES.forEach((type) => {
+    const filtered = [];
+    for (const entry of available[type]) {
+      if (type === "creatures") {
+        const scanEntryId = deckCreatureScanEntryId(entry);
+        if (scanEntryId && allocatedCreatureScanEntryIds.has(scanEntryId)) {
+          continue;
+        }
+      }
+      const cardId = scanEntryToCardId(type, entry);
+      const key = `${type}:${cardId}`;
+      const remaining = allocatedClone.get(key) || 0;
+      if (remaining > 0) {
+        allocatedClone.set(key, remaining - 1);
+      } else {
+        filtered.push(entry);
+      }
+    }
+    available[type] = filtered;
+  });
+
+  // Build a flat availableCounts map keyed as "type:cardId"
+  const availableCounts = new Map();
+  DECK_CARD_TYPES.forEach((type) => {
+    countCardEntriesByType(available[type], type).forEach((count, cardId) => {
+      availableCounts.set(`${type}:${cardId}`, count);
+    });
+  });
+
+  return { scans, available, ownerKey, userCards, availableCounts };
+}
+
+function validateDeckAgainstScans(deckData, editingDeckName = "", username = "local-player") {
+  const { availableCounts } = buildAvailableScansForDeck(editingDeckName, username);
+  const editingNormalized = normalizeDeckName(editingDeckName || "");
+  const previousDeck = editingNormalized ? readDeckFileByName(`${editingNormalized}.json`) : null;
+  const { consume } = buildDeckDiffCounts(previousDeck || { cards: {} }, deckData);
+  const errors = [];
+  consume.forEach((candidateAmount, key) => {
+    const availableAmount = availableCounts.get(key) || 0;
+    if (candidateAmount > availableAmount) {
+      const separator = key.indexOf(":");
+      const type = separator > 0 ? key.slice(0, separator) : "card";
+      const cardId = separator > 0 ? key.slice(separator + 1) : key;
+      const card = library?.cards?.find((entry) => entry.id === cardId);
+      const label = card?.name || cardId;
+      errors.push(`${label} (${type}) excede inventario de scans.`);
+    }
+  });
+  return {
+    ok: errors.length === 0,
+    errors,
+  };
+}
+
+function buildDeckDiffCounts(previousDeck, nextDeck) {
+  const consume = new Map();
+  const release = new Map();
+  const consumeEntries = [];
+  const releaseEntries = [];
+
+  DECK_CARD_TYPES.forEach((type) => {
+    const prevList = Array.isArray(previousDeck?.cards?.[type]) ? previousDeck.cards[type] : [];
+    const nextList = Array.isArray(nextDeck?.cards?.[type]) ? nextDeck.cards[type] : [];
+
+    // Match by scanEntryId first for creatures.
+    if (type === "creatures") {
+      const prevByScan = new Map();
+      const nextByScan = new Map();
+      prevList.forEach((entry) => {
+        const scanEntryId = deckCreatureScanEntryId(entry);
+        if (scanEntryId) {
+          prevByScan.set(scanEntryId, entry);
+        }
+      });
+      nextList.forEach((entry) => {
+        const scanEntryId = deckCreatureScanEntryId(entry);
+        if (scanEntryId) {
+          nextByScan.set(scanEntryId, entry);
+        }
+      });
+      prevByScan.forEach((entry, scanEntryId) => {
+        if (!nextByScan.has(scanEntryId)) {
+          const cardId = deckCardIdFromEntry(type, entry);
+          if (cardId) {
+            const key = `${type}:${cardId}`;
+            release.set(key, (release.get(key) || 0) + 1);
+            releaseEntries.push({ type, cardId, entry });
+          }
+        }
+      });
+      nextByScan.forEach((entry, scanEntryId) => {
+        if (!prevByScan.has(scanEntryId)) {
+          const cardId = deckCardIdFromEntry(type, entry);
+          if (cardId) {
+            const key = `${type}:${cardId}`;
+            consume.set(key, (consume.get(key) || 0) + 1);
+            consumeEntries.push({ type, cardId, entry });
+          }
+        }
+      });
+    }
+
+    // Handle non-scan creature entries and all other types by card id counts.
+    const prevCountsByCard = new Map();
+    const nextCountsByCard = new Map();
+    prevList.forEach((entry) => {
+      const cardId = deckCardIdFromEntry(type, entry);
+      if (!cardId) {
+        return;
+      }
+      if (type === "creatures" && deckCreatureScanEntryId(entry)) {
+        return;
+      }
+      prevCountsByCard.set(cardId, (prevCountsByCard.get(cardId) || 0) + 1);
+    });
+    nextList.forEach((entry) => {
+      const cardId = deckCardIdFromEntry(type, entry);
+      if (!cardId) {
+        return;
+      }
+      if (type === "creatures" && deckCreatureScanEntryId(entry)) {
+        return;
+      }
+      nextCountsByCard.set(cardId, (nextCountsByCard.get(cardId) || 0) + 1);
+    });
+    const allCardIds = new Set([...prevCountsByCard.keys(), ...nextCountsByCard.keys()]);
+    allCardIds.forEach((cardId) => {
+      const prevAmount = prevCountsByCard.get(cardId) || 0;
+      const nextAmount = nextCountsByCard.get(cardId) || 0;
+      const delta = nextAmount - prevAmount;
+      if (!delta) {
+        return;
+      }
+      const key = `${type}:${cardId}`;
+      if (delta > 0) {
+        consume.set(key, (consume.get(key) || 0) + delta);
+        let remaining = delta;
+        nextList.forEach((entry) => {
+          if (remaining <= 0) {
+            return;
+          }
+          if (deckCardIdFromEntry(type, entry) !== cardId) {
+            return;
+          }
+          if (type === "creatures" && deckCreatureScanEntryId(entry)) {
+            return;
+          }
+          consumeEntries.push({ type, cardId, entry });
+          remaining -= 1;
+        });
+      } else {
+        const releaseAmount = Math.abs(delta);
+        release.set(key, (release.get(key) || 0) + releaseAmount);
+        let remaining = releaseAmount;
+        prevList.forEach((entry) => {
+          if (remaining <= 0) {
+            return;
+          }
+          if (deckCardIdFromEntry(type, entry) !== cardId) {
+            return;
+          }
+          if (type === "creatures" && deckCreatureScanEntryId(entry)) {
+            return;
+          }
+          releaseEntries.push({ type, cardId, entry });
+          remaining -= 1;
+        });
+      }
+    });
+  });
+
+  return { consume, release, consumeEntries, releaseEntries };
+}
+
+function buildInventoryCountMap(cards) {
+  const countMap = new Map();
+  DECK_CARD_TYPES.forEach((type) => {
+    (cards[type] || []).forEach((entry) => {
+      const cardId = scanEntryToCardId(type, entry);
+      if (!cardId) {
+        return;
+      }
+      const key = `${type}:${cardId}`;
+      countMap.set(key, (countMap.get(key) || 0) + 1);
+    });
+  });
+  return countMap;
+}
+
+function canReleaseCardsToInventory(cards, releaseCounts, cap = INVENTORY_MAX_COPIES) {
+  const current = buildInventoryCountMap(cards);
+  const errors = [];
+  releaseCounts.forEach((amount, key) => {
+    const currentAmount = current.get(key) || 0;
+    if (currentAmount + amount > cap) {
+      const separator = key.indexOf(":");
+      const type = separator > 0 ? key.slice(0, separator) : "card";
+      const cardId = separator > 0 ? key.slice(separator + 1) : key;
+      const card = library?.cards?.find((entry) => entry.id === cardId);
+      const label = card?.name || cardId;
+      errors.push(`${label} (${type}) sem espaco no inventario (max ${cap}).`);
+    }
+  });
+  return {
+    ok: errors.length === 0,
+    errors,
+  };
+}
+
+function applyDeckInventoryTransfer(cards, previousDeck, nextDeck) {
+  const nextCards = cloneCardBuckets(cards);
+  const { release, consumeEntries, releaseEntries } = buildDeckDiffCounts(previousDeck, nextDeck);
+
+  const releaseValidation = canReleaseCardsToInventory(nextCards, release, INVENTORY_MAX_COPIES);
+  if (!releaseValidation.ok) {
+    return releaseValidation;
+  }
+
+  consumeEntries.forEach((payload) => {
+    const type = payload.type;
+    const cardId = payload.cardId;
+    const entry = payload.entry;
+    if (!nextCards[type]) {
+      return;
+    }
+    if (type === "creatures") {
+      const scanEntryId = deckCreatureScanEntryId(entry);
+      if (scanEntryId) {
+        const targetIndex = nextCards[type].findIndex((candidate) => deckCreatureScanEntryId(candidate) === scanEntryId);
+        if (targetIndex >= 0) {
+          nextCards[type].splice(targetIndex, 1);
+          return;
+        }
+      }
+    }
+    const targetIndex = nextCards[type].findIndex((candidate) => scanEntryToCardId(type, candidate) === cardId);
+    if (targetIndex >= 0) {
+      nextCards[type].splice(targetIndex, 1);
+    }
+  });
+
+  releaseEntries.forEach((payload) => {
+    const type = payload.type;
+    const cardId = payload.cardId;
+    const entry = payload.entry;
+    if (!nextCards[type]) {
+      return;
+    }
+    if (type === "creatures") {
+      const normalized = normalizeScansEntryByType(type, entry);
+      if (normalized) {
+        nextCards[type].push(normalized);
+      } else {
+        nextCards[type].push(cardId);
+      }
+      return;
+    }
+    const normalized = normalizeScansEntryByType(type, entry);
+    nextCards[type].push(normalized || cardId);
+  });
+
+  return {
+    ok: true,
+    cards: trimCardsToInventoryCap(nextCards, INVENTORY_MAX_COPIES),
+  };
+}
+
+const PERIM_ACTIONS = [
+  {
+    id: "explore",
+    name: "Explorar a Area",
+    description: "Busca geral por itens comuns, criaturas e maior chance de locais proximos.",
+    durationMs: 4 * 60 * 1000,
+  },
+  {
+    id: "track",
+    name: "Rastrear Criaturas",
+    description: "Foco em escanear criaturas; se falhar, revela uma pista da area.",
+    durationMs: 5 * 60 * 1000,
+  },
+  {
+    id: "anomaly",
+    name: "Investigar Anomalias",
+    description: "Investiga criatura da area com 1 a 5 pistas e menor chance de carta.",
+    durationMs: 7 * 60 * 1000,
+  },
+  {
+    id: "camp",
+    name: "Acampar / Esperar",
+    description: "Aguarda criaturas raras. Processo mais lento.",
+    durationMs: 9 * 60 * 1000,
+  },
+  {
+    id: "relic",
+    name: "Procurar Recursos / Reliquias",
+    description: "Busca focada em ataques, equipamentos e mugics.",
+    durationMs: 6 * 60 * 1000,
+  },
+];
+
+const PERIM_EVENTS_DEFAULT = [];
+
+function normalizePerimPlayerKey(value) {
+  const fallback = "local-player";
+  const clean = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+  return clean || fallback;
+}
+
+function isPerimInstantAdmin(playerKeyOrUsername) {
+  return normalizePerimPlayerKey(playerKeyOrUsername) === "admin";
+}
+
+function hashTokenToInt(token) {
+  const hash = crypto.createHash("sha256").update(String(token || ""), "utf8").digest();
+  return hash.readUInt32BE(0);
+}
+
+function buildPerimActionLookup() {
+  const map = new Map();
+  PERIM_ACTIONS.forEach((entry) => map.set(entry.id, entry));
+  return map;
+}
+
+const PERIM_ACTION_LOOKUP = buildPerimActionLookup();
+
+function createEmptyPerimPlayerState() {
+  return {
+    activeRun: null,
+    pendingRewards: [],
+    history: [],
+    updatedAt: nowIso(),
+  };
+}
+
+function normalizePerimPlayerState(input) {
+  const state = createEmptyPerimPlayerState();
+  if (input && typeof input === "object") {
+    state.activeRun = input.activeRun && typeof input.activeRun === "object" ? input.activeRun : null;
+    state.pendingRewards = Array.isArray(input.pendingRewards) ? input.pendingRewards.filter(Boolean) : [];
+    state.history = Array.isArray(input.history) ? input.history.filter(Boolean).slice(-30) : [];
+    state.updatedAt = String(input.updatedAt || state.updatedAt);
+  }
+  return state;
+}
+
+function loadPerimStateFile() {
+  if (isSqlV2Ready()) {
+    const players = {};
+    const playerRows = sqliteDb
+      .prepare("SELECT owner_key, history_json, updated_at FROM perim_player_state")
+      .all();
+    playerRows.forEach((row) => {
+      const ownerKey = normalizePerimPlayerKey(row?.owner_key || "local-player");
+      const state = createEmptyPerimPlayerState();
+      state.history = Array.isArray(parseJsonText(row?.history_json, []))
+        ? parseJsonText(row?.history_json, []).filter(Boolean).slice(-30)
+        : [];
+      state.updatedAt = String(row?.updated_at || state.updatedAt);
+      players[ownerKey] = state;
+    });
+    const rows = sqliteDb
+      .prepare(`
+        SELECT run_id, owner_key, location_card_id, location_name, location_image, action_id, action_label,
+               start_at, end_at, duration_ms, scanner_json, context_json, rewards_json, status, completed_at, claimed_at, updated_at
+        FROM perim_runs
+        ORDER BY updated_at ASC
+      `)
+      .all();
+    rows.forEach((row) => {
+      const ownerKey = normalizePerimPlayerKey(row?.owner_key || "local-player");
+      if (!players[ownerKey]) {
+        players[ownerKey] = createEmptyPerimPlayerState();
+      }
+      const rewards = Array.isArray(parseJsonText(row?.rewards_json, []))
+        ? parseJsonText(row?.rewards_json, [])
+        : [];
+      const baseRun = {
+        runId: String(row?.run_id || ""),
+        locationId: String(row?.location_card_id || ""),
+        locationName: String(row?.location_name || ""),
+        locationImage: String(row?.location_image || ""),
+        actionId: String(row?.action_id || ""),
+        actionLabel: String(row?.action_label || ""),
+        actionName: String(row?.action_label || ""),
+        startAt: String(row?.start_at || nowIso()),
+        endAt: String(row?.end_at || nowIso()),
+        durationMs: Number(row?.duration_ms || 0),
+        scanner: parseJsonText(row?.scanner_json, {}),
+        contextSnapshot: parseJsonText(row?.context_json, {}),
+        rewards,
+      };
+      const status = String(row?.status || "active");
+      if (status === "active") {
+        players[ownerKey].activeRun = baseRun;
+      } else {
+        players[ownerKey].pendingRewards.push({
+          runId: baseRun.runId,
+          locationId: baseRun.locationId,
+          locationName: baseRun.locationName,
+          locationImage: baseRun.locationImage,
+          actionId: baseRun.actionId,
+          actionName: baseRun.actionName,
+          completedAt: String(row?.completed_at || row?.end_at || nowIso()),
+          claimedAt: row?.claimed_at ? String(row.claimed_at) : null,
+          rewards: rewards,
+        });
+      }
+      players[ownerKey].updatedAt = String(row?.updated_at || players[ownerKey].updatedAt || nowIso());
+    });
+    Object.keys(players).forEach((key) => {
+      players[key] = normalizePerimPlayerState(players[key]);
+    });
+    return {
+      schemaVersion: 2,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      players,
+    };
+  }
+  const fromSql = sqlGet("perim_state", "state");
+  if (fromSql && typeof fromSql === "object") {
+    const players = {};
+    Object.entries(fromSql?.players || {}).forEach(([key, value]) => {
+      players[normalizePerimPlayerKey(key)] = normalizePerimPlayerState(value);
+    });
+    return {
+      schemaVersion: 1,
+      createdAt: fromSql?.createdAt || nowIso(),
+      updatedAt: fromSql?.updatedAt || nowIso(),
+      players,
+    };
+  }
+  if (!fs.existsSync(PERIM_STATE_FILE)) {
+    const base = {
+      schemaVersion: 1,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      players: {},
+    };
+    fs.writeFileSync(PERIM_STATE_FILE, JSON.stringify(base, null, 2), "utf8");
+    sqlSet("perim_state", "state", base);
+    return base;
+  }
+  try {
+    const parsed = JSON.parse(fs.readFileSync(PERIM_STATE_FILE, "utf8"));
+    const players = {};
+    Object.entries(parsed?.players || {}).forEach(([key, value]) => {
+      players[normalizePerimPlayerKey(key)] = normalizePerimPlayerState(value);
+    });
+    const payload = {
+      schemaVersion: 1,
+      createdAt: parsed?.createdAt || nowIso(),
+      updatedAt: parsed?.updatedAt || nowIso(),
+      players,
+    };
+    sqlSet("perim_state", "state", payload);
+    return payload;
+  } catch {
+    const recovered = {
+      schemaVersion: 1,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      players: {},
+    };
+    fs.writeFileSync(PERIM_STATE_FILE, JSON.stringify(recovered, null, 2), "utf8");
+    sqlSet("perim_state", "state", recovered);
+    return recovered;
+  }
+}
+
+function writePerimStateFile(state) {
+  const payload = {
+    schemaVersion: isSqlV2Ready() ? 2 : 1,
+    createdAt: state?.createdAt || nowIso(),
+    updatedAt: nowIso(),
+    players: {},
+  };
+  Object.entries(state?.players || {}).forEach(([key, value]) => {
+    payload.players[normalizePerimPlayerKey(key)] = normalizePerimPlayerState(value);
+  });
+  if (isSqlV2Ready()) {
+    sqliteDb.exec("BEGIN IMMEDIATE");
+    try {
+      sqliteDb.prepare("DELETE FROM perim_rewards").run();
+      sqliteDb.prepare("DELETE FROM perim_runs").run();
+      sqliteDb.prepare("DELETE FROM perim_player_state").run();
+      const insertPerimPlayerState = sqliteDb.prepare(`
+        INSERT INTO perim_player_state (owner_key, history_json, updated_at)
+        VALUES (?, ?, ?)
+      `);
+      const insertPerimRun = sqliteDb.prepare(`
+        INSERT INTO perim_runs (
+          run_id, owner_key, location_card_id, location_name, location_image, action_id, action_label,
+          start_at, end_at, duration_ms, scanner_json, context_json, rewards_json, status, completed_at, claimed_at, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      const insertPerimReward = sqliteDb.prepare(`
+        INSERT INTO perim_rewards (run_id, owner_key, reward_type, card_id, variant_json, is_new, payload_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      Object.entries(payload.players || {}).forEach(([ownerRawKey, playerStateRaw]) => {
+        const ownerKey = normalizePerimPlayerKey(ownerRawKey);
+        const playerState = normalizePerimPlayerState(playerStateRaw);
+        insertPerimPlayerState.run(
+          ownerKey,
+          JSON.stringify(Array.isArray(playerState?.history) ? playerState.history.slice(-30) : []),
+          String(playerState?.updatedAt || nowIso())
+        );
+        const activeRun = playerState.activeRun && typeof playerState.activeRun === "object" ? playerState.activeRun : null;
+        if (activeRun?.runId) {
+          insertPerimRun.run(
+            String(activeRun.runId),
+            ownerKey,
+            String(activeRun.locationId || activeRun.locationCardId || ""),
+            String(activeRun.locationName || ""),
+            String(activeRun.locationImage || ""),
+            String(activeRun.actionId || ""),
+            String(activeRun.actionLabel || ""),
+            String(activeRun.startAt || nowIso()),
+            String(activeRun.endAt || nowIso()),
+            Number(activeRun.durationMs || 0),
+            JSON.stringify(activeRun.scanner || {}),
+            JSON.stringify(activeRun.contextSnapshot || {}),
+            JSON.stringify(activeRun.rewards || []),
+            "active",
+            null,
+            null,
+            String(activeRun.startAt || nowIso()),
+            nowIso()
+          );
+          (activeRun.rewards || []).forEach((reward) => {
+            const variant = reward?.variant ? normalizeCreatureVariant(reward.variant) : null;
+            insertPerimReward.run(
+              String(activeRun.runId),
+              ownerKey,
+              String(reward?.type || ""),
+              String(reward?.cardId || ""),
+              variant ? JSON.stringify(variant) : null,
+              Number(reward?.isNew ? 1 : 0),
+              JSON.stringify(reward || {})
+            );
+          });
+        }
+        (playerState.pendingRewards || []).forEach((pending) => {
+          const runId = String(pending?.runId || crypto.randomBytes(8).toString("hex"));
+          const rewards = Array.isArray(pending?.rewards) ? pending.rewards : [];
+          insertPerimRun.run(
+            runId,
+            ownerKey,
+            String(pending?.locationId || ""),
+            String(pending?.locationName || ""),
+            String(pending?.locationImage || ""),
+            String(pending?.actionId || ""),
+            String(pending?.actionName || ""),
+            String(pending?.completedAt || nowIso()),
+            String(pending?.completedAt || nowIso()),
+            0,
+            JSON.stringify({}),
+            JSON.stringify({}),
+            JSON.stringify(rewards),
+            pending?.claimedAt ? "claimed" : "pending",
+            String(pending?.completedAt || nowIso()),
+            pending?.claimedAt ? String(pending.claimedAt) : null,
+            String(pending?.completedAt || nowIso()),
+            nowIso()
+          );
+          rewards.forEach((reward) => {
+            const variant = reward?.variant ? normalizeCreatureVariant(reward.variant) : null;
+            insertPerimReward.run(
+              runId,
+              ownerKey,
+              String(reward?.type || ""),
+              String(reward?.cardId || ""),
+              variant ? JSON.stringify(variant) : null,
+              Number(reward?.isNew ? 1 : 0),
+              JSON.stringify(reward || {})
+            );
+          });
+        });
+      });
+      sqliteDb.exec("COMMIT");
+      invalidateUserCaches("", { all: true });
+      return payload;
+    } catch (error) {
+      try {
+        sqliteDb.exec("ROLLBACK");
+      } catch {}
+      console.error(`[DB] Falha ao persistir PERIM SQL v2: ${error?.message || error}`);
+      throw error;
+    }
+  }
+  fs.writeFileSync(PERIM_STATE_FILE, JSON.stringify(payload, null, 2), "utf8");
+  sqlSet("perim_state", "state", payload);
+  userResponseCache.perim.clear();
+  runtimeMetrics.cache.invalidations += 1;
+  return payload;
+}
+
+function getOrCreatePerimPlayerState(rootState, playerKey) {
+  const key = normalizePerimPlayerKey(playerKey);
+  if (!rootState.players[key]) {
+    rootState.players[key] = createEmptyPerimPlayerState();
+  }
+  rootState.players[key] = normalizePerimPlayerState(rootState.players[key]);
+  return { key, state: rootState.players[key] };
+}
+
+let perimLocationsMatrixCache = null;
+let perimLocationAdjacencyGraphCache = { mtimeMs: -1, value: null };
+let perimLocationMetaByCardIdCache = { mtimeMs: -1, value: null };
+let libraryIndexCache = { versionToken: "", value: null };
+let dailyCreatureIndexCache = { dateKey: "", generatedAt: "", value: null };
+
+function getLibraryIndexes() {
+  const locations = Array.isArray(library?.cardsByType?.locations) ? library.cardsByType.locations : [];
+  const creatures = Array.isArray(library?.cardsByType?.creatures) ? library.cardsByType.creatures : [];
+  const versionToken = `${locations.length}:${creatures.length}`;
+  if (libraryIndexCache.value && libraryIndexCache.versionToken === versionToken) {
+    return libraryIndexCache.value;
+  }
+  const locationsById = new Map();
+  const creaturesById = new Map();
+  const creaturesByNormalizedName = new Map();
+  const locationsByNormalizedName = new Map();
+  locations.forEach((card) => {
+    locationsById.set(String(card.id), card);
+    locationsByNormalizedName.set(normalizePerimText(card?.name || ""), card);
+  });
+  creatures.forEach((card) => {
+    creaturesById.set(String(card.id), card);
+    creaturesByNormalizedName.set(normalizePerimText(card?.name || ""), card);
+  });
+  const indexes = {
+    locationsById,
+    creaturesById,
+    creaturesByNormalizedName,
+    locationsByNormalizedName,
+  };
+  libraryIndexCache = { versionToken, value: indexes };
+  return indexes;
+}
+
+const PERIM_CREATURE_CHANCE_BY_ACTION = {
+  explore: 58,
+  track: 76,
+  anomaly: 46,
+  camp: 52,
+  relic: 34,
+};
+
+const PERIM_RARITY_CREATURE_DELTA = {
+  common: 8,
+  uncommon: 4,
+  rare: 0,
+  "super rare": -4,
+  "ultra rare": -8,
+  promo: -12,
+};
+
+const PERIM_REWARD_PROFILE_BY_ACTION = {
+  explore: {
+    primary: { creatures: 44, attacks: 18, battlegear: 14, mugic: 10, locations: 14 },
+    bonusChance: 0.54,
+    attackChance: 0.58,
+    baseSuccessChance: 0.68,
+    locationDropBias: 1.45,
+  },
+  track: {
+    primary: { creatures: 74, attacks: 12, battlegear: 6, mugic: 8 },
+    bonusChance: 0.38,
+    attackChance: 0.7,
+    baseSuccessChance: 0.76,
+    locationDropBias: 0.92,
+  },
+  anomaly: {
+    primary: { creatures: 34, attacks: 17, battlegear: 23, mugic: 20, locations: 6 },
+    bonusChance: 0.26,
+    attackChance: 0.36,
+    baseSuccessChance: 0.44,
+    locationDropBias: 0.8,
+  },
+  camp: {
+    primary: { creatures: 58, attacks: 13, battlegear: 15, mugic: 10, locations: 4 },
+    bonusChance: 0.48,
+    attackChance: 0.5,
+    baseSuccessChance: 0.6,
+    locationDropBias: 0.88,
+  },
+  relic: {
+    primary: { creatures: 12, attacks: 31, battlegear: 39, mugic: 18 },
+    bonusChance: 0.62,
+    attackChance: 0.66,
+    baseSuccessChance: 0.64,
+    locationDropBias: 0.96,
+  },
+};
+
+function formatPerimWeightMap(weights) {
+  return Object.entries(weights || {})
+    .map(([key, value]) => `${key}=${Number(value || 0)}`)
+    .join(", ");
+}
+
+function buildPerimActionsDropsReportText() {
+  const lines = [];
+  lines.push("PERIM - Acoes e Regras de Drops");
+  lines.push(`Gerado em: ${nowIso()}`);
+  lines.push("");
+  lines.push("Acoes:");
+  PERIM_ACTIONS.forEach((action) => {
+    const profile = PERIM_REWARD_PROFILE_BY_ACTION[action.id] || {};
+    lines.push(`- ${action.name} (${action.id})`);
+    lines.push(`  descricao: ${action.description}`);
+    lines.push(`  duracao_base_ms: ${Number(action.durationMs || 0)}`);
+    lines.push(`  chance_sucesso_base: ${Number(profile.baseSuccessChance || 0)}`);
+    lines.push(`  chance_bonus: ${Number(profile.bonusChance || 0)}`);
+    lines.push(`  chance_attacks_extra: ${Number(profile.attackChance || 0)}`);
+    lines.push(`  pesos_primarios: ${formatPerimWeightMap(profile.primary)}`);
+  });
+  lines.push("");
+  lines.push("Regras gerais de drops:");
+  lines.push("- Tipos possiveis: creatures, attacks, battlegear, mugic, locations.");
+  lines.push("- Inventory cap: max 3 copias por carta (por usuario).");
+  lines.push("- Cartas Alpha/Unused sao excluidas de drops e grants iniciais.");
+  lines.push("- Creature rewards podem receber variacao: E(-5..+5), C/P/W/S(-5..+5), passo 5.");
+  lines.push("- Scanner impacta sucesso, raridade e duracao por nivel (1..4).");
+  lines.push("- Chances de criatura variam por acao; nao ha criatura garantida em toda conclusao.");
+  lines.push("- Drop de Location usa chance por raridade do local e prioriza locais ligados.");
+  lines.push("- Se local ligado nao cair, pode dropar o proprio local atual.");
+  lines.push("- Se carta ja estiver no cap, ela e ignorada no roll.");
+  lines.push("");
+  lines.push("Efeitos de Scanner por nivel:");
+  [1, 2, 3, 4].forEach((level) => {
+    const fx = scannerEffectsByLevel(level);
+    lines.push(
+      `- Nivel ${level}: durationMultiplier=${fx.durationMultiplier}, successBoostPercent=${fx.successBoostPercent}, rareBoost=${fx.rareBoost}`
+    );
+  });
+  lines.push("");
+  lines.push("Clima por local:");
+  lines.push("- Definido por perfil de bioma/local (deserto, floresta, aquatico, congelado, etc.).");
+  lines.push("- Locais de chuva eterna permanecem Chuvoso.");
+  lines.push("- Estado global compartilhado nas janelas: 06:00, 12:00 e 18:00.");
+  lines.push("- Clima influencia o tipo de criatura elegivel/peso (nao altera raridade base).");
+  lines.push("");
+  lines.push("Pool de cartas elegiveis por tipo (sem Alpha/Unused e respeitando cap):");
+  ["creatures", "attacks", "battlegear", "mugic", "locations"].forEach((type) => {
+    const cards = Array.isArray(library?.cardsByType?.[type]) ? library.cardsByType[type] : [];
+    const eligible = cards.filter((card) => {
+      const nameLower = String(card?.name || "").toLowerCase();
+      return !nameLower.includes("unused") && !nameLower.includes("alpha");
+    });
+    lines.push(`- ${type}: ${eligible.length} cartas elegiveis`);
+  });
+  lines.push("");
+  lines.push("Rede de drops de locations (por local de origem):");
+  const metaByCardId = buildPerimLocationMetaByCardId();
+  const locations = Array.isArray(library?.cardsByType?.locations) ? library.cardsByType.locations : [];
+  locations.forEach((locationCard) => {
+    const meta = metaByCardId.get(String(locationCard.id));
+    const linkedIds = meta?.linkedLocationIds
+      ? Array.from(meta.linkedLocationIds)
+      : [];
+    const linkedNames = linkedIds
+      .map((id) => locations.find((candidate) => String(candidate.id) === String(id)))
+      .filter(Boolean)
+      .map((card) => card.name);
+    const chanceByRarity = Math.round(locationDropChanceByRarity(locationCard.rarity || meta?.rarity || "") * 100);
+    lines.push(
+      `- ${locationCard.name} [${locationCard.id}] chance_location_por_raridade=${chanceByRarity}% links=${linkedNames.join(", ") || "nenhum"}`
+    );
+  });
+  return `${lines.join("\n")}\n`;
+}
+
+function writePerimActionsDropsReport() {
+  const content = buildPerimActionsDropsReportText();
+  fs.mkdirSync(path.dirname(PERIM_ACTIONS_DROPS_REPORT_FILE), { recursive: true });
+  fs.writeFileSync(PERIM_ACTIONS_DROPS_REPORT_FILE, content, "utf8");
+}
+
+function normalizePerimText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parsePerimPercent(rawValue, fallback = 0) {
+  const token = String(rawValue ?? "").trim().replace(",", ".");
+  if (!token) {
+    return fallback;
+  }
+  const parsed = Number(token);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  const percent = parsed <= 1 ? parsed * 100 : parsed;
+  return Math.max(0, Math.min(100, Math.round(percent * 100) / 100));
+}
+
+function clampPercent(value) {
+  return Math.max(0, Math.min(100, Math.round(Number(value || 0) * 100) / 100));
+}
+
+function logPerimPerf(label, startedAtMs, extra = "") {
+  if (String(process.env.PERIM_PERF_LOG || "") !== "1") {
+    return;
+  }
+  const elapsedMs = Math.max(0, Date.now() - Number(startedAtMs || Date.now()));
+  const suffix = extra ? ` ${extra}` : "";
+  console.log(`[PERIM][PERF] ${label} ${elapsedMs}ms${suffix}`);
+}
+
+function calculateCreatureChancePercent(rarityRaw, actionId) {
+  const rarity = normalizePerimText(rarityRaw);
+  const base = Number(PERIM_CREATURE_CHANCE_BY_ACTION[actionId] || PERIM_CREATURE_CHANCE_BY_ACTION.explore || 50);
+  const delta = Number(PERIM_RARITY_CREATURE_DELTA[rarity] || 0);
+  return clampPercent(base + delta);
+}
+
+function loadPerimLocationsMatrix() {
+  const fileExists = fs.existsSync(PERIM_LOCATIONS_FILE);
+  const fileMtimeMs = fileExists ? Number(fs.statSync(PERIM_LOCATIONS_FILE).mtimeMs || 0) : 0;
+  if (perimLocationsMatrixCache && perimLocationsMatrixCache.mtimeMs === fileMtimeMs) {
+    return perimLocationsMatrixCache.rows;
+  }
+  const rows = [];
+  if (!fileExists) {
+    perimLocationsMatrixCache = { mtimeMs: 0, rows };
+    return rows;
+  }
+  try {
+    const workbook = XLSX.readFile(PERIM_LOCATIONS_FILE, { cellDates: false });
+    const sheet = workbook.Sheets.Planilha1 || workbook.Sheets[workbook.SheetNames[0]];
+    if (!sheet) {
+      perimLocationsMatrixCache = { mtimeMs: fileMtimeMs, rows };
+      return rows;
+    }
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    rawRows.forEach((row) => {
+      if (normalizePerimText(row["Column1.type"]) !== "locations") {
+        return;
+      }
+      const name = String(row["Column1.name"] || "").trim();
+      if (!name) {
+        return;
+      }
+      const set = String(row["Column1.set"] || "").trim();
+      const rarity = String(row.rarity || "").trim();
+      const chanceScanPercent = parsePerimPercent(row["chance de scan"], 0);
+      const eventFlag = normalizePerimText(row["EVENTO:"]);
+      const environment = String(row["SOBRE OU EMBAIXO DA TERRA"] || "").trim();
+      const linkedLocationNames = [];
+      for (let idx = 1; idx <= 11; idx += 1) {
+        const linkedName = String(row[`LIGADO A LOCAL ${idx}`] || "").trim();
+        if (linkedName) {
+          linkedLocationNames.push(linkedName);
+        }
+      }
+      rows.push({
+        name,
+        set,
+        rarity,
+        chanceScanPercent,
+        eventFlag,
+        environment,
+        linkedLocationNames,
+      });
+    });
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao ler locais.xlsx: ${error.message}`);
+  }
+  perimLocationsMatrixCache = { mtimeMs: fileMtimeMs, rows };
+  return rows;
+}
+
+function buildPerimLocationMetaByCardId() {
+  const rows = loadPerimLocationsMatrix();
+  const matrixMtime = Number(perimLocationsMatrixCache?.mtimeMs || 0);
+  if (perimLocationMetaByCardIdCache.value && perimLocationMetaByCardIdCache.mtimeMs === matrixMtime) {
+    return perimLocationMetaByCardIdCache.value;
+  }
+  const byCardId = new Map();
+  const { locationsById: cardById } = getLibraryIndexes();
+  const nameSetKeyToIds = new Map();
+  const nameOnlyKeyToIds = new Map();
+  cardById.forEach((card) => {
+    const nameKey = normalizePerimText(card?.name || "");
+    const setKey = normalizePerimText(card?.set || "");
+    const nameSetKey = `${nameKey}|${setKey}`;
+    if (!nameSetKeyToIds.has(nameSetKey)) {
+      nameSetKeyToIds.set(nameSetKey, []);
+    }
+    nameSetKeyToIds.get(nameSetKey).push(String(card.id));
+    if (!nameOnlyKeyToIds.has(nameKey)) {
+      nameOnlyKeyToIds.set(nameKey, []);
+    }
+    nameOnlyKeyToIds.get(nameKey).push(String(card.id));
+  });
+
+  rows.forEach((row) => {
+    const nameKey = normalizePerimText(row.name);
+    const setKey = normalizePerimText(row.set);
+    const nameSetKey = `${nameKey}|${setKey}`;
+    const sourceIds = [
+      ...(nameSetKeyToIds.get(nameSetKey) || []),
+      ...(nameOnlyKeyToIds.get(nameKey) || []),
+    ];
+    const sourceUniqueIds = [...new Set(sourceIds)].filter((cardId) => cardById.has(cardId));
+    if (!sourceUniqueIds.length) {
+      return;
+    }
+
+    const linkedIds = new Set();
+    row.linkedLocationNames.forEach((linkedName) => {
+      const linkedNameKey = normalizePerimText(linkedName);
+      const exactLinked = nameOnlyKeyToIds.get(linkedNameKey) || [];
+      exactLinked.forEach((cardId) => {
+        if (cardById.has(cardId)) {
+          linkedIds.add(cardId);
+        }
+      });
+    });
+
+    sourceUniqueIds.forEach((cardId) => {
+      const card = cardById.get(cardId);
+      if (!card) {
+        return;
+      }
+      const rarity = row.rarity || card.rarity || "Unknown";
+      const perActionCreatureChance = {};
+      Object.keys(PERIM_CREATURE_CHANCE_BY_ACTION).forEach((actionId) => {
+        perActionCreatureChance[actionId] = calculateCreatureChancePercent(rarity, actionId);
+      });
+      const current = byCardId.get(cardId) || {
+        linkedLocationIds: new Set(),
+      };
+      (current.linkedLocationIds || new Set()).forEach((targetId) => linkedIds.add(targetId));
+      byCardId.set(cardId, {
+        rarity,
+        terrain: row.environment || null,
+        eventFlag: row.eventFlag || "n",
+        eventChancePercent: 0,
+        locationDropChancePercent: clampPercent(row.chanceScanPercent),
+        linkedLocationIds: linkedIds,
+        perActionCreatureChance,
+      });
+    });
+  });
+  perimLocationMetaByCardIdCache = {
+    mtimeMs: Number(perimLocationsMatrixCache?.mtimeMs || 0),
+    value: byCardId,
+  };
+  return byCardId;
+}
+
+function buildPerimLocationsFromScans(locationCards) {
+  const seen = [];
+  const seenCardIds = new Set();
+  const locationIds = Array.isArray(locationCards) ? locationCards : [];
+  const { locationsById: byId } = getLibraryIndexes();
+  const metaByCardId = buildPerimLocationMetaByCardId();
+  locationIds.forEach((entryValue, index) => {
+    const cardId = scanEntryToCardId("locations", entryValue);
+    if (!cardId || seenCardIds.has(cardId)) {
+      return;
+    }
+    seenCardIds.add(cardId);
+    const card = byId.get(cardId);
+    if (!card) {
+      return;
+    }
+    const meta = metaByCardId.get(String(cardId)) || null;
+    const rarity = meta?.rarity || card.rarity || "Unknown";
+    const creatureChanceByAction = meta?.perActionCreatureChance || {};
+    seen.push({
+      entryId: `${cardId}#${index}`,
+      cardId,
+      name: card.name,
+      image: card.image || "",
+      tribe: card.tribe || "Generic",
+      set: card.set || "Unknown",
+      rarity,
+      ability: String(card.ability || ""),
+      terrain: meta?.terrain || null,
+      locationDropChancePercent: clampPercent(meta?.locationDropChancePercent ?? 0),
+      eventChancePercent: clampPercent(meta?.eventChancePercent ?? 0),
+      linkedLocationIds: [...(meta?.linkedLocationIds || [])],
+      creatureChanceByAction: creatureChanceByAction,
+      creatureChancePercent: clampPercent(
+        creatureChanceByAction.explore ?? calculateCreatureChancePercent(rarity, "explore")
+      ),
+      stats: {
+        initiative: String(card?.stats?.initiative || ""),
+        courage: Number(card?.stats?.courage || 0),
+        power: Number(card?.stats?.power || 0),
+        wisdom: Number(card?.stats?.wisdom || 0),
+        speed: Number(card?.stats?.speed || 0),
+        fire: Number(card?.stats?.fire || 0),
+        air: Number(card?.stats?.air || 0),
+        earth: Number(card?.stats?.earth || 0),
+        water: Number(card?.stats?.water || 0),
+      },
+    });
+  });
+  return seen;
+}
+
+function collectPerimLocationEntriesForPlayer(playerKeyRaw, preloadedCards = null) {
+  const playerKey = normalizeUserKey(playerKeyRaw || "local-player");
+  if (isSqlV2Ready()) {
+    if (playerKey && playerKey !== "local-player") {
+      const ownerlessDeckKeys = sqliteDb
+        .prepare("SELECT deck_key FROM deck_headers WHERE owner_key = '' AND is_ownerless_legacy = 1")
+        .all();
+      ownerlessDeckKeys.forEach((row) => {
+        claimOwnerlessDeckForUser(String(row?.deck_key || ""), playerKey);
+      });
+    }
+    const rows = sqliteDb
+      .prepare(`
+        SELECT card_id FROM scan_entries
+        WHERE owner_key = ? AND card_type = 'locations'
+        UNION
+        SELECT dc.card_id
+        FROM deck_cards dc
+        JOIN deck_headers dh ON dh.deck_key = dc.deck_key
+        WHERE dc.card_type = 'locations'
+          AND (
+            dh.owner_key = ?
+            OR (dh.owner_key = '' AND ? = 'local-player')
+          )
+      `)
+      .all(playerKey, playerKey, playerKey);
+    return rows
+      .map((row) => String(row?.card_id || "").trim())
+      .filter(Boolean);
+  }
+  const cards = preloadedCards && typeof preloadedCards === "object"
+    ? preloadedCards
+    : (() => {
+        const scans = loadScansData();
+        const { cards: userCards, changed } = getScansCardsForUser(scans, playerKey, true);
+        if (changed) {
+          writeScansData(scans, "perim_scans_bootstrap");
+        }
+        return userCards;
+      })();
+  const entries = [];
+  const seenCardIds = new Set();
+
+  const pushUnique = (entry) => {
+    const cardId = scanEntryToCardId("locations", entry);
+    if (!cardId || seenCardIds.has(cardId)) {
+      return;
+    }
+    seenCardIds.add(cardId);
+    entries.push(cardId);
+  };
+
+  (cards.locations || []).forEach((entry) => pushUnique(entry));
+
+  listDeckFileNames().forEach((fileName) => {
+    const deck = readDeckFileByName(fileName);
+    if (!deck || typeof deck !== "object") {
+      return;
+    }
+    let owner = deckOwnerKey(deck);
+    if (!owner && playerKey && playerKey !== "local-player") {
+      const claimed = claimOwnerlessDeckForUser(fileName, playerKey);
+      if (claimed) {
+        owner = playerKey;
+      }
+    }
+    const isLegacyLocalDeck = !owner && playerKey === "local-player";
+    if (!isLegacyLocalDeck && owner !== playerKey) {
+      return;
+    }
+    const deckLocations = Array.isArray(deck?.cards?.locations) ? deck.cards.locations : [];
+    deckLocations.forEach((entry) => {
+      const cardId = deckCardIdFromEntry("locations", entry);
+      if (cardId) {
+        pushUnique(cardId);
+      }
+    });
+  });
+
+  return entries;
+}
+
+function locationRarityLevel(rarityRaw) {
+  const rarity = normalizePerimText(rarityRaw);
+  if (rarity === "promo") return 6;
+  if (rarity === "ultra rare") return 5;
+  if (rarity === "super rare") return 4;
+  if (rarity === "rare") return 3;
+  if (rarity === "uncommon") return 2;
+  return 1;
+}
+
+function hydrateCreatureDropSqlMetadata() {
+  if (!sqliteDb) {
+    return;
+  }
+  try {
+    const graph = buildLocationAdjacencyGraph();
+    const locations = loadPerimLocationsMatrix();
+    locations.forEach((location) => {
+      const key = normalizePerimText(location.name);
+      if (!key) {
+        return;
+      }
+      const neighbors = [...(graph.locNameToAdjacent.get(key) || new Set())];
+      setLocationAdjacencies(
+        sqliteDb,
+        key,
+        neighbors,
+        normalizePerimText(location.environment || ""),
+        locationRarityLevel(location.rarity)
+      );
+    });
+
+    const creatures = loadPerimCreaturesMatrix();
+    creatures.forEach((creature) => {
+      const { possibleLocations } = resolveCreaturePossibleLocations(creature, graph);
+      const rarityKey = String(creature.rarity || "").trim().toLowerCase();
+      setCreatureDropSettings(sqliteDb, {
+        loki: Number(creature.loki || 0),
+        name: creature.name,
+        rarity: creature.rarity,
+        rarityPercent: Number((CREATURE_RARITY_DROP_CHANCE[rarityKey] || 0.15) * 100),
+        tribe: creature.tribe,
+        types: creature.types,
+        possibleLocations,
+        nearbyLocation: creature.proximoLocal,
+        onlyLocation1: creature.somenteLocal1,
+        onlyLocation2: creature.somenteLocal2,
+      });
+    });
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao hidratar metadados SQL de drops: ${error.message}`);
+  }
+}
+
+function pickFromList(list) {
+  if (!Array.isArray(list) || !list.length) {
+    return null;
+  }
+  const idx = Math.floor(Math.random() * list.length);
+  return list[idx] || null;
+}
+
+function weightedPick(weights) {
+  const entries = Object.entries(weights || {}).filter(([, weight]) => Number(weight) > 0);
+  if (!entries.length) {
+    return null;
+  }
+  const total = entries.reduce((sum, [, weight]) => sum + Number(weight), 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < entries.length; i += 1) {
+    const [key, rawWeight] = entries[i];
+    roll -= Number(rawWeight);
+    if (roll <= 0) {
+      return key;
+    }
+  }
+  return entries[entries.length - 1][0];
+}
+
+function rarityTierScore(rarity) {
+  const key = String(rarity || "").trim().toLowerCase();
+  if (key === "ultra rare") return 5;
+  if (key === "super rare") return 4;
+  if (key === "rare") return 3;
+  if (key === "uncommon") return 2;
+  if (key === "common") return 1;
+  return 0;
+}
+
+function locationDropChanceByRarity(rarityRaw) {
+  const rarityKey = normalizePerimText(rarityRaw);
+  return Math.max(0, Math.min(1, Number(LOCATION_RARITY_DROP_CHANCE[rarityKey] || 0.1)));
+}
+
+function rollStepFive(min, max) {
+  const options = [];
+  for (let value = min; value <= max; value += 5) {
+    options.push(value);
+  }
+  return options[Math.floor(Math.random() * options.length)] || 0;
+}
+
+function buildCreatureScanVariant() {
+  const variant = {
+    energyDelta: rollStepFive(-5, 5),
+    courageDelta: rollStepFive(-5, 5),
+    powerDelta: rollStepFive(-5, 5),
+    wisdomDelta: rollStepFive(-5, 5),
+    speedDelta: rollStepFive(-5, 5),
+  };
+  variant.perfect =
+    variant.energyDelta === 5
+    && variant.courageDelta === 5
+    && variant.powerDelta === 5
+    && variant.wisdomDelta === 5
+    && variant.speedDelta === 5;
+  return variant;
+}
+
+function parseAttackElementProfile(card) {
+  const fire = Number(card?.fire ?? card?.stats?.fire ?? 0);
+  const air = Number(card?.air ?? card?.stats?.air ?? 0);
+  const earth = Number(card?.earth ?? card?.stats?.earth ?? 0);
+  const water = Number(card?.water ?? card?.stats?.water ?? 0);
+  return {
+    fire: fire > 0,
+    air: air > 0,
+    earth: earth > 0,
+    water: water > 0,
+    hasElement: fire > 0 || air > 0 || earth > 0 || water > 0,
+  };
+}
+
+function parseInitiativeElementWeights(locationEntry = null) {
+  const weights = { fire: 0, air: 0, earth: 0, water: 0 };
+  const initiativeRaw = String(
+    locationEntry?.initiative
+    || locationEntry?.stats?.initiative
+    || ""
+  )
+    .toLowerCase()
+    .replace(/\bfogo\b/g, "fire")
+    .replace(/\bfire\b/g, "fire")
+    .replace(/\bar\b/g, "air")
+    .replace(/\bair\b/g, "air")
+    .replace(/\bterra\b/g, "earth")
+    .replace(/\bearth\b/g, "earth")
+    .replace(/\bagua\b/g, "water")
+    .replace(/\bwater\b/g, "water")
+    .replace(/[|,+/\\-]+/g, " ");
+  if (!initiativeRaw) {
+    return weights;
+  }
+  ["fire", "air", "earth", "water"].forEach((element) => {
+    const regex = new RegExp(`\\b${element}\\b`, "i");
+    if (regex.test(initiativeRaw)) {
+      weights[element] += 1;
+    }
+  });
+  return weights;
+}
+
+function normalizeElementWeightMap(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const normalized = {
+    fire: Math.max(0, Number(source.fire || 0)),
+    air: Math.max(0, Number(source.air || 0)),
+    earth: Math.max(0, Number(source.earth || 0)),
+    water: Math.max(0, Number(source.water || 0)),
+  };
+  const total = normalized.fire + normalized.air + normalized.earth + normalized.water;
+  if (total <= 0) {
+    return { ...normalized, total: 0 };
+  }
+  return {
+    fire: normalized.fire / total,
+    air: normalized.air / total,
+    earth: normalized.earth / total,
+    water: normalized.water / total,
+    total,
+  };
+}
+
+function creatureElementWeightsAtLocation(locationEntry = null) {
+  const weights = { fire: 0, air: 0, earth: 0, water: 0 };
+  const creatures = getCreaturesAtLocation(String(locationEntry?.cardId || locationEntry?.id || locationEntry?.name || ""));
+  if (!Array.isArray(creatures) || !creatures.length) {
+    return weights;
+  }
+  const { creaturesById, creaturesByNormalizedName } = getLibraryIndexes();
+  creatures.forEach((entry) => {
+    const cardId = String(entry?.cardId || "");
+    let card = cardId ? creaturesById.get(cardId) : null;
+    if (!card && entry?.name) {
+      card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
+    }
+    if (!card) {
+      return;
+    }
+    weights.fire += Math.max(0, Number(card?.stats?.fire || card?.fire || 0));
+    weights.air += Math.max(0, Number(card?.stats?.air || card?.air || 0));
+    weights.earth += Math.max(0, Number(card?.stats?.earth || card?.earth || 0));
+    weights.water += Math.max(0, Number(card?.stats?.water || card?.water || 0));
+  });
+  return weights;
+}
+
+function buildAttackElementContext(locationEntry = null) {
+  const initiativeShare = normalizeElementWeightMap(parseInitiativeElementWeights(locationEntry));
+  const creatureShare = normalizeElementWeightMap(creatureElementWeightsAtLocation(locationEntry));
+  if (!initiativeShare.total && !creatureShare.total) {
+    return { fire: 0.25, air: 0.25, earth: 0.25, water: 0.25 };
+  }
+  return {
+    fire: (initiativeShare.fire * 0.7) + (creatureShare.fire * 0.3),
+    air: (initiativeShare.air * 0.7) + (creatureShare.air * 0.3),
+    earth: (initiativeShare.earth * 0.7) + (creatureShare.earth * 0.3),
+    water: (initiativeShare.water * 0.7) + (creatureShare.water * 0.3),
+  };
+}
+
+function attackEnvironmentBiasWeight(card, locationEntry = null) {
+  const elementProfile = parseAttackElementProfile(card);
+  if (!elementProfile.hasElement || !locationEntry || typeof locationEntry !== "object") {
+    return 1;
+  }
+  const context = buildAttackElementContext(locationEntry);
+  const activeElements = ["fire", "air", "earth", "water"].filter((element) => Boolean(elementProfile[element]));
+  if (!activeElements.length) {
+    return 1;
+  }
+  const influence = activeElements.reduce((sum, element) => sum + Math.max(0, Number(context[element] || 0)), 0) / activeElements.length;
+  return Math.max(0.35, 0.35 + (influence * 1.65));
+}
+
+function selectMugicTribeWeightsFromLocation(locationEntry = null) {
+  const result = new Map();
+  if (!locationEntry || typeof locationEntry !== "object") {
+    return result;
+  }
+  const { creaturesById, creaturesByNormalizedName } = getLibraryIndexes();
+  const creatures = getCreaturesAtLocation(String(locationEntry?.cardId || locationEntry?.id || locationEntry?.name || ""));
+  creatures.forEach((entry) => {
+    const cardId = String(entry?.cardId || "");
+    let card = cardId ? creaturesById.get(cardId) : null;
+    if (!card && entry?.name) {
+      card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
+    }
+    if (!card) {
+      return;
+    }
+    const mugicAbility = Number(card?.stats?.mugicability ?? card?.mugicability ?? 0);
+    if (mugicAbility <= 0) {
+      return;
+    }
+    const tribe = String(card?.tribe || "").trim().toLowerCase();
+    if (!tribe) {
+      return;
+    }
+    result.set(tribe, (result.get(tribe) || 0) + 1);
+  });
+  return result;
+}
+
+function buildCreatureCluesFromCandidate(candidate) {
+  const card = candidate?.card || {};
+  const matrixEntry = candidate?.entry || {};
+  const clues = [];
+  const tribe = String(card?.tribe || matrixEntry?.tribe || "").trim();
+  if (tribe) {
+    clues.push(`Sinal tribal detectado: ${tribe}.`);
+  }
+  const elementTokens = [];
+  if (Number(card?.stats?.fire || card?.fire || 0) > 0) elementTokens.push("Fire");
+  if (Number(card?.stats?.air || card?.air || 0) > 0) elementTokens.push("Air");
+  if (Number(card?.stats?.earth || card?.earth || 0) > 0) elementTokens.push("Earth");
+  if (Number(card?.stats?.water || card?.water || 0) > 0) elementTokens.push("Water");
+  if (elementTokens.length) {
+    clues.push(`Assinatura elemental: ${elementTokens.join(", ")}.`);
+  }
+  const stats = [
+    { key: "Coragem", value: Number(card?.stats?.courage || card?.courage || 0) },
+    { key: "Poder", value: Number(card?.stats?.power || card?.power || 0) },
+    { key: "Sabedoria", value: Number(card?.stats?.wisdom || card?.wisdom || 0) },
+    { key: "Velocidade", value: Number(card?.stats?.speed || card?.speed || 0) },
+    { key: "Energia", value: Number(card?.stats?.energy || card?.energy || 0) },
+  ].filter((entry) => Number.isFinite(entry.value));
+  if (stats.length) {
+    const strongest = [...stats].sort((a, b) => b.value - a.value)[0];
+    clues.push(`Atributo dominante observado: ${strongest.key} (${strongest.value}).`);
+  }
+  const mugicability = Number(card?.stats?.mugicability ?? card?.mugicability ?? 0);
+  clues.push(
+    mugicability > 0
+      ? `A criatura apresenta uso de Mugic Counters (${mugicability}).`
+      : "Nenhum uso de Mugic Counters detectado."
+  );
+  const roleTags = String(matrixEntry?.types || card?.types || "").trim();
+  if (roleTags) {
+    clues.push(`Perfil de comportamento: ${roleTags}.`);
+  }
+  return clues;
+}
+
+function pickCreatureCandidateAtLocation(locationEntry, options = {}) {
+  const pool = getCreaturesAtLocation(String(locationEntry?.cardId || locationEntry?.id || locationEntry?.name || ""));
+  if (!Array.isArray(pool) || !pool.length) {
+    return null;
+  }
+  const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
+  const rareBoost = Math.max(0, Number(options.rareBoost || 0));
+  const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const { creaturesById, creaturesByNormalizedName } = getLibraryIndexes();
+  const candidates = pool
+    .map((entry) => {
+      const cardId = String(entry.cardId || entry.card_id || "");
+      let card = cardId ? creaturesById.get(cardId) : null;
+      if (!card && entry.name) {
+        card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
+      }
+      if (!card) {
+        return null;
+      }
+      const stockKey = `creatures:${String(card.id || "")}`;
+      const currentAmount = inventoryCounts.get(stockKey) || 0;
+      if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
+        return null;
+      }
+      const dropChance = Math.max(0, Math.min(1, Number(entry.dropChance || 0) + (rareBoost * 0.02)));
+      return {
+        entry,
+        card,
+        weight: Math.max(0.05, dropChance),
+      };
+    })
+    .filter(Boolean);
+  if (!candidates.length) {
+    return null;
+  }
+  return weightedRandomChoice(candidates, Math.random) || null;
+}
+
+function buildPerimCluesForRun(actionId, locationEntry, rewards, options = {}) {
+  const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
+  const scannerEffect = options.scannerEffect || scannerEffectsByLevel(1);
+  const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const hasCreatureReward = Array.isArray(rewards) && rewards.some((reward) => String(reward?.type || "") === "creatures");
+  if (String(actionId || "") === "track") {
+    if (hasCreatureReward) {
+      return [];
+    }
+    const candidate = pickCreatureCandidateAtLocation(locationEntry, {
+      inventoryCounts,
+      rareBoost: scannerEffect.rareBoost,
+      ignoreInventoryCap,
+    });
+    if (!candidate) {
+      return ["Nenhum sinal confiavel de criatura encontrado nesta area."];
+    }
+    const pool = buildCreatureCluesFromCandidate(candidate);
+    return pool.length ? [pickFromList(pool)] : [];
+  }
+  if (String(actionId || "") !== "anomaly") {
+    return [];
+  }
+  const candidate = pickCreatureCandidateAtLocation(locationEntry, {
+    inventoryCounts,
+    rareBoost: scannerEffect.rareBoost,
+    ignoreInventoryCap,
+  });
+  if (!candidate) {
+    return ["A anomalia nao estabilizou pistas suficientes sobre criaturas nesta area."];
+  }
+  const allClues = buildCreatureCluesFromCandidate(candidate);
+  if (!allClues.length) {
+    return ["A anomalia revelou sinais inconclusivos da criatura local."];
+  }
+  const targetCount = Math.max(1, Math.min(5, 1 + Math.floor(Math.random() * 5)));
+  const shuffled = [...allClues];
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const swap = Math.floor(Math.random() * (i + 1));
+    const current = shuffled[i];
+    shuffled[i] = shuffled[swap];
+    shuffled[swap] = current;
+  }
+  return shuffled.slice(0, Math.min(targetCount, shuffled.length));
+}
+
+function rewardCardFromType(type, preferredTribe = "", options = {}) {
+  const cards = Array.isArray(library?.cardsByType?.[type]) ? library.cardsByType[type] : [];
+  if (!cards.length) {
+    return null;
+  }
+  const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
+  const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const locationEntry = options.locationEntry && typeof options.locationEntry === "object"
+    ? options.locationEntry
+    : null;
+  const requireLocalMugicEligible = Boolean(options.requireLocalMugicEligible);
+  const tribeKey = String(preferredTribe || "").trim().toLowerCase();
+  let basePool = cards;
+  if (type === "mugic" && locationEntry) {
+    const tribeWeights = selectMugicTribeWeightsFromLocation(locationEntry);
+    if (!tribeWeights.size && requireLocalMugicEligible) {
+      return null;
+    }
+    if (tribeWeights.size) {
+      const weightedTribes = [...tribeWeights.entries()].map(([tribe, weight]) => ({ tribe, weight }));
+      const selected = weightedRandomChoice(weightedTribes, Math.random);
+      const selectedTribe = String(selected?.tribe || "").trim().toLowerCase();
+      const selectedPool = selectedTribe
+        ? cards.filter((card) => String(card?.tribe || "").trim().toLowerCase() === selectedTribe)
+        : [];
+      if (selectedPool.length) {
+        basePool = selectedPool;
+      } else if (requireLocalMugicEligible) {
+        return null;
+      }
+    }
+  } else {
+    const tribePool = tribeKey
+      ? cards.filter((card) => String(card?.tribe || "").trim().toLowerCase() === tribeKey)
+      : [];
+    basePool = tribePool.length ? tribePool : cards;
+  }
+  const pool = basePool.filter((card) => {
+    const nameLower = String(card?.name || "").toLowerCase();
+    if (nameLower.includes("unused") || nameLower.includes("alpha")) {
+      return false;
+    }
+    const stockKey = `${type}:${String(card?.id || "")}`;
+    const currentAmount = inventoryCounts.get(stockKey) || 0;
+    return ignoreInventoryCap || currentAmount < INVENTORY_MAX_COPIES;
+  });
+  if (!pool.length) {
+    return null;
+  }
+  const rareBoost = Math.max(0, Number(options.rareBoost || 0));
+  const weighted = pool.map((card) => {
+    let weight = Math.max(0.2, 1 + (rarityTierScore(card?.rarity) * rareBoost));
+    if (type === "attacks" && locationEntry) {
+      weight *= attackEnvironmentBiasWeight(card, locationEntry);
+    }
+    return { card, weight: Math.max(0.05, weight) };
+  });
+  const pickedEntry = weightedRandomChoice(weighted, Math.random);
+  const picked = pickedEntry?.card || pickFromList(pool);
+  if (!picked?.id) {
+    return null;
+  }
+  const reward = {
+    type,
+    cardId: picked.id,
+    cardName: picked.name,
+    rarity: picked.rarity || "Unknown",
+    image: picked.image || "",
+  };
+  if (type === "creatures" && options.includeCreatureVariant) {
+    const variant = buildCreatureScanVariant();
+    reward.variant = variant;
+    reward.cardDisplayName = variant.perfect ? `${picked.name} â˜…` : picked.name;
+  }
+  return reward;
+}
+
+function climateTypeWeight(climateKey, typesRaw, tribeRaw = "") {
+  const climate = normalizeClimateText(climateKey);
+  const types = normalizePerimText(typesRaw);
+  const tribe = normalizePerimText(tribeRaw);
+  let weight = 1;
+
+  if (climate.includes("chuv")) {
+    if (types.includes("danian") || types.includes("conjuror") || types.includes("mugic")) {
+      weight += 0.35;
+    }
+    if (types.includes("mipedian") || tribe.includes("mipedian")) {
+      weight -= 0.2;
+    }
+  } else if (climate.includes("ensolar")) {
+    if (types.includes("mipedian") || types.includes("scout") || tribe.includes("mipedian")) {
+      weight += 0.3;
+    }
+    if (types.includes("danian")) {
+      weight -= 0.12;
+    }
+  } else if (climate.includes("nevand")) {
+    if (types.includes("warrior") || types.includes("taskmaster") || tribe.includes("underworld")) {
+      weight += 0.24;
+    }
+    if (types.includes("mipedian")) {
+      weight -= 0.15;
+    }
+  } else if (climate.includes("tempest")) {
+    if (types.includes("conjuror") || types.includes("elementalist") || types.includes("mugic")) {
+      weight += 0.22;
+    }
+  } else if (climate.includes("ventan")) {
+    if (types.includes("swift") || types.includes("scout")) {
+      weight += 0.15;
+    }
+  }
+
+  return Math.max(0.25, weight);
+}
+
+function pickCreatureRewardFromLocation(locationEntry, options = {}) {
+  const locationId = String(locationEntry?.id || locationEntry?.cardId || "");
+  const locationName = String(locationEntry?.name || "");
+  const creaturePoolRaw = getCreaturesAtLocation(locationId || locationName);
+  return pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options);
+}
+
+function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}) {
+  const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
+  const includeCreatureVariant = Boolean(options.includeCreatureVariant);
+  const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const forceDrop = Boolean(options.forceDrop);
+  const rareBoost = Math.max(0, Number(options.rareBoost || 0));
+  if (!Array.isArray(creaturePoolRaw) || !creaturePoolRaw.length) {
+    return null;
+  }
+  const { creaturesById: libraryById, creaturesByNormalizedName } = getLibraryIndexes();
+  const perimState = getPerimGlobalLocationState(locationEntry, new Date());
+  const activeClimate = normalizeClimateText(perimState?.climate || "");
+  const candidates = creaturePoolRaw
+    .map((entry) => {
+      const cardId = String(entry.cardId || entry.card_id || "");
+      let card = cardId ? libraryById.get(cardId) : null;
+      if (!card && entry.name) {
+        card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
+      }
+      if (!card || !card.id) {
+        return null;
+      }
+      const cardNameLower = String(card.name || "").toLowerCase();
+      if (cardNameLower.includes("unused") || cardNameLower.includes("alpha")) {
+        return null;
+      }
+      const stockKey = `creatures:${String(card.id)}`;
+      const currentAmount = inventoryCounts.get(stockKey) || 0;
+      if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
+        return null;
+      }
+      const dropChance = Math.max(0, Math.min(1, Number(entry.dropChance || 0)));
+      const rarityKey = normalizePerimText(card?.rarity || entry?.rarity || "");
+      const rarityDropMultiplier = Number(CREATURE_SCAN_RARITY_MULTIPLIER[rarityKey] || 1);
+      const boostedDropChance = Math.max(0, Math.min(1, (dropChance + (rareBoost * 0.02)) * Math.max(0.05, rarityDropMultiplier)));
+      const rarityWeight = Math.max(0.15, 1 + (rarityTierScore(card.rarity) * Math.max(0, rareBoost)));
+      const climateWeight = climateTypeWeight(activeClimate, String(entry.types || card.types || ""), card.tribe || "");
+      return {
+        entry,
+        card,
+        dropChance: boostedDropChance,
+        weight: Math.max(0.05, rarityWeight * climateWeight),
+      };
+    })
+    .filter(Boolean);
+  if (!candidates.length) {
+    return null;
+  }
+  const weighted = weightedRandomChoice(candidates, Math.random);
+  if (!weighted) {
+    return null;
+  }
+  if (!forceDrop && Math.random() > weighted.dropChance) {
+    return null;
+  }
+  const reward = {
+    type: "creatures",
+    cardId: weighted.card.id,
+    cardName: weighted.card.name,
+    rarity: weighted.card.rarity || weighted.entry.rarity || "Unknown",
+    image: weighted.card.image || "",
+  };
+  if (includeCreatureVariant) {
+    const variant = buildCreatureScanVariant();
+    reward.variant = variant;
+    reward.cardDisplayName = variant.perfect ? `${weighted.card.name} â˜…` : weighted.card.name;
+  }
+  return reward;
+}
+
+function increaseInventoryCountMap(map, reward) {
+  if (!(map instanceof Map)) {
+    return;
+  }
+  const type = String(reward?.type || "");
+  const cardId = String(reward?.cardId || "");
+  if (!type || !cardId) {
+    return;
+  }
+  const stockKey = `${type}:${cardId}`;
+  map.set(stockKey, (map.get(stockKey) || 0) + 1);
+}
+
+function normalizeRewardPayload(reward) {
+  if (!reward || typeof reward !== "object") {
+    return null;
+  }
+  const type = String(reward.type || "").trim();
+  const cardId = String(reward.cardId || "").trim();
+  if (!type || !cardId) {
+    return null;
+  }
+  const payload = {
+    type,
+    cardId,
+    cardName: String(reward.cardName || cardId),
+    cardDisplayName: String(reward.cardDisplayName || reward.cardName || cardId),
+    rarity: String(reward.rarity || "Unknown"),
+    image: String(reward.image || ""),
+  };
+  if (type === "creatures" && reward.variant) {
+    payload.variant = normalizeCreatureVariant(reward.variant);
+    if (payload.variant?.perfect) {
+      payload.cardDisplayName = `${payload.cardName} â˜…`;
+    }
+  }
+  return payload;
+}
+
+function applyScannerProgressFromRewards(playerKeyRaw, rewards) {
+  const rewardsList = Array.isArray(rewards) ? rewards : [];
+  if (!rewardsList.length) {
+    return;
+  }
+  const profilesState = loadProfilesData();
+  const { profile } = getOrCreateProfile(profilesState, playerKeyRaw);
+  let changed = false;
+  rewardsList.forEach((reward) => {
+    if (String(reward?.type || "") !== "creatures") {
+      return;
+    }
+    const card = library?.cards?.find((entry) => entry.id === reward.cardId);
+    const scannerKey = normalizeTribeToScannerKey(card?.tribe || "");
+    if (!scannerKey) {
+      return;
+    }
+    addScannerXp(profile, scannerKey, 5);
+    changed = true;
+  });
+  if (changed) {
+    profile.updatedAt = nowIso();
+    writeProfilesData(profilesState, "profile_scanner_progress");
+  }
+}
+
+function turnLabelFromHour(hour) {
+  if (hour >= 5 && hour < 7) return "Amanhecer";
+  if (hour >= 7 && hour < 11) return "Manha";
+  if (hour >= 11 && hour < 13) return "Meio-dia";
+  if (hour >= 13 && hour < 16) return "Inicio da tarde";
+  if (hour >= 16 && hour < 19) return "Tarde";
+  if (hour >= 19 && hour < 23) return "Noite";
+  return "Madrugada";
+}
+
+function normalizeClimateText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function inferPerimClimateProfile(locationEntry) {
+  const terrainKey = normalizeClimateText(locationEntry?.terrain || locationEntry?.environment || "");
+  const nameKey = normalizeClimateText(locationEntry?.name || "");
+  const tribeKey = normalizeClimateText(locationEntry?.tribe || "");
+
+  if (nameKey.includes("chuva eterna") || nameKey.includes("eternal rain")) {
+    return [{ climate: "Chuvoso", weight: 100 }];
+  }
+  if (nameKey.includes("geleira") || nameKey.includes("glacier") || nameKey.includes("frozen") || nameKey.includes("snow")) {
+    return [
+      { climate: "Nevando", weight: 65 },
+      { climate: "Nublado", weight: 22 },
+      { climate: "Ventania", weight: 11 },
+      { climate: "Ensolarado", weight: 2 },
+    ];
+  }
+  if (
+    terrainKey.includes("deserto")
+    || nameKey.includes("desert")
+    || tribeKey.includes("mipedian")
+    || tribeKey.includes("maipidian")
+  ) {
+    return [
+      { climate: "Ensolarado", weight: 58 },
+      { climate: "Ventania", weight: 24 },
+      { climate: "Nublado", weight: 15 },
+      { climate: "Chuvoso", weight: 2 },
+      { climate: "Tempestade", weight: 1 },
+    ];
+  }
+  if (
+    terrainKey.includes("floresta")
+    || terrainKey.includes("selva")
+    || nameKey.includes("forest")
+    || nameKey.includes("jungle")
+    || nameKey.includes("rain")
+  ) {
+    return [
+      { climate: "Chuvoso", weight: 54 },
+      { climate: "Nublado", weight: 25 },
+      { climate: "Tempestade", weight: 16 },
+      { climate: "Ensolarado", weight: 5 },
+    ];
+  }
+  if (
+    terrainKey.includes("oceano")
+    || terrainKey.includes("mar")
+    || terrainKey.includes("lago")
+    || nameKey.includes("sea")
+    || nameKey.includes("reef")
+    || nameKey.includes("bay")
+  ) {
+    return [
+      { climate: "Nublado", weight: 35 },
+      { climate: "Chuvoso", weight: 28 },
+      { climate: "Ventania", weight: 22 },
+      { climate: "Tempestade", weight: 12 },
+      { climate: "Ensolarado", weight: 3 },
+    ];
+  }
+  if (
+    terrainKey.includes("submundo")
+    || terrainKey.includes("underworld")
+    || nameKey.includes("lava")
+    || nameKey.includes("magma")
+    || nameKey.includes("volcan")
+  ) {
+    return [
+      { climate: "Ensolarado", weight: 44 },
+      { climate: "Ventania", weight: 24 },
+      { climate: "Nublado", weight: 18 },
+      { climate: "Tempestade", weight: 10 },
+      { climate: "Chuvoso", weight: 4 },
+    ];
+  }
+  return [
+    { climate: "Nublado", weight: 38 },
+    { climate: "Ensolarado", weight: 26 },
+    { climate: "Chuvoso", weight: 20 },
+    { climate: "Ventania", weight: 10 },
+    { climate: "Tempestade", weight: 4 },
+    { climate: "Nevando", weight: 2 },
+  ];
+}
+
+function pickWeightedClimate(profile, seed) {
+  const valid = Array.isArray(profile) ? profile.filter((entry) => Number(entry?.weight || 0) > 0) : [];
+  if (!valid.length) {
+    return "Nublado";
+  }
+  const totalWeight = valid.reduce((sum, entry) => sum + Number(entry.weight || 0), 0);
+  if (totalWeight <= 0) {
+    return String(valid[0]?.climate || "Nublado");
+  }
+  let roll = seed % totalWeight;
+  for (let idx = 0; idx < valid.length; idx += 1) {
+    roll -= Number(valid[idx].weight || 0);
+    if (roll < 0) {
+      return String(valid[idx].climate || "Nublado");
+    }
+  }
+  return String(valid[valid.length - 1]?.climate || "Nublado");
+}
+
+function buildPerimContextSnapshot(locationEntry, actionId, scannerEffect = null, nowDate = new Date(), clues = []) {
+  const globalState = getPerimGlobalLocationState(locationEntry, nowDate);
+  const chosenAction = String(actionId || "explore");
+  const creatureChanceByAction = locationEntry?.creatureChanceByAction || {};
+  const creatureChancePercent = clampPercent(
+    creatureChanceByAction[chosenAction] ?? locationEntry?.creatureChancePercent ?? PERIM_CREATURE_CHANCE_BY_ACTION.explore
+  );
+  const creaturesTodayCount = getCreatureCountAtLocation(
+    String(locationEntry?.cardId || locationEntry?.id || locationEntry?.name || ""),
+    todayDateKey(nowDate)
+  );
+  const successBoost = Math.max(0, Number(scannerEffect?.successBoostPercent || 0));
+  return {
+    capturedAt: nowDate.toISOString(),
+    turnLabel: globalState.turnLabel,
+    climate: globalState.climate,
+    creatureChancePercent,
+    creaturesTodayCount,
+    hasCreaturesToday: creaturesTodayCount > 0,
+    clues: Array.isArray(clues) ? clues.filter(Boolean) : [],
+    scanSuccessBoostPercent: successBoost,
+    eventChancePercent: 0,
+    locationDropChancePercent: Math.round(locationDropChanceByRarity(locationEntry?.rarity || "") * 100),
+  };
+}
+
+function currentPerimHourToken(nowDate = new Date()) {
+  const year = nowDate.getFullYear();
+  const month = String(nowDate.getMonth() + 1).padStart(2, "0");
+  const day = String(nowDate.getDate()).padStart(2, "0");
+  const hour = Number(nowDate.getHours() || 0);
+  let slot = PERIM_CLIMATE_SLOTS[0];
+  PERIM_CLIMATE_SLOTS.forEach((boundary) => {
+    if (hour >= boundary) {
+      slot = boundary;
+    }
+  });
+  return `${year}-${month}-${day}-${String(slot).padStart(2, "0")}`;
+}
+
+function getPerimGlobalLocationState(locationEntry, nowDate = new Date()) {
+  const locationId = String(locationEntry?.cardId || locationEntry?.id || "").trim();
+  if (!locationId) {
+    return {
+      turnLabel: turnLabelFromHour(nowDate.getHours()),
+      climate: "Nublado",
+      hourToken: currentPerimHourToken(nowDate),
+    };
+  }
+  const hourToken = currentPerimHourToken(nowDate);
+  if (isSqlV2Ready()) {
+    const row = sqliteDb
+      .prepare(`
+        SELECT turn_label, climate, hour_token, updated_at
+        FROM perim_location_state
+        WHERE location_id = ?
+      `)
+      .get(locationId);
+    if (row && String(row?.hour_token || "") === hourToken) {
+      return {
+        hourToken: String(row?.hour_token || hourToken),
+        turnLabel: String(row?.turn_label || turnLabelFromHour(nowDate.getHours())),
+        climate: String(row?.climate || "Nublado"),
+        updatedAt: String(row?.updated_at || nowIso()),
+      };
+    }
+  } else {
+    const cached = sqlGet("perim_location_state_global", locationId);
+    if (cached && cached.hourToken === hourToken) {
+      return cached;
+    }
+  }
+  const weatherSeed = hashTokenToInt(`${locationId}:${hourToken}`);
+  const climateProfile = inferPerimClimateProfile(locationEntry || {});
+  const climate = pickWeightedClimate(climateProfile, weatherSeed);
+  const nextState = {
+    hourToken,
+    turnLabel: turnLabelFromHour(nowDate.getHours()),
+    climate,
+    updatedAt: nowIso(),
+  };
+  if (isSqlV2Ready()) {
+    sqliteDb.prepare(`
+      INSERT INTO perim_location_state (location_id, turn_label, climate, creatures_today_count, event_chance_percent, hour_token, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(location_id) DO UPDATE SET
+        turn_label = excluded.turn_label,
+        climate = excluded.climate,
+        hour_token = excluded.hour_token,
+        updated_at = excluded.updated_at
+    `).run(
+      locationId,
+      String(nextState.turnLabel || ""),
+      String(nextState.climate || "Nublado"),
+      0,
+      0,
+      String(nextState.hourToken || ""),
+      String(nextState.updatedAt || nowIso())
+    );
+  } else {
+    sqlSet("perim_location_state_global", locationId, nextState);
+  }
+  return nextState;
+}
+
+function computePerimDurationMs(locationId, actionId, baseDurationMs, scannerEffect = null) {
+  const seed = hashTokenToInt(`${locationId}:${actionId}`);
+  const randomMultiplier = 0.82 + ((seed % 53) / 100);
+  const scannerMultiplier = Math.max(0.55, Number(scannerEffect?.durationMultiplier || 1));
+  const multiplier = randomMultiplier * scannerMultiplier;
+  return Math.max(60 * 1000, Math.round(baseDurationMs * multiplier));
+}
+
+function buildPerimRewards(locationEntry, actionId, options = {}) {
+  const perfStart = Date.now();
+  const tribe = String(locationEntry?.tribe || "").trim();
+  const rewards = [];
+  const profile = PERIM_REWARD_PROFILE_BY_ACTION[actionId] || PERIM_REWARD_PROFILE_BY_ACTION.explore;
+  const scannerEffect = options.scannerEffect || scannerEffectsByLevel(1);
+  const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
+  const includeCreatureVariant = Boolean(options.includeCreatureVariant);
+  const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const creatureDropChance = Math.max(
+    0,
+    Math.min(1, Number(calculateCreatureChancePercent(locationEntry?.rarity, actionId) || 0) / 100)
+  );
+  const { locationsById: locationCardsById } = getLibraryIndexes();
+  const pickCreatureForAction = () => {
+    if (Math.random() > creatureDropChance) {
+      return null;
+    }
+    return pickCreatureRewardFromLocation(locationEntry, {
+      inventoryCounts,
+      rareBoost: scannerEffect.rareBoost,
+      includeCreatureVariant,
+      ignoreInventoryCap,
+    });
+  };
+  const pickRewardForType = (type) => {
+    if (type === "creatures") {
+      return pickCreatureForAction();
+    }
+    return rewardCardFromType(type, tribe, {
+      inventoryCounts,
+      rareBoost: scannerEffect.rareBoost,
+      includeCreatureVariant,
+      ignoreInventoryCap,
+      locationEntry,
+      requireLocalMugicEligible: type === "mugic",
+    });
+  };
+
+  const appendReward = (rewardLike) => {
+    const normalized = normalizeRewardPayload(rewardLike);
+    if (!normalized) {
+      return false;
+    }
+    rewards.push(normalized);
+    increaseInventoryCountMap(inventoryCounts, normalized);
+    return true;
+  };
+
+  const pickGuaranteedLocalReward = () => {
+    const locationPool = [];
+    const locationId = String(locationEntry?.cardId || locationEntry?.id || "").trim();
+    if (locationId) {
+      locationPool.push(locationId);
+    }
+    const linked = Array.isArray(locationEntry?.linkedLocationIds) ? locationEntry.linkedLocationIds : [];
+    linked.forEach((id) => {
+      const token = String(id || "").trim();
+      if (token && !locationPool.includes(token)) {
+        locationPool.push(token);
+      }
+    });
+    const locationCandidates = locationPool
+      .map((id) => locationCardsById.get(String(id)))
+      .filter(Boolean)
+      .filter((card) => {
+        const stockKey = `locations:${String(card.id)}`;
+        const currentAmount = inventoryCounts.get(stockKey) || 0;
+        if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
+          return false;
+        }
+        const lowerName = String(card?.name || "").toLowerCase();
+        return !lowerName.includes("unused") && !lowerName.includes("alpha");
+      });
+
+    if (locationCandidates.length) {
+      const sameLocationId = String(locationId || "");
+      const adjacentPool = locationCandidates.filter((card) => String(card.id) !== sameLocationId);
+      let pickedLocation = null;
+      if (adjacentPool.length && Math.random() < 0.72) {
+        pickedLocation = pickFromList(adjacentPool);
+      } else if (sameLocationId) {
+        pickedLocation = locationCandidates.find((card) => String(card.id) === sameLocationId) || null;
+      } else {
+        pickedLocation = pickFromList(locationCandidates);
+      }
+      if (pickedLocation) {
+        appendReward({
+          type: "locations",
+          cardId: pickedLocation.id,
+          cardName: pickedLocation.name,
+          rarity: pickedLocation.rarity || "Unknown",
+          image: pickedLocation.image || "",
+        });
+      }
+    }
+  };
+
+  const successRoll = Math.random();
+  const baseSuccessChance = Math.max(0, Math.min(1, Number(profile.baseSuccessChance || 0.65)));
+  const boostedSuccessChance = Math.max(0, Math.min(1, baseSuccessChance + (Number(scannerEffect.successBoostPercent || 0) / 100)));
+  const success = successRoll <= boostedSuccessChance;
+  if (!success) {
+    const failFallback =
+      rewardCardFromType("attacks", tribe, {
+        inventoryCounts,
+        rareBoost: scannerEffect.rareBoost,
+        ignoreInventoryCap,
+        locationEntry,
+      }) ||
+      rewardCardFromType("battlegear", tribe, {
+        inventoryCounts,
+        rareBoost: scannerEffect.rareBoost,
+        ignoreInventoryCap,
+        locationEntry,
+      }) ||
+      rewardCardFromType("mugic", tribe, {
+        inventoryCounts,
+        rareBoost: scannerEffect.rareBoost,
+        ignoreInventoryCap,
+        locationEntry,
+        requireLocalMugicEligible: true,
+      }) ||
+      pickCreatureForAction();
+    if (failFallback) {
+      appendReward(failFallback);
+    }
+    if (!rewards.length) {
+      pickGuaranteedLocalReward();
+    }
+  } else {
+    const primaryType = weightedPick(profile.primary) || "creatures";
+    const primaryReward = pickRewardForType(primaryType);
+    if (primaryReward) {
+      appendReward(primaryReward);
+    }
+    if (Math.random() < profile.bonusChance) {
+      const bonusType = weightedPick(profile.primary) || "attacks";
+      const bonusReward = pickRewardForType(bonusType);
+      if (bonusReward) {
+        appendReward(bonusReward);
+      }
+    }
+    let attackDrops = 0;
+    if (Math.random() < profile.attackChance) {
+      attackDrops += 1;
+    }
+    if (attackDrops > 0 && Math.random() < 0.35) {
+      attackDrops += 1;
+    }
+    attackDrops = Math.min(2, attackDrops);
+    for (let i = 0; i < attackDrops; i += 1) {
+      const attackReward = rewardCardFromType("attacks", tribe, {
+        inventoryCounts,
+        rareBoost: scannerEffect.rareBoost,
+        ignoreInventoryCap,
+        locationEntry,
+      });
+      if (attackReward) {
+        appendReward(attackReward);
+      }
+    }
+    const locationDropChance = Math.max(
+      0,
+      Math.min(1, locationDropChanceByRarity(locationEntry?.rarity || "") * Math.max(0.2, Number(profile.locationDropBias || 1)))
+    );
+    const linkedLocationIds = Array.isArray(locationEntry?.linkedLocationIds) ? locationEntry.linkedLocationIds : [];
+    if (Math.random() < locationDropChance) {
+      const linkedPool = linkedLocationIds
+        .map((cardId) => locationCardsById.get(String(cardId)))
+        .filter((card) => Boolean(card))
+        .filter((card) => {
+          const stockKey = `locations:${String(card.id)}`;
+          const currentAmount = inventoryCounts.get(stockKey) || 0;
+          return ignoreInventoryCap || currentAmount < INVENTORY_MAX_COPIES;
+        });
+      const currentLocationId = String(locationEntry?.cardId || locationEntry?.id || "");
+      const sameLocationCard = locationCardsById.get(currentLocationId) || null;
+      let picked = null;
+      if (linkedPool.length && Math.random() < 0.72) {
+        picked = pickFromList(linkedPool);
+      } else if (sameLocationCard) {
+        const stockKey = `locations:${String(sameLocationCard.id)}`;
+        const currentAmount = inventoryCounts.get(stockKey) || 0;
+        if (ignoreInventoryCap || currentAmount < INVENTORY_MAX_COPIES) {
+          picked = sameLocationCard;
+        }
+      }
+      if (picked?.id) {
+        appendReward({
+          type: "locations",
+          cardId: picked.id,
+          cardName: picked.name,
+          rarity: picked.rarity || "Unknown",
+          image: picked.image || "",
+        });
+      }
+    }
+  }
+  if (!rewards.length) {
+    pickGuaranteedLocalReward();
+  }
+  if (!rewards.length) {
+    const fallback = rewardCardFromType("attacks", tribe, {
+      inventoryCounts,
+      rareBoost: scannerEffect.rareBoost,
+      ignoreInventoryCap,
+      locationEntry,
+    })
+      || rewardCardFromType("battlegear", tribe, {
+        inventoryCounts,
+        rareBoost: scannerEffect.rareBoost,
+        ignoreInventoryCap,
+        locationEntry,
+      })
+      || rewardCardFromType("mugic", tribe, {
+        inventoryCounts,
+        rareBoost: scannerEffect.rareBoost,
+        ignoreInventoryCap,
+        locationEntry,
+        requireLocalMugicEligible: true,
+      });
+    if (fallback) {
+      appendReward(fallback);
+    }
+  }
+  const minRewardsByAction = String(actionId || "") === "anomaly" ? 1 : 2;
+  let attempts = 0;
+  while (rewards.length < minRewardsByAction && attempts < 10) {
+    attempts += 1;
+    if (!rewards.some((reward) => String(reward?.type || "") === "locations")) {
+      pickGuaranteedLocalReward();
+      if (rewards.length >= minRewardsByAction) {
+        break;
+      }
+    }
+    const topUp =
+      pickRewardForType(weightedPick(profile.primary) || "attacks")
+      || rewardCardFromType("attacks", tribe, {
+        inventoryCounts,
+        rareBoost: scannerEffect.rareBoost,
+        ignoreInventoryCap,
+        locationEntry,
+      })
+      || rewardCardFromType("mugic", tribe, {
+        inventoryCounts,
+        rareBoost: scannerEffect.rareBoost,
+        ignoreInventoryCap,
+        locationEntry,
+        requireLocalMugicEligible: true,
+      });
+    if (!topUp || !appendReward(topUp)) {
+      break;
+    }
+  }
+  logPerimPerf("buildPerimRewards", perfStart, `action=${String(actionId || "")} rewards=${rewards.length}`);
+  return rewards.filter(Boolean);
+}
+
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Creature Daily Location System
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+const CREATURE_RARITY_DROP_CHANCE = {
+  common: 0.55,
+  uncommon: 0.38,
+  rare: 0.24,
+  "super rare": 0.084,
+  "ultra rare": 0.0315,
+  promo: 0.03,
+};
+
+const CREATURE_SCAN_RARITY_MULTIPLIER = {
+  "super rare": 0.6,
+  "ultra rare": 0.45,
+};
+
+const LOCATION_RARITY_DROP_CHANCE = {
+  common: 0.2,
+  uncommon: 0.16,
+  rare: 0.11,
+  "super rare": 0.07,
+  "ultra rare": 0.04,
+  promo: 0.02,
+};
+
+const PERIM_CLIMATE_SLOTS = [0, 6, 12, 18];
+
+let perimCreaturesMatrixCache = null;
+
+function loadPerimCreaturesMatrix() {
+  const fileExists = fs.existsSync(PERIM_CREATURES_FILE);
+  const fileMtimeMs = fileExists ? Number(fs.statSync(PERIM_CREATURES_FILE).mtimeMs || 0) : 0;
+  if (perimCreaturesMatrixCache && perimCreaturesMatrixCache.mtimeMs === fileMtimeMs) {
+    return perimCreaturesMatrixCache.rows;
+  }
+  const rows = [];
+  if (!fileExists) {
+    perimCreaturesMatrixCache = { mtimeMs: 0, rows };
+    return rows;
+  }
+  try {
+    const workbook = XLSX.readFile(PERIM_CREATURES_FILE, { cellDates: false });
+    const sheet = workbook.Sheets.Sheet1 || workbook.Sheets[workbook.SheetNames[0]];
+    if (!sheet) {
+      perimCreaturesMatrixCache = { mtimeMs: fileMtimeMs, rows };
+      return rows;
+    }
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    rawRows.forEach((row) => {
+      const name = String(row["Column1.name"] || "").trim();
+      if (!name) {
+        return;
+      }
+      const rarity = String(row["Column1.rarity"] || "").trim();
+      const tribe = String(row["Column1.tribe"] || "").trim();
+      const types = String(row["Column1.types"] || "").trim();
+      const loki = Number(row["Column1.loki"] || 0);
+      const proximoLocal = String(row["ENCONTRADO PROXIMO A ESSE LOCAL"] || "").trim();
+      const somenteLocal1 = String(row["ENCONTRADO SOMENTE NESSE LOCAL"] || "").trim();
+      const somenteLocal2 = String(row["ENCONTRADO SOMENTE NESSE LOCAL 2"] || "").trim();
+      rows.push({
+        name,
+        rarity,
+        tribe,
+        types,
+        loki,
+        proximoLocal,
+        somenteLocal1,
+        somenteLocal2,
+      });
+    });
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao ler criaturas.xlsx: ${error.message}`);
+  }
+  perimCreaturesMatrixCache = { mtimeMs: fileMtimeMs, rows };
+  return rows;
+}
+
+function locationAliasCandidates(rawValue) {
+  const token = String(rawValue || "").trim();
+  if (!token) {
+    return [];
+  }
+  const parts = token
+    .split(/[,;|/]/g)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return [token, ...parts.filter((part) => part.toLowerCase() !== token.toLowerCase())];
+}
+
+function buildLocationAdjacencyGraph() {
+  const locRows = loadPerimLocationsMatrix();
+  const matrixMtime = Number(perimLocationsMatrixCache?.mtimeMs || 0);
+  if (perimLocationAdjacencyGraphCache.value && perimLocationAdjacencyGraphCache.mtimeMs === matrixMtime) {
+    return perimLocationAdjacencyGraphCache.value;
+  }
+  const locNameToEnvironment = new Map();
+  const locNameToAdjacent = new Map();
+  const locationKeys = new Set();
+  const displayNameByKey = new Map();
+  locRows.forEach((row) => {
+    const name = String(row.name || "").trim();
+    const nameKey = normalizePerimText(name);
+    if (!nameKey) {
+      return;
+    }
+    locationKeys.add(nameKey);
+    displayNameByKey.set(nameKey, name);
+    locNameToEnvironment.set(nameKey, normalizePerimText(row.environment || ""));
+    if (!locNameToAdjacent.has(nameKey)) {
+      locNameToAdjacent.set(nameKey, new Set());
+    }
+    row.linkedLocationNames.forEach((linkedName) => {
+      const linkedKey = normalizePerimText(linkedName);
+      if (!linkedKey) {
+        return;
+      }
+      locNameToAdjacent.get(nameKey).add(linkedKey);
+      if (!locNameToAdjacent.has(linkedKey)) {
+        locNameToAdjacent.set(linkedKey, new Set());
+      }
+      locNameToAdjacent.get(linkedKey).add(nameKey);
+    });
+  });
+  const graph = { locNameToEnvironment, locNameToAdjacent, locationKeys, displayNameByKey };
+  perimLocationAdjacencyGraphCache = { mtimeMs: matrixMtime, value: graph };
+  return graph;
+}
+
+function expandAdjacentLocations(startKeyOrName, adjacencyMap, maxHops) {
+  const startKey = normalizePerimText(startKeyOrName);
+  const visited = new Set();
+  if (!startKey || !adjacencyMap.has(startKey)) {
+    return visited;
+  }
+  visited.add(startKey);
+  let frontier = [startKey];
+  for (let hop = 0; hop < maxHops; hop += 1) {
+    const nextFrontier = [];
+    frontier.forEach((locKey) => {
+      const neighbors = adjacencyMap.get(locKey);
+      if (!neighbors) {
+        return;
+      }
+      neighbors.forEach((neighbor) => {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          nextFrontier.push(neighbor);
+        }
+      });
+    });
+    frontier = nextFrontier;
+    if (!frontier.length) {
+      break;
+    }
+  }
+  return visited;
+}
+
+function getLocationsByEnvironment(environmentKey, envMap) {
+  const result = [];
+  envMap.forEach((env, locName) => {
+    if (env === environmentKey) {
+      result.push(locName);
+    }
+  });
+  return result;
+}
+
+function resolveLocationTokens(rawValue, graph, mode = "direct") {
+  const aliases = locationAliasCandidates(rawValue);
+  const envFilters = new Set();
+  const exactMatches = new Set();
+  const familyMatches = new Set();
+  const scoreByLocation = new Map();
+  const resolutionDetails = [];
+  const unresolvedTokens = [];
+
+  const applyScore = (locationKey, score) => {
+    const prev = Number(scoreByLocation.get(locationKey) || 0);
+    if (score > prev) {
+      scoreByLocation.set(locationKey, score);
+    }
+  };
+
+  aliases.forEach((candidateRaw) => {
+    const candidate = normalizePerimText(candidateRaw);
+    if (!candidate) {
+      return;
+    }
+    if (candidate === "overworld" || candidate === "underworld") {
+      envFilters.add(candidate);
+      resolutionDetails.push({
+        token: candidateRaw,
+        origin: "environment",
+        matches: [candidate],
+      });
+      return;
+    }
+    if (candidate.includes("overworld")) {
+      envFilters.add("overworld");
+    }
+    if (candidate.includes("underworld")) {
+      envFilters.add("underworld");
+    }
+    if (graph.locationKeys.has(candidate)) {
+      exactMatches.add(candidate);
+      applyScore(candidate, 8);
+      resolutionDetails.push({
+        token: candidateRaw,
+        origin: "exact",
+        matches: [candidate],
+      });
+      return;
+    }
+    const family = [];
+    graph.locationKeys.forEach((locationKey) => {
+      if (locationKey.includes(candidate)) {
+        family.push(locationKey);
+      }
+    });
+    if (family.length) {
+      family.forEach((locationKey) => {
+        familyMatches.add(locationKey);
+        applyScore(locationKey, 3);
+      });
+      resolutionDetails.push({
+        token: candidateRaw,
+        origin: "family",
+        matches: family,
+      });
+      return;
+    }
+    unresolvedTokens.push(candidateRaw);
+  });
+
+  // Requested behavior: when token is specific and matched, also include close family variants.
+  exactMatches.forEach((exactKey) => {
+    graph.locationKeys.forEach((locationKey) => {
+      if (locationKey !== exactKey && locationKey.includes(exactKey)) {
+        familyMatches.add(locationKey);
+        applyScore(locationKey, 2);
+      }
+    });
+  });
+
+  const matches = new Set([...exactMatches, ...familyMatches]);
+  if (!matches.size && envFilters.size) {
+    envFilters.forEach((envKey) => {
+      getLocationsByEnvironment(envKey, graph.locNameToEnvironment).forEach((locKey) => {
+        matches.add(locKey);
+        applyScore(locKey, 2);
+      });
+    });
+  }
+
+  if (matches.size && envFilters.size) {
+    const filtered = [...matches].filter((locKey) => envFilters.has(graph.locNameToEnvironment.get(locKey)));
+    if (filtered.length) {
+      matches.clear();
+      filtered.forEach((locKey) => matches.add(locKey));
+    }
+  }
+
+  if (mode === "proximo") {
+    const expanded = new Set();
+    const expandedScores = new Map();
+    [...matches].forEach((locKey) => {
+      const baseScore = Number(scoreByLocation.get(locKey) || 2);
+      expandAdjacentLocations(locKey, graph.locNameToAdjacent, 2).forEach((adjKey) => {
+        expanded.add(adjKey);
+        const hopScore = adjKey === locKey ? baseScore : Math.max(1, baseScore - 1.5);
+        const previous = Number(expandedScores.get(adjKey) || 0);
+        if (hopScore > previous) {
+          expandedScores.set(adjKey, hopScore);
+        }
+      });
+    });
+    return {
+      locations: expanded,
+      scoreByLocation: expandedScores,
+      unresolvedTokens,
+      resolutionDetails,
+    };
+  }
+
+  return {
+    locations: matches,
+    scoreByLocation,
+    unresolvedTokens,
+    resolutionDetails,
+  };
+}
+
+function resolveCreaturePossibleLocations(creature, graph) {
+  const possibleLocations = new Set();
+  const somenteLocations = new Set();
+  const unresolvedRefs = [];
+  const scoreByLocation = new Map();
+  const resolutionDetails = [];
+
+  const addResolved = (rawValue, mode, markSomente) => {
+    const value = String(rawValue || "").trim();
+    if (!value) {
+      return;
+    }
+    const resolved = resolveLocationTokens(value, graph, mode);
+    const resolvedLocations = resolved?.locations instanceof Set ? resolved.locations : new Set();
+    if (!resolvedLocations.size) {
+      unresolvedRefs.push(...(resolved?.unresolvedTokens?.length ? resolved.unresolvedTokens : [value]));
+      return;
+    }
+    (Array.isArray(resolved?.resolutionDetails) ? resolved.resolutionDetails : []).forEach((detail) => {
+      resolutionDetails.push({
+        source: value,
+        mode,
+        markSomente: Boolean(markSomente),
+        token: detail.token,
+        origin: detail.origin,
+        matches: Array.isArray(detail.matches) ? detail.matches : [],
+      });
+    });
+    resolvedLocations.forEach((locKey) => {
+      possibleLocations.add(locKey);
+      const locationScore = Number(resolved?.scoreByLocation?.get(locKey) || 1);
+      const currentScore = Number(scoreByLocation.get(locKey) || 0);
+      if (locationScore > currentScore) {
+        scoreByLocation.set(locKey, locationScore);
+      }
+      if (markSomente) {
+        somenteLocations.add(locKey);
+      }
+    });
+  };
+
+  addResolved(creature.somenteLocal1, "direct", true);
+  addResolved(creature.somenteLocal2, "direct", true);
+  addResolved(creature.proximoLocal, "proximo", false);
+
+  return {
+    possibleLocations: [...possibleLocations],
+    somenteLocations: [...somenteLocations],
+    unresolvedRefs,
+    scoreByLocation,
+    resolutionDetails,
+  };
+}
+
+function todayDateKey(nowDate = new Date()) {
+  const year = nowDate.getFullYear();
+  const month = String(nowDate.getMonth() + 1).padStart(2, "0");
+  const day = String(nowDate.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function resolveLocationCardId(locationNameKey) {
+  const { locationsByNormalizedName } = getLibraryIndexes();
+  const match = locationsByNormalizedName.get(normalizePerimText(locationNameKey));
+  return match ? String(match.id) : "";
+}
+
+function resolveCreatureFlavortext(creatureName) {
+  const { creaturesByNormalizedName } = getLibraryIndexes();
+  const match = creaturesByNormalizedName.get(normalizePerimText(creatureName));
+  return match?.flavortext || "";
+}
+
+function resolveCreatureCardId(creatureName) {
+  const { creaturesByNormalizedName } = getLibraryIndexes();
+  const match = creaturesByNormalizedName.get(normalizePerimText(creatureName));
+  return match ? String(match.id) : "";
+}
+
+function writeCreatureLocationAliasReport(entries) {
+  const safeEntries = Array.isArray(entries) ? entries : [];
+  let unresolvedTotal = 0;
+  const originCounters = {
+    exact: 0,
+    family: 0,
+    environment: 0,
+  };
+  let multiVariantRefs = 0;
+  safeEntries.forEach((entry) => {
+    unresolvedTotal += Array.isArray(entry.unresolvedRefs) ? entry.unresolvedRefs.length : 0;
+    (Array.isArray(entry.resolutionDetails) ? entry.resolutionDetails : []).forEach((detail) => {
+      const origin = String(detail?.origin || "");
+      if (Object.prototype.hasOwnProperty.call(originCounters, origin)) {
+        originCounters[origin] += 1;
+      }
+      const matches = Array.isArray(detail?.matches) ? detail.matches : [];
+      if (matches.length > 1) {
+        multiVariantRefs += 1;
+      }
+    });
+  });
+  const lines = [
+    "Creature Drop Alias Report",
+    `generated_at=${nowIso()}`,
+    `creature_entries=${safeEntries.length}`,
+    `unresolved_refs=${unresolvedTotal}`,
+    `resolved_exact=${originCounters.exact}`,
+    `resolved_family=${originCounters.family}`,
+    `resolved_environment=${originCounters.environment}`,
+    `resolved_multi_variant_refs=${multiVariantRefs}`,
+    "",
+  ];
+  safeEntries
+    .sort((a, b) => String(a.creatureName || "").localeCompare(String(b.creatureName || "")))
+    .forEach((entry) => {
+      const unresolved = Array.isArray(entry.unresolvedRefs) ? entry.unresolvedRefs : [];
+      const details = Array.isArray(entry.resolutionDetails) ? entry.resolutionDetails : [];
+      if (!unresolved.length && !details.length) {
+        return;
+      }
+      lines.push(`${entry.creatureName || "Unknown"}`);
+      if (unresolved.length) {
+        lines.push(`  unresolved: ${unresolved.join(" | ")}`);
+      }
+      details.forEach((detail) => {
+        const matches = Array.isArray(detail.matches) ? detail.matches.join(", ") : "";
+        lines.push(
+          `  resolved [${detail.origin || "unknown"}] source="${detail.source || ""}" token="${detail.token || ""}" mode=${detail.mode || "direct"} somente=${detail.markSomente ? "yes" : "no"} -> ${matches}`
+        );
+      });
+      lines.push("");
+    });
+  fs.mkdirSync(path.dirname(CREATURE_DROPS_ALIAS_REPORT_FILE), { recursive: true });
+  fs.writeFileSync(CREATURE_DROPS_ALIAS_REPORT_FILE, lines.join("\n"), "utf8");
+  return {
+    creatureEntries: safeEntries.length,
+    unresolvedRefs: unresolvedTotal,
+    resolvedExact: originCounters.exact,
+    resolvedFamily: originCounters.family,
+    resolvedEnvironment: originCounters.environment,
+    multiVariantRefs,
+  };
+}
+
+function rarityPlacementWeight(rarity) {
+  const key = String(rarity || "").trim().toLowerCase();
+  if (key === "ultra rare") return 1;
+  if (key === "super rare") return 1.2;
+  if (key === "rare") return 1.35;
+  if (key === "uncommon") return 1.5;
+  if (key === "promo") return 0.9;
+  return 1.7;
+}
+
+function createSeededRng(seedToken) {
+  let seed = hashTokenToInt(seedToken || "seed") || 1;
+  return () => {
+    seed ^= seed << 13;
+    seed ^= seed >>> 17;
+    seed ^= seed << 5;
+    const normalized = Math.abs(seed % 1000000);
+    return normalized / 1000000;
+  };
+}
+
+function weightedRandomChoice(items, rng) {
+  const valid = Array.isArray(items) ? items.filter((item) => Number(item?.weight || 0) > 0) : [];
+  if (!valid.length) {
+    return null;
+  }
+  const total = valid.reduce((sum, item) => sum + Number(item.weight || 0), 0);
+  let roll = (typeof rng === "function" ? rng() : Math.random()) * total;
+  for (let i = 0; i < valid.length; i += 1) {
+    roll -= Number(valid[i].weight || 0);
+    if (roll <= 0) {
+      return valid[i];
+    }
+  }
+  return valid[valid.length - 1] || null;
+}
+
+function creatureMatrixByLoki() {
+  const map = new Map();
+  loadPerimCreaturesMatrix().forEach((entry) => {
+    const loki = Number(entry?.loki || 0);
+    if (loki > 0 && !map.has(loki)) {
+      map.set(loki, entry);
+    }
+  });
+  return map;
+}
+
+function readDailyCreatureRowsFromSql(dateKey) {
+  if (!sqliteDb) {
+    return [];
+  }
+  try {
+    return sqliteDb
+      .prepare(`
+        SELECT location_date, creature_loki, current_location, rotated_at, created_at
+        FROM creature_daily_locations
+        WHERE location_date = ?
+      `)
+      .all(String(dateKey || ""));
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao ler creature_daily_locations SQL: ${error.message}`);
+    return [];
+  }
+}
+
+function writeDailyCreatureRowsToSql(payload) {
+  if (!sqliteDb || !payload || !Array.isArray(payload.creatures)) {
+    return;
+  }
+  const dateKey = String(payload.dateKey || "").trim();
+  if (!dateKey) {
+    return;
+  }
+  const now = nowIso();
+  try {
+    const deleteStmt = sqliteDb.prepare("DELETE FROM creature_daily_locations WHERE location_date = ?");
+    const insertStmt = sqliteDb.prepare(`
+      INSERT INTO creature_daily_locations (location_date, creature_loki, current_location, rotated_at, created_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(location_date, creature_loki)
+      DO UPDATE SET current_location = excluded.current_location, rotated_at = excluded.rotated_at
+    `);
+    sqliteDb.exec("BEGIN TRANSACTION");
+    try {
+      deleteStmt.run(dateKey);
+      const seenLoki = new Set();
+      payload.creatures.forEach((entry) => {
+        const loki = Number(entry?.loki || 0);
+        const locationNameKey = normalizePerimText(entry?.locationNameKey || "");
+        if (!loki || !locationNameKey) {
+          return;
+        }
+        if (seenLoki.has(loki)) {
+          return;
+        }
+        seenLoki.add(loki);
+        insertStmt.run(dateKey, loki, locationNameKey, now, now);
+      });
+      sqliteDb.exec("COMMIT");
+    } catch (txError) {
+      sqliteDb.exec("ROLLBACK");
+      throw txError;
+    }
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao persistir creature_daily_locations SQL: ${error.message}`);
+  }
+}
+
+function buildDailyPayloadFromSqlRows(dateKey, rows) {
+  const validRows = Array.isArray(rows) ? rows : [];
+  if (!validRows.length) {
+    return null;
+  }
+  const graph = buildLocationAdjacencyGraph();
+  const byLoki = creatureMatrixByLoki();
+  const creatures = [];
+  validRows.forEach((row) => {
+    const loki = Number(row?.creature_loki || 0);
+    const locationNameKey = normalizePerimText(row?.current_location || "");
+    if (!loki || !locationNameKey) {
+      return;
+    }
+    const creature = byLoki.get(loki);
+    if (!creature) {
+      return;
+    }
+    const rarityKey = String(creature.rarity || "").trim().toLowerCase();
+    creatures.push({
+      loki,
+      name: creature.name,
+      locationNameKey,
+      locationDisplayName: graph.displayNameByKey.get(locationNameKey) || creature.proximoLocal || "",
+      locationCardId: resolveLocationCardId(locationNameKey),
+      types: creature.types,
+      tribe: creature.tribe,
+      rarity: creature.rarity,
+      sourceRule: "sql_daily",
+      flavortext: resolveCreatureFlavortext(creature.name),
+      cardId: resolveCreatureCardId(creature.name),
+      dropChance: CREATURE_RARITY_DROP_CHANCE[rarityKey] || 0.15,
+    });
+  });
+  return {
+    dateKey: String(dateKey || ""),
+    generatedAt: nowIso(),
+    algoVersion: CREATURE_DAILY_ALGO_VERSION,
+    creatures,
+  };
+}
+
+function getDailyCreatureLocationsCanonical(dateKey) {
+  const key = String(dateKey || "").trim() || todayDateKey();
+  const fromKv = sqlGet("creature_daily_locations", key);
+  const kvCount = Array.isArray(fromKv?.creatures) ? fromKv.creatures.length : 0;
+  const sqlRows = readDailyCreatureRowsFromSql(key);
+  if (sqlRows.length) {
+    if (kvCount && sqlRows.length < kvCount) {
+      writeDailyCreatureRowsToSql(fromKv);
+      return fromKv;
+    }
+    const fromSql = buildDailyPayloadFromSqlRows(key, sqlRows);
+    if (fromSql && Array.isArray(fromSql.creatures) && fromSql.creatures.length) {
+      return fromSql;
+    }
+  }
+  if (fromKv && kvCount) {
+    writeDailyCreatureRowsToSql(fromKv);
+    return fromKv;
+  }
+  return null;
+}
+
+function getDailyCreatureIndex(dateKey = null) {
+  const key = String(dateKey || todayDateKey());
+  const daily = ensureDailyCreatureLocations(key);
+  const generatedAt = String(daily?.generatedAt || "");
+  if (
+    dailyCreatureIndexCache.value
+    && dailyCreatureIndexCache.dateKey === key
+    && dailyCreatureIndexCache.generatedAt === generatedAt
+  ) {
+    return dailyCreatureIndexCache.value;
+  }
+  const graph = buildLocationAdjacencyGraph();
+  const creatures = Array.isArray(daily?.creatures) ? daily.creatures : [];
+  const byLocationKey = new Map();
+  const byLocationCardId = new Map();
+  const byWorldType = new Map();
+  creatures.forEach((entry) => {
+    const locationKey = normalizePerimText(entry?.locationNameKey || "");
+    const locationCardId = String(entry?.locationCardId || "");
+    const env = graph.locNameToEnvironment.get(locationKey) || "";
+    if (locationKey) {
+      if (!byLocationKey.has(locationKey)) {
+        byLocationKey.set(locationKey, []);
+      }
+      byLocationKey.get(locationKey).push(entry);
+    }
+    if (locationCardId) {
+      if (!byLocationCardId.has(locationCardId)) {
+        byLocationCardId.set(locationCardId, []);
+      }
+      byLocationCardId.get(locationCardId).push(entry);
+    }
+    if (env) {
+      if (!byWorldType.has(env)) {
+        byWorldType.set(env, []);
+      }
+      byWorldType.get(env).push(entry);
+    }
+  });
+  const index = { creatures, byLocationKey, byLocationCardId, byWorldType };
+  dailyCreatureIndexCache = {
+    dateKey: key,
+    generatedAt,
+    value: index,
+  };
+  return index;
+}
+
+function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false) {
+  const nowDate = new Date();
+  const key = dateKey || todayDateKey(nowDate);
+  const existing = getDailyCreatureLocationsCanonical(key);
+  if (!forceRegenerate && existing && Array.isArray(existing.creatures) && existing.creatures.length > 0) {
+    const existingVersion = Number(existing.algoVersion || 0);
+    if (existingVersion === CREATURE_DAILY_ALGO_VERSION) {
+    const expectedRows = loadPerimCreaturesMatrix().length;
+    const minimumHealthy = expectedRows > 0 ? Math.max(1, Math.floor(expectedRows * 0.7)) : 1;
+    if (existing.creatures.length >= minimumHealthy) {
+      return existing;
+    }
+    console.warn(
+      `[PERIM] Daily creature map for ${key} looked incomplete (${existing.creatures.length}/${expectedRows}). Regenerating...`
+    );
+    } else {
+      console.log(
+        `[PERIM] Daily creature map for ${key} is using old algorithm version (${existingVersion}). Regenerating...`
+      );
+    }
+  }
+  if (forceRegenerate && existing && Array.isArray(existing.creatures) && existing.creatures.length > 0) {
+    console.log(`[PERIM] Forcing regeneration of daily creature map for ${key}.`);
+  }
+
+  if (existing && Array.isArray(existing.creatures) && existing.creatures.length > 0) {
+    try {
+      if (sqliteDb) {
+        sqliteDb.prepare("DELETE FROM creature_daily_locations WHERE location_date = ?").run(String(key));
+      }
+    } catch (_error) {
+      // ignore table cleanup failures and continue with regeneration
+    }
+  }
+
+  const previousDate = new Date(nowDate.getTime());
+  previousDate.setDate(previousDate.getDate() - 1);
+  const previousDateKey = todayDateKey(previousDate);
+  const previousDaily = getDailyCreatureLocationsCanonical(previousDateKey);
+  const previousByLoki = new Map();
+  if (previousDaily && Array.isArray(previousDaily.creatures)) {
+    previousDaily.creatures.forEach((entry) => {
+      previousByLoki.set(Number(entry.loki || 0), entry);
+    });
+  }
+
+  console.log(`[PERIM] Generating daily creature locations for ${key}...`);
+  const creatureRows = loadPerimCreaturesMatrix();
+  const graph = buildLocationAdjacencyGraph();
+  const aliasReportEntries = [];
+  const dailyPlacements = [];
+  const seenLoki = new Set();
+  let duplicateLokiCount = 0;
+
+  creatureRows.forEach((creature) => {
+    const creatureLoki = Number(creature?.loki || 0);
+    if (!creatureLoki) {
+      return;
+    }
+    if (seenLoki.has(creatureLoki)) {
+      duplicateLokiCount += 1;
+      return;
+    }
+    seenLoki.add(creatureLoki);
+
+    const { possibleLocations, somenteLocations, unresolvedRefs, scoreByLocation, resolutionDetails } = resolveCreaturePossibleLocations(creature, graph);
+    aliasReportEntries.push({
+      creatureName: creature.name,
+      unresolvedRefs,
+      resolutionDetails,
+    });
+    if (!possibleLocations.length) {
+      return;
+    }
+
+    const rng = createSeededRng(`${key}:${creature.loki}:${creature.name}`);
+    const possibleSet = new Set(possibleLocations);
+    const somenteSet = new Set(somenteLocations);
+    const previousPlacement = previousByLoki.get(Number(creature.loki || 0));
+    const previousLocationKey = normalizePerimText(previousPlacement?.locationNameKey || "");
+
+    const rarityFactor = rarityPlacementWeight(creature.rarity);
+    let sourceRule = "weighted_pool";
+    let candidates = [];
+
+    if (previousLocationKey && graph.locNameToAdjacent.has(previousLocationKey)) {
+      const adjacentCandidates = [...graph.locNameToAdjacent.get(previousLocationKey)]
+        .filter((locKey) => possibleSet.has(locKey))
+        .filter((locKey) => locKey !== previousLocationKey);
+      if (adjacentCandidates.length) {
+        sourceRule = "adjacent_rotation";
+        candidates = adjacentCandidates.map((locKey) => ({
+          locationKey: locKey,
+          weight: ((somenteSet.has(locKey) ? 6 : 2) + Number(scoreByLocation?.get(locKey) || 0)) * rarityFactor,
+        }));
+      }
+    }
+
+    if (!candidates.length) {
+      candidates = possibleLocations.map((locKey) => ({
+        locationKey: locKey,
+        weight: ((somenteSet.has(locKey) ? 8 : 2.5) + Number(scoreByLocation?.get(locKey) || 0)) * rarityFactor,
+      }));
+    }
+
+    const selected = weightedRandomChoice(candidates, rng);
+    if (!selected?.locationKey) {
+      return;
+    }
+
+    const locationNameKey = selected.locationKey;
+    const flavortext = resolveCreatureFlavortext(creature.name);
+    const cardId = resolveCreatureCardId(creature.name);
+    const rarityKey = String(creature.rarity || "").trim().toLowerCase();
+
+    dailyPlacements.push({
+      loki: creatureLoki,
+      name: creature.name,
+      locationNameKey,
+      locationDisplayName: graph.displayNameByKey.get(locationNameKey) || creature.proximoLocal || "",
+      locationCardId: resolveLocationCardId(locationNameKey),
+      types: creature.types,
+      tribe: creature.tribe,
+      rarity: creature.rarity,
+      sourceRule,
+      flavortext,
+      cardId,
+      dropChance: CREATURE_RARITY_DROP_CHANCE[rarityKey] || 0.15,
+    });
+  });
+
+  const aliasSummary = writeCreatureLocationAliasReport(aliasReportEntries);
+
+  const payload = {
+    dateKey: key,
+    generatedAt: nowIso(),
+    algoVersion: CREATURE_DAILY_ALGO_VERSION,
+    creatures: dailyPlacements,
+  };
+  writeDailyCreatureRowsToSql(payload);
+  sqlSet("creature_daily_locations", key, payload);
+  console.log(
+    `[PERIM] Alias resolution summary (${key}): entries=${aliasSummary.creatureEntries}, unresolved=${aliasSummary.unresolvedRefs}, exact=${aliasSummary.resolvedExact}, family=${aliasSummary.resolvedFamily}, environment=${aliasSummary.resolvedEnvironment}, multi=${aliasSummary.multiVariantRefs}`
+  );
+  if (duplicateLokiCount > 0) {
+    console.log(`[PERIM] Skipped ${duplicateLokiCount} duplicate creature rows with repeated loki in criaturas.xlsx.`);
+  }
+  console.log(`[PERIM] Generated ${dailyPlacements.length} creature placements for ${key}.`);
+  return payload;
+}
+
+function queuePerimDailyGeneration(reason = "scheduled", forcedDateKey = "") {
+  const dateKey = String(forcedDateKey || todayDateKey());
+  if (runtimeMetrics.perimJobs.queued && runtimeMetrics.perimJobs.dateKey === dateKey) {
+    return;
+  }
+  runtimeMetrics.perimJobs.queued = true;
+  runtimeMetrics.perimJobs.dateKey = dateKey;
+  runtimeMetrics.perimJobs.lastRunAt = nowIso();
+  if (perimDailyJobTimer) {
+    clearTimeout(perimDailyJobTimer);
+  }
+  perimDailyJobTimer = setTimeout(() => {
+    try {
+      const payload = generateDailyCreatureLocations(dateKey);
+      if (payload && Array.isArray(payload.creatures) && payload.creatures.length) {
+        lastKnownDailyCreaturePayload = payload;
+        runtimeMetrics.perimJobs.lastSuccessAt = nowIso();
+        runtimeMetrics.perimJobs.degraded = false;
+        runtimeMetrics.perimJobs.degradedReason = "";
+      } else {
+        runtimeMetrics.perimJobs.degraded = true;
+        runtimeMetrics.perimJobs.degradedReason = "empty_daily_payload";
+      }
+      console.log(`[PERIM][JOB] daily_generation ok date=${dateKey} reason=${reason}`);
+    } catch (error) {
+      runtimeMetrics.perimJobs.lastErrorAt = nowIso();
+      runtimeMetrics.perimJobs.lastError = String(error?.message || error);
+      runtimeMetrics.perimJobs.degraded = true;
+      runtimeMetrics.perimJobs.degradedReason = "generation_error";
+      console.error(`[PERIM][JOB] Falha ao gerar mapa diario (${dateKey}): ${error?.message || error}`);
+    } finally {
+      runtimeMetrics.perimJobs.queued = false;
+    }
+  }, 10);
+}
+
+function ensureDailyCreatureLocations(forcedDateKey = "") {
+  const key = String(forcedDateKey || todayDateKey());
+  const existing = getDailyCreatureLocationsCanonical(key);
+  if (existing && Array.isArray(existing.creatures) && existing.creatures.length) {
+    lastKnownDailyCreaturePayload = existing;
+    runtimeMetrics.perimJobs.degraded = false;
+    runtimeMetrics.perimJobs.degradedReason = "";
+    return existing;
+  }
+  runtimeMetrics.perimJobs.degraded = true;
+  runtimeMetrics.perimJobs.degradedReason = "using_last_snapshot";
+  queuePerimDailyGeneration("on_demand_missing", key);
+  return lastKnownDailyCreaturePayload;
+}
+
+function getCreaturesAtLocation(locationNameOrId, dateKey = null) {
+  const index = getDailyCreatureIndex(dateKey);
+  if (!index) {
+    return [];
+  }
+  const queryKey = normalizePerimText(locationNameOrId);
+  const byKey = index.byLocationKey.get(queryKey) || [];
+  const byCardId = index.byLocationCardId.get(String(locationNameOrId)) || [];
+  if (!byKey.length) {
+    return byCardId;
+  }
+  if (!byCardId.length) {
+    return byKey;
+  }
+  const merged = new Map();
+  byKey.forEach((entry) => merged.set(String(entry?.loki || "") + ":" + String(entry?.cardId || ""), entry));
+  byCardId.forEach((entry) => merged.set(String(entry?.loki || "") + ":" + String(entry?.cardId || ""), entry));
+  return [...merged.values()];
+}
+
+function getCreatureCountAtLocation(locationNameOrId, dateKey = null) {
+  return getCreaturesAtLocation(locationNameOrId, dateKey).length;
+}
+
+function getCreaturesForWorldType(worldType, dateKey = null) {
+  const index = getDailyCreatureIndex(dateKey);
+  const expected = normalizePerimText(worldType);
+  if (!expected) {
+    return [];
+  }
+  return index?.byWorldType?.get(expected) || [];
+}
+
+let dailyCreatureCheckInterval = null;
+
+function startDailyCreatureLocationScheduler() {
+  ensureDailyCreatureLocations();
+  let lastDateKey = todayDateKey();
+  dailyCreatureCheckInterval = setInterval(() => {
+    const currentKey = todayDateKey();
+    if (currentKey !== lastDateKey) {
+      lastDateKey = currentKey;
+      console.log(`[PERIM] Midnight crossed, scheduling new creature locations for ${currentKey}...`);
+      queuePerimDailyGeneration("midnight", currentKey);
+    }
+  }, 5 * 60 * 1000);
+}
+
+function cleanupOldDbBackups(retentionDays = DB_BACKUP_RETENTION_DAYS) {
+  const files = fs
+    .readdirSync(BACKUPS_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && /^chaotic-\d{8}-\d{6}\.db$/i.test(entry.name))
+    .map((entry) => ({
+      name: entry.name,
+      path: path.join(BACKUPS_DIR, entry.name),
+      mtimeMs: Number(fs.statSync(path.join(BACKUPS_DIR, entry.name)).mtimeMs || 0),
+    }));
+  const cutoffMs = Date.now() - (Math.max(1, Number(retentionDays || 1)) * 24 * 60 * 60 * 1000);
+  files.forEach((file) => {
+    if (file.mtimeMs < cutoffMs) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch {}
+    }
+  });
+}
+
+function createRuntimeDbSnapshot(reason = "manual") {
+  runtimeMetrics.backups.lastRunAt = nowIso();
+  try {
+    if (!fs.existsSync(SQLITE_FILE)) {
+      throw new Error(`SQLite nao encontrado em ${SQLITE_FILE}`);
+    }
+    const stamp = new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\..+$/, "")
+      .replace("T", "-");
+    const backupPath = path.join(BACKUPS_DIR, `chaotic-${stamp}.db`);
+    fs.copyFileSync(SQLITE_FILE, backupPath);
+    cleanupOldDbBackups(DB_BACKUP_RETENTION_DAYS);
+    runtimeMetrics.backups.lastSuccessAt = nowIso();
+    runtimeMetrics.backups.lastError = "";
+    console.log(`[BACKUP] Snapshot criado: ${backupPath} (reason=${reason})`);
+    return { ok: true, backupPath };
+  } catch (error) {
+    runtimeMetrics.backups.lastErrorAt = nowIso();
+    runtimeMetrics.backups.lastError = String(error?.message || error);
+    console.error(`[BACKUP] Falha ao criar snapshot (${reason}): ${error?.message || error}`);
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
+function startDbBackupScheduler() {
+  setInterval(() => {
+    const now = new Date();
+    if (now.getHours() !== DB_BACKUP_HOUR) {
+      return;
+    }
+    const dateKey = now.toISOString().slice(0, 10);
+    if (dateKey === lastDailyBackupDateKey) {
+      return;
+    }
+    lastDailyBackupDateKey = dateKey;
+    createRuntimeDbSnapshot("daily_scheduler");
+  }, 60 * 1000).unref?.();
+}
+
+function promotePerimFinishedRuns(playerState, timestampMs = Date.now()) {
+  const active = playerState?.activeRun;
+  if (!active || !active.endAt) {
+    return false;
+  }
+  const endMs = Date.parse(active.endAt);
+  if (!Number.isFinite(endMs) || endMs > timestampMs) {
+    return false;
+  }
+  const pendingRewards = Array.isArray(playerState.pendingRewards) ? playerState.pendingRewards : [];
+  const exists = pendingRewards.some((entry) => String(entry?.runId || "") === String(active.runId || ""));
+  if (!exists) {
+    pendingRewards.push({
+      runId: active.runId,
+      locationId: active.locationId,
+      locationName: active.locationName,
+      actionId: active.actionId,
+      actionName: active.actionLabel,
+      completedAt: new Date(timestampMs).toISOString(),
+      rewards: Array.isArray(active.rewards) ? active.rewards : [],
+      claimedAt: null,
+    });
+  }
+  playerState.pendingRewards = pendingRewards;
+  playerState.activeRun = null;
+  playerState.updatedAt = nowIso();
+  return true;
+}
+
+function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
+  const pending = Array.isArray(playerState.pendingRewards) ? playerState.pendingRewards : [];
+  const target = runId
+    ? pending.find((entry) => String(entry?.runId || "") === String(runId))
+    : pending.find((entry) => !entry?.claimedAt);
+  if (!target) {
+    return { ok: false, error: "Nenhuma recompensa pendente para coletar." };
+  }
+  if (target.claimedAt) {
+    return { ok: false, error: "Esta recompensa ja foi coletada." };
+  }
+
+  const scans = loadScansData();
+  const { key: playerKey, cards } = getScansCardsForUser(scans, playerKeyRaw, true);
+  const profilesState = loadProfilesData();
+  const { profile } = getOrCreateProfile(profilesState, playerKeyRaw);
+  const nextCards = cloneCardBuckets(cards);
+  const inventoryCounts = buildInventoryCountMap(nextCards);
+  const ignoreInventoryCap = isPerimInstantAdmin(playerKeyRaw);
+  const collected = [];
+  const skippedByCap = [];
+  (target.rewards || []).forEach((reward) => {
+    const type = String(reward?.type || "");
+    const cardId = String(reward?.cardId || "");
+    if (!nextCards[type] || !cardId) {
+      return;
+    }
+    const stockKey = `${type}:${cardId}`;
+    const currentAmount = inventoryCounts.get(stockKey) || 0;
+    if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
+      skippedByCap.push({
+        type,
+        cardId,
+        cardName: reward?.cardName || cardId,
+      });
+      return;
+    }
+    if (type === "creatures" && reward?.variant) {
+      nextCards[type].push({
+        cardId,
+        scanEntryId: generateScanEntryId(),
+        variant: normalizeCreatureVariant(reward.variant),
+        source: "perim",
+        obtainedAt: nowIso(),
+      });
+    } else {
+      nextCards[type].push(cardId);
+    }
+    inventoryCounts.set(stockKey, currentAmount + 1);
+    const normalizedReward = normalizeRewardPayload(reward);
+    if (normalizedReward) {
+      normalizedReward.isNew = !isCardDiscovered(profile, normalizedReward);
+      markCardDiscovered(profile, normalizedReward);
+      collected.push(normalizedReward);
+    }
+  });
+  scans.players[playerKey] = {
+    cards: ignoreInventoryCap ? nextCards : trimCardsToInventoryCap(nextCards, INVENTORY_MAX_COPIES),
+  };
+  writeScansData(scans, "perim_claim_reward");
+  target.claimedAt = nowIso();
+  playerState.history = Array.isArray(playerState.history) ? playerState.history : [];
+  playerState.history.push({
+    runId: target.runId,
+    locationName: target.locationName,
+    actionName: target.actionName,
+    claimedAt: target.claimedAt,
+    rewards: collected,
+  });
+  playerState.history = playerState.history.slice(-30);
+  playerState.updatedAt = nowIso();
+  profile.updatedAt = nowIso();
+  writeProfilesData(profilesState, "perim_claim_discovery");
+  upsertSeasonPlayerDelta(playerKeyRaw, {
+    score: Math.max(5, collected.length * 6),
+    perimClaims: 1,
+  });
+  incrementPerimMissionProgress(playerKeyRaw, 1, new Date());
+  applyScannerProgressFromRewards(playerKeyRaw, collected);
+  invalidateUserCaches(playerKeyRaw);
+  return { ok: true, runId: target.runId, rewards: collected, skippedByCap };
+}
+
+function buildPerimStatePayload(playerKeyRaw) {
+  const perfStart = Date.now();
+  const rootState = loadPerimStateFile();
+  const { key: playerKey, state: playerState } = getOrCreatePerimPlayerState(rootState, playerKeyRaw);
+  const changed = promotePerimFinishedRuns(playerState, Date.now());
+  if (changed) {
+    writePerimStateFile(rootState);
+  }
+  const profilesState = loadProfilesData();
+  const { profile, changed: profileChanged } = getOrCreateProfile(profilesState, playerKey);
+  if (profileChanged) {
+    writeProfilesData(profilesState, "perim_profile_bootstrap");
+  }
+  const nowDate = new Date();
+  const activeRunNewsItems = playerState?.activeRun
+    ? buildTickerNewsItems(getGlobalDailyCreatures(), 32)
+    : [];
+  const locationEntries = collectPerimLocationEntriesForPlayer(playerKey);
+  const creatureCountByLocation = new Map();
+  const dailyIndex = getDailyCreatureIndex();
+  const locationCardCountMap = dailyIndex?.byLocationCardId || new Map();
+  const locations = buildPerimLocationsFromScans(locationEntries).map((entry) => {
+    const scannerState = resolveScannerStateForLocation(profile, entry);
+    let creaturesTodayCount = creatureCountByLocation.get(entry.cardId);
+    if (typeof creaturesTodayCount !== "number") {
+      creaturesTodayCount = (locationCardCountMap.get(String(entry.cardId)) || []).length;
+      if (!creaturesTodayCount) {
+        creaturesTodayCount = getCreatureCountAtLocation(entry.cardId || entry.name);
+      }
+      creatureCountByLocation.set(entry.cardId, creaturesTodayCount);
+    }
+    return {
+      ...entry,
+      creaturesTodayCount,
+      scanner: {
+        key: scannerState.scannerKey,
+        level: scannerState.level,
+      },
+      contextPreview: buildPerimContextSnapshot(entry, "explore", scannerState.effect, nowDate),
+    };
+  });
+  const payload = {
+    playerKey,
+    locations,
+    actions: PERIM_ACTIONS,
+    eventsSummary: {
+      activeCount: PERIM_EVENTS_DEFAULT.length,
+    },
+    activeRun: playerState.activeRun,
+    activeRunNewsItems,
+    pendingRewards: playerState.pendingRewards,
+    history: playerState.history,
+    updatedAt: playerState.updatedAt,
+    now: nowIso(),
+  };
+  logPerimPerf("buildPerimStatePayload", perfStart, `player=${normalizePerimPlayerKey(playerKeyRaw)} locations=${locations.length}`);
+  return payload;
+}
+
+function listPerimGlobalEvents() {
+  return PERIM_EVENTS_DEFAULT.map((entry) => ({ ...entry }));
+}
+
+function getGlobalDailyCreatures(dateKey = null) {
+  return getDailyCreatureIndex(dateKey)?.creatures || [];
+}
+
+function buildTickerNewsItems(creaturePool, maxItems = 32) {
+  const items = [];
+  const seen = new Set();
+  const sourceList = Array.isArray(creaturePool) ? creaturePool : [];
+  sourceList.forEach((creature) => {
+    const types = String(creature?.types || "").trim();
+    const flavortext = String(
+      creature?.flavortext || resolveCreatureFlavortext(creature?.name || "")
+    ).trim();
+    if (!types && !flavortext) {
+      return;
+    }
+    const key = `${types.toLowerCase()}|${flavortext.toLowerCase()}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    items.push({
+      types: types || "Unknown type",
+      flavortext: flavortext || "Sinais misteriosos ecoam por Perim.",
+    });
+  });
+  if (items.length <= maxItems) {
+    return items;
+  }
+  const dayKey = todayDateKey();
+  return items
+    .map((entry) => ({
+      entry,
+      weight: hashTokenToInt(`${dayKey}:${entry.types}:${entry.flavortext}`),
+    }))
+    .sort((a, b) => a.weight - b.weight)
+    .slice(0, maxItems)
+    .map((wrapped) => wrapped.entry);
+}
+
+function normalizeTribeToScannerKey(rawTribe) {
+  const tribe = String(rawTribe || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z]+/g, "");
+  if (!tribe) {
+    return "";
+  }
+  if (tribe.includes("danian")) {
+    return "danian";
+  }
+  if (tribe.includes("underworld") || tribe.includes("submundo")) {
+    return "underworld";
+  }
+  if (tribe.includes("overworld") || tribe.includes("outromundo")) {
+    return "overworld";
+  }
+  if (tribe.includes("mipedian") || tribe.includes("maipidian")) {
+    return "mipedian";
+  }
+  if (tribe.includes("marrillian")) {
+    return "marrillian";
+  }
+  return "";
+}
+
+function createDefaultScanners() {
+  const out = {};
+  SCANNER_KEYS.forEach((key) => {
+    out[key] = { level: 1, xp: 0 };
+  });
+  return out;
+}
+
+function normalizeScannersPayload(rawScanners) {
+  const scanners = createDefaultScanners();
+  const source = rawScanners && typeof rawScanners === "object" ? rawScanners : {};
+  SCANNER_KEYS.forEach((key) => {
+    const scanner = source[key];
+    if (!scanner || typeof scanner !== "object") {
+      return;
+    }
+    const xp = Math.max(0, Number(scanner.xp || 0));
+    let level = Math.max(1, Math.min(4, Number(scanner.level || 1)));
+    if (!Number.isFinite(level)) {
+      level = 1;
+    }
+    scanners[key] = { level, xp };
+  });
+  return scanners;
+}
+
+function scannerLevelFromXp(xpValue) {
+  const xp = Math.max(0, Number(xpValue || 0));
+  if (xp >= SCANNER_XP_THRESHOLDS[3]) return 4;
+  if (xp >= SCANNER_XP_THRESHOLDS[2]) return 3;
+  if (xp >= SCANNER_XP_THRESHOLDS[1]) return 2;
+  return 1;
+}
+
+function scannerProgressPayload(scanner) {
+  const xp = Math.max(0, Number(scanner?.xp || 0));
+  const level = scannerLevelFromXp(xp);
+  const currentThreshold = SCANNER_XP_THRESHOLDS[level - 1];
+  const nextThreshold = level >= 4 ? SCANNER_XP_THRESHOLDS[3] : SCANNER_XP_THRESHOLDS[level];
+  return {
+    level,
+    xp,
+    currentLevelXpThreshold: currentThreshold,
+    nextLevelXpThreshold: nextThreshold,
+  };
+}
+
+function addScannerXp(profile, scannerKey, xpAmount) {
+  if (!SCANNER_KEYS.includes(scannerKey)) {
+    return;
+  }
+  profile.scanners = normalizeScannersPayload(profile.scanners);
+  const scanner = profile.scanners[scannerKey];
+  scanner.xp = Math.max(0, Number(scanner.xp || 0) + Math.max(0, Number(xpAmount || 0)));
+  scanner.level = scannerLevelFromXp(scanner.xp);
+}
+
+function scannerEffectsByLevel(level) {
+  const normalized = Math.max(1, Math.min(4, Number(level || 1)));
+  if (normalized === 4) {
+    return { durationMultiplier: 0.78, successBoostPercent: 20, rareBoost: 0.48 };
+  }
+  if (normalized === 3) {
+    return { durationMultiplier: 0.86, successBoostPercent: 12, rareBoost: 0.3 };
+  }
+  if (normalized === 2) {
+    return { durationMultiplier: 0.93, successBoostPercent: 6, rareBoost: 0.15 };
+  }
+  return { durationMultiplier: 1, successBoostPercent: 0, rareBoost: 0 };
+}
+
+function resolveScannerStateForLocation(profile, locationEntry) {
+  const scannerKey = normalizeTribeToScannerKey(locationEntry?.tribe || "");
+  const scanners = normalizeScannersPayload(profile?.scanners);
+  const scanner = scannerKey ? scanners[scannerKey] : null;
+  const level = scannerLevelFromXp(scanner?.xp || 0);
+  return {
+    scannerKey: scannerKey || "",
+    level,
+    effect: scannerEffectsByLevel(level),
+  };
+}
+
+const PROFILE_HISTORY_LIMIT = 50;
+
+function createDefaultProfile(usernameKey) {
+  return {
+    username: usernameKey,
+    favoriteTribe: "",
+    starterPackGrantedAt: "",
+    starterPackTribe: "",
+    adminScannerMaxedAt: "",
+    avatar: "",
+    score: 1200,
+    wins: 0,
+    losses: 0,
+    winRate: 0,
+    battleHistory: [],
+    creatureUsage: {},
+    discoveredCards: {},
+    scanners: createDefaultScanners(),
+    mostPlayedCreature: null,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+}
+
+function normalizeProfilePayload(key, rawProfile) {
+  const base = createDefaultProfile(key);
+  const profile = rawProfile && typeof rawProfile === "object" ? rawProfile : {};
+  const wins = Math.max(0, Number(profile.wins || 0));
+  const losses = Math.max(0, Number(profile.losses || 0));
+  const totalBattles = wins + losses;
+  const winRate = totalBattles > 0 ? Math.round((wins / totalBattles) * 10000) / 100 : 0;
+  const usage = profile.creatureUsage && typeof profile.creatureUsage === "object" ? profile.creatureUsage : {};
+  const sanitizedUsage = {};
+  Object.values(usage).forEach((entry) => {
+    const cardId = String(entry?.cardId || "").trim();
+    if (!cardId) {
+      return;
+    }
+    const name = String(entry?.name || "").trim();
+    const count = Math.max(0, Number(entry?.count || 0));
+    if (count <= 0) {
+      return;
+    }
+    sanitizedUsage[cardId] = { cardId, name: name || cardId, count };
+  });
+  const history = Array.isArray(profile.battleHistory)
+    ? profile.battleHistory
+        .map((entry) => ({
+          mode: String(entry?.mode || "unknown"),
+          result: String(entry?.result || "unknown"),
+          opponent: String(entry?.opponent || "Oponente"),
+          timestamp: entry?.timestamp || nowIso(),
+        }))
+        .slice(-PROFILE_HISTORY_LIMIT)
+    : [];
+  const rawDiscovered = profile.discoveredCards && typeof profile.discoveredCards === "object" ? profile.discoveredCards : {};
+  const discoveredCards = {};
+  Object.keys(rawDiscovered).forEach((cardKey) => {
+    const normalizedKey = String(cardKey || "").trim();
+    if (!normalizedKey) {
+      return;
+    }
+    discoveredCards[normalizedKey] = Boolean(rawDiscovered[cardKey]);
+  });
+  return {
+    ...base,
+    favoriteTribe: String(profile.favoriteTribe || base.favoriteTribe || ""),
+    starterPackGrantedAt: String(profile.starterPackGrantedAt || ""),
+    starterPackTribe: String(profile.starterPackTribe || ""),
+    adminScannerMaxedAt: String(profile.adminScannerMaxedAt || ""),
+    avatar: String(profile.avatar || ""),
+    score: Math.max(0, Number(profile.score || base.score)),
+    wins,
+    losses,
+    winRate,
+    battleHistory: history,
+    creatureUsage: sanitizedUsage,
+    discoveredCards,
+    scanners: normalizeScannersPayload(profile.scanners),
+    mostPlayedCreature: profile?.mostPlayedCreature && typeof profile.mostPlayedCreature === "object"
+      ? {
+          cardId: String(profile.mostPlayedCreature.cardId || ""),
+          name: String(profile.mostPlayedCreature.name || ""),
+          count: Math.max(0, Number(profile.mostPlayedCreature.count || 0)),
+        }
+      : null,
+    createdAt: profile.createdAt || base.createdAt,
+    updatedAt: profile.updatedAt || base.updatedAt,
+  };
+}
+
+function buildProfilesStateFromUsers() {
+  const profiles = {};
+  if (sqliteDb) {
+    try {
+      const rows = sqliteDb.prepare("SELECT username, tribe FROM users").all();
+      rows.forEach((row) => {
+        const key = normalizeUserKey(row?.username);
+        if (!key) {
+          return;
+        }
+        const profile = createDefaultProfile(key);
+        profile.favoriteTribe = String(row?.tribe || "");
+        profile.updatedAt = nowIso();
+        profiles[key] = profile;
+      });
+    } catch (error) {
+      if (isSqliteCorruptionError(error)) {
+        captureSqliteCorruption("profilesFallbackUsers", "profiles", "state", error);
+      } else {
+        console.warn(`[DB] Falha ao montar profiles a partir de users: ${error?.message || error}`);
+      }
+    }
+  }
+  return {
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    profiles,
+  };
+}
+
+function loadProfilesData() {
+  if (isSqlV2Ready()) {
+    const profiles = {};
+    const profileRows = sqliteDb
+      .prepare(`
+        SELECT owner_key, favorite_tribe, starter_pack_granted_at, starter_pack_tribe, admin_scanner_maxed_at,
+               avatar, score, wins, losses, win_rate, most_played_card_id, most_played_name, most_played_count,
+               created_at, updated_at
+        FROM player_profiles
+      `)
+      .all();
+    profileRows.forEach((row) => {
+      const key = normalizeUserKey(row?.owner_key);
+      const baseProfile = createDefaultProfile(key);
+      baseProfile.favoriteTribe = String(row?.favorite_tribe || "");
+      baseProfile.starterPackGrantedAt = String(row?.starter_pack_granted_at || "");
+      baseProfile.starterPackTribe = String(row?.starter_pack_tribe || "");
+      baseProfile.adminScannerMaxedAt = String(row?.admin_scanner_maxed_at || "");
+      baseProfile.avatar = String(row?.avatar || "");
+      baseProfile.score = Math.max(0, Number(row?.score || 1200));
+      baseProfile.wins = Math.max(0, Number(row?.wins || 0));
+      baseProfile.losses = Math.max(0, Number(row?.losses || 0));
+      baseProfile.winRate = Number(row?.win_rate || 0);
+      if (String(row?.most_played_card_id || "").trim()) {
+        baseProfile.mostPlayedCreature = {
+          cardId: String(row?.most_played_card_id || ""),
+          name: String(row?.most_played_name || row?.most_played_card_id || ""),
+          count: Math.max(0, Number(row?.most_played_count || 0)),
+        };
+      }
+      baseProfile.createdAt = String(row?.created_at || nowIso());
+      baseProfile.updatedAt = String(row?.updated_at || nowIso());
+      profiles[key] = baseProfile;
+    });
+
+    const scannerRows = sqliteDb
+      .prepare("SELECT owner_key, scanner_key, level, xp FROM profile_scanners")
+      .all();
+    scannerRows.forEach((row) => {
+      const ownerKey = normalizeUserKey(row?.owner_key);
+      if (!profiles[ownerKey]) {
+        profiles[ownerKey] = createDefaultProfile(ownerKey);
+      }
+      profiles[ownerKey].scanners[String(row?.scanner_key || "")] = {
+        level: Math.max(1, Number(row?.level || 1)),
+        xp: Math.max(0, Number(row?.xp || 0)),
+      };
+    });
+
+    const historyRows = sqliteDb
+      .prepare("SELECT owner_key, mode, result, opponent, timestamp FROM profile_history ORDER BY timestamp ASC")
+      .all();
+    historyRows.forEach((row) => {
+      const ownerKey = normalizeUserKey(row?.owner_key);
+      if (!profiles[ownerKey]) {
+        profiles[ownerKey] = createDefaultProfile(ownerKey);
+      }
+      profiles[ownerKey].battleHistory.push({
+        mode: String(row?.mode || "unknown"),
+        result: String(row?.result || "unknown"),
+        opponent: String(row?.opponent || "Oponente"),
+        timestamp: String(row?.timestamp || nowIso()),
+      });
+      if (profiles[ownerKey].battleHistory.length > PROFILE_HISTORY_LIMIT) {
+        profiles[ownerKey].battleHistory = profiles[ownerKey].battleHistory.slice(-PROFILE_HISTORY_LIMIT);
+      }
+    });
+
+    const usageRows = sqliteDb
+      .prepare("SELECT owner_key, card_id, name, count FROM profile_creature_usage")
+      .all();
+    usageRows.forEach((row) => {
+      const ownerKey = normalizeUserKey(row?.owner_key);
+      if (!profiles[ownerKey]) {
+        profiles[ownerKey] = createDefaultProfile(ownerKey);
+      }
+      const cardId = String(row?.card_id || "").trim();
+      if (!cardId) {
+        return;
+      }
+      profiles[ownerKey].creatureUsage[cardId] = {
+        cardId,
+        name: String(row?.name || cardId),
+        count: Math.max(0, Number(row?.count || 0)),
+      };
+    });
+
+    const discoveredRows = sqliteDb
+      .prepare("SELECT owner_key, card_id, discovered FROM profile_discoveries WHERE discovered = 1")
+      .all();
+    discoveredRows.forEach((row) => {
+      const ownerKey = normalizeUserKey(row?.owner_key);
+      if (!profiles[ownerKey]) {
+        profiles[ownerKey] = createDefaultProfile(ownerKey);
+      }
+      const cardId = String(row?.card_id || "").trim();
+      if (!cardId) {
+        return;
+      }
+      profiles[ownerKey].discoveredCards[cardId] = true;
+    });
+
+    const users = sqliteDb.prepare("SELECT username, tribe FROM users").all();
+    users.forEach((row) => {
+      const key = normalizeUserKey(row?.username);
+      if (!profiles[key]) {
+        const profile = createDefaultProfile(key);
+        profile.favoriteTribe = String(row?.tribe || "");
+        profiles[key] = profile;
+      }
+    });
+
+    const normalizedProfiles = {};
+    Object.entries(profiles).forEach(([key, profile]) => {
+      normalizedProfiles[key] = normalizeProfilePayload(key, profile);
+    });
+    return {
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      profiles: normalizedProfiles,
+    };
+  }
+  let fromSql = null;
+  try {
+    fromSql = sqlGet("profiles", "state");
+  } catch (error) {
+    if (isSqliteCorruptionError(error)) {
+      captureSqliteCorruption("loadProfilesData.sqlGet", "profiles", "state", error);
+    } else {
+      console.warn(`[DB] Falha ao ler profiles do SQLite: ${error?.message || error}`);
+    }
+  }
+  if (fromSql && typeof fromSql === "object") {
+    const profiles = {};
+    const sourceProfiles = fromSql?.profiles && typeof fromSql.profiles === "object" ? fromSql.profiles : {};
+    Object.entries(sourceProfiles).forEach(([username, profile]) => {
+      const key = normalizeUserKey(username);
+      profiles[key] = normalizeProfilePayload(key, profile);
+    });
+    return {
+      createdAt: fromSql?.createdAt || nowIso(),
+      updatedAt: fromSql?.updatedAt || nowIso(),
+      profiles,
+    };
+  }
+  if (!fs.existsSync(PROFILES_FILE)) {
+    const base = buildProfilesStateFromUsers();
+    fs.writeFileSync(PROFILES_FILE, JSON.stringify(base, null, 2), "utf8");
+    sqlSet("profiles", "state", base);
+    return base;
+  }
+  try {
+    const parsed = safeJsonParse(fs.readFileSync(PROFILES_FILE, "utf8"), {});
+    const profiles = {};
+    const sourceProfiles = parsed?.profiles && typeof parsed.profiles === "object" ? parsed.profiles : {};
+    Object.entries(sourceProfiles).forEach(([username, profile]) => {
+      const key = normalizeUserKey(username);
+      profiles[key] = normalizeProfilePayload(key, profile);
+    });
+    const payload = {
+      createdAt: parsed?.createdAt || nowIso(),
+      updatedAt: parsed?.updatedAt || nowIso(),
+      profiles,
+    };
+    sqlSet("profiles", "state", payload);
+    return payload;
+  } catch {
+    const recovered = buildProfilesStateFromUsers();
+    fs.writeFileSync(PROFILES_FILE, JSON.stringify(recovered, null, 2), "utf8");
+    sqlSet("profiles", "state", recovered);
+    return recovered;
+  }
+}
+
+function writeProfilesData(state, source = "manual") {
+  const existing = fs.existsSync(PROFILES_FILE) ? safeJsonParse(fs.readFileSync(PROFILES_FILE, "utf8"), {}) : {};
+  const profiles = {};
+  const sourceProfiles = state?.profiles && typeof state.profiles === "object" ? state.profiles : {};
+  Object.entries(sourceProfiles).forEach(([username, profile]) => {
+    const key = normalizeUserKey(username);
+    profiles[key] = normalizeProfilePayload(key, profile);
+  });
+  const payload = {
+    createdAt: existing?.createdAt || state?.createdAt || nowIso(),
+    updatedAt: nowIso(),
+    source,
+    profiles,
+  };
+  if (isSqlV2Ready()) {
+    sqliteDb.exec("BEGIN IMMEDIATE");
+    try {
+      sqliteDb.prepare("DELETE FROM player_profiles").run();
+      sqliteDb.prepare("DELETE FROM profile_scanners").run();
+      sqliteDb.prepare("DELETE FROM profile_history").run();
+      sqliteDb.prepare("DELETE FROM profile_creature_usage").run();
+      sqliteDb.prepare("DELETE FROM profile_discoveries").run();
+      const insertProfile = sqliteDb.prepare(`
+        INSERT INTO player_profiles (
+          owner_key, favorite_tribe, starter_pack_granted_at, starter_pack_tribe, admin_scanner_maxed_at, avatar,
+          score, wins, losses, win_rate, most_played_card_id, most_played_name, most_played_count, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      const insertScanner = sqliteDb.prepare(`
+        INSERT INTO profile_scanners (owner_key, scanner_key, level, xp)
+        VALUES (?, ?, ?, ?)
+      `);
+      const insertHistory = sqliteDb.prepare(`
+        INSERT INTO profile_history (owner_key, mode, result, opponent, timestamp)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      const insertUsage = sqliteDb.prepare(`
+        INSERT INTO profile_creature_usage (owner_key, card_id, name, count)
+        VALUES (?, ?, ?, ?)
+      `);
+      const insertDiscovery = sqliteDb.prepare(`
+        INSERT INTO profile_discoveries (owner_key, card_id, discovered)
+        VALUES (?, ?, 1)
+      `);
+      Object.entries(payload.profiles || {}).forEach(([username, profileRaw]) => {
+        const ownerKey = normalizeUserKey(username);
+        const profile = normalizeProfilePayload(ownerKey, profileRaw);
+        insertProfile.run(
+          ownerKey,
+          String(profile.favoriteTribe || ""),
+          String(profile.starterPackGrantedAt || ""),
+          String(profile.starterPackTribe || ""),
+          String(profile.adminScannerMaxedAt || ""),
+          String(profile.avatar || ""),
+          Math.max(0, Number(profile.score || 1200)),
+          Math.max(0, Number(profile.wins || 0)),
+          Math.max(0, Number(profile.losses || 0)),
+          Number(profile.winRate || 0),
+          String(profile?.mostPlayedCreature?.cardId || ""),
+          String(profile?.mostPlayedCreature?.name || ""),
+          Math.max(0, Number(profile?.mostPlayedCreature?.count || 0)),
+          String(profile.createdAt || nowIso()),
+          String(profile.updatedAt || nowIso())
+        );
+        const scanners = normalizeScannersPayload(profile.scanners);
+        SCANNER_KEYS.forEach((scannerKey) => {
+          const scanner = scanners[scannerKey] || { level: 1, xp: 0 };
+          insertScanner.run(ownerKey, scannerKey, Number(scanner.level || 1), Number(scanner.xp || 0));
+        });
+        (profile.battleHistory || []).forEach((entry) => {
+          insertHistory.run(
+            ownerKey,
+            String(entry?.mode || "unknown"),
+            String(entry?.result || "unknown"),
+            String(entry?.opponent || "Oponente"),
+            String(entry?.timestamp || nowIso())
+          );
+        });
+        Object.values(profile.creatureUsage || {}).forEach((entry) => {
+          const cardId = String(entry?.cardId || "").trim();
+          if (!cardId) {
+            return;
+          }
+          insertUsage.run(
+            ownerKey,
+            cardId,
+            String(entry?.name || cardId),
+            Math.max(0, Number(entry?.count || 0))
+          );
+        });
+        Object.entries(profile.discoveredCards || {}).forEach(([cardId, discovered]) => {
+          if (!cardId || !discovered) {
+            return;
+          }
+          insertDiscovery.run(ownerKey, String(cardId));
+        });
+      });
+      sqliteDb.exec("COMMIT");
+      return payload;
+    } catch (error) {
+      try {
+        sqliteDb.exec("ROLLBACK");
+      } catch {}
+      console.error(`[DB] Falha ao persistir profiles SQL v2: ${error?.message || error}`);
+      throw error;
+    }
+  }
+  fs.writeFileSync(PROFILES_FILE, JSON.stringify(payload, null, 2), "utf8");
+  sqlSet("profiles", "state", payload);
+  invalidateUserCaches("", { all: true });
+  return payload;
+}
+
+function ensureAdminScannersMaxed(profile, usernameKey) {
+  if (normalizeUserKey(usernameKey) !== "admin") {
+    return false;
+  }
+  profile.scanners = normalizeScannersPayload(profile.scanners);
+  let changed = false;
+  SCANNER_KEYS.forEach((key) => {
+    const scanner = profile.scanners[key] || { level: 1, xp: 0 };
+    if (Number(scanner.xp || 0) !== SCANNER_XP_THRESHOLDS[3] || Number(scanner.level || 0) !== 4) {
+      profile.scanners[key] = { level: 4, xp: SCANNER_XP_THRESHOLDS[3] };
+      changed = true;
+    }
+  });
+  if (!profile.adminScannerMaxedAt || changed) {
+    profile.adminScannerMaxedAt = nowIso();
+    changed = true;
+  }
+  if (changed) {
+    profile.updatedAt = nowIso();
+  }
+  return changed;
+}
+
+function getOrCreateProfile(state, usernameRaw) {
+  const key = normalizeUserKey(usernameRaw);
+  let changed = false;
+  if (!state.profiles[key]) {
+    state.profiles[key] = createDefaultProfile(key);
+    changed = true;
+  } else {
+    const current = state.profiles[key];
+    const scanners = current?.scanners && typeof current.scanners === "object" ? current.scanners : null;
+    const looksNormalized = Boolean(
+      current
+      && typeof current === "object"
+      && typeof current.username === "string"
+      && Array.isArray(current.battleHistory)
+      && current.creatureUsage && typeof current.creatureUsage === "object"
+      && current.discoveredCards && typeof current.discoveredCards === "object"
+      && scanners && typeof scanners === "object"
+    );
+    if (!looksNormalized) {
+      state.profiles[key] = normalizeProfilePayload(key, current);
+      changed = true;
+    }
+  }
+  if (ensureAdminScannersMaxed(state.profiles[key], key)) {
+    changed = true;
+  }
+  return { key, profile: state.profiles[key], changed };
+}
+
+function resolveMostPlayedCreature(profile) {
+  const usage = profile?.creatureUsage && typeof profile.creatureUsage === "object" ? profile.creatureUsage : {};
+  let top = null;
+  Object.values(usage).forEach((entry) => {
+    const count = Math.max(0, Number(entry?.count || 0));
+    if (!count) {
+      return;
+    }
+    if (!top || count > top.count) {
+      top = {
+        cardId: String(entry.cardId || ""),
+        name: String(entry.name || entry.cardId || ""),
+        count,
+      };
+    }
+  });
+  profile.mostPlayedCreature = top;
+}
+
+function discoveryKeyFromReward(reward) {
+  const type = String(reward?.type || "").trim();
+  const cardId = String(reward?.cardId || "").trim();
+  if (!type || !cardId) {
+    return "";
+  }
+  return `${type}:${cardId}`;
+}
+
+function isCardDiscovered(profile, reward) {
+  const key = discoveryKeyFromReward(reward);
+  if (!key) {
+    return false;
+  }
+  const discovered = profile?.discoveredCards && typeof profile.discoveredCards === "object"
+    ? profile.discoveredCards
+    : {};
+  return Boolean(discovered[key]);
+}
+
+function markCardDiscovered(profile, reward) {
+  const key = discoveryKeyFromReward(reward);
+  if (!key) {
+    return;
+  }
+  profile.discoveredCards = profile.discoveredCards && typeof profile.discoveredCards === "object"
+    ? profile.discoveredCards
+    : {};
+  profile.discoveredCards[key] = true;
+}
+
+function applyBattleResultToProfile(profile, payload) {
+  const result = String(payload?.result || "").toLowerCase();
+  if (result === "win") {
+    profile.wins += 1;
+    profile.score = Math.max(0, Number(profile.score || 0) + 20);
+  } else if (result === "loss") {
+    profile.losses += 1;
+    profile.score = Math.max(0, Number(profile.score || 0) - 10);
+  } else {
+    return;
+  }
+  const total = profile.wins + profile.losses;
+  profile.winRate = total > 0 ? Math.round((profile.wins / total) * 10000) / 100 : 0;
+  profile.battleHistory = Array.isArray(profile.battleHistory) ? profile.battleHistory : [];
+  profile.battleHistory.push({
+    mode: String(payload?.mode || "unknown"),
+    result,
+    opponent: String(payload?.opponent || "Oponente"),
+    timestamp: payload?.timestamp || nowIso(),
+  });
+  profile.battleHistory = profile.battleHistory.slice(-PROFILE_HISTORY_LIMIT);
+  profile.updatedAt = nowIso();
+}
+
+function applyCreatureUsageToProfile(profile, payload) {
+  const cardId = String(payload?.cardId || "").trim();
+  if (!cardId) {
+    return false;
+  }
+  const cardName = String(payload?.cardName || cardId).trim();
+  const increment = Math.max(1, Number(payload?.count || 1));
+  profile.creatureUsage = profile.creatureUsage && typeof profile.creatureUsage === "object" ? profile.creatureUsage : {};
+  if (!profile.creatureUsage[cardId]) {
+    profile.creatureUsage[cardId] = { cardId, name: cardName, count: 0 };
+  }
+  profile.creatureUsage[cardId].count += increment;
+  profile.creatureUsage[cardId].name = cardName || profile.creatureUsage[cardId].name;
+  resolveMostPlayedCreature(profile);
+  profile.updatedAt = nowIso();
+  return true;
+}
+
+function seasonKeyFromDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function seasonBoundsFromDate(date = new Date()) {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1, 0, 0, 0, 0);
+  return {
+    startsAt: start.toISOString(),
+    endsAt: end.toISOString(),
+  };
+}
+
+function ensureCurrentSeasonRow(nowDate = new Date()) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const key = seasonKeyFromDate(nowDate);
+  const bounds = seasonBoundsFromDate(nowDate);
+  const now = nowIso();
+  sqliteDb
+    .prepare(`
+      INSERT INTO seasons (season_key, starts_at, ends_at, status, created_at, updated_at)
+      VALUES (?, ?, ?, 'active', ?, ?)
+      ON CONFLICT(season_key) DO UPDATE SET
+        starts_at = excluded.starts_at,
+        ends_at = excluded.ends_at,
+        updated_at = excluded.updated_at
+    `)
+    .run(key, bounds.startsAt, bounds.endsAt, now, now);
+  return {
+    seasonKey: key,
+    startsAt: bounds.startsAt,
+    endsAt: bounds.endsAt,
+  };
+}
+
+function upsertSeasonPlayerDelta(ownerKeyRaw, delta = {}) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  if (!ownerKey) {
+    return null;
+  }
+  const season = ensureCurrentSeasonRow(new Date());
+  if (!season) {
+    return null;
+  }
+  const scoreDelta = Number(delta.score || 0);
+  const winsDelta = Number(delta.wins || 0);
+  const lossesDelta = Number(delta.losses || 0);
+  const perimClaimsDelta = Number(delta.perimClaims || 0);
+  sqliteDb
+    .prepare(`
+      INSERT INTO season_player_stats (season_key, owner_key, score, wins, losses, perim_claims, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(season_key, owner_key) DO UPDATE SET
+        score = season_player_stats.score + excluded.score,
+        wins = season_player_stats.wins + excluded.wins,
+        losses = season_player_stats.losses + excluded.losses,
+        perim_claims = season_player_stats.perim_claims + excluded.perim_claims,
+        updated_at = excluded.updated_at
+    `)
+    .run(
+      season.seasonKey,
+      ownerKey,
+      scoreDelta,
+      winsDelta,
+      lossesDelta,
+      perimClaimsDelta,
+      nowIso()
+    );
+  return season;
+}
+
+function buildDailyPerimMissionKey(date = new Date()) {
+  const day = date.toISOString().slice(0, 10);
+  return `perim_claims:${day}`;
+}
+
+function ensureDailyPerimMission(date = new Date()) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const missionDate = date.toISOString().slice(0, 10);
+  const missionKey = buildDailyPerimMissionKey(date);
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO daily_missions (mission_key, mission_date, mission_type, target_value, created_at)
+      VALUES (?, ?, 'perim_claims', 3, ?)
+    `)
+    .run(missionKey, missionDate, nowIso());
+  return sqliteDb
+    .prepare("SELECT mission_key, mission_date, mission_type, target_value, created_at FROM daily_missions WHERE mission_key = ?")
+    .get(missionKey);
+}
+
+function incrementPerimMissionProgress(ownerKeyRaw, increment = 1, date = new Date()) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  if (!ownerKey) {
+    return null;
+  }
+  const mission = ensureDailyPerimMission(date);
+  if (!mission) {
+    return null;
+  }
+  sqliteDb
+    .prepare(`
+      INSERT INTO daily_mission_progress (mission_key, owner_key, progress_value, completed_at, claimed_at, updated_at)
+      VALUES (?, ?, ?, NULL, NULL, ?)
+      ON CONFLICT(mission_key, owner_key) DO UPDATE SET
+        progress_value = daily_mission_progress.progress_value + excluded.progress_value,
+        updated_at = excluded.updated_at
+    `)
+    .run(String(mission.mission_key), ownerKey, Math.max(0, Number(increment || 0)), nowIso());
+  const progress = sqliteDb
+    .prepare(`
+      SELECT mission_key, owner_key, progress_value, completed_at, claimed_at, updated_at
+      FROM daily_mission_progress
+      WHERE mission_key = ? AND owner_key = ?
+    `)
+    .get(String(mission.mission_key), ownerKey);
+  const target = Math.max(1, Number(mission?.target_value || 1));
+  if (progress && !progress.completed_at && Number(progress.progress_value || 0) >= target) {
+    const completedAt = nowIso();
+    sqliteDb
+      .prepare("UPDATE daily_mission_progress SET completed_at = ?, updated_at = ? WHERE mission_key = ? AND owner_key = ?")
+      .run(completedAt, completedAt, String(mission.mission_key), ownerKey);
+  }
+  return {
+    missionKey: String(mission.mission_key),
+    missionDate: String(mission.mission_date),
+    missionType: String(mission.mission_type),
+    targetValue: target,
+  };
+}
+
+function claimDailyMissionReward(ownerKeyRaw, missionKeyRaw) {
+  if (!sqliteDb) {
+    return { ok: false, error: "Banco de dados indisponivel." };
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  const missionKey = String(missionKeyRaw || "").trim();
+  if (!ownerKey || !missionKey) {
+    return { ok: false, error: "Missao invalida." };
+  }
+  const mission = sqliteDb
+    .prepare("SELECT mission_key, target_value FROM daily_missions WHERE mission_key = ?")
+    .get(missionKey);
+  if (!mission) {
+    return { ok: false, error: "Missao nao encontrada." };
+  }
+  const progress = sqliteDb
+    .prepare("SELECT progress_value, completed_at, claimed_at FROM daily_mission_progress WHERE mission_key = ? AND owner_key = ?")
+    .get(missionKey, ownerKey);
+  if (!progress) {
+    return { ok: false, error: "Sem progresso nessa missao." };
+  }
+  if (progress.claimed_at) {
+    return { ok: false, error: "Missao ja coletada." };
+  }
+  const target = Math.max(1, Number(mission?.target_value || 1));
+  if (Number(progress?.progress_value || 0) < target) {
+    return { ok: false, error: "Missao ainda nao concluida." };
+  }
+  const claimedAt = nowIso();
+  sqliteDb
+    .prepare("UPDATE daily_mission_progress SET claimed_at = ?, updated_at = ? WHERE mission_key = ? AND owner_key = ?")
+    .run(claimedAt, claimedAt, missionKey, ownerKey);
+  const season = ensureCurrentSeasonRow(new Date());
+  const rewardBadge = `perim-hunter-${season?.seasonKey || seasonKeyFromDate(new Date())}`;
+  const rewardTitle = "Rastreador de PERIM";
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO season_rewards (season_key, owner_key, reward_type, reward_value, granted_at)
+      VALUES (?, ?, 'badge', ?, ?)
+    `)
+    .run(season?.seasonKey || seasonKeyFromDate(new Date()), ownerKey, rewardBadge, claimedAt);
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO season_rewards (season_key, owner_key, reward_type, reward_value, granted_at)
+      VALUES (?, ?, 'title', ?, ?)
+    `)
+    .run(season?.seasonKey || seasonKeyFromDate(new Date()), ownerKey, rewardTitle, claimedAt);
+  return {
+    ok: true,
+    claimedAt,
+    rewards: [
+      { type: "badge", value: rewardBadge },
+      { type: "title", value: rewardTitle },
+    ],
+  };
+}
+
+function listSeasonRewards(ownerKeyRaw, seasonKeyRaw = "") {
+  if (!sqliteDb) {
+    return [];
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  if (!ownerKey) {
+    return [];
+  }
+  const seasonKey = String(seasonKeyRaw || seasonKeyFromDate(new Date()));
+  return sqliteDb
+    .prepare(`
+      SELECT reward_type, reward_value, granted_at
+      FROM season_rewards
+      WHERE owner_key = ? AND season_key = ?
+      ORDER BY granted_at DESC
+    `)
+    .all(ownerKey, seasonKey)
+    .map((row) => ({
+      type: String(row?.reward_type || ""),
+      value: String(row?.reward_value || ""),
+      grantedAt: String(row?.granted_at || ""),
+    }));
+}
+
+function resolveFavoriteTribeFromUserRecord(usernameRaw) {
+  if (!sqliteDb) {
+    return "";
+  }
+  const username = normalizeUserKey(usernameRaw);
+  if (!username) {
+    return "";
+  }
+  try {
+    const row = sqliteDb
+      .prepare("SELECT tribe FROM users WHERE username = ? COLLATE NOCASE LIMIT 1")
+      .get(username);
+    return String(row?.tribe || "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function buildProfilePayload(usernameRaw) {
+  const profilesState = loadProfilesData();
+  const { key, profile } = getOrCreateProfile(profilesState, usernameRaw);
+  const recordTribe = resolveFavoriteTribeFromUserRecord(key);
+  if (!profile.favoriteTribe && recordTribe) {
+    profile.favoriteTribe = recordTribe;
+    profile.updatedAt = nowIso();
+    writeProfilesData(profilesState, "profile_tribe_sync");
+  }
+  const scans = loadScansData();
+  const starterResult = applyStarterPackIfEligible(key, profile, scans, profile.favoriteTribe || recordTribe);
+  if (starterResult.profileChanged) {
+    writeProfilesData(profilesState, "profile_bootstrap");
+  }
+  if (starterResult.scansChanged) {
+    writeScansData(scans, "profile_starter_pack_autogrant");
+  }
+  const { cards } = getScansCardsForUser(scans, key, true);
+  if (!starterResult.scansChanged) {
+    writeScansData(scans, "profile_scans_bootstrap");
+  }
+  if (!starterResult.profileChanged) {
+    writeProfilesData(profilesState, "profile_bootstrap");
+  }
+  const scansStats = countBucketCards(cards);
+  const currentSeasonKey = seasonKeyFromDate(new Date());
+  return {
+    username: key,
+    favoriteTribe: profile.favoriteTribe || "",
+    avatar: profile.avatar || "",
+    score: Number(profile.score || 0),
+    wins: Number(profile.wins || 0),
+    losses: Number(profile.losses || 0),
+    winRate: Number(profile.winRate || 0),
+    totalBattles: Number(profile.wins || 0) + Number(profile.losses || 0),
+    scans: {
+      total: scansStats.total,
+      byType: scansStats.counts,
+    },
+    scanners: SCANNER_KEYS.reduce((acc, key) => {
+      acc[key] = scannerProgressPayload(profile?.scanners?.[key]);
+      return acc;
+    }, {}),
+    mostPlayedCreature: profile.mostPlayedCreature || null,
+    seasonRewards: listSeasonRewards(key, currentSeasonKey),
+    battleHistory: Array.isArray(profile.battleHistory) ? profile.battleHistory.slice(-PROFILE_HISTORY_LIMIT).reverse() : [],
+    updatedAt: profile.updatedAt || nowIso(),
+  };
+}
+
+function normalizeStarterTribe(rawValue) {
+  const token = String(rawValue || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+  if (!token) return "";
+  if (token.includes("outromundo") || token.includes("overworld")) return "overworld";
+  if (token.includes("submundo") || token.includes("underworld")) return "underworld";
+  if (token.includes("mipedian") || token.includes("maipidian")) return "mipedian";
+  if (token.includes("danian")) return "danian";
+  return "";
+}
+
+function starterPackConfigByTribe(tribeKey) {
+  const normalized = normalizeStarterTribe(tribeKey);
+  if (normalized === "overworld") {
+    return { tribe: "OverWorld", locationName: "Kiru City" };
+  }
+  if (normalized === "underworld") {
+    return { tribe: "UnderWorld", locationName: "UnderWorld City" };
+  }
+  if (normalized === "mipedian") {
+    return { tribe: "Mipedian", locationName: "Mipedim Oasis" };
+  }
+  if (normalized === "danian") {
+    return { tribe: "Danian", locationName: "Mount Pillar" };
+  }
+  return null;
+}
+
+function isDropEligibleCard(card) {
+  const nameLower = String(card?.name || "").toLowerCase();
+  return Boolean(card?.id) && !nameLower.includes("unused") && !nameLower.includes("alpha");
+}
+
+function pickEligibleCardWithCap(cards, currentCounts, maxAttempts = 64) {
+  if (!Array.isArray(cards) || !cards.length) {
+    return null;
+  }
+  let attempts = 0;
+  while (attempts < maxAttempts) {
+    attempts += 1;
+    const picked = cards[Math.floor(Math.random() * cards.length)];
+    if (!picked?.id) {
+      continue;
+    }
+    const cardId = String(picked.id);
+    const currentAmount = currentCounts.get(cardId) || 0;
+    if (currentAmount >= INVENTORY_MAX_COPIES) {
+      continue;
+    }
+    return picked;
+  }
+  return null;
+}
+
+function applyStarterPackIfEligible(usernameKey, profile, scansData, favoriteTribeInput = "") {
+  const result = {
+    applied: false,
+    reason: "",
+    items: {
+      locations: [],
+      creatures: [],
+      battlegear: [],
+      mugic: [],
+    },
+    profileChanged: false,
+    scansChanged: false,
+  };
+  if (!profile || typeof profile !== "object") {
+    result.reason = "invalid_profile";
+    return result;
+  }
+  if (profile.starterPackGrantedAt) {
+    result.reason = "already_granted";
+    return result;
+  }
+  const starterConfig = starterPackConfigByTribe(favoriteTribeInput || profile.favoriteTribe);
+  if (!starterConfig) {
+    result.reason = "invalid_tribe";
+    return result;
+  }
+
+  const { key: ownerKey, cards: currentCards } = getScansCardsForUser(scansData, usernameKey, true);
+  const byType = {
+    locations: Array.isArray(library?.cardsByType?.locations) ? library.cardsByType.locations : [],
+    creatures: Array.isArray(library?.cardsByType?.creatures) ? library.cardsByType.creatures : [],
+    battlegear: Array.isArray(library?.cardsByType?.battlegear) ? library.cardsByType.battlegear : [],
+    mugic: Array.isArray(library?.cardsByType?.mugic) ? library.cardsByType.mugic : [],
+  };
+  const locationCard = byType.locations.find(
+    (card) => isDropEligibleCard(card) && normalizePerimText(card?.name || "") === normalizePerimText(starterConfig.locationName)
+  ) || null;
+  const creaturePool = byType.creatures.filter(
+    (card) => isDropEligibleCard(card) && normalizePerimText(card?.tribe || "") === normalizePerimText(starterConfig.tribe)
+  );
+  const mugicPool = byType.mugic.filter(
+    (card) => isDropEligibleCard(card) && normalizePerimText(card?.tribe || "") === normalizePerimText(starterConfig.tribe)
+  );
+  const battlegearPool = byType.battlegear.filter((card) => isDropEligibleCard(card));
+
+  const nextCards = cloneCardBuckets(currentCards);
+  const locationCounts = countCardEntriesByType(nextCards.locations, "locations");
+  const creatureCounts = countCardEntriesByType(nextCards.creatures, "creatures");
+  const battlegearCounts = countCardEntriesByType(nextCards.battlegear, "battlegear");
+  const mugicCounts = countCardEntriesByType(nextCards.mugic, "mugic");
+
+  const addSimpleCard = (bucketName, countsMap, card, grantList) => {
+    if (!card?.id) {
+      return false;
+    }
+    const cardId = String(card.id);
+    const currentAmount = countsMap.get(cardId) || 0;
+    if (currentAmount >= INVENTORY_MAX_COPIES) {
+      return false;
+    }
+    nextCards[bucketName].push(cardId);
+    countsMap.set(cardId, currentAmount + 1);
+    grantList.push({ cardId, name: card.name, image: card.image || "" });
+    return true;
+  };
+
+  const addCreatureCard = (card) => {
+    if (!card?.id) {
+      return false;
+    }
+    const cardId = String(card.id);
+    const currentAmount = creatureCounts.get(cardId) || 0;
+    if (currentAmount >= INVENTORY_MAX_COPIES) {
+      return false;
+    }
+    const variant = buildCreatureScanVariant();
+    nextCards.creatures.push({
+      cardId,
+      scanEntryId: generateScanEntryId(),
+      variant,
+      source: "starter_pack",
+      obtainedAt: nowIso(),
+    });
+    creatureCounts.set(cardId, currentAmount + 1);
+    result.items.creatures.push({
+      cardId,
+      name: variant.perfect ? `${card.name} â˜…` : card.name,
+      baseName: card.name,
+      image: card.image || "",
+      variant,
+    });
+    return true;
+  };
+
+  let anyGranted = false;
+  if (locationCard && addSimpleCard("locations", locationCounts, locationCard, result.items.locations)) {
+    anyGranted = true;
+  }
+  const pickedCreature = pickEligibleCardWithCap(creaturePool, creatureCounts);
+  if (pickedCreature && addCreatureCard(pickedCreature)) {
+    anyGranted = true;
+  }
+  const pickedGear = pickEligibleCardWithCap(battlegearPool, battlegearCounts);
+  if (pickedGear && addSimpleCard("battlegear", battlegearCounts, pickedGear, result.items.battlegear)) {
+    anyGranted = true;
+  }
+  const pickedMugic = pickEligibleCardWithCap(mugicPool, mugicCounts);
+  if (pickedMugic && addSimpleCard("mugic", mugicCounts, pickedMugic, result.items.mugic)) {
+    anyGranted = true;
+  }
+
+  if (!anyGranted) {
+    result.reason = "no_eligible_cards";
+    console.log(
+      `[PROFILE][STARTER] user=${ownerKey} tribe="${starterConfig.tribe}" applied=false reason=no_eligible_cards`
+    );
+    return result;
+  }
+
+  scansData.players[ownerKey] = { cards: trimCardsToInventoryCap(nextCards, INVENTORY_MAX_COPIES) };
+  profile.starterPackGrantedAt = nowIso();
+  profile.starterPackTribe = starterConfig.tribe;
+  profile.updatedAt = nowIso();
+
+  result.applied = true;
+  result.reason = "applied";
+  result.profileChanged = true;
+  result.scansChanged = true;
+
+  console.log(
+    `[PROFILE][STARTER] user=${ownerKey} tribeInput="${favoriteTribeInput}" starterTribe="${starterConfig.tribe}" applied=true loc=${result.items.locations.length} creature=${result.items.creatures.length} gear=${result.items.battlegear.length} mugic=${result.items.mugic.length}`
+  );
+  return result;
+}
+
+function resolveAvatarForUsername(usernameRaw) {
+  const key = normalizeUserKey(usernameRaw);
+  if (!key) {
+    return "";
+  }
+  const profilesState = loadProfilesData();
+  const { profile } = getOrCreateProfile(profilesState, key);
+  return String(profile?.avatar || "");
+}
+
+async function getBattleEngine() {
+  if (!engineModulePromise) {
+    engineModulePromise = import(pathToFileURL(ENGINE_FILE).href);
+  }
+  return engineModulePromise;
+}
+
+function encodeRichValue(value) {
+  if (value instanceof Set) {
+    return { __chaoticType: "Set", values: [...value].map((entry) => encodeRichValue(entry)) };
+  }
+  if (value instanceof Map) {
+    return {
+      __chaoticType: "Map",
+      entries: [...value.entries()].map(([key, entryValue]) => [encodeRichValue(key), encodeRichValue(entryValue)]),
+    };
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => encodeRichValue(entry));
+  }
+  if (value && typeof value === "object") {
+    const out = {};
+    Object.keys(value).forEach((key) => {
+      out[key] = encodeRichValue(value[key]);
+    });
+    return out;
+  }
+  return value;
+}
+
+function decodeRichValue(value) {
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => decodeRichValue(entry));
+  }
+  if (value.__chaoticType === "Set" && Array.isArray(value.values)) {
+    return new Set(value.values.map((entry) => decodeRichValue(entry)));
+  }
+  if (value.__chaoticType === "Map" && Array.isArray(value.entries)) {
+    return new Map(value.entries.map(([key, entryValue]) => [decodeRichValue(key), decodeRichValue(entryValue)]));
+  }
+  const out = {};
+  Object.keys(value).forEach((key) => {
+    out[key] = decodeRichValue(value[key]);
+  });
+  return out;
+}
+
+let tradeCardMetaCache = { versionToken: "", map: new Map() };
+
+function getTradeCardMetaMap() {
+  const cards = Array.isArray(library?.cards) ? library.cards : [];
+  const versionToken = `${cards.length}:${library?.generatedAt || ""}`;
+  if (tradeCardMetaCache.versionToken === versionToken) {
+    return tradeCardMetaCache.map;
+  }
+  const map = new Map();
+  cards.forEach((card) => {
+    const cardId = String(card?.id || "").trim();
+    if (!cardId) {
+      return;
+    }
+    map.set(cardId, {
+      name: String(card?.name || cardId),
+      rarity: String(card?.rarity || "Unknown"),
+      set: String(card?.set || "Unknown"),
+      tribe: String(card?.tribe || ""),
+      image: String(card?.image || ""),
+    });
+  });
+  tradeCardMetaCache = { versionToken, map };
+  return map;
+}
+
+function mapTradeEntryRow(row) {
+  const cardId = String(row?.card_id || "").trim();
+  const cardType = String(row?.card_type || "").trim();
+  const metadata = getTradeCardMetaMap().get(cardId) || {};
+  const variant = normalizeCreatureVariant(parseJsonText(row?.variant_json, null));
+  return {
+    scanEntryId: String(row?.scan_entry_id || ""),
+    ownerKey: normalizeUserKey(row?.owner_key),
+    cardType,
+    cardId,
+    cardName: String(metadata?.name || cardId),
+    rarity: String(metadata?.rarity || "Unknown"),
+    set: String(metadata?.set || "Unknown"),
+    tribe: String(metadata?.tribe || ""),
+    image: String(metadata?.image || ""),
+    variant: variant || null,
+    obtainedAt: row?.obtained_at ? String(row.obtained_at) : null,
+  };
+}
+
+function fetchTradeInventoryEntries(ownerKeyRaw) {
+  if (!isSqlV2Ready()) {
+    return [];
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  const rows = sqliteDb
+    .prepare(`
+      SELECT scan_entry_id, owner_key, card_type, card_id, variant_json, obtained_at
+      FROM scan_entries
+      WHERE owner_key = ?
+      ORDER BY card_type ASC, rowid ASC
+    `)
+    .all(ownerKey);
+  return rows.map((row) => mapTradeEntryRow(row));
+}
+
+function fetchTradeEntriesByIds(scanEntryIds) {
+  if (!isSqlV2Ready()) {
+    return [];
+  }
+  const ids = Array.isArray(scanEntryIds)
+    ? scanEntryIds.map((entryId) => String(entryId || "").trim()).filter(Boolean)
+    : [];
+  if (!ids.length) {
+    return [];
+  }
+  const placeholders = ids.map(() => "?").join(", ");
+  const rows = sqliteDb
+    .prepare(`
+      SELECT scan_entry_id, owner_key, card_type, card_id, variant_json, obtained_at
+      FROM scan_entries
+      WHERE scan_entry_id IN (${placeholders})
+    `)
+    .all(...ids);
+  const byId = new Map();
+  rows.forEach((row) => {
+    const mapped = mapTradeEntryRow(row);
+    if (mapped.scanEntryId) {
+      byId.set(mapped.scanEntryId, mapped);
+    }
+  });
+  return ids
+    .map((entryId) => byId.get(entryId))
+    .filter(Boolean);
+}
+
+function normalizeTradeCode(value) {
+  return String(value || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, TRADE_ROOM_CODE_LENGTH);
+}
+
+function generateTradeRoomCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    let code = "";
+    for (let i = 0; i < TRADE_ROOM_CODE_LENGTH; i += 1) {
+      code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    if (!tradeRooms.has(code)) {
+      return code;
+    }
+  }
+  return crypto.randomBytes(5).toString("hex").toUpperCase().slice(0, TRADE_ROOM_CODE_LENGTH);
+}
+
+function getTradeSeatByToken(room, seatToken) {
+  const token = String(seatToken || "");
+  if (!room || !token) {
+    return { seat: "spectator", playerKey: "" };
+  }
+  if (room.host?.seatToken === token) {
+    return { seat: "host", playerKey: normalizeUserKey(room.host?.username) };
+  }
+  if (room.guest?.seatToken === token) {
+    return { seat: "guest", playerKey: normalizeUserKey(room.guest?.username) };
+  }
+  return { seat: "spectator", playerKey: "" };
+}
+
+function sendTradeRoomEvent(room, payload) {
+  const message = JSON.stringify(payload);
+  room.clients.forEach((client) => {
+    try {
+      client.res.write(`data: ${message}\n\n`);
+    } catch {
+      room.clients.delete(client);
+    }
+  });
+}
+
+function buildTradeRoomStatePayload(room, seatToken = "") {
+  const seatInfo = getTradeSeatByToken(room, seatToken);
+  const hostOfferIds = Array.isArray(room.offers?.host) ? room.offers.host : [];
+  const guestOfferIds = Array.isArray(room.offers?.guest) ? room.offers.guest : [];
+  const hostOffer = fetchTradeEntriesByIds(hostOfferIds);
+  const guestOffer = fetchTradeEntriesByIds(guestOfferIds);
+  let myInventory = [];
+  if (seatInfo.seat === "host" || seatInfo.seat === "guest") {
+    const offeredIds = new Set([...hostOfferIds, ...guestOfferIds]);
+    myInventory = fetchTradeInventoryEntries(seatInfo.playerKey).map((entry) => ({
+      ...entry,
+      offered: offeredIds.has(String(entry.scanEntryId || "")),
+      lockedByOtherRoom: (() => {
+        const lock = tradeCardLocks.get(String(entry.scanEntryId || ""));
+        if (!lock) return false;
+        return String(lock.roomCode || "") !== String(room.code || "");
+      })(),
+    }));
+  }
+  return {
+    roomCode: room.code,
+    status: room.status,
+    seat: seatInfo.seat,
+    players: {
+      host: room.host
+        ? {
+            username: normalizeUserKey(room.host.username),
+            displayName: String(room.host.displayName || room.host.username || "Host"),
+          }
+        : null,
+      guest: room.guest
+        ? {
+            username: normalizeUserKey(room.guest.username),
+            displayName: String(room.guest.displayName || room.guest.username || "Guest"),
+          }
+        : null,
+    },
+    accepted: {
+      host: Boolean(room.accepted?.host),
+      guest: Boolean(room.accepted?.guest),
+    },
+    confirmFinalize: {
+      host: Boolean(room.confirmFinalize?.host),
+      guest: Boolean(room.confirmFinalize?.guest),
+    },
+    offers: {
+      host: hostOffer,
+      guest: guestOffer,
+    },
+    myInventory,
+    canFinalize:
+      room.status === "ready"
+      && Boolean(room.accepted?.host)
+      && Boolean(room.accepted?.guest)
+      && Boolean(room.confirmFinalize?.host)
+      && Boolean(room.confirmFinalize?.guest),
+    updatedAt: room.updatedAt || nowIso(),
+  };
+}
+
+function broadcastTradeRoomSnapshot(room, reason = "update") {
+  room.updatedAt = nowIso();
+  room.lastActivityAt = Date.now();
+  room.clients.forEach((client) => {
+    const snapshot = buildTradeRoomStatePayload(room, client.seatToken);
+    const payload = {
+      type: "trade_room_snapshot",
+      reason,
+      snapshot,
+    };
+    try {
+      client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    } catch {
+      room.clients.delete(client);
+    }
+  });
+}
+
+function requireTradeRoomOr404(response, roomCodeRaw) {
+  const roomCode = normalizeTradeCode(roomCodeRaw);
+  const room = tradeRooms.get(roomCode);
+  if (!room) {
+    sendJson(response, 404, { error: "Sala de troca nao encontrada." });
+    return null;
+  }
+  return room;
+}
+
+function clearTradeRoomConnections(room) {
+  room.clients.forEach((client) => {
+    try {
+      client.res.end();
+    } catch {}
+  });
+  room.clients.clear();
+}
+
+function lockTradeCard(roomCode, seat, scanEntryId) {
+  const key = String(scanEntryId || "").trim();
+  if (!key) {
+    return false;
+  }
+  const current = tradeCardLocks.get(key);
+  if (current && !(String(current.roomCode) === String(roomCode) && String(current.seat) === String(seat))) {
+    return false;
+  }
+  tradeCardLocks.set(key, {
+    roomCode: String(roomCode),
+    seat: String(seat),
+    updatedAt: Date.now(),
+  });
+  return true;
+}
+
+function unlockTradeCard(roomCode, seat, scanEntryId) {
+  const key = String(scanEntryId || "").trim();
+  if (!key) {
+    return;
+  }
+  const current = tradeCardLocks.get(key);
+  if (!current) {
+    return;
+  }
+  if (String(current.roomCode) !== String(roomCode) || String(current.seat) !== String(seat)) {
+    return;
+  }
+  tradeCardLocks.delete(key);
+}
+
+function releaseTradeRoomLocks(room) {
+  if (!room) {
+    return;
+  }
+  (Array.isArray(room.offers?.host) ? room.offers.host : []).forEach((scanEntryId) => {
+    unlockTradeCard(room.code, "host", scanEntryId);
+  });
+  (Array.isArray(room.offers?.guest) ? room.offers.guest : []).forEach((scanEntryId) => {
+    unlockTradeCard(room.code, "guest", scanEntryId);
+  });
+}
+
+function cleanupExpiredTradeRooms() {
+  const now = Date.now();
+  tradeRooms.forEach((room, code) => {
+    const lastActivityAt = Number(room?.lastActivityAt || 0);
+    if (!lastActivityAt) {
+      return;
+    }
+    if (now - lastActivityAt < TRADE_ROOM_IDLE_TTL_MS) {
+      return;
+    }
+    releaseTradeRoomLocks(room);
+    clearTradeRoomConnections(room);
+    tradeRooms.delete(code);
+    console.log(`[TRADES][GC] Sala ${code} removida por inatividade.`);
+  });
+}
+
+function resolveTradeScanEntryId(room, seat, action) {
+  const actor = seat === "host" ? room.host : room.guest;
+  const actorKey = normalizeUserKey(actor?.username);
+  if (!actorKey) {
+    return "";
+  }
+  const offered = new Set([
+    ...(Array.isArray(room.offers?.host) ? room.offers.host : []),
+    ...(Array.isArray(room.offers?.guest) ? room.offers.guest : []),
+  ]);
+  const requestedScanEntryId = String(action?.scanEntryId || "").trim();
+  if (requestedScanEntryId) {
+    const lock = tradeCardLocks.get(requestedScanEntryId);
+    if (lock && String(lock.roomCode || "") !== String(room.code || "")) {
+      return "";
+    }
+    const owned = fetchTradeInventoryEntries(actorKey).some(
+      (entry) => entry.scanEntryId === requestedScanEntryId
+    );
+    if (owned && !offered.has(requestedScanEntryId)) {
+      return requestedScanEntryId;
+    }
+    return "";
+  }
+  const requestedCardId = String(action?.cardId || "").trim();
+  if (!requestedCardId) {
+    return "";
+  }
+  const requestedType = String(action?.cardType || "").trim().toLowerCase();
+  const match = fetchTradeInventoryEntries(actorKey).find((entry) => {
+    const lock = tradeCardLocks.get(String(entry.scanEntryId || ""));
+    if (lock && String(lock.roomCode || "") !== String(room.code || "")) {
+      return false;
+    }
+    if (offered.has(entry.scanEntryId)) {
+      return false;
+    }
+    if (entry.cardId !== requestedCardId) {
+      return false;
+    }
+    if (requestedType && entry.cardType !== requestedType) {
+      return false;
+    }
+    return true;
+  });
+  return String(match?.scanEntryId || "");
+}
+
+function transferTradeEntriesAtomic(room) {
+  if (!isSqlV2Ready()) {
+    throw new Error("Sistema de trocas requer banco SQL ativo.");
+  }
+  const hostKey = normalizeUserKey(room?.host?.username);
+  const guestKey = normalizeUserKey(room?.guest?.username);
+  if (!hostKey || !guestKey) {
+    throw new Error("Sala de troca sem jogadores validos.");
+  }
+  const hostIds = Array.isArray(room.offers?.host) ? room.offers.host.map((id) => String(id || "").trim()).filter(Boolean) : [];
+  const guestIds = Array.isArray(room.offers?.guest) ? room.offers.guest.map((id) => String(id || "").trim()).filter(Boolean) : [];
+  const allIds = [...hostIds, ...guestIds];
+  if (!allIds.length) {
+    throw new Error("Nenhuma carta ofertada para concluir a troca.");
+  }
+  const uniqueIds = [...new Set(allIds)];
+  if (uniqueIds.length !== allIds.length) {
+    throw new Error("Oferta contem entradas duplicadas.");
+  }
+  const placeholders = uniqueIds.map(() => "?").join(", ");
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    const rows = sqliteDb
+      .prepare(`
+        SELECT scan_entry_id, owner_key, card_type, card_id, variant_json
+        FROM scan_entries
+        WHERE scan_entry_id IN (${placeholders})
+      `)
+      .all(...uniqueIds);
+    const ownerById = new Map(rows.map((row) => [String(row.scan_entry_id || ""), normalizeUserKey(row.owner_key)]));
+    const rowById = new Map(rows.map((row) => [String(row.scan_entry_id || ""), row]));
+    uniqueIds.forEach((scanEntryId) => {
+      if (!ownerById.has(scanEntryId)) {
+        throw new Error(`Carta da oferta nao encontrada: ${scanEntryId}`);
+      }
+    });
+    hostIds.forEach((scanEntryId) => {
+      if (ownerById.get(scanEntryId) !== hostKey) {
+        throw new Error("Uma carta ofertada pelo host nao pertence mais ao host.");
+      }
+    });
+    guestIds.forEach((scanEntryId) => {
+      if (ownerById.get(scanEntryId) !== guestKey) {
+        throw new Error("Uma carta ofertada pelo guest nao pertence mais ao guest.");
+      }
+    });
+
+    const updateOwner = sqliteDb.prepare("UPDATE scan_entries SET owner_key = ? WHERE scan_entry_id = ?");
+    hostIds.forEach((scanEntryId) => updateOwner.run(guestKey, scanEntryId));
+    guestIds.forEach((scanEntryId) => updateOwner.run(hostKey, scanEntryId));
+
+    sqliteDb.exec("COMMIT");
+    const hostToGuest = hostIds.map((scanEntryId) => {
+      const entry = rowById.get(scanEntryId) || {};
+      return {
+        scanEntryId: String(scanEntryId),
+        fromOwnerKey: hostKey,
+        toOwnerKey: guestKey,
+        cardType: String(entry?.card_type || ""),
+        cardId: String(entry?.card_id || ""),
+        variant: normalizeCreatureVariant(parseJsonText(entry?.variant_json, null)),
+      };
+    });
+    const guestToHost = guestIds.map((scanEntryId) => {
+      const entry = rowById.get(scanEntryId) || {};
+      return {
+        scanEntryId: String(scanEntryId),
+        fromOwnerKey: guestKey,
+        toOwnerKey: hostKey,
+        cardType: String(entry?.card_type || ""),
+        cardId: String(entry?.card_id || ""),
+        variant: normalizeCreatureVariant(parseJsonText(entry?.variant_json, null)),
+      };
+    });
+    return {
+      hostToGuest,
+      guestToHost,
+    };
+  } catch (error) {
+    try {
+      sqliteDb.exec("ROLLBACK");
+    } catch {}
+    throw error;
+  }
+}
+
+function persistTradeHistory(room, summary) {
+  if (!sqliteDb || !room || !summary) {
+    return null;
+  }
+  const tradeId = `trade_${crypto.randomBytes(8).toString("hex")}`;
+  const completedAt = nowIso();
+  const hostKey = normalizeUserKey(room?.host?.username);
+  const guestKey = normalizeUserKey(room?.guest?.username);
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    sqliteDb
+      .prepare(`
+        INSERT INTO trade_history (trade_id, room_code, host_key, guest_key, completed_at)
+        VALUES (?, ?, ?, ?, ?)
+      `)
+      .run(tradeId, String(room.code || ""), hostKey, guestKey, completedAt);
+    const insertItem = sqliteDb.prepare(`
+      INSERT INTO trade_history_items (trade_id, from_owner_key, to_owner_key, scan_entry_id, card_type, card_id, variant_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    const entries = [
+      ...(Array.isArray(summary.hostToGuest) ? summary.hostToGuest : []),
+      ...(Array.isArray(summary.guestToHost) ? summary.guestToHost : []),
+    ];
+    entries.forEach((entry) => {
+      insertItem.run(
+        tradeId,
+        String(entry?.fromOwnerKey || ""),
+        String(entry?.toOwnerKey || ""),
+        String(entry?.scanEntryId || ""),
+        String(entry?.cardType || ""),
+        String(entry?.cardId || ""),
+        entry?.variant ? JSON.stringify(entry.variant) : null
+      );
+    });
+    sqliteDb.exec("COMMIT");
+    return {
+      tradeId,
+      completedAt,
+    };
+  } catch (error) {
+    try {
+      sqliteDb.exec("ROLLBACK");
+    } catch {}
+    console.error(`[TRADES][HISTORY][ERROR] room=${String(room?.code || "")} error=${error?.message || error}`);
+    return null;
+  }
+}
+
+function applyTradeRoomAction(room, action, seat) {
+  const type = String(action?.type || "");
+  if (seat !== "host" && seat !== "guest") {
+    throw new Error("Somente jogadores da sala podem agir na troca.");
+  }
+  if (room.status === "completed") {
+    throw new Error("Troca ja foi concluida.");
+  }
+  if (room.status === "cancelled") {
+    throw new Error("Sala de troca cancelada.");
+  }
+  const seatOffer = seat === "host" ? room.offers.host : room.offers.guest;
+  if (type === "offer_add") {
+    const scanEntryId = resolveTradeScanEntryId(room, seat, action);
+    if (!scanEntryId) {
+      throw new Error("Carta indisponivel para oferta.");
+    }
+    if (!lockTradeCard(room.code, seat, scanEntryId)) {
+      throw new Error("Carta bloqueada em outra negociacao.");
+    }
+    if (seatOffer.includes(scanEntryId)) {
+      throw new Error("Carta ja esta na sua oferta.");
+    }
+    seatOffer.push(scanEntryId);
+    room.accepted.host = false;
+    room.accepted.guest = false;
+    room.confirmFinalize = { host: false, guest: false };
+    room.status = room.guest ? "ready" : "waiting";
+    return { reason: "offer_add" };
+  }
+  if (type === "offer_remove") {
+    const scanEntryId = String(action?.scanEntryId || "").trim();
+    const index = seatOffer.indexOf(scanEntryId);
+    if (index === -1) {
+      throw new Error("Carta nao esta na sua oferta.");
+    }
+    unlockTradeCard(room.code, seat, scanEntryId);
+    seatOffer.splice(index, 1);
+    room.accepted.host = false;
+    room.accepted.guest = false;
+    room.confirmFinalize = { host: false, guest: false };
+    room.status = room.guest ? "ready" : "waiting";
+    return { reason: "offer_remove" };
+  }
+  if (type === "accept_set") {
+    if (!room.guest) {
+      throw new Error("Aguardando o segundo jogador entrar na sala.");
+    }
+    const accepted = Boolean(action?.accepted);
+    room.accepted[seat] = accepted;
+    if (!accepted) {
+      room.confirmFinalize[seat] = false;
+    }
+    return { reason: accepted ? "accept_true" : "accept_false" };
+  }
+  if (type === "confirm_set") {
+    if (!room.guest) {
+      throw new Error("Aguardando o segundo jogador entrar na sala.");
+    }
+    if (!room.accepted.host || !room.accepted.guest) {
+      throw new Error("Ambos precisam aceitar a oferta antes da confirmacao final.");
+    }
+    const confirmed = Boolean(action?.confirmed);
+    room.confirmFinalize[seat] = confirmed;
+    return { reason: confirmed ? "confirm_true" : "confirm_false" };
+  }
+  if (type === "cancel") {
+    room.status = "cancelled";
+    room.accepted.host = false;
+    room.accepted.guest = false;
+    room.confirmFinalize = { host: false, guest: false };
+    releaseTradeRoomLocks(room);
+    return { reason: "cancel" };
+  }
+  if (type === "finalize") {
+    if (!room.guest) {
+      throw new Error("Aguardando o segundo jogador entrar na sala.");
+    }
+    if (!room.accepted.host || !room.accepted.guest) {
+      throw new Error("Ambos os jogadores precisam aceitar a troca.");
+    }
+    if (!room.confirmFinalize?.host || !room.confirmFinalize?.guest) {
+      throw new Error("Ambos os jogadores precisam confirmar a finalizacao.");
+    }
+    const summary = transferTradeEntriesAtomic(room);
+    const history = persistTradeHistory(room, summary);
+    room.status = "completed";
+    room.completedAt = nowIso();
+    room.tradeSummary = {
+      ...summary,
+      history: history || null,
+    };
+    releaseTradeRoomLocks(room);
+    runtimeMetrics.tradeCompletedCount += 1;
+    invalidateUserCaches(room.host?.username || "");
+    invalidateUserCaches(room.guest?.username || "");
+    return { reason: "finalize", summary: room.tradeSummary };
+  }
+  throw new Error("Acao de troca invalida.");
+}
+
+setInterval(() => {
+  cleanupExpiredTradeRooms();
+}, 60 * 1000).unref?.();
+
+function getRoomSeatByToken(room, seatToken) {
+  const token = String(seatToken || "");
+  if (!room || !token) {
+    return { seat: "spectator", playerIndex: null };
+  }
+  if (room.players?.host?.seatToken === token) {
+    return { seat: "host", playerIndex: 0 };
+  }
+  if (room.players?.guest?.seatToken === token) {
+    return { seat: "guest", playerIndex: 1 };
+  }
+  return { seat: "spectator", playerIndex: null };
+}
+
+function seatPresence(room, seatName) {
+  if (!room || (seatName !== "host" && seatName !== "guest")) {
+    return null;
+  }
+  if (!room.presence) {
+    room.presence = {
+      host: { connections: 0, connected: false, timeoutAt: null, timeoutTimer: null, seenConnected: false },
+      guest: { connections: 0, connected: false, timeoutAt: null, timeoutTimer: null, seenConnected: false },
+    };
+  }
+  return room.presence[seatName];
+}
+
+function clearSeatDisconnectTimer(room, seatName) {
+  const presence = seatPresence(room, seatName);
+  if (!presence) {
+    return;
+  }
+  if (presence.timeoutTimer) {
+    clearTimeout(presence.timeoutTimer);
+    presence.timeoutTimer = null;
+  }
+  presence.timeoutAt = null;
+}
+
+function clearAllDisconnectTimers(room) {
+  clearSeatDisconnectTimer(room, "host");
+  clearSeatDisconnectTimer(room, "guest");
+}
+
+function buildConnectionState(room) {
+  const host = seatPresence(room, "host");
+  const guest = seatPresence(room, "guest");
+  const hostTimeoutAt = host?.timeoutAt ? new Date(host.timeoutAt).toISOString() : null;
+  const guestTimeoutAt = guest?.timeoutAt ? new Date(guest.timeoutAt).toISOString() : null;
+  const timeoutSeat = hostTimeoutAt ? "host" : (guestTimeoutAt ? "guest" : null);
+  const timeoutAt = hostTimeoutAt || guestTimeoutAt || null;
+  return {
+    hostConnected: Boolean(host?.connected),
+    guestConnected: Boolean(guest?.connected),
+    timeoutSeat,
+    timeoutAt,
+    timeoutMs: MULTIPLAYER_DISCONNECT_FORFEIT_MS,
+  };
+}
+
+function buildRoomSummary(room) {
+  const occupancyCount = room.players?.guest ? 2 : 1;
+  return {
+    id: room.id,
+    status: `${occupancyCount}/2 jogadores`,
+    occupancy: `${occupancyCount}/2`,
+    hostName: room.players?.host?.name || "Host",
+    rulesMode: room.rulesMode || "competitive",
+    phase: room.phase || "lobby",
+    updatedAt: room.updatedAt || nowIso(),
+  };
+}
+
+function buildSpectatorSafeBattleState(battleState) {
+  if (!battleState || typeof battleState !== "object") {
+    return battleState;
+  }
+  const safe = decodeRichValue(encodeRichValue(battleState));
+  const players = safe?.board?.players;
+  if (Array.isArray(players)) {
+    players.forEach((player) => {
+      if (!player || typeof player !== "object") {
+        return;
+      }
+      player.attackHand = [];
+      player.mugicHand = [];
+      player.mugicDeck = [];
+      player.mugicSlots = [];
+      player.mugicDiscard = [];
+      if (Array.isArray(player.creatures)) {
+        player.creatures.forEach((unit) => {
+          if (!unit || typeof unit !== "object") {
+            return;
+          }
+          if (unit.gearState === "face_down") {
+            unit.gearCard = null;
+            unit.gearPassiveMods = {};
+          }
+        });
+      }
+    });
+  }
+  // Spectator does not need actionable windows/options.
+  safe.pendingAction = null;
+  return safe;
+}
+
+function buildRoomStatePayload(room, seatToken = "") {
+  const seatInfo = getRoomSeatByToken(room, seatToken);
+  const battleState =
+    seatInfo.seat === "spectator"
+      ? buildSpectatorSafeBattleState(room.battleState)
+      : room.battleState;
+  const showDeckLists = seatInfo.seat !== "spectator";
+  return {
+    roomId: room.id,
+    rulesMode: room.rulesMode || "competitive",
+    phase: room.phase || "lobby",
+    status: buildRoomSummary(room).status,
+    occupancy: buildRoomSummary(room).occupancy,
+    players: {
+      host: {
+        name: room.players?.host?.name || "Host",
+        username: room.players?.host?.username || normalizeUserKey(room.players?.host?.name || "host"),
+        avatar: room.players?.host?.avatar || "",
+        deckName: room.players?.host?.deckName || "",
+      },
+      guest: room.players?.guest
+        ? {
+            name: room.players.guest.name || "Guest",
+            username: room.players?.guest?.username || normalizeUserKey(room.players?.guest?.name || "guest"),
+            avatar: room.players?.guest?.avatar || "",
+            deckName: room.players.guest.deckName || "",
+          }
+        : null,
+    },
+    player1: room.players?.host && showDeckLists ? { deck: room.players.host.deck } : null,
+    player2: room.players?.guest && showDeckLists ? { deck: room.players.guest.deck } : null,
+    seat: seatInfo.seat,
+    localPlayerIndex: seatInfo.playerIndex,
+    connection: buildConnectionState(room),
+    rematch: room.rematch && typeof room.rematch === "object"
+      ? {
+          pending: Boolean(room.rematch.pending),
+          requestedBy: room.rematch.requestedBy || null,
+          requestedAt: room.rematch.requestedAt || null,
+        }
+      : { pending: false, requestedBy: null, requestedAt: null },
+    battleState: battleState ? encodeRichValue(battleState) : null,
+    updatedAt: room.updatedAt || nowIso(),
+    lastActionSeq: Number(room.lastActionSeq || 0),
+  };
+}
+
+function sendRoomEvent(room, payload) {
+  const eventPayload = JSON.stringify(payload);
+  room.clients.forEach((client) => {
+    try {
+      client.res.write(`data: ${eventPayload}\n\n`);
+    } catch {
+      room.clients.delete(client);
+    }
+  });
+}
+
+function broadcastRoomSnapshot(room, reason = "update") {
+  room.updatedAt = nowIso();
+  room.clients.forEach((client) => {
+    const snapshot = buildRoomStatePayload(room, client.seatToken);
+    const payload = {
+      type: "room_snapshot",
+      reason,
+      snapshot,
+    };
+    try {
+      client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    } catch {
+      room.clients.delete(client);
+    }
+  });
+}
+
+function finalizeDisconnectForfeit(room, seatName) {
+  if (!room || room.phase !== "in_game" || !room.battleState || room.battleState.finished) {
+    return;
+  }
+  const loserIndex = seatName === "host" ? 0 : 1;
+  const winnerIndex = loserIndex === 0 ? 1 : 0;
+  const loser = room.battleState.board?.players?.[loserIndex];
+  const winner = room.battleState.board?.players?.[winnerIndex];
+  if (!winner) {
+    return;
+  }
+  room.battleState.finished = true;
+  room.battleState.pendingAction = null;
+  room.battleState.winner = winner.label || (winnerIndex === 0 ? "Jogador 1" : "Jogador 2");
+  const loserLabel = loser?.label || (loserIndex === 0 ? "Jogador 1" : "Jogador 2");
+  room.battleState.log?.push(
+    `${loserLabel} desconectou por mais de ${Math.floor(MULTIPLAYER_DISCONNECT_FORFEIT_MS / 1000)}s. ${room.battleState.winner} vence por forfeit.`
+  );
+  room.phase = "finished";
+  room.rematch = { pending: false, requestedBy: null, requestedAt: null };
+  room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
+  clearAllDisconnectTimers(room);
+  sendRoomEvent(room, {
+    type: "room_event",
+    event: "disconnect_forfeit",
+    seat: seatName,
+    winner: room.battleState.winner,
+  });
+  broadcastRoomSnapshot(room, "disconnect_forfeit");
+}
+
+function startDisconnectForfeitTimer(room, seatName) {
+  const presence = seatPresence(room, seatName);
+  if (!presence || presence.timeoutTimer || !presence.seenConnected) {
+    return;
+  }
+  if (room.phase !== "in_game" || !room.battleState || room.battleState.finished) {
+    return;
+  }
+  const timeoutAt = Date.now() + MULTIPLAYER_DISCONNECT_FORFEIT_MS;
+  presence.timeoutAt = timeoutAt;
+  presence.timeoutTimer = setTimeout(() => {
+    presence.timeoutTimer = null;
+    finalizeDisconnectForfeit(room, seatName);
+  }, MULTIPLAYER_DISCONNECT_FORFEIT_MS);
+  sendRoomEvent(room, {
+    type: "room_event",
+    event: "disconnect_timeout_started",
+    seat: seatName,
+    timeoutAt: new Date(timeoutAt).toISOString(),
+  });
+  broadcastRoomSnapshot(room, "disconnect_timeout_started");
+}
+
+function markSeatConnected(room, seatName) {
+  const presence = seatPresence(room, seatName);
+  if (!presence) {
+    return;
+  }
+  presence.connections = Number(presence.connections || 0) + 1;
+  presence.connected = true;
+  presence.seenConnected = true;
+  if (presence.timeoutTimer || presence.timeoutAt) {
+    clearSeatDisconnectTimer(room, seatName);
+    sendRoomEvent(room, {
+      type: "room_event",
+      event: "disconnect_timeout_cleared",
+      seat: seatName,
+    });
+    broadcastRoomSnapshot(room, "disconnect_timeout_cleared");
+  }
+}
+
+function markSeatDisconnected(room, seatName) {
+  const presence = seatPresence(room, seatName);
+  if (!presence) {
+    return;
+  }
+  presence.connections = Math.max(0, Number(presence.connections || 0) - 1);
+  presence.connected = presence.connections > 0;
+  if (presence.connected) {
+    return;
+  }
+  sendRoomEvent(room, {
+    type: "room_event",
+    event: "player_disconnected",
+    seat: seatName,
+  });
+  broadcastRoomSnapshot(room, "player_disconnected");
+  startDisconnectForfeitTimer(room, seatName);
+}
+
+function requireRoomOr404(response, roomId) {
+  const room = multiplayerRooms.get(String(roomId || ""));
+  if (!room) {
+    sendJson(response, 404, { error: "Room not found" });
+    return null;
+  }
+  return room;
+}
+
+async function startRoomBattle(room) {
+  const engine = await getBattleEngine();
+  const hostDeck = toBattleDeckFromStoredDeck(room.players?.host?.deck);
+  const guestDeck = toBattleDeckFromStoredDeck(room.players?.guest?.deck);
+  room.battleState = engine.createBattleState(hostDeck, guestDeck, room.rulesMode || "competitive");
+  room.battleState.ai = {
+    player0: false,
+    player1: false,
+  };
+  if (room.battleState?.board?.players?.[0]) {
+    room.battleState.board.players[0].label = room.players?.host?.name || "Host";
+  }
+  if (room.battleState?.board?.players?.[1]) {
+    room.battleState.board.players[1].label = room.players?.guest?.name || "Guest";
+  }
+  room.phase = "in_game";
+  room.rematch = { pending: false, requestedBy: null, requestedAt: null };
+  room.startedAt = nowIso();
+  room.lastActionSeq = Number(room.lastActionSeq || 0);
+  clearAllDisconnectTimers(room);
+  engine.advanceBattle(room.battleState, false);
+}
+
+function settleRoomForfeit(room, loserSeat) {
+  if (!room || room.phase !== "in_game" || !room.battleState || room.battleState.finished) {
+    return false;
+  }
+  const loserIndex = loserSeat === "host" ? 0 : 1;
+  const winnerIndex = loserIndex === 0 ? 1 : 0;
+  const loser = room.battleState.board?.players?.[loserIndex];
+  const winner = room.battleState.board?.players?.[winnerIndex];
+  if (!winner) {
+    return false;
+  }
+  room.battleState.finished = true;
+  room.battleState.pendingAction = null;
+  room.battleState.winner = winner.label || (winnerIndex === 0 ? "Jogador 1" : "Jogador 2");
+  room.battleState.log?.push(
+    `Desistencia: ${loser?.label || "Jogador"} concedeu a partida. ${room.battleState.winner} vence.`
+  );
+  room.phase = "finished";
+  room.rematch = { pending: false, requestedBy: null, requestedAt: null };
+  room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
+  clearAllDisconnectTimers(room);
+  sendRoomEvent(room, {
+    type: "room_event",
+    event: "match_forfeit",
+    seat: loserSeat,
+    winner: room.battleState.winner,
+  });
+  broadcastRoomSnapshot(room, "match_forfeit");
+  return true;
+}
+
+async function applyRoomAction(room, action, actingPlayerIndex, actingSeat) {
+  const engine = await getBattleEngine();
+  const battle = room.battleState;
+  const type = String(action?.type || "");
+  const allowsFinishedPhase = type === "request_rematch" || type === "respond_rematch";
+  if (!battle || (room.phase !== "in_game" && !(allowsFinishedPhase && room.phase === "finished"))) {
+    throw new Error("Partida ainda nao iniciou.");
+  }
+  if (type === "forfeit") {
+    if (actingSeat !== "host" && actingSeat !== "guest") {
+      throw new Error("Somente jogadores da sala podem desistir.");
+    }
+    settleRoomForfeit(room, actingSeat);
+    return;
+  }
+  if (type === "request_rematch") {
+    if (!battle.finished) {
+      throw new Error("Revanche so pode ser solicitada apos o fim da partida.");
+    }
+    if (actingSeat !== "host" && actingSeat !== "guest") {
+      throw new Error("Somente jogadores da sala podem solicitar revanche.");
+    }
+    if (room.rematch?.pending) {
+      throw new Error("Ja existe um pedido de revanche pendente.");
+    }
+    room.rematch = {
+      pending: true,
+      requestedBy: actingSeat,
+      requestedAt: nowIso(),
+    };
+    room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
+    sendRoomEvent(room, {
+      type: "room_event",
+      event: "rematch_requested",
+      seat: actingSeat,
+    });
+    broadcastRoomSnapshot(room, "rematch_requested");
+    return;
+  }
+  if (type === "respond_rematch") {
+    if (!battle.finished) {
+      throw new Error("A partida ainda nao terminou.");
+    }
+    if (actingSeat !== "host" && actingSeat !== "guest") {
+      throw new Error("Somente jogadores da sala podem responder a revanche.");
+    }
+    if (!room.rematch?.pending) {
+      throw new Error("Nao ha pedido de revanche pendente.");
+    }
+    if (room.rematch.requestedBy === actingSeat) {
+      throw new Error("Aguarde a resposta do oponente.");
+    }
+    if (Boolean(action.accept)) {
+      await startRoomBattle(room);
+      room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
+      sendRoomEvent(room, {
+        type: "room_event",
+        event: "rematch_started",
+        seat: actingSeat,
+      });
+      broadcastRoomSnapshot(room, "rematch_started");
+      return;
+    }
+    room.rematch = { pending: false, requestedBy: null, requestedAt: null };
+    room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
+    sendRoomEvent(room, {
+      type: "room_event",
+      event: "rematch_declined",
+      seat: actingSeat,
+    });
+    broadcastRoomSnapshot(room, "rematch_declined");
+    return;
+  }
+  if (battle.finished) {
+    return;
+  }
+
+  switch (type) {
+    case "choose_attack":
+      engine.chooseAttack(battle, actingPlayerIndex, Number(action.index));
+      break;
+    case "confirm_attack":
+      engine.advanceBattle(battle, false);
+      break;
+    case "pass_priority":
+      engine.passPriority(battle);
+      engine.advanceBattle(battle, false);
+      break;
+    case "choose_mugic":
+      engine.chooseMugic(battle, action.value ?? null, null);
+      engine.advanceBattle(battle, false);
+      break;
+    case "choose_mugic_caster":
+      engine.chooseMugic(battle, action.value ?? null, null);
+      engine.advanceBattle(battle, false);
+      break;
+    case "choose_ability":
+      engine.chooseActivatedAbility(battle, action.value ?? null);
+      engine.advanceBattle(battle, false);
+      break;
+    case "choose_target":
+      engine.chooseEffectTarget(battle, action.value ?? null);
+      engine.advanceBattle(battle, false);
+      break;
+    case "choose_choice":
+      engine.chooseEffectChoice(battle, action.value ?? null);
+      engine.advanceBattle(battle, false);
+      break;
+    case "choose_defender":
+      engine.chooseDefenderRedirect(battle, action.value ?? null);
+      engine.advanceBattle(battle, false);
+      break;
+    case "declare_move": {
+      const moved = engine.declareMove(battle, Number(action.fromSlot), action.toLetter);
+      if (moved) {
+        const attacker = battle.board?.engagement?.attackerSlot;
+        const defender = battle.board?.engagement?.defenderSlot;
+        if (attacker !== null && defender !== null) {
+          engine.advanceBattle(battle, false);
+        }
+      }
+      break;
+    }
+    case "confirm_action_button": {
+      if (battle.phase === "additional_movement") {
+        engine.confirmEndPostCombatMove(battle);
+        engine.advanceBattle(battle, false);
+      } else if (battle.phase === "move_action") {
+        const attacker = battle.board?.engagement?.attackerSlot;
+        const defender = battle.board?.engagement?.defenderSlot;
+        if (attacker !== null && defender !== null) {
+          battle.resolveDeclareNow = true;
+        } else {
+          engine.endActionWithoutCombat(battle);
+        }
+        engine.advanceBattle(battle, false);
+      }
+      break;
+    }
+    case "cancel_target":
+      engine.chooseEffectTarget(battle, null);
+      engine.advanceBattle(battle, false);
+      break;
+    case "cancel_choice":
+      engine.chooseEffectChoice(battle, null);
+      engine.advanceBattle(battle, false);
+      break;
+    case "cancel_mugic":
+      engine.chooseMugic(battle, null);
+      engine.advanceBattle(battle, false);
+      break;
+    case "cancel_ability":
+      engine.chooseActivatedAbility(battle, null);
+      engine.advanceBattle(battle, false);
+      break;
+    default:
+      throw new Error("Acao multiplayer nao suportada.");
+  }
+}
+
+function readSettingsFromDisk() {
+  if (!fs.existsSync(SETTINGS_FILE)) {
+    return null;
+  }
+  try {
+    const raw = fs.readFileSync(SETTINGS_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeSettingsToDisk(payload) {
+  const settingsBody =
+    payload?.settings && typeof payload.settings === "object"
+      ? payload.settings
+      : (payload && typeof payload === "object" ? payload : {});
+  const body = {
+    schemaVersion: Number(payload?.schemaVersion || 1),
+    updatedAt: payload?.updatedAt || new Date().toISOString(),
+    settings: settingsBody,
+  };
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(body, null, 2), "utf8");
+  return body;
+}
+
+function formatLogTimestamp(date = new Date()) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const mi = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
+}
+
+function sanitizeDebugLines(entries) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+  return entries
+    .slice(0, 5000)
+    .map((entry) => {
+      if (typeof entry === "string") {
+        return entry;
+      }
+      if (entry && typeof entry === "object") {
+        return JSON.stringify(entry);
+      }
+      return String(entry || "");
+    })
+    .filter(Boolean);
+}
+
+function appendDebugLines(filePath, entries) {
+  const lines = sanitizeDebugLines(entries);
+  if (!lines.length) {
+    return 0;
+  }
+  fs.appendFileSync(filePath, `${lines.join("\n")}\n`, "utf8");
+  return lines.length;
+}
+
+function normalizePendingToken(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function extractQuotedKindsFromSet(engineText, setName) {
+  const matcher = new RegExp(`const ${setName} = new Set\\(\\[([\\s\\S]*?)\\]\\);`, "m");
+  const match = matcher.exec(engineText);
+  if (!match) {
+    return [];
+  }
+  return [...match[1].matchAll(/"([^"]+)"/g)].map((item) => String(item[1] || "").trim()).filter(Boolean);
+}
+
+function collectAttackSupportedKindsFromEngine() {
+  if (!fs.existsSync(ENGINE_FILE)) {
+    return new Set();
+  }
+  const engineText = fs.readFileSync(ENGINE_FILE, "utf8");
+  const supported = new Set([
+    ...extractQuotedKindsFromSet(engineText, "ATTACK_DAMAGE_FORMULA_EFFECT_KINDS"),
+    ...extractQuotedKindsFromSet(engineText, "ATTACK_TEMP_EFFECT_KINDS"),
+    ...extractQuotedKindsFromSet(engineText, "ATTACK_STACK_EFFECT_KINDS"),
+  ]);
+  const registryKinds = [...engineText.matchAll(/\["([a-zA-Z0-9_]+)"\s*,\s*\{/g)].map((item) => String(item[1] || "").trim());
+  registryKinds.forEach((kind) => {
+    if (kind) {
+      supported.add(kind);
+    }
+  });
+  return supported;
+}
+
+function collectCreatureSupportedKindsFromEngine() {
+  if (!fs.existsSync(ENGINE_FILE)) {
+    return new Set();
+  }
+  const engineText = fs.readFileSync(ENGINE_FILE, "utf8");
+  const setNames = [
+    "CORE_EFFECT_KINDS",
+    "PASSIVE_EFFECT_KINDS",
+    "BATTLEGEAR_PHASE_EFFECT_KINDS",
+    "LOCATION_PHASE_EFFECT_KINDS",
+  ];
+  const supported = new Set();
+  setNames.forEach((setName) => {
+    extractQuotedKindsFromSet(engineText, setName).forEach((kind) => supported.add(kind));
+  });
+  const registryKinds = [...engineText.matchAll(/\["([a-zA-Z0-9_]+)"\s*,\s*\{/g)].map((item) => String(item[1] || "").trim());
+  registryKinds.forEach((kind) => {
+    if (kind) {
+      supported.add(kind);
+    }
+  });
+  [
+    "keyword",
+    "invisibilityStrike",
+    "invisibilitySurprise",
+    "invisibilityDisarm",
+    "outperform",
+    "intimidate",
+    "hiveGranted",
+    "incomingDamageReduction",
+    "attackDamageVsLowerMugicCounters",
+    "attackDamageIfAlliesHaveElement",
+    "statCheckAutoSuccessForElement",
+  ].forEach((kind) => supported.add(kind));
+  return supported;
+}
+
+function pendingAttackEntryKey(entry) {
+  return [
+    normalizePendingToken(entry?.reason || ""),
+    normalizePendingToken(entry?.cardType || ""),
+    normalizePendingToken(entry?.cardName || ""),
+    normalizePendingToken(entry?.effectKind || ""),
+    normalizePendingToken(entry?.sourceText || ""),
+  ].join("|");
+}
+
+function resolveSourceTextForEffectKind(card, effectKind) {
+  if (!card || !effectKind) {
+    return "";
+  }
+  const kinds = Array.isArray(card.parsedEffects) ? card.parsedEffects : [];
+  const effect = kinds.find((item) => String(item?.kind || "") === String(effectKind));
+  if (effect?.sourceText) {
+    return String(effect.sourceText).trim();
+  }
+  return String(card.ability || "").trim();
+}
+
+function buildEffectPendingEntries(currentLibrary, supportedKinds, cardTypeFilter = "attacks") {
+  const entries = [];
+  const cards = currentLibrary?.cards || [];
+  cards.forEach((card) => {
+    if (String(card?.type || "").toLowerCase() !== String(cardTypeFilter || "").toLowerCase()) {
+      return;
+    }
+    const ability = String(card?.ability || "").trim();
+    if (!ability) {
+      return;
+    }
+    const parsedEffects = Array.isArray(card?.parsedEffects) ? card.parsedEffects : [];
+    const cardType = String(card?.type || "unknown");
+    const hasCostToken = /\b(?:M(?:C)+|Expend(?:\s+(?:Fire|Air|Earth|Water|all Disciplines(?:\s+\d+)?))?|Discard\s+\w+\s+Mugic\s+Cards?)\s*:/i.test(ability);
+    if (!parsedEffects.length) {
+      entries.push({
+        reason: "sem_parse",
+        cardType,
+        cardName: String(card?.name || "").trim(),
+        effectKind: "-",
+        sourceText: ability,
+      });
+      if (hasCostToken) {
+        entries.push({
+          reason: "cost_parse_pendente",
+          cardType,
+          cardName: String(card?.name || "").trim(),
+          effectKind: "-",
+          sourceText: ability,
+        });
+      }
+      return;
+    }
+    const needsTargetSpec = /(^|\W)target(\W|$)/i.test(ability);
+    if (needsTargetSpec) {
+      const hasTargetSpec = parsedEffects.some((effect) => effect?.targetSpec && effect.targetSpec.type);
+      if (!hasTargetSpec) {
+        entries.push({
+          reason: "targetspec_insuficiente",
+          cardType,
+          cardName: String(card?.name || "").trim(),
+          effectKind: "-",
+          sourceText: ability,
+        });
+      }
+    }
+    const pendingKinds = [...new Set(parsedEffects
+      .map((effect) => String(effect?.kind || "").trim())
+      .filter((kind) => kind && !supportedKinds.has(kind)))];
+    pendingKinds.forEach((kind) => {
+      entries.push({
+        reason: "kind_pendente",
+        cardType,
+        cardName: String(card?.name || "").trim(),
+        effectKind: kind,
+        sourceText: resolveSourceTextForEffectKind(card, kind),
+      });
+    });
+  });
+  return entries;
+}
+
+function formatPendingEffectEntry(entry, origin = "BASE") {
+  return `[${origin}] ${entry.reason} | Tipo: ${entry.cardType} | Carta: ${entry.cardName} | Kind: ${entry.effectKind} | Trecho: ${entry.sourceText}`;
+}
+
+function writeBasePendingEffectsReport() {
+  const supportedKinds = collectAttackSupportedKindsFromEngine();
+  const entries = buildEffectPendingEntries(library, supportedKinds, "attacks");
+  const header = [
+    "Chaotic - Efeitos Pendentes",
+    `generatedAt=${new Date().toISOString()}`,
+    `total=${entries.length}`,
+    "---",
+  ];
+  const lines = entries.map((entry) => formatPendingEffectEntry(entry, "BASE"));
+  const content = `${header.concat(lines).join("\n")}\n`;
+  fs.writeFileSync(ATTACK_PENDING_FILE, content, "utf8");
+
+  attackPendingRuntimeKeys.clear();
+  entries.forEach((entry) => {
+    attackPendingRuntimeKeys.add(pendingAttackEntryKey(entry));
+  });
+
+  return {
+    total: entries.length,
+    semParse: entries.filter((entry) => entry.reason === "sem_parse").length,
+    kindPendente: entries.filter((entry) => entry.reason === "kind_pendente").length,
+    targetSpecInsuficiente: entries.filter((entry) => entry.reason === "targetspec_insuficiente").length,
+    costParsePendente: entries.filter((entry) => entry.reason === "cost_parse_pendente").length,
+  };
+}
+
+function writeBaseCreaturePendingEffectsReport() {
+  const supportedKinds = collectCreatureSupportedKindsFromEngine();
+  const entries = buildEffectPendingEntries(library, supportedKinds, "creatures");
+  const header = [
+    "Chaotic - Efeitos Pendentes (Creatures)",
+    `generatedAt=${new Date().toISOString()}`,
+    `total=${entries.length}`,
+    "---",
+  ];
+  const lines = entries.map((entry) => formatPendingEffectEntry(entry, "BASE"));
+  fs.mkdirSync(path.dirname(CREATURE_PENDING_FILE), { recursive: true });
+  fs.writeFileSync(CREATURE_PENDING_FILE, `${header.concat(lines).join("\n")}\n`, "utf8");
+
+  creaturePendingRuntimeKeys.clear();
+  entries.forEach((entry) => {
+    creaturePendingRuntimeKeys.add(pendingAttackEntryKey(entry));
+  });
+
+  return {
+    total: entries.length,
+    semParse: entries.filter((entry) => entry.reason === "sem_parse").length,
+    kindPendente: entries.filter((entry) => entry.reason === "kind_pendente").length,
+    targetSpecInsuficiente: entries.filter((entry) => entry.reason === "targetspec_insuficiente").length,
+    costParsePendente: entries.filter((entry) => entry.reason === "cost_parse_pendente").length,
+  };
+}
+
+function appendRuntimePendingEffect(payload = {}) {
+  const cardType = String(payload.cardType || "").trim().toLowerCase();
+  if (cardType && cardType !== "attacks" && cardType !== "creatures") {
+    return { appended: false, reason: "unsupported_type" };
+  }
+  const pendingType = cardType === "creatures" ? "creatures" : "attacks";
+  const cardName = String(payload.cardName || "").trim();
+  const effectKind = String(payload.effectKind || "").trim();
+  if (!cardName || !effectKind) {
+    return { appended: false, reason: "missing_fields" };
+  }
+
+  const allCards = library?.cards || [];
+  const normalizedName = normalizePendingToken(cardName);
+  const card = allCards.find((entry) => {
+    const nameMatch = normalizePendingToken(entry?.name || "") === normalizedName;
+    if (!nameMatch) {
+      return false;
+    }
+    return normalizePendingToken(entry?.type || "") === normalizePendingToken(pendingType);
+  }) || null;
+  const sourceText = String(payload.sourceText || "").trim() || resolveSourceTextForEffectKind(card, effectKind) || "Trecho nao identificado.";
+  const entry = {
+    reason: String(payload.reason || "kind_pendente").trim().toLowerCase(),
+    cardType: String(card?.type || pendingType || "unknown"),
+    cardName: card?.name || cardName,
+    effectKind,
+    sourceText,
+  };
+  const key = pendingAttackEntryKey(entry);
+  const runtimeKeys = pendingType === "creatures" ? creaturePendingRuntimeKeys : attackPendingRuntimeKeys;
+  const pendingFile = pendingType === "creatures" ? CREATURE_PENDING_FILE : ATTACK_PENDING_FILE;
+  if (!key || runtimeKeys.has(key)) {
+    return { appended: false, reason: "duplicate" };
+  }
+  if (!fs.existsSync(pendingFile)) {
+    if (pendingType === "creatures") {
+      writeBaseCreaturePendingEffectsReport();
+    } else {
+      writeBasePendingEffectsReport();
+    }
+  }
+  fs.mkdirSync(path.dirname(pendingFile), { recursive: true });
+  fs.appendFileSync(pendingFile, `${formatPendingEffectEntry(entry, "RUNTIME")}\n`, "utf8");
+  runtimeKeys.add(key);
+  return { appended: true };
+}
+
+function createDebugSession(meta = {}) {
+  const sessionId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const stamp = formatLogTimestamp();
+  const fileName = `debug-${stamp}-${sessionId}.txt`;
+  const filePath = path.join(DEBUG_LOGS_DIR, fileName);
+  const header = [
+    "Chaotic Debug Session",
+    `sessionId=${sessionId}`,
+    `startedAt=${new Date().toISOString()}`,
+    `url=${String(meta.url || "")}`,
+    `userAgent=${String(meta.userAgent || "")}`,
+    "---",
+  ].join("\n");
+  fs.writeFileSync(filePath, `${header}\n`, "utf8");
+  debugSessions.set(sessionId, {
+    filePath,
+    createdAt: new Date().toISOString(),
+  });
+  return { sessionId, fileName, filePath };
+}
+
+function listDecks(username = "") {
+  const ownerFilter = username ? normalizeUserKey(username) : "";
+  if (isSqlV2Ready()) {
+    if (ownerFilter) {
+      const ownerlessRows = sqliteDb
+        .prepare("SELECT deck_key FROM deck_headers WHERE owner_key = '' AND is_ownerless_legacy = 1")
+        .all();
+      ownerlessRows.forEach((row) => {
+        claimOwnerlessDeckForUser(String(row?.deck_key || ""), ownerFilter);
+      });
+    }
+    const rows = ownerFilter
+      ? sqliteDb
+          .prepare(`
+            SELECT deck_key, owner_key, name, mode, updated_at
+            FROM deck_headers
+            WHERE owner_key = ?
+            ORDER BY deck_key ASC
+          `)
+          .all(ownerFilter)
+      : sqliteDb
+          .prepare(`
+            SELECT deck_key, owner_key, name, mode, updated_at
+            FROM deck_headers
+            ORDER BY deck_key ASC
+          `)
+          .all();
+    return rows.map((row) => ({
+      name: String(row?.deck_key || ""),
+      updatedAt: String(row?.updated_at || nowIso()),
+      owner: String(row?.owner_key || ""),
+      mode: String(row?.mode || "competitive"),
+    }));
+  }
+  const rows = sqlList("decks");
+
+  const decks = rows
+    .map((row) => {
+      const payload = safeJsonParse(row.payload, null);
+      if (!payload || typeof payload !== "object") {
+        return null;
+      }
+      const owner = deckOwnerKey(payload);
+      if (ownerFilter && owner && owner !== ownerFilter) {
+        return null;
+      }
+      return {
+        name: row.entity_key,
+        updatedAt: row.updated_at,
+        owner,
+        mode: String(payload.mode || "competitive"),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return decks;
+}
+
+function listMusicTracks() {
+  const musicDirs = [MUSIC_DIR, MUSIC_DIR_FALLBACK].filter((dir, index, arr) => arr.indexOf(dir) === index && fs.existsSync(dir));
+  if (!musicDirs.length) {
+    return [];
+  }
+  const allowedExt = new Set([".mp3", ".wav", ".ogg", ".m4a"]);
+  const uniqueByName = new Map();
+  musicDirs.forEach((dir) => {
+    fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .filter((name) => allowedExt.has(path.extname(name).toLowerCase()))
+      .forEach((name) => {
+        if (!uniqueByName.has(name.toLowerCase())) {
+          uniqueByName.set(name.toLowerCase(), name);
+        }
+      });
+  });
+  return [...uniqueByName.values()]
+    .sort((a, b) => a.localeCompare(b, "pt-BR"))
+    .map((name, index) => ({
+      id: `track-${index + 1}`,
+      name: name.replace(/\.[a-z0-9]+$/i, ""),
+      fileName: name,
+      url: `/music/${encodeURIComponent(name)}`,
+    }));
+}
+
+function resolveMusicFilePath(relativeMusicPath) {
+  const decodedName = String(relativeMusicPath || "").trim();
+  if (!decodedName) {
+    return "";
+  }
+  const candidates = [MUSIC_DIR, MUSIC_DIR_FALLBACK].filter((dir, index, arr) => arr.indexOf(dir) === index);
+  for (let idx = 0; idx < candidates.length; idx += 1) {
+    const dir = candidates[idx];
+    if (!fs.existsSync(dir)) {
+      continue;
+    }
+    const target = path.resolve(dir, decodedName);
+    if (!isPathInside(dir, target)) {
+      continue;
+    }
+    if (fs.existsSync(target)) {
+      return target;
+    }
+  }
+  return "";
+}
+
+function isPathInside(parentPath, childPath) {
+  const relative = path.relative(parentPath, childPath);
+  return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
+let smtpTransporter = null;
+let smtpValidated = false;
+
+function isSmtpConfigured() {
+  return Boolean(SMTP_HOST && SMTP_PORT > 0 && SMTP_USER && SMTP_PASS && SMTP_FROM);
+}
+
+async function getSmtpTransporter() {
+  if (!isSmtpConfigured()) {
+    return null;
+  }
+  if (!smtpTransporter) {
+    smtpTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_SECURE,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
+  }
+  if (!smtpValidated) {
+    await smtpTransporter.verify();
+    smtpValidated = true;
+  }
+  return smtpTransporter;
+}
+
+async function sendVerificationCodeEmail({ username, email, code }) {
+  const transporter = await getSmtpTransporter();
+  if (!transporter) {
+    throw new Error("smtp_not_configured");
+  }
+  const sanitize = (value) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  await transporter.sendMail({
+    from: SMTP_FROM,
+    to: email,
+    subject: "Chaotic Legacy - Codigo de verificacao",
+    text: [
+      `Ola, ${username}!`,
+      "",
+      "Seu codigo de verificacao do Chaotic Legacy:",
+      code,
+      "",
+      "Esse codigo expira em 5 minutos.",
+    ].join("\n"),
+    html: `
+      <div style="font-family:Arial,Helvetica,sans-serif;background:#0b1320;color:#e8f3ff;padding:20px;border-radius:10px;">
+        <h2 style="margin-top:0;color:#5ad7ff;">Chaotic Legacy</h2>
+        <p>Ola, <strong>${sanitize(username)}</strong>!</p>
+        <p>Seu codigo de verificacao:</p>
+        <div style="font-size:30px;font-weight:700;letter-spacing:4px;padding:12px 14px;border:1px solid #2b6ca6;border-radius:8px;background:#06101d;display:inline-block;">
+          ${sanitize(code)}
+        </div>
+        <p style="margin-top:16px;color:#b4cde3;">Esse codigo expira em 5 minutos.</p>
+      </div>
+    `,
+  });
+}
+
+function serveStatic(requestPath, response) {
+  if (requestPath === "/favicon.ico") {
+    sendFile(response, path.join(ROOT_DIR, "favicon.ico"));
+    return;
+  }
+
+  if (requestPath.startsWith("/downloads/")) {
+    const decoded = decodeURIComponent(requestPath);
+    const target = path.resolve(ROOT_DIR, `.${decoded}`);
+    if (!isPathInside(DOWNLOADS_DIR, target)) {
+      sendText(response, 403, "Forbidden");
+      return;
+    }
+    sendFile(response, target);
+    return;
+  }
+
+  if (requestPath.startsWith("/music/")) {
+    const decoded = decodeURIComponent(requestPath);
+    const relativeMusicPath = decoded.replace(/^\/music\//i, "");
+    const target = resolveMusicFilePath(relativeMusicPath);
+    if (!target) {
+      console.warn(`[MUSIC] Arquivo nao encontrado no compartilhado: ${relativeMusicPath}`);
+      sendText(response, 404, "Not found");
+      return;
+    }
+    sendFile(response, target);
+    return;
+  }
+
+  const basePath = requestPath === "/" ? "/auth.html" : requestPath;
+  const decoded = decodeURIComponent(basePath);
+  const target = path.resolve(PUBLIC_DIR, `.${decoded}`);
+  if (!isPathInside(PUBLIC_DIR, target)) {
+    sendText(response, 403, "Forbidden");
+    return;
+  }
+
+  if (fs.existsSync(target) && fs.statSync(target).isFile()) {
+    sendFile(response, target);
+    return;
+  }
+
+  sendFile(response, path.join(PUBLIC_DIR, "index.html"));
+}
+
+async function handleRequest(request, response) {
+  const parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+  const pathname = parsedUrl.pathname;
+  applyCorsHeaders(request, response);
+  if (request.method === "OPTIONS" && pathname.startsWith("/api/")) {
+    response.writeHead(204);
+    response.end();
+    return;
+  }
+  if (request.method === "GET" && pathname === "/health") {
+    const dbOk = Boolean(sqliteDb);
+    const dailyCreatureRowsToday = getTodayDailyCreatureRowsCount();
+    const integrity = runIntegrityProbe();
+    const profilesReadable = areProfilesReadable();
+    sendJson(response, 200, {
+      ok: true,
+      timestamp: nowIso(),
+      uptimeSeconds: Math.round(process.uptime()),
+      version: getPackageVersion(),
+      libraryStorage: String(library?.storage || "json_files"),
+      catalogCardsTotal: Number(library?.stats?.totalCards || 0),
+      db: {
+        driver: dbOk ? "sqlite" : "json_fallback",
+        ok: dbOk,
+        sqliteFile: dbOk ? SQLITE_FILE : null,
+        dbSchemaVersion: Number(sqlSchemaVersion || 0),
+        storageMode: String(sqlStorageMode || "unknown"),
+        dbIntegrityStatus: dbOk ? integrity.status : "unavailable",
+        profilesReadable,
+        dailyCreatureRowsToday,
+      },
+      jobs: {
+        perim: { ...runtimeMetrics.perimJobs },
+        backup: { ...runtimeMetrics.backups },
+      },
+    });
+    return;
+  }
+
+  if (request.method === "GET" && pathname === "/api/admin/metrics") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "admin_metrics", adminUser.username, {
+      windowMs: 10 * 1000,
+      maxHits: 15,
+    })) {
+      return;
+    }
+    sendJson(response, 200, {
+      ok: true,
+      metrics: buildRuntimeMetricsSnapshot(),
+    });
+    return;
+  }
+
+  const isAuthWrite = request.method === "POST" && (
+    pathname === "/api/auth/register"
+    || pathname === "/api/auth/verify"
+    || pathname === "/api/auth/resend"
+    || pathname === "/api/auth/login"
+    || pathname === "/api/auth/logout"
+  );
+  if (isAuthWrite && applyRateLimit(request, response, "auth", {
+    windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+    maxHits: AUTH_RATE_LIMIT_MAX,
+  })) {
+    return;
+  }
+
+  const isMultiplayerAction = request.method === "POST" && pathname.startsWith("/api/multiplayer/rooms/") && pathname.endsWith("/action");
+  if (isMultiplayerAction && applyRateLimit(request, response, "multiplayer_action", {
+    windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+    maxHits: ACTION_RATE_LIMIT_MAX,
+  })) {
+    return;
+  }
+
+  // â”€â”€â”€ Auth API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  if (pathname === "/api/auth/register" && request.method === "POST") {
+    let payloadText;
+    try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
+    const username = String(payload.username || "").trim();
+    const email = String(payload.email || "").trim();
+    const passwordHash = String(payload.passwordHash || "");
+    const tribe = String(payload.tribe || "");
+    if (!username || !email || !passwordHash) {
+      sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "auth_register_user", username, {
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+      maxHits: AUTH_RATE_LIMIT_MAX,
+    })) {
+      return;
+    }
+    if (!isSmtpConfigured()) {
+      sendJson(response, 503, { error: "Cadastro indisponivel: SMTP nao configurado no servidor." });
+      return;
+    }
+    if (username.length < 3 || username.length > 30) {
+      sendJson(response, 400, { error: "Nome de usuario deve ter entre 3 e 30 caracteres." });
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 500, { error: "Banco de dados indisponivel." });
+      return;
+    }
+    // Check existing
+    const existingUser = sqliteDb.prepare("SELECT id FROM users WHERE username = ? COLLATE NOCASE").get(username);
+    if (existingUser) {
+      sendJson(response, 409, { error: "Nome de acesso ja existe." });
+      return;
+    }
+    const existingEmail = sqliteDb.prepare("SELECT id FROM users WHERE email = ? COLLATE NOCASE").get(email);
+    if (existingEmail) {
+      sendJson(response, 409, { error: "Email ja cadastrado." });
+      return;
+    }
+    // Insert unverified user
+    const now = nowIso();
+    const verificationCode = String(Math.floor(100000 + Math.random() * 900000));
+    sqliteDb.prepare(`
+      INSERT INTO users (username, email, password_hash, tribe, verified, session_token, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 0, NULL, ?, ?)
+    `).run(username, email, passwordHash, tribe, now, now);
+    // Store verification code temporarily in kv_store
+    sqlSet("verification", username.toLowerCase(), {
+      code: verificationCode,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+    try {
+      await sendVerificationCodeEmail({ username, email, code: verificationCode });
+    } catch (error) {
+      sqliteDb.prepare("DELETE FROM users WHERE username = ? COLLATE NOCASE").run(username);
+      sqlDelete("verification", username.toLowerCase());
+      console.error("[AUTH] Falha ao enviar email de verificacao:", error?.message || error);
+      sendJson(response, 502, { error: "Nao foi possivel enviar o e-mail de verificacao. Tente novamente." });
+      return;
+    }
+    sendJson(response, 200, { ok: true, username });
+    return;
+  }
+
+  if (pathname === "/api/auth/verify" && request.method === "POST") {
+    let payloadText;
+    try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
+    const username = String(payload.username || "").trim();
+    const code = String(payload.code || "").trim();
+    if (!username || !code) {
+      sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "auth_verify_user", username, {
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+      maxHits: Math.max(6, Math.floor(AUTH_RATE_LIMIT_MAX / 2)),
+    })) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 500, { error: "Banco de dados indisponivel." });
+      return;
+    }
+    const storedVerification = sqlGet("verification", username.toLowerCase());
+    if (!storedVerification) {
+      sendJson(response, 400, { error: "Sessao de verificacao expirada. Tente cadastrar novamente." });
+      return;
+    }
+    if (Date.now() > storedVerification.expiresAt) {
+      sqlDelete("verification", username.toLowerCase());
+      sendJson(response, 400, { error: "O codigo expirou. Solicite um novo." });
+      return;
+    }
+    if (code !== storedVerification.code) {
+      sendJson(response, 400, { error: "Codigo invalido." });
+      return;
+    }
+    // Mark user as verified and generate session token
+    sqliteDb.prepare("UPDATE users SET verified = 1, updated_at = ? WHERE username = ? COLLATE NOCASE")
+      .run(nowIso(), username);
+    sqlDelete("verification", username.toLowerCase());
+    const user = sqliteDb.prepare("SELECT id, username, email, tribe FROM users WHERE username = ? COLLATE NOCASE").get(username);
+    const session = issueSessionForUserId(user?.id);
+    if (!session) {
+      sendJson(response, 500, { error: "Falha ao iniciar sessao." });
+      return;
+    }
+    response.setHeader("Set-Cookie", buildSessionCookieHeader(request, session.sessionToken, session.expiresAt));
+    sendJson(response, 200, {
+      ok: true,
+      sessionToken: session.sessionToken,
+      sessionExpiresAt: session.expiresAt,
+      username: user?.username || username,
+      tribe: user?.tribe || "",
+    });
+    return;
+  }
+
+  if (pathname === "/api/auth/resend" && request.method === "POST") {
+    let payloadText;
+    try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
+    const username = String(payload.username || "").trim();
+    if (!username) {
+      sendJson(response, 400, { error: "Username obrigatorio." });
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "auth_resend_user", username, {
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+      maxHits: Math.max(6, Math.floor(AUTH_RATE_LIMIT_MAX / 2)),
+    })) {
+      return;
+    }
+    if (!isSmtpConfigured()) {
+      sendJson(response, 503, { error: "Reenvio indisponivel: SMTP nao configurado no servidor." });
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 500, { error: "Banco de dados indisponivel." });
+      return;
+    }
+    const user = sqliteDb
+      .prepare("SELECT username, email, verified FROM users WHERE username = ? COLLATE NOCASE")
+      .get(username);
+    if (!user) {
+      sendJson(response, 404, { error: "Conta nao encontrada." });
+      return;
+    }
+    if (Number(user.verified || 0) === 1) {
+      sendJson(response, 409, { error: "Conta ja verificada." });
+      return;
+    }
+    if (!user.email) {
+      sendJson(response, 400, { error: "Conta sem e-mail cadastrado para reenvio." });
+      return;
+    }
+    const newCode = String(Math.floor(100000 + Math.random() * 900000));
+    sqlSet("verification", username.toLowerCase(), {
+      code: newCode,
+      expiresAt: Date.now() + 5 * 60 * 1000,
+    });
+    try {
+      await sendVerificationCodeEmail({ username: user.username || username, email: user.email, code: newCode });
+    } catch (error) {
+      console.error("[AUTH] Falha no reenvio de email de verificacao:", error?.message || error);
+      sendJson(response, 502, { error: "Nao foi possivel reenviar o e-mail de verificacao." });
+      return;
+    }
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+
+  if (pathname === "/api/auth/login" && request.method === "POST") {
+    let payloadText;
+    try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
+    const username = String(payload.username || "").trim();
+    const passwordHash = String(payload.passwordHash || "");
+    if (!username || !passwordHash) {
+      sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "auth_login_user", username, {
+      windowMs: AUTH_RATE_LIMIT_WINDOW_MS,
+      maxHits: AUTH_RATE_LIMIT_MAX,
+    })) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 500, { error: "Banco de dados indisponivel." });
+      return;
+    }
+    const user = sqliteDb.prepare("SELECT id, username, email, password_hash, tribe, verified FROM users WHERE username = ? COLLATE NOCASE").get(username);
+    if (!user) {
+      sendJson(response, 401, { error: "Nome de acesso nao encontrado." });
+      return;
+    }
+    if (user.password_hash !== passwordHash) {
+      sendJson(response, 401, { error: "Senha incorreta." });
+      return;
+    }
+    if (!user.verified) {
+      sendJson(response, 403, { error: "Conta nao verificada. Cadastre-se novamente." });
+      return;
+    }
+    const session = issueSessionForUserId(user.id);
+    if (!session) {
+      sendJson(response, 500, { error: "Falha ao iniciar sessao." });
+      return;
+    }
+    response.setHeader("Set-Cookie", buildSessionCookieHeader(request, session.sessionToken, session.expiresAt));
+    sendJson(response, 200, {
+      ok: true,
+      sessionToken: session.sessionToken,
+      sessionExpiresAt: session.expiresAt,
+      username: user.username,
+      tribe: user.tribe,
+    });
+    return;
+  }
+
+  if (pathname === "/api/auth/session" && request.method === "GET") {
+    if (!sqliteDb) {
+      sendJson(response, 401, { error: "Sessao invalida." });
+      return;
+    }
+    const token = getRequestSessionToken(request) || parsedUrl.searchParams.get("token") || "";
+    const user = loadUserByValidSessionToken(token);
+    if (!user) {
+      response.setHeader("Set-Cookie", clearSessionCookieHeader(request));
+      sendJson(response, 401, { error: "Sessao expirada ou invalida." });
+      return;
+    }
+    sendJson(response, 200, {
+      ok: true,
+      sessionToken: token,
+      username: user.username,
+      email: user.email,
+      tribe: user.tribe,
+      sessionExpiresAt: user.session_expires_at || null,
+    });
+    return;
+  }
+
+  if (pathname === "/api/auth/logout" && request.method === "POST") {
+    let payloadText;
+    try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
+    const payload = safeJsonParse(payloadText, null);
+    const token = getRequestSessionToken(request) || payload?.sessionToken || "";
+    if (token && sqliteDb) {
+      clearSessionToken(token);
+    }
+    response.setHeader("Set-Cookie", clearSessionCookieHeader(request));
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+  // â”€â”€â”€ End Auth API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  if (request.method === "GET" && pathname === "/api/library") {
+    sendJson(response, 200, library);
+    return;
+  }
+
+  if (request.method === "GET" && pathname === "/api/scans") {
+    const username = parsedUrl.searchParams.get("username") || "local-player";
+    const editingDeck =
+      parsedUrl.searchParams.get("editingDeckAnchor")
+      || parsedUrl.searchParams.get("editingDeck")
+      || "";
+    const cacheKey = `${normalizeUserKey(username)}:${normalizeDeckName(editingDeck) || "_"}`;
+    const payload = cacheRead(userResponseCache.scans, cacheKey, () => {
+      const { scans, available, userCards } = buildAvailableScansForDeck(editingDeck, username);
+      const baseStats = countBucketCards(userCards);
+      const availableStats = countBucketCards(available);
+      return {
+        cards: cloneCardBuckets(userCards),
+        available,
+        stats: {
+          base: baseStats,
+          available: availableStats,
+        },
+        updatedAt: scans.updatedAt || null,
+      };
+    });
+    sendJson(response, 200, payload);
+    return;
+  }
+
+  if (request.method === "GET" && pathname === "/api/scans/copies") {
+    const username = parsedUrl.searchParams.get("username") || "local-player";
+    const editingDeck =
+      parsedUrl.searchParams.get("editingDeckAnchor")
+      || parsedUrl.searchParams.get("editingDeck")
+      || "";
+    const cardId = String(parsedUrl.searchParams.get("cardId") || "").trim();
+    if (!cardId) {
+      sendJson(response, 400, { error: "cardId e obrigatorio." });
+      return;
+    }
+    const scans = loadScansData();
+    const copies = listAvailableCreatureCopiesForCard(scans, username, cardId, editingDeck);
+    sendJson(response, 200, {
+      ok: true,
+      cardId,
+      copies,
+    });
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/scans/rebuild-from-decks") {
+    let payloadText = "";
+    try {
+      payloadText = await readBody(request);
+    } catch {
+      payloadText = "";
+    }
+    const payload = safeJsonParse(payloadText, {});
+    const username =
+      String(payload?.username || parsedUrl.searchParams.get("username") || "local-player").trim() || "local-player";
+    const scans = loadScansData();
+    const ownerKey = normalizeUserKey(username);
+    scans.players[ownerKey] = {
+      cards: buildScansSeedFromDecks(ownerKey),
+    };
+    const saved = writeScansData(scans, "rebuild_from_decks");
+    const stats = countBucketCards(saved.players?.[ownerKey]?.cards || createEmptyCardBuckets());
+    sendJson(response, 200, {
+      ok: true,
+      username: ownerKey,
+      cards: cloneCardBuckets(saved.players?.[ownerKey]?.cards || createEmptyCardBuckets()),
+      stats,
+      updatedAt: saved.updatedAt,
+    });
+    return;
+  }
+
+  if (pathname === "/api/perim/state" && request.method === "GET") {
+    const playerKey = parsedUrl.searchParams.get("playerKey") || parsedUrl.searchParams.get("username") || "local-player";
+    const cacheKey = normalizePerimPlayerKey(playerKey);
+    const payload = cacheRead(userResponseCache.perim, cacheKey, () => ({ ok: true, ...buildPerimStatePayload(playerKey) }));
+    sendJson(response, 200, payload);
+    return;
+  }
+
+  if (pathname === "/api/perim/events" && request.method === "GET") {
+    sendJson(response, 200, {
+      ok: true,
+      events: listPerimGlobalEvents(),
+      updatedAt: nowIso(),
+    });
+    return;
+  }
+
+  if (pathname === "/api/perim/start" && request.method === "POST") {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const playerKeyRaw = String(payload.playerKey || payload.username || "local-player");
+    if (applyRateLimitWithUser(request, response, "perim_start_user", playerKeyRaw, {
+      windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+      maxHits: ACTION_RATE_LIMIT_MAX,
+    })) {
+      return;
+    }
+    const locationCardId = String(payload.locationCardId || "").trim();
+    const locationEntryId = String(payload.locationEntryId || "").trim();
+    const actionId = String(payload.actionId || "").trim();
+    if (!locationCardId && !locationEntryId) {
+      sendJson(response, 400, { error: "Selecione um local." });
+      return;
+    }
+    if (!PERIM_ACTION_LOOKUP.has(actionId)) {
+      sendJson(response, 400, { error: "Acao PERIM invalida." });
+      return;
+    }
+
+    const rootState = loadPerimStateFile();
+    const { state: playerState } = getOrCreatePerimPlayerState(rootState, playerKeyRaw);
+    promotePerimFinishedRuns(playerState, Date.now());
+    if (playerState.activeRun) {
+      sendJson(response, 409, { error: "Ja existe uma acao em andamento." });
+      return;
+    }
+
+    const scans = loadScansData();
+    const { cards, changed: scansChanged } = getScansCardsForUser(scans, playerKeyRaw, true);
+    if (scansChanged) {
+      writeScansData(scans, "perim_start_scans_bootstrap");
+    }
+    const locationEntries = collectPerimLocationEntriesForPlayer(playerKeyRaw, cards);
+    const locations = buildPerimLocationsFromScans(locationEntries);
+    let selectedLocation = locationCardId
+      ? locations.find((entry) => entry.cardId === locationCardId) || null
+      : null;
+    if (!selectedLocation) {
+      selectedLocation = locations.find((entry) => entry.entryId === locationEntryId) || null;
+    }
+    if (!selectedLocation) {
+      const fallbackCardId = String(locationEntryId.split("#")[0] || "").trim();
+      if (fallbackCardId) {
+        selectedLocation = locations.find((entry) => entry.cardId === fallbackCardId) || null;
+      }
+    }
+    if (!selectedLocation) {
+      console.warn(
+        `[PERIM][START][INVALID_LOCATION] user=${normalizePerimPlayerKey(playerKeyRaw)} ` +
+        `locationCardId=${locationCardId || "-"} locationEntryId=${locationEntryId || "-"} ` +
+        `eligibleCount=${locations.length}`
+      );
+      sendJson(response, 400, { error: "Local selecionado nao pertence ao inventario de Scans." });
+      return;
+    }
+
+    const locationCard = (library?.cardsByType?.locations || []).find((card) => card.id === selectedLocation.cardId) || null;
+    if (!locationCard) {
+      sendJson(response, 400, { error: "Carta de local nao encontrada na biblioteca." });
+      return;
+    }
+
+    const action = PERIM_ACTION_LOOKUP.get(actionId);
+    const profilesState = loadProfilesData();
+    const { profile, changed: profileChanged } = getOrCreateProfile(profilesState, playerKeyRaw);
+    if (profileChanged) {
+      writeProfilesData(profilesState, "perim_start_profile_bootstrap");
+    }
+    const scannerState = resolveScannerStateForLocation(profile, selectedLocation);
+    const instantPerim = isPerimInstantAdmin(playerKeyRaw);
+    const startAt = new Date();
+    const durationMs = instantPerim
+      ? 0
+      : computePerimDurationMs(locationCard.id, actionId, action.durationMs, scannerState.effect);
+    const endAt = new Date(startAt.getTime() + durationMs);
+    const runId = crypto.randomBytes(12).toString("hex");
+    const inventoryCounts = buildInventoryCountMap(cards);
+    const rewards = buildPerimRewards(selectedLocation, actionId, {
+      inventoryCounts,
+      scannerEffect: scannerState.effect,
+      includeCreatureVariant: true,
+      ignoreInventoryCap: instantPerim,
+    });
+    const clues = buildPerimCluesForRun(actionId, selectedLocation, rewards, {
+      inventoryCounts,
+      scannerEffect: scannerState.effect,
+      ignoreInventoryCap: instantPerim,
+    });
+    const contextSnapshot = buildPerimContextSnapshot(selectedLocation, actionId, scannerState.effect, startAt, clues);
+    playerState.activeRun = {
+      runId,
+      locationEntryId,
+      locationId: locationCard.id,
+      locationName: locationCard.name,
+      locationImage: locationCard.image || "",
+      locationCard: locationCard,
+      actionId,
+      actionLabel: action.name,
+      startAt: startAt.toISOString(),
+      endAt: endAt.toISOString(),
+      durationMs,
+      scanner: {
+        key: scannerState.scannerKey,
+        level: scannerState.level,
+      },
+      contextSnapshot,
+      rewards,
+      createdAt: nowIso(),
+    };
+
+    if (instantPerim) {
+      promotePerimFinishedRuns(playerState, Date.now() + 1);
+    }
+
+    playerState.updatedAt = nowIso();
+    writePerimStateFile(rootState);
+    invalidateUserCaches(playerKeyRaw);
+    sendJson(response, 200, {
+      ok: true,
+      activeRun: playerState.activeRun,
+      pendingRewards: playerState.pendingRewards,
+      instant: instantPerim,
+    });
+    return;
+  }
+
+  if (pathname === "/api/perim/claim" && request.method === "POST") {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const playerKeyRaw = String(payload.playerKey || payload.username || "local-player");
+    if (applyRateLimitWithUser(request, response, "perim_claim_user", playerKeyRaw, {
+      windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+      maxHits: ACTION_RATE_LIMIT_MAX,
+    })) {
+      return;
+    }
+    const runId = String(payload.runId || "").trim();
+    const rootState = loadPerimStateFile();
+    const { state: playerState } = getOrCreatePerimPlayerState(rootState, playerKeyRaw);
+    const changed = promotePerimFinishedRuns(playerState, Date.now());
+    const claimResult = claimPerimRewardsForRun(playerState, runId, playerKeyRaw);
+    if (!claimResult.ok) {
+      if (changed) {
+        writePerimStateFile(rootState);
+      }
+      sendJson(response, 400, { error: claimResult.error || "Falha ao coletar recompensas." });
+      return;
+    }
+    writePerimStateFile(rootState);
+    sendJson(response, 200, { ok: true, ...claimResult });
+    return;
+  }
+
+  if (pathname === "/api/perim/debug/finish" && request.method === "POST") {
+    let payloadText = "";
+    try {
+      payloadText = await readBody(request);
+    } catch {
+      payloadText = "";
+    }
+    const payload = safeJsonParse(payloadText, {});
+    const playerKeyRaw = String(payload.playerKey || payload.username || "local-player");
+    const rootState = loadPerimStateFile();
+    const { state: playerState } = getOrCreatePerimPlayerState(rootState, playerKeyRaw);
+    if (playerState.activeRun) {
+      playerState.activeRun.endAt = new Date(Date.now() - 1000).toISOString();
+      promotePerimFinishedRuns(playerState, Date.now());
+      writePerimStateFile(rootState);
+    }
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+
+  if (pathname === "/api/profile" && request.method === "GET") {
+    const username = parsedUrl.searchParams.get("username") || "local-player";
+    const cacheKey = normalizeUserKey(username);
+    const payload = cacheRead(userResponseCache.profile, cacheKey, () => ({ ok: true, profile: buildProfilePayload(username) }));
+    sendJson(response, 200, payload);
+    return;
+  }
+
+  if (pathname === "/api/profile/avatar" && request.method === "POST") {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const username = String(payload.username || "local-player");
+    const avatar = String(payload.avatar || "").trim();
+    if (!avatar) {
+      sendJson(response, 400, { error: "Avatar invalido." });
+      return;
+    }
+    const profilesState = loadProfilesData();
+    const { profile } = getOrCreateProfile(profilesState, username);
+    profile.avatar = avatar;
+    profile.updatedAt = nowIso();
+    writeProfilesData(profilesState, "profile_avatar");
+    invalidateUserCaches(username);
+    sendJson(response, 200, { ok: true, profile: buildProfilePayload(username) });
+    return;
+  }
+
+  if (pathname === "/api/profile/battle-result" && request.method === "POST") {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const username = String(payload.username || "local-player");
+    const result = String(payload.result || "").toLowerCase();
+    if (result !== "win" && result !== "loss") {
+      sendJson(response, 400, { error: "Resultado invalido." });
+      return;
+    }
+    const profilesState = loadProfilesData();
+    const { profile } = getOrCreateProfile(profilesState, username);
+    applyBattleResultToProfile(profile, payload);
+    writeProfilesData(profilesState, "profile_battle_result");
+    upsertSeasonPlayerDelta(username, {
+      score: result === "win" ? 20 : -5,
+      wins: result === "win" ? 1 : 0,
+      losses: result === "loss" ? 1 : 0,
+    });
+    invalidateUserCaches(username);
+    sendJson(response, 200, { ok: true, profile: buildProfilePayload(username) });
+    return;
+  }
+
+  if (pathname === "/api/profile/creature-usage" && request.method === "POST") {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const username = String(payload.username || "local-player");
+    const profilesState = loadProfilesData();
+    const { profile } = getOrCreateProfile(profilesState, username);
+    const changed = applyCreatureUsageToProfile(profile, payload);
+    if (!changed) {
+      sendJson(response, 400, { error: "Carta de criatura invalida." });
+      return;
+    }
+    writeProfilesData(profilesState, "profile_creature_usage");
+    invalidateUserCaches(username);
+    sendJson(response, 200, { ok: true, profile: buildProfilePayload(username) });
+    return;
+  }
+
+  if (pathname === "/api/profile/bootstrap" && request.method === "POST") {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const username = String(payload.username || "").trim();
+    if (!username) {
+      sendJson(response, 400, { error: "Username obrigatorio." });
+      return;
+    }
+    const favoriteTribe = String(payload.favoriteTribe || "").trim();
+    const profilesState = loadProfilesData();
+    const { key, profile } = getOrCreateProfile(profilesState, username);
+    if (favoriteTribe) {
+      profile.favoriteTribe = favoriteTribe;
+    }
+    const scans = loadScansData();
+    const starterPackResult = applyStarterPackIfEligible(key, profile, scans, favoriteTribe);
+    if (starterPackResult.scansChanged) {
+      writeScansData(scans, "profile_bootstrap_starter_pack");
+    }
+    profile.updatedAt = nowIso();
+    writeProfilesData(profilesState, "profile_bootstrap_tribe");
+    invalidateUserCaches(username);
+    sendJson(response, 200, {
+      ok: true,
+      profile: buildProfilePayload(username),
+      starterPackApplied: starterPackResult.applied,
+      starterPackReason: starterPackResult.reason,
+      starterPackItems: starterPackResult.items,
+    });
+    return;
+  }
+
+  if (pathname === "/api/season/current" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Temporadas indisponiveis sem banco SQL." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const season = ensureCurrentSeasonRow(new Date());
+    const stats = sqliteDb
+      .prepare(`
+        SELECT score, wins, losses, perim_claims, updated_at
+        FROM season_player_stats
+        WHERE season_key = ? AND owner_key = ?
+      `)
+      .get(String(season?.seasonKey || ""), ownerKey);
+    sendJson(response, 200, {
+      ok: true,
+      season: season || null,
+      player: {
+        username: ownerKey,
+        score: Math.max(0, Number(stats?.score || 0)),
+        wins: Math.max(0, Number(stats?.wins || 0)),
+        losses: Math.max(0, Number(stats?.losses || 0)),
+        perimClaims: Math.max(0, Number(stats?.perim_claims || 0)),
+        updatedAt: String(stats?.updated_at || ""),
+      },
+      rewards: listSeasonRewards(ownerKey, season?.seasonKey || ""),
+    });
+    return;
+  }
+
+  if (pathname === "/api/season/leaderboard" && request.method === "GET") {
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Temporadas indisponiveis sem banco SQL." });
+      return;
+    }
+    const season = ensureCurrentSeasonRow(new Date());
+    const rows = sqliteDb
+      .prepare(`
+        SELECT owner_key, score, wins, losses, perim_claims
+        FROM season_player_stats
+        WHERE season_key = ?
+        ORDER BY score DESC, wins DESC, perim_claims DESC
+        LIMIT 100
+      `)
+      .all(String(season?.seasonKey || ""));
+    sendJson(response, 200, {
+      ok: true,
+      season: season || null,
+      leaderboard: rows.map((row, index) => ({
+        rank: index + 1,
+        username: normalizeUserKey(row?.owner_key),
+        score: Math.max(0, Number(row?.score || 0)),
+        wins: Math.max(0, Number(row?.wins || 0)),
+        losses: Math.max(0, Number(row?.losses || 0)),
+        perimClaims: Math.max(0, Number(row?.perim_claims || 0)),
+      })),
+    });
+    return;
+  }
+
+  if (pathname === "/api/season/missions" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Missoes indisponiveis sem banco SQL." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const mission = ensureDailyPerimMission(new Date());
+    const progress = mission
+      ? sqliteDb
+        .prepare(`
+          SELECT progress_value, completed_at, claimed_at, updated_at
+          FROM daily_mission_progress
+          WHERE mission_key = ? AND owner_key = ?
+        `)
+        .get(String(mission.mission_key), ownerKey)
+      : null;
+    sendJson(response, 200, {
+      ok: true,
+      missions: mission
+        ? [{
+          missionKey: String(mission.mission_key),
+          missionDate: String(mission.mission_date),
+          missionType: String(mission.mission_type),
+          targetValue: Number(mission.target_value || 0),
+          progressValue: Math.max(0, Number(progress?.progress_value || 0)),
+          completedAt: progress?.completed_at || null,
+          claimedAt: progress?.claimed_at || null,
+          updatedAt: progress?.updated_at || null,
+        }]
+        : [],
+    });
+    return;
+  }
+
+  if (pathname === "/api/season/missions/claim" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const username = String(authUser.username || "local-player");
+    const missionKey = String(payload.missionKey || buildDailyPerimMissionKey(new Date()));
+    if (applyRateLimitWithUser(request, response, "season_mission_claim", username, {
+      windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+      maxHits: Math.max(6, Math.floor(ACTION_RATE_LIMIT_MAX / 2)),
+    })) {
+      return;
+    }
+    const claimResult = claimDailyMissionReward(username, missionKey);
+    if (!claimResult.ok) {
+      sendJson(response, 400, { error: claimResult.error || "Falha ao coletar recompensa da missao." });
+      return;
+    }
+    sendJson(response, 200, {
+      ok: true,
+      ...claimResult,
+    });
+    return;
+  }
+
+  if (pathname === "/api/admin/reset-card-data" && request.method === "POST") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "admin_reset_card_data", adminUser.username, {
+      windowMs: 60 * 1000,
+      maxHits: 3,
+    })) {
+      return;
+    }
+    // Reset all scans inventories
+    const scans = loadScansData();
+    const playerKeys = Object.keys(scans.players || {});
+    playerKeys.forEach((pk) => {
+      scans.players[pk] = { cards: createEmptyCardBuckets() };
+    });
+    writeScansData(scans, "admin_reset_card_data");
+
+    // Clear all deck card lists from SQL
+    let decksCleared = 0;
+    const deckKeys = sqlList("decks");
+    for (const key of deckKeys) {
+      const deck = sqlGet("decks", key);
+      if (!deck || typeof deck !== "object") {
+        continue;
+      }
+      deck.cards = createEmptyCardBuckets();
+      deck.updatedAt = nowIso();
+      writeDeckStored(key, deck);
+      decksCleared += 1;
+    }
+
+    sendJson(response, 200, {
+      ok: true,
+      playersReset: playerKeys.length,
+      decksCleared,
+      resetAt: nowIso(),
+    });
+    return;
+  }
+
+  if (pathname.startsWith("/api/trades")) {
+    cleanupExpiredTradeRooms();
+
+    if (request.method === "POST" && pathname === "/api/trades/rooms") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        return sendJson(response, 413, { error: error.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido." });
+      }
+      const username = normalizeUserKey(authUser.username || "local-player");
+      const displayName = String(payload.playerName || authUser.username || username || "Host").trim() || username;
+      if (!isSqlV2Ready()) {
+        return sendJson(response, 503, { error: "Trocas indisponiveis: banco SQL ainda nao inicializado." });
+      }
+      const roomCode = generateTradeRoomCode();
+      const room = {
+        code: roomCode,
+        status: "waiting",
+        host: {
+          username,
+          displayName,
+          seatToken: generateSeatToken(),
+        },
+        guest: null,
+        offers: { host: [], guest: [] },
+        accepted: { host: false, guest: false },
+        confirmFinalize: { host: false, guest: false },
+        clients: new Set(),
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        lastActivityAt: Date.now(),
+        completedAt: null,
+        tradeSummary: null,
+      };
+      tradeRooms.set(roomCode, room);
+      console.log(`[TRADES] Sala criada: code=${roomCode} host=${username}`);
+      return sendJson(response, 200, {
+        ok: true,
+        roomCode,
+        seat: "host",
+        seatToken: room.host.seatToken,
+      });
+    }
+
+    if (request.method === "POST" && pathname === "/api/trades/rooms/join") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        return sendJson(response, 413, { error: error.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido." });
+      }
+      const roomCode = normalizeTradeCode(payload.roomCode);
+      const room = requireTradeRoomOr404(response, roomCode);
+      if (!room) {
+        return;
+      }
+      if (room.status === "completed") {
+        return sendJson(response, 400, { error: "Sala de troca ja foi concluida." });
+      }
+      if (room.status === "cancelled") {
+        return sendJson(response, 400, { error: "Sala de troca cancelada." });
+      }
+      if (room.guest) {
+        return sendJson(response, 400, { error: "Sala de troca ja esta cheia." });
+      }
+      const username = normalizeUserKey(authUser.username || "guest");
+      if (username === normalizeUserKey(room.host?.username)) {
+        return sendJson(response, 400, { error: "Nao e possivel entrar na sala com o mesmo usuario do host." });
+      }
+      const displayName = String(payload.playerName || authUser.username || username || "Guest").trim() || username;
+      room.guest = {
+        username,
+        displayName,
+        seatToken: generateSeatToken(),
+      };
+      room.status = "ready";
+      room.accepted = { host: false, guest: false };
+      room.confirmFinalize = { host: false, guest: false };
+      room.updatedAt = nowIso();
+      room.lastActivityAt = Date.now();
+      console.log(`[TRADES] Jogador entrou: code=${roomCode} guest=${username}`);
+      sendTradeRoomEvent(room, { type: "trade_room_event", event: "guest_joined", roomCode });
+      broadcastTradeRoomSnapshot(room, "guest_joined");
+      return sendJson(response, 200, {
+        ok: true,
+        roomCode,
+        seat: "guest",
+        seatToken: room.guest.seatToken,
+      });
+    }
+
+    if (request.method === "GET" && pathname === "/api/trades/history") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      if (!isSqlV2Ready()) {
+        return sendJson(response, 503, { error: "Historico indisponivel: banco SQL ainda nao inicializado." });
+      }
+      const ownerKey = normalizeUserKey(authUser.username || "");
+      const limitRaw = Number(parsedUrl.searchParams.get("limit") || 30);
+      const limit = Math.max(1, Math.min(100, Number.isFinite(limitRaw) ? limitRaw : 30));
+      const rows = sqliteDb.prepare(`
+        SELECT id, room_code, host_key, guest_key, completed_at
+        FROM trade_history
+        WHERE host_key = ? OR guest_key = ?
+        ORDER BY datetime(completed_at) DESC, id DESC
+        LIMIT ?
+      `).all(ownerKey, ownerKey, limit);
+      const history = rows.map((row) => {
+        const tradeId = Number(row?.id || 0);
+        const items = sqliteDb.prepare(`
+          SELECT side, from_owner_key, to_owner_key, scan_entry_id, card_type, card_id, variant_json
+          FROM trade_history_items
+          WHERE trade_id = ?
+          ORDER BY id ASC
+        `).all(tradeId).map((item) => ({
+          side: String(item?.side || ""),
+          fromOwnerKey: String(item?.from_owner_key || ""),
+          toOwnerKey: String(item?.to_owner_key || ""),
+          scanEntryId: String(item?.scan_entry_id || ""),
+          cardType: String(item?.card_type || ""),
+          cardId: String(item?.card_id || ""),
+          variant: safeJsonParse(item?.variant_json, null),
+        }));
+        return {
+          id: tradeId,
+          roomCode: String(row?.room_code || ""),
+          hostKey: String(row?.host_key || ""),
+          guestKey: String(row?.guest_key || ""),
+          completedAt: String(row?.completed_at || ""),
+          items,
+        };
+      });
+      return sendJson(response, 200, { ok: true, history });
+    }
+
+    if (request.method === "GET" && pathname.startsWith("/api/trades/rooms/") && pathname.endsWith("/state")) {
+      const roomCode = pathname.split("/")[4];
+      const room = requireTradeRoomOr404(response, roomCode);
+      if (!room) {
+        return;
+      }
+      const seatToken = parsedUrl.searchParams.get("seatToken") || "";
+      room.lastActivityAt = Date.now();
+      return sendJson(response, 200, {
+        ok: true,
+        snapshot: buildTradeRoomStatePayload(room, seatToken),
+      });
+    }
+
+    if (request.method === "GET" && pathname.startsWith("/api/trades/events/")) {
+      const roomCode = pathname.split("/")[4];
+      const room = tradeRooms.get(normalizeTradeCode(roomCode));
+      if (!room) {
+        return sendText(response, 404, "Sala de troca nao encontrada.");
+      }
+      const seatToken = parsedUrl.searchParams.get("seatToken") || "";
+      response.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      });
+      const client = { res: response, seatToken };
+      room.clients.add(client);
+      room.lastActivityAt = Date.now();
+      const snapshot = buildTradeRoomStatePayload(room, seatToken);
+      response.write(`data: ${JSON.stringify({ type: "trade_room_snapshot", reason: "initial", snapshot })}\n\n`);
+      request.on("close", () => {
+        room.clients.delete(client);
+      });
+      return;
+    }
+
+    if (request.method === "POST" && pathname.startsWith("/api/trades/rooms/") && pathname.endsWith("/action")) {
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        return sendJson(response, 413, { error: error.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido." });
+      }
+      const roomCode = pathname.split("/")[4];
+      const room = requireTradeRoomOr404(response, roomCode);
+      if (!room) {
+        return;
+      }
+      const seatToken = String(payload.seatToken || "");
+      const seatInfo = getTradeSeatByToken(room, seatToken);
+      if (seatInfo.seat !== "host" && seatInfo.seat !== "guest") {
+        return sendJson(response, 403, { error: "Seat token invalido para esta sala de troca." });
+      }
+      if (applyRateLimitWithUser(request, response, "trade_action_user", seatInfo.playerKey || seatInfo.seat, {
+        windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+        maxHits: ACTION_RATE_LIMIT_MAX,
+      })) {
+        return;
+      }
+      const action = decodeRichValue(payload.action || {});
+      try {
+        const result = applyTradeRoomAction(room, action, seatInfo.seat);
+        room.updatedAt = nowIso();
+        room.lastActivityAt = Date.now();
+        const reason = String(result?.reason || "action");
+        console.log(
+          `[TRADES][ACTION] room=${room.code} seat=${seatInfo.seat} action=${String(action?.type || "")} result=${reason}`
+        );
+        if (reason === "finalize") {
+          sendTradeRoomEvent(room, {
+            type: "trade_room_event",
+            event: "trade_completed",
+            roomCode: room.code,
+            summary: result?.summary || null,
+          });
+        }
+        if (reason === "cancel") {
+          sendTradeRoomEvent(room, {
+            type: "trade_room_event",
+            event: "trade_cancelled",
+            roomCode: room.code,
+            by: seatInfo.seat,
+          });
+        }
+        broadcastTradeRoomSnapshot(room, reason);
+        return sendJson(response, 200, {
+          ok: true,
+          reason,
+          snapshot: buildTradeRoomStatePayload(room, seatToken),
+        });
+      } catch (error) {
+        console.warn(
+          `[TRADES][ACTION][ERROR] room=${normalizeTradeCode(roomCode)} seat=${seatInfo.seat} action=${String(action?.type || "")} error=${error?.message || error}`
+        );
+        return sendJson(response, 400, { error: error?.message || "Falha ao aplicar acao de troca." });
+      }
+    }
+  }
+
+  if (pathname.startsWith("/api/multiplayer")) {
+    if (request.method === "GET" && pathname === "/api/multiplayer/rooms") {
+      const activeRooms = Array.from(multiplayerRooms.values()).map((room) => buildRoomSummary(room));
+      sendJson(response, 200, { rooms: activeRooms });
+      return;
+    }
+
+    if (request.method === "POST" && pathname === "/api/multiplayer/rooms") {
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (e) {
+        return sendJson(response, 413, { error: e.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload) {
+        return sendJson(response, 400, { error: "JSON invalido" });
+      }
+
+      if (!payload.deck) {
+        return sendJson(response, 400, { error: "Deck is required" });
+      }
+      const rulesMode = isValidRulesMode(payload.rulesMode) ? payload.rulesMode : "competitive";
+      const hostUsername = normalizeUserKey(payload.username || payload.playerName || "host");
+      if (applyRateLimitWithUser(request, response, "multiplayer_create_user", hostUsername, {
+        windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+        maxHits: ACTION_RATE_LIMIT_MAX,
+      })) {
+        return;
+      }
+      const hostDeckValidation = validateDeckForRulesMode(payload.deck, rulesMode);
+      if (!hostDeckValidation.ok) {
+        return sendJson(response, 400, {
+          error: `Deck invalido para modo ${rulesMode}: ${hostDeckValidation.errors.slice(0, 3).join(" | ")}`,
+        });
+      }
+      const hostToken = generateSeatToken();
+      const hostAvatar = resolveAvatarForUsername(hostUsername);
+
+      const roomId = String(nextRoomId++);
+      const room = {
+        id: roomId,
+        rulesMode,
+        phase: "lobby",
+        players: {
+          host: {
+            name: String(payload.playerName || "Host"),
+            username: hostUsername,
+            avatar: hostAvatar,
+            deck: payload.deck,
+            deckName: String(payload.deckName || payload.deck?.name || "Deck Host"),
+            seatToken: hostToken,
+          },
+          guest: null,
+        },
+        battleState: null,
+        clients: new Set(),
+        createdAt: nowIso(),
+        startedAt: null,
+        updatedAt: nowIso(),
+        lastActionSeq: 0,
+        rematch: {
+          pending: false,
+          requestedBy: null,
+          requestedAt: null,
+        },
+      };
+      multiplayerRooms.set(roomId, room);
+      sendJson(response, 200, {
+        roomId,
+        seat: "host",
+        seatToken: hostToken,
+        rulesMode: room.rulesMode,
+      });
+      return;
+    }
+
+    if (request.method === "POST" && pathname.startsWith("/api/multiplayer/rooms/") && pathname.endsWith("/join")) {
+      const roomId = pathname.split("/")[4];
+      const room = requireRoomOr404(response, roomId);
+      if (!room) {
+        return;
+      }
+
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (e) {
+        return sendJson(response, 413, { error: e.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload) {
+        return sendJson(response, 400, { error: "JSON invalido" });
+      }
+
+      if (room.players?.guest && !payload.spectator) {
+        return sendJson(response, 400, { error: "Room is full" });
+      }
+
+      if (payload.spectator) {
+        return sendJson(response, 200, { ok: true, seat: "spectator", roomId });
+      }
+
+      if (!payload.deck) {
+        return sendJson(response, 400, { error: "Deck is required" });
+      }
+      const guestDeckValidation = validateDeckForRulesMode(payload.deck, room.rulesMode || "competitive");
+      if (!guestDeckValidation.ok) {
+        return sendJson(response, 400, {
+          error: `Deck invalido para modo ${room.rulesMode}: ${guestDeckValidation.errors.slice(0, 3).join(" | ")}`,
+        });
+      }
+
+      const guestToken = generateSeatToken();
+      const guestUsername = normalizeUserKey(payload.username || payload.playerName || "guest");
+      if (applyRateLimitWithUser(request, response, "multiplayer_join_user", guestUsername, {
+        windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+        maxHits: ACTION_RATE_LIMIT_MAX,
+      })) {
+        return;
+      }
+      const guestAvatar = resolveAvatarForUsername(guestUsername);
+      room.players.guest = {
+        name: String(payload.playerName || "Guest"),
+        username: guestUsername,
+        avatar: guestAvatar,
+        deck: payload.deck,
+        deckName: String(payload.deckName || payload.deck?.name || "Deck Guest"),
+        seatToken: guestToken,
+      };
+      room.updatedAt = nowIso();
+      await startRoomBattle(room);
+      sendRoomEvent(room, { type: "player_joined", roomId: room.id });
+      broadcastRoomSnapshot(room, "player_joined");
+      sendJson(response, 200, {
+        ok: true,
+        roomId,
+        seat: "guest",
+        seatToken: guestToken,
+        rulesMode: room.rulesMode,
+      });
+      return;
+    }
+
+    if (request.method === "GET" && pathname.startsWith("/api/multiplayer/rooms/") && pathname.endsWith("/state")) {
+      const roomId = pathname.split("/")[4];
+      const room = requireRoomOr404(response, roomId);
+      if (!room) {
+        return;
+      }
+      const seatToken = parsedUrl.searchParams.get("seatToken") || "";
+      sendJson(response, 200, buildRoomStatePayload(room, seatToken));
+      return;
+    }
+
+    if (request.method === "POST" && pathname.startsWith("/api/multiplayer/rooms/") && pathname.endsWith("/action")) {
+      const roomId = pathname.split("/")[4];
+      const room = requireRoomOr404(response, roomId);
+      if (!room) {
+        return;
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (e) {
+        return sendJson(response, 413, { error: e.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido" });
+      }
+      const seatToken = String(payload.seatToken || "");
+      const seatInfo = getRoomSeatByToken(room, seatToken);
+      if (seatInfo.playerIndex === null) {
+        return sendJson(response, 403, { error: "Seat token invalido." });
+      }
+      const actionUserKey = seatInfo.seat === "host"
+        ? normalizeUserKey(room.players?.host?.username || "host")
+        : normalizeUserKey(room.players?.guest?.username || "guest");
+      if (applyRateLimitWithUser(request, response, "multiplayer_action_user", actionUserKey, {
+        windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+        maxHits: ACTION_RATE_LIMIT_MAX,
+      })) {
+        return;
+      }
+      const decodedAction = decodeRichValue(payload.action || {});
+      const actionType = String(decodedAction?.type || "");
+      const bypassTurnValidation = actionType === "forfeit" || actionType === "request_rematch" || actionType === "respond_rematch";
+      const allowsFinishedPhase = actionType === "request_rematch" || actionType === "respond_rematch";
+      if (!room.battleState || (room.phase !== "in_game" && !(allowsFinishedPhase && room.phase === "finished"))) {
+        return sendJson(response, 400, { error: "Partida ainda nao iniciou." });
+      }
+      const pending = room.battleState.pendingAction;
+      if (!bypassTurnValidation) {
+        if (pending && Number(pending.playerIndex) !== Number(seatInfo.playerIndex)) {
+          return sendJson(response, 409, { error: "Nao e a sua vez de agir nesta janela." });
+        }
+        if (!pending && Number(room.battleState.board?.activePlayerIndex) !== Number(seatInfo.playerIndex)) {
+          return sendJson(response, 409, { error: "Nao e o seu turno." });
+        }
+      }
+      try {
+        await applyRoomAction(room, decodedAction, seatInfo.playerIndex, seatInfo.seat);
+      } catch (error) {
+        return sendJson(response, 400, { error: error?.message || "Falha ao aplicar acao." });
+      }
+      if (!bypassTurnValidation) {
+        room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
+      }
+      if (room.battleState?.finished) {
+        room.phase = "finished";
+        clearAllDisconnectTimers(room);
+      }
+      room.updatedAt = nowIso();
+      if (!bypassTurnValidation) {
+        broadcastRoomSnapshot(room, "action_applied");
+      }
+      sendJson(response, 200, {
+        ok: true,
+        seq: room.lastActionSeq,
+        snapshot: buildRoomStatePayload(room, seatToken),
+      });
+      return;
+    }
+
+    if (request.method === "GET" && pathname.startsWith("/api/multiplayer/events/")) {
+      const roomId = pathname.split("/")[4];
+      const room = multiplayerRooms.get(roomId);
+      if (!room) {
+        sendText(response, 404, "Room not found");
+        return;
+      }
+      const seatToken = parsedUrl.searchParams.get("seatToken") || "";
+
+      response.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      });
+
+      const client = { res: response, seatToken };
+      room.clients.add(client);
+      const seat = getRoomSeatByToken(room, seatToken).seat;
+      if (seat === "host" || seat === "guest") {
+        markSeatConnected(room, seat);
+      }
+      const snapshot = buildRoomStatePayload(room, seatToken);
+      response.write(`data: ${JSON.stringify({ type: "room_snapshot", reason: "initial", snapshot })}\n\n`);
+
+      request.on("close", () => {
+        room.clients.delete(client);
+        if (seat === "host" || seat === "guest") {
+          markSeatDisconnected(room, seat);
+        }
+      });
+      return;
+    }
+  }
+
+  if (request.method === "POST" && pathname === "/api/reload") {
+      refreshLibraryCatalog(true);
+      effectPendingStats = writeBasePendingEffectsReport();
+      creaturePendingStats = writeBaseCreaturePendingEffectsReport();
+      writePerimActionsDropsReport();
+      sendJson(response, 200, {
+        ok: true,
+        stats: library.stats,
+        generatedAt: library.generatedAt,
+        libraryStorage: String(library?.storage || "json_files"),
+        pendingAttacks: effectPendingStats,
+        pendingEffects: effectPendingStats,
+        pendingCreatures: creaturePendingStats,
+      });
+      return;
+    }
+
+  if (pathname === "/api/settings") {
+    if (request.method === "GET") {
+      const settings = readSettingsFromDisk();
+      const payload = settings?.settings && typeof settings.settings === "object"
+        ? settings.settings
+        : (settings && typeof settings === "object" ? settings : {});
+      sendJson(response, 200, {
+        ok: true,
+        settings: payload,
+        updatedAt: settings?.updatedAt || null,
+        schemaVersion: settings?.schemaVersion || 1,
+      });
+      return;
+    }
+    if (request.method === "POST") {
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        sendJson(response, 413, { error: error.message });
+        return;
+      }
+      let payload;
+      try {
+        payload = JSON.parse(payloadText || "{}");
+      } catch {
+        sendJson(response, 400, { error: "JSON invalido." });
+        return;
+      }
+      const saved = writeSettingsToDisk(payload);
+      sendJson(response, 200, { ok: true, settings: saved.settings, updatedAt: saved.updatedAt });
+      return;
+    }
+  }
+
+    if (
+      (pathname === "/api/attacks/pending/append"
+        || pathname === "/api/effects/pending/append"
+        || pathname === "/api/creatures/pending/append")
+      && request.method === "POST"
+    ) {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    let payload;
+    try {
+      payload = JSON.parse(payloadText || "{}");
+    } catch {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+      const payloadWithType =
+        pathname === "/api/creatures/pending/append"
+          ? { ...payload, cardType: "creatures" }
+          : payload;
+      const result = appendRuntimePendingEffect(payloadWithType);
+      sendJson(response, 200, { ok: true, ...result });
+      return;
+    }
+
+  if (pathname === "/api/debug/session/start" && request.method === "POST") {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    let payload;
+    try {
+      payload = JSON.parse(payloadText || "{}");
+    } catch {
+      payload = {};
+    }
+    const session = createDebugSession(payload);
+    appendDebugLines(session.filePath, [{ type: "session_start", payload }]);
+    sendJson(response, 200, {
+      ok: true,
+      sessionId: session.sessionId,
+      file: session.fileName,
+    });
+    return;
+  }
+
+  if (pathname === "/api/debug/session/append" && request.method === "POST") {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    let payload;
+    try {
+      payload = JSON.parse(payloadText || "{}");
+    } catch {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const sessionId = String(payload.sessionId || "");
+    const session = debugSessions.get(sessionId);
+    if (!session) {
+      sendJson(response, 404, { error: "Sessao debug nao encontrada." });
+      return;
+    }
+    const added = appendDebugLines(session.filePath, payload.entries || []);
+    sendJson(response, 200, { ok: true, appended: added });
+    return;
+  }
+
+  if (pathname === "/api/debug/session/end" && request.method === "POST") {
+    let payloadText = "";
+    try {
+      payloadText = await readBody(request);
+    } catch {
+      payloadText = "";
+    }
+    let payload;
+    try {
+      payload = JSON.parse(payloadText || "{}");
+    } catch {
+      payload = {};
+    }
+    const sessionId = String(payload.sessionId || "");
+    const session = debugSessions.get(sessionId);
+    if (!session) {
+      sendJson(response, 200, { ok: true, ended: false });
+      return;
+    }
+    appendDebugLines(session.filePath, payload.entries || []);
+    appendDebugLines(session.filePath, [
+      {
+        type: "session_end",
+        at: new Date().toISOString(),
+        reason: String(payload.reason || "manual"),
+      },
+    ]);
+    debugSessions.delete(sessionId);
+    sendJson(response, 200, { ok: true, ended: true });
+    return;
+  }
+
+  if (request.method === "GET" && pathname === "/api/decks") {
+    const username = parsedUrl.searchParams.get("username") || "";
+    sendJson(response, 200, { decks: listDecks(username) });
+    return;
+  }
+
+  if (request.method === "GET" && pathname === "/api/music") {
+    const tracks = listMusicTracks();
+    if (!tracks.length) {
+      console.warn(`[MUSIC] Nenhuma trilha encontrada. Pastas verificadas: ${MUSIC_DIR} | ${MUSIC_DIR_FALLBACK}`);
+    }
+    sendJson(response, 200, { tracks });
+    return;
+  }
+
+  if (request.method === "POST" && pathname === "/api/shutdown") {
+    sendJson(response, 200, { ok: true });
+    // Kill the process shortly after responding
+    setTimeout(() => {
+      console.log("Shutting down via API...");
+      process.exit(0);
+    }, 200);
+    return;
+  }
+
+  if (pathname.startsWith("/api/decks/")) {
+    const requesterUsername = parsedUrl.searchParams.get("username") || "";
+    const requesterKey = requesterUsername ? normalizeUserKey(requesterUsername) : "";
+    const rawName = decodeURIComponent(pathname.replace("/api/decks/", ""));
+    const normalizedName = normalizeDeckName(rawName);
+    if (!normalizedName) {
+      sendJson(response, 400, { error: "Nome de deck invalido." });
+      return;
+    }
+
+    if (request.method === "GET") {
+      if (requesterKey) {
+        claimOwnerlessDeckForUser(normalizedName, requesterKey);
+      }
+      const parsed = readDeckFileByName(`${normalizeDeckName(rawName)}.json`);
+      if (!parsed) {
+        sendJson(response, 404, { error: "Deck nao encontrado." });
+        return;
+      }
+      const parsedOwner = deckOwnerKey(parsed);
+      if (requesterKey && parsedOwner && parsedOwner !== requesterKey) {
+        sendJson(response, 403, { error: "Deck pertence a outro usuario." });
+        return;
+      }
+      sendJson(response, 200, parsed);
+      return;
+    }
+
+    if (request.method === "POST") {
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        sendJson(response, 413, { error: error.message });
+        return;
+      }
+
+      let payload;
+      try {
+        payload = JSON.parse(payloadText || "{}");
+      } catch {
+        sendJson(response, 400, { error: "JSON invalido." });
+        return;
+      }
+
+      const requestedDeckName = normalizeDeckName(rawName);
+      const editingDeckAnchor = normalizeDeckName(payload?.editingDeckAnchor || rawName);
+      if (requesterKey && editingDeckAnchor) {
+        claimOwnerlessDeckForUser(editingDeckAnchor, requesterKey);
+      }
+      const existingDeck = readDeckFileByName(`${editingDeckAnchor}.json`);
+      if (requesterKey && existingDeck) {
+        const existingOwner = deckOwnerKey(existingDeck);
+        if (existingOwner && existingOwner !== requesterKey) {
+          sendJson(response, 403, { error: "Deck pertence a outro usuario." });
+          return;
+        }
+      }
+      const owner = requesterKey || deckOwnerKey(existingDeck || {}) || "local-player";
+      const deckData = {
+        name: String(payload.name || requestedDeckName),
+        owner,
+        createdAt: payload.createdAt || existingDeck?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        mode: String(payload.mode || "competitive"),
+        cards: {
+          creatures: Array.isArray(payload.cards?.creatures) ? payload.cards.creatures : [],
+          attacks: Array.isArray(payload.cards?.attacks) ? payload.cards.attacks : [],
+          battlegear: Array.isArray(payload.cards?.battlegear) ? payload.cards.battlegear : [],
+          mugic: Array.isArray(payload.cards?.mugic) ? payload.cards.mugic : [],
+          locations: Array.isArray(payload.cards?.locations) ? payload.cards.locations : [],
+        },
+      };
+
+      const scansValidation = validateDeckAgainstScans(deckData, editingDeckAnchor, owner);
+      if (!scansValidation.ok) {
+        sendJson(response, 400, {
+          error: `Deck excede inventario de scans: ${scansValidation.errors.slice(0, 4).join(" | ")}`,
+        });
+        return;
+      }
+
+      const scans = loadScansData();
+      const { key: ownerKey, cards: currentInventoryCards } = getScansCardsForUser(scans, owner, true);
+      const transferResult = applyDeckInventoryTransfer(
+        currentInventoryCards,
+        existingDeck || { cards: {} },
+        deckData
+      );
+      if (!transferResult.ok) {
+        sendJson(response, 400, {
+          error: `Inventario sem espaco para atualizar deck: ${transferResult.errors.slice(0, 4).join(" | ")}`,
+        });
+        return;
+      }
+      scans.players[ownerKey] = {
+        cards: transferResult.cards,
+      };
+      writeScansData(scans, "deck_save_inventory_transfer");
+
+      writeDeckStored(requestedDeckName, deckData);
+      if (editingDeckAnchor && editingDeckAnchor !== requestedDeckName && existingDeck) {
+        deleteDeckStored(editingDeckAnchor);
+      }
+      invalidateUserCaches(owner);
+      sendJson(response, 200, { ok: true, deck: deckData });
+      return;
+    }
+
+    if (request.method === "DELETE") {
+      if (requesterKey) {
+        claimOwnerlessDeckForUser(normalizedName, requesterKey);
+      }
+      const existingDeck = readDeckFileByName(`${normalizeDeckName(rawName)}.json`);
+      if (!existingDeck) {
+        sendJson(response, 404, { error: "Deck nao encontrado." });
+        return;
+      }
+      if (requesterKey) {
+        const existingOwner = deckOwnerKey(existingDeck || {});
+        if (existingOwner && existingOwner !== requesterKey) {
+          sendJson(response, 403, { error: "Deck pertence a outro usuario." });
+          return;
+        }
+      }
+      const owner = requesterKey || deckOwnerKey(existingDeck || {}) || "local-player";
+      const scans = loadScansData();
+      const { key: ownerKey, cards: currentInventoryCards } = getScansCardsForUser(scans, owner, true);
+      const emptyDeck = { cards: createEmptyCardBuckets() };
+      const releaseResult = applyDeckInventoryTransfer(currentInventoryCards, existingDeck || emptyDeck, emptyDeck);
+      if (!releaseResult.ok) {
+        sendJson(response, 409, {
+          error: `Inventario cheio para excluir deck: ${releaseResult.errors.slice(0, 4).join(" | ")}`,
+        });
+        return;
+      }
+      scans.players[ownerKey] = {
+        cards: releaseResult.cards,
+      };
+      writeScansData(scans, "deck_delete_inventory_return");
+      deleteDeckStored(normalizeDeckName(rawName));
+      invalidateUserCaches(owner);
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+  }
+
+    // ===== ENDPOINTS DE DROPS DE CRIATURAS =====
+
+  // GET /api/creature-drops/location/:locationName
+  // Obtem criaturas disponiveis em um local especifico hoje.
+  if (request.method === "GET" && pathname.startsWith("/api/creature-drops/location/")) {
+    const locationName = decodeURIComponent(pathname.replace("/api/creature-drops/location/", ""));
+    const creatures = getCreaturesAtLocation(locationName);
+    sendJson(response, 200, { location: locationName, creatures });
+    return;
+  }
+
+  // GET /api/creature-drops/world-type/:worldType
+  // Obtem criaturas disponiveis em um tipo de mundo hoje.
+  if (request.method === "GET" && pathname.startsWith("/api/creature-drops/world-type/")) {
+    const worldType = decodeURIComponent(pathname.replace("/api/creature-drops/world-type/", ""));
+    const creatures = getCreaturesForWorldType(worldType);
+    sendJson(response, 200, { worldType, creatures, date: new Date().toISOString().split("T")[0] });
+    return;
+  }
+
+  // GET /api/creature-drops/news-ticker/:locationName
+  // Obtem dados formatados para news ticker (types + flavortexts).
+  if (request.method === "GET" && pathname.startsWith("/api/creature-drops/news-ticker/")) {
+    const locationName = decodeURIComponent(pathname.replace("/api/creature-drops/news-ticker/", ""));
+    const globalCreatures = getGlobalDailyCreatures();
+    const newsItems = buildTickerNewsItems(globalCreatures, 32);
+    sendJson(response, 200, {
+      location: locationName,
+      scope: "global_daily_pool",
+      newsItems,
+      date: new Date().toISOString().split("T")[0],
+    });
+    return;
+  }
+
+  if (request.method === "GET") {
+    serveStatic(pathname, response);
+    return;
+  }
+
+  sendText(response, 405, "Method not allowed");
+}
+
+try {
+  migrateKvToSqlV2IfNeeded();
+} catch (error) {
+  sqlStorageMode = "sql_v2_cutover_failed";
+  console.error(`[DB] Cutover SQL v${SQL_V2_SCHEMA_VERSION} falhou; servidor segue sem escrita nesses dominios. ${error?.message || error}`);
+}
+
+refreshLibraryCatalog(false);
+hydrateCreatureDropSqlMetadata();
+writePerimActionsDropsReport();
+seedAdminAccount();
+ensureDailyCreatureLocations(todayDateKey());
+queuePerimDailyGeneration("startup", todayDateKey());
+startDailyCreatureLocationScheduler();
+cleanupOldDbBackups(DB_BACKUP_RETENTION_DAYS);
+startDbBackupScheduler();
+
+const server = http.createServer((request, response) => {
+  const requestStartedAt = Date.now();
+  const requestPath = (() => {
+    try {
+      return new URL(request.url, `http://${request.headers.host || "localhost"}`).pathname;
+    } catch {
+      return String(request.url || "/");
+    }
+  })();
+  response.on("finish", () => {
+    trackRequestMetric(
+      requestPath,
+      String(request.method || "GET"),
+      Number(response.statusCode || 0),
+      Math.max(0, Date.now() - requestStartedAt)
+    );
+  });
+  handleRequest(request, response).catch((error) => {
+    sendJson(response, 500, { error: error.message });
+  });
+});
+
+server.listen(PORT, () => {
+  const stats = library.stats;
+  // eslint-disable-next-line no-console
+  console.log(
+    `Chaotic data-driven server online at http://localhost:${PORT} | cards: ${stats.totalCards} (${stats.creatures} creatures, ${stats.attacks} attacks)`
+  );
+});
+

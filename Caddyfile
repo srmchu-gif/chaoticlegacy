@@ -1,0 +1,34 @@
+{
+  email {$LETSENCRYPT_EMAIL}
+}
+
+{$DUCKDNS_DOMAIN} {
+  encode zstd gzip
+
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "interest-cohort=()"
+  }
+
+  @sse path /api/multiplayer/events/*
+  reverse_proxy @sse app:3000 {
+    flush_interval -1
+    transport http {
+      dial_timeout 10s
+      response_header_timeout 0
+      read_timeout 0
+      write_timeout 0
+    }
+  }
+
+  reverse_proxy app:3000 {
+    transport http {
+      dial_timeout 10s
+      response_header_timeout 60s
+      read_timeout 0
+      write_timeout 0
+    }
+  }
+}

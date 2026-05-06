@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-04-30T22:16:57.795Z",
+  "totals": {
+    "creatures": 588,
+    "withAbility": 526,
+    "semParse": 0,
+    "kindPendente": 0,
+    "targetSpecInsuficiente": 0,
+    "costParsePendente": 0
+  },
+  "byStatus": {
+    "sem_habilidade": 62,
+    "implemented_resolver": 398,
+    "implemented_runtime_native": 128
+  },
+  "topPendingKinds": []
+}

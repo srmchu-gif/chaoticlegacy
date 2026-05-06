@@ -1,0 +1,15 @@
+Chaotic Debug Session
+sessionId=mokw78su-11wwh6
+startedAt=2026-04-30T02:56:35.406Z
+url=http://192.168.2.101:3000/index.html?view=builder
+userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0
+---
+{"type":"session_start","payload":{"url":"http://192.168.2.101:3000/index.html?view=builder","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0","settings":{"schemaVersion":1,"updatedAt":"2026-04-30T02:56:02.764Z","screen":{"fullscreenAuto":true,"resolution":"low"},"audio":{"enabled":true,"master":100,"sfx":100,"music":15},"language":{"cards":"pt","ui":"pt"},"gameplay":{"animations":true,"hints":false},"controls":{"mouseSensitivity":100,"keybinds":{"confirmAction":"Enter","confirmAttack":"Space","autoStep":"KeyN","switchBuilder":"Digit1","switchBattle":"Digit2","switchSettings":"Digit3","cancel":"Escape"}},"extras":{"theme":"dark","fpsCounter":true,"debugMode":true},"musicPlayer":{"enabled":true,"loopTrack":false,"lastTrackIndex":0,"volume":0}}}}
+{"at":"2026-04-30T02:56:35.410Z","type":"debug","message":"Debug mode enabled.","payload":null}
+{"at":"2026-04-30T02:56:35.741Z","type":"music","message":"play","payload":{"track":"Battle Protocol"}}
+{"at":"2026-04-30T02:59:36.499Z","type":"promise_rejection","message":"Unhandled promise rejection","payload":{"reason":"Error: Deck excede inventario de scans: Ario (creatures) excede inventario de scans. | Ailav (creatures) excede inventario de scans. | Arkanin (creatures) excede inventario de scans. | Ajara (creatures) excede inventario de scans."}}
+{"at":"2026-04-30T02:59:37.390Z","type":"promise_rejection","message":"Unhandled promise rejection","payload":{"reason":"Error: Deck excede inventario de scans: Ario (creatures) excede inventario de scans. | Ailav (creatures) excede inventario de scans. | Arkanin (creatures) excede inventario de scans. | Ajara (creatures) excede inventario de scans."}}
+{"at":"2026-04-30T02:59:37.622Z","type":"promise_rejection","message":"Unhandled promise rejection","payload":{"reason":"Error: Deck excede inventario de scans: Ario (creatures) excede inventario de scans. | Ailav (creatures) excede inventario de scans. | Arkanin (creatures) excede inventario de scans. | Ajara (creatures) excede inventario de scans."}}
+{"at":"2026-04-30T02:59:38.863Z","type":"music","message":"next","payload":{"index":1}}
+{"at":"2026-04-30T02:59:38.893Z","type":"music","message":"play","payload":{"track":"Cardstorm Rising"}}
+{"type":"session_end","at":"2026-04-30T03:01:09.286Z","reason":"beforeunload"}

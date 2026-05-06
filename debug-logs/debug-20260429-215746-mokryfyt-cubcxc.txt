@@ -1,0 +1,10 @@
+Chaotic Debug Session
+sessionId=mokryfyt-cubcxc
+startedAt=2026-04-30T00:57:46.325Z
+url=http://localhost:3000/index.html?view=builder
+userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0
+---
+{"type":"session_start","payload":{"url":"http://localhost:3000/index.html?view=builder","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0","settings":{"schemaVersion":1,"updatedAt":"2026-04-30T00:55:26.930Z","screen":{"fullscreenAuto":true,"resolution":"low"},"audio":{"enabled":true,"master":100,"sfx":100,"music":15},"language":{"cards":"pt","ui":"pt"},"gameplay":{"animations":true,"hints":false},"controls":{"mouseSensitivity":100,"keybinds":{"confirmAction":"Enter","confirmAttack":"Space","autoStep":"KeyN","switchBuilder":"Digit1","switchBattle":"Digit2","switchSettings":"Digit3","cancel":"Escape"}},"extras":{"theme":"dark","fpsCounter":true,"debugMode":true},"musicPlayer":{"enabled":true,"loopTrack":false,"lastTrackIndex":6,"volume":48}}}}
+{"at":"2026-04-30T00:57:46.333Z","type":"debug","message":"Debug mode enabled.","payload":null}
+{"at":"2026-04-30T00:57:46.574Z","type":"music","message":"play","payload":{"track":"Unknown Territory"}}
+{"type":"session_end","at":"2026-04-30T01:00:20.671Z","reason":"beforeunload"}

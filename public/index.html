@@ -1,0 +1,487 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chaotic Data Driven Arena</title>
+    <meta name="description" content="Complete Chaotic TCG battle simulator with data-driven card effects, deck building, and strategic combat." />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css?v=7" />
+    <link rel="stylesheet" href="css/music.css?v=7" />
+    <script src="config.js"></script>
+    <script>
+      (function redirectEntryToAuth() {
+        const params = new URLSearchParams(window.location.search || "");
+        const hasGameView = params.has("view") || params.get("multiplayer") === "true";
+        if (!hasGameView) {
+          window.location.replace("auth.html");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="bg-shape shape-a"></div>
+    <div class="bg-shape shape-b"></div>
+
+    <header class="topbar">
+      <div>
+        <h1>Chaotic <span class="accent-text">Arena</span></h1>
+        <p id="library-meta">Carregando dados locais...</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="ghost-btn" onclick="window.location.href='menu.html'">Menu</button>
+        <button id="battle-forfeit" class="ghost-btn">Desistir</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• DECK BUILDER â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+      <section id="deck-builder" class="panel">
+        <div class="builder-layout">
+          <article class="card-panel library-panel">
+            <div class="row">
+              <h2>Biblioteca</h2>
+              <div class="inline-controls library-view-toggle">
+                <button id="library-view-library" class="ghost-btn active" type="button">Biblioteca</button>
+                <button id="library-view-scans" class="ghost-btn" type="button">Scans</button>
+                <small id="scans-stock-summary">Scans: -</small>
+              </div>
+              <div class="inline-controls builder-filters">
+                <select id="card-type-filter">
+                  <option value="all">Todos Tipos</option>
+                  <option value="creatures">Creatures</option>
+                  <option value="battlegear">Battle Gear</option>
+                  <option value="locations">Locations</option>
+                  <option value="mugic">Mugic</option>
+                  <option value="attacks">Attacks</option>
+                </select>
+                <select id="element-filter">
+                  <option value="">Todos Elementos</option>
+                  <option value="fire">Fire</option>
+                  <option value="air">Air</option>
+                  <option value="earth">Earth</option>
+                  <option value="water">Water</option>
+                </select>
+                <select id="tribe-filter">
+                  <option value="">Todas Tribos</option>
+                  <option value="overworld">OverWorld</option>
+                  <option value="underworld">UnderWorld</option>
+                  <option value="mipedian">Mipedian</option>
+                  <option value="danian">Danian</option>
+                  <option value="marrillian">Marrillian</option>
+                </select>
+                <label class="flag-filter">
+                  <input id="flag-alpha" type="checkbox" />
+                  Alpha
+                </label>
+                <label class="flag-filter">
+                  <input id="flag-promo" type="checkbox" />
+                  Promo
+                </label>
+                <label class="flag-filter">
+                  <input id="flag-unused" type="checkbox" />
+                  Unused
+                </label>
+                <label class="flag-filter">
+                  <input id="flag-other" type="checkbox" />
+                  Outras
+                </label>
+                <input id="courage-min" type="number" min="0" placeholder="C>= " />
+                <input id="power-min" type="number" min="0" placeholder="P>= " />
+                <input id="wisdom-min" type="number" min="0" placeholder="W>= " />
+                <input id="speed-min" type="number" min="0" placeholder="S>= " />
+                <input id="card-search" type="search" placeholder="Buscar carta..." />
+                <button id="clear-library-filters" type="button" class="ghost-btn">Limpar Filtros</button>
+              </div>
+            </div>
+            <div id="card-library" class="card-list"></div>
+          </article>
+
+          <article class="card-panel deck-panel">
+            <div class="row">
+              <h2>Deck</h2>
+              <div class="inline-controls">
+                <select id="deck-mode">
+                  <option value="casual">Casual</option>
+                  <option value="competitive">Competitivo</option>
+                  <option value="1v1">1v1</option>
+                </select>
+                <input id="deck-name" type="text" placeholder="Nome do deck" />
+                <button id="save-deck" class="primary-btn">Salvar</button>
+              </div>
+            </div>
+            <div class="row deck-tools">
+              <select id="deck-list"></select>
+              <button id="load-deck">Carregar</button>
+              <button id="delete-deck">Excluir</button>
+              <button id="clear-deck">Limpar</button>
+            </div>
+            <pre id="deck-validation" class="deck-validation"></pre>
+            <div id="deck-summary" class="deck-summary"></div>
+            <div id="deck-board" class="deck-stage">
+              <div class="stage-panel stage-mugic" id="music-column"></div>
+              <div class="stage-center">
+                <div class="stage-creatures" id="creature-grid"></div>
+                <div class="stage-gears" id="equipment-grid"></div>
+              </div>
+              <div class="stage-right-rail">
+                <div class="stage-panel stage-locations" id="location-stack"></div>
+                <div class="stage-panel stage-attacks" id="attacks-column"></div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="battle-arena" class="panel hidden battle-theme">
+        <article class="card-panel battle-shell">
+          <div id="battle-setup-view" class="battle-setup-view">
+            <div class="battle-setup-head">
+              <h2>Selecao de Decks</h2>
+              <p>Escolha os decks e inicie a partida. A tela de combate abre em seguida.</p>
+            </div>
+            <div class="battle-setup-grid">
+              <article class="battle-deck-card">
+                <h3>Jogador 1</h3>
+                <label>
+                  Deck
+                  <select id="battle-deck-a"></select>
+                </label>
+                <div id="battle-deck-a-info" class="battle-deck-info">Selecione um deck para ver detalhes.</div>
+              </article>
+              <article class="battle-deck-card">
+                <h3>Jogador 2</h3>
+                <label>
+                  Deck
+                  <select id="battle-deck-b"></select>
+                </label>
+                <div id="battle-deck-b-info" class="battle-deck-info">Selecione um deck para ver detalhes.</div>
+              </article>
+            </div>
+            <div class="battle-setup-bar">
+              <label>
+                Modo
+                <select id="battle-mode">
+                  <option value="casual">Casual</option>
+                  <option value="competitive">Competitivo</option>
+                </select>
+              </label>
+              <label class="battle-toggle">
+                <input id="ai-player-one" type="checkbox" />
+                IA controla Jogador 1
+              </label>
+              <button id="start-battle" class="primary-btn">Iniciar Batalha</button>
+              <button id="run-ai-match">IA vs IA</button>
+            </div>
+          </div>
+
+          <div id="battle-combat-view" class="battle-combat-view hidden">
+            <div class="battle-stage-header">
+              <div class="battle-player-tag player-left">
+                <img id="battle-player-a-avatar" class="battle-player-avatar" src="fundo%20cartas.png" alt="Avatar Jogador A" />
+                <span class="player-dot"></span>
+                <strong id="battle-player-a-name">Jogador 1</strong>
+                <small id="player-alive">-</small>
+              </div>
+              <div class="battle-stage-center">
+                <h2 id="battle-stage-title" class="battle-stage-title">Turno -</h2>
+                <button id="battle-rematch" type="button" class="battle-rematch-btn hidden">Revanche</button>
+              </div>
+              <div class="battle-player-tag player-right">
+                <button id="battle-back-setup" type="button">Trocar Decks</button>
+                <img id="battle-player-b-avatar" class="battle-player-avatar" src="fundo%20cartas.png" alt="Avatar Jogador B" />
+                <strong id="battle-player-b-name">Jogador 2</strong>
+                <small id="opp-alive">-</small>
+                <span class="player-dot"></span>
+              </div>
+            </div>
+
+            <div class="battle-main-row">
+              <section class="board-frame battle-board-frame">
+                <div id="player-mugic-rail" class="mugic-rail">
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                </div>
+
+                <div class="board-lanes">
+                  <div id="top-slots" class="slot-layer top-layer"></div>
+                  <div id="bottom-slots" class="slot-layer bottom-layer"></div>
+                  <section id="rematch-request-popup" class="rematch-request-popup hidden" aria-live="polite">
+                    <h4>Pedido de Revanche</h4>
+                    <p id="rematch-request-text">O oponente quer jogar novamente.</p>
+                    <div class="rematch-request-actions">
+                      <button id="rematch-accept" type="button" class="primary-btn">Aceitar</button>
+                      <button id="rematch-decline" type="button">Recusar</button>
+                    </div>
+                  </section>
+                  <div id="creature-ability-popup" class="creature-ability-popup hidden" aria-live="polite"></div>
+                  <aside id="engaged-player-panel" class="engaged-creature-panel engaged-left"></aside>
+                  <aside id="engaged-opponent-panel" class="engaged-creature-panel engaged-right"></aside>
+                  <section id="board-inspector" class="board-inspector hidden" aria-live="polite">
+                    <h3 id="board-inspector-title">Board</h3>
+                    <div id="board-inspector-content" class="board-inspector-content"></div>
+                  </section>
+                </div>
+
+                <div id="opp-mugic-rail" class="mugic-rail">
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                  <span class="mugic-orb"></span>
+                </div>
+              </section>
+
+              <aside class="battle-side-panel">
+                <div class="battle-next-action">
+                  <span>Proxima acao</span>
+                  <strong id="hud-phase">-</strong>
+                </div>
+
+                <div class="battle-log-wrap">
+                  <h3>Log da Batalha</h3>
+                  <div class="battle-log-tabs" role="tablist" aria-label="Abas do log de batalha">
+                    <button id="battle-log-tab-events" class="battle-log-tab is-active" type="button" data-view="events" role="tab" aria-selected="true">
+                      Eventos
+                    </button>
+                    <button id="battle-log-tab-effects" class="battle-log-tab" type="button" data-view="effects" role="tab" aria-selected="false">
+                      Habilidades e Efeitos
+                    </button>
+                  </div>
+                  <div id="battle-log" class="battle-log"></div>
+                </div>
+
+                <div class="battle-hud">
+                  <div><span>Turno</span><strong id="hud-turn">-</strong></div>
+                </div>
+                <p id="phase-help" class="phase-help">Inicie a batalha para comecar.</p>
+                <div class="battle-combat-actions">
+                  <button id="confirm-engage">Confirmar Combate</button>
+                  <button id="player-attack">Confirmar Attack</button>
+                  <button id="auto-step">Auto Passo</button>
+                </div>
+              </aside>
+            </div>
+
+            <div class="discard-strip battle-discard-strip">
+              <button id="tab-atk-discard" class="discard-box discard-tab" type="button" data-view="atk-discard">
+                Atk. Discard (<strong id="atk-discard-count">0</strong>)
+              </button>
+              <button id="tab-gen-discard" class="discard-box discard-tab" type="button" data-view="gen-discard">
+                Gen. Discard (<strong id="gen-discard-count">0</strong>)
+              </button>
+              <button id="tab-board-view" class="discard-box discard-tab highlight-box is-active" type="button" data-view="board">
+                Board (<strong id="board-count">0</strong>)
+              </button>
+              <button id="tab-opp-gen-discard" class="discard-box discard-tab" type="button" data-view="opp-gen-discard">
+                Opp. Gen. Discard (<strong id="opp-gen-discard-count">0</strong>)
+              </button>
+              <button id="tab-opp-atk-discard" class="discard-box discard-tab" type="button" data-view="opp-atk-discard">
+                Opp. Atk. Discard (<strong id="opp-atk-discard-count">0</strong>)
+              </button>
+            </div>
+
+            <div class="battle-bottom-row">
+              <section class="hand-panel battle-hand-panel">
+                <h3>Attacks</h3>
+                <div id="attack-hand" class="hand-list"></div>
+              </section>
+              <section class="active-location-panel battle-location-panel">
+                <h3>Active Location</h3>
+                <div id="location-mini" class="location-card"></div>
+              </section>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section id="settings-panel" class="panel hidden">
+        <article class="card-panel settings-shell">
+          <div class="row settings-head">
+            <h2 id="settings-title">Configuracoes</h2>
+            <button id="save-settings" class="primary-btn">Salvar Configuracoes</button>
+          </div>
+
+          <div class="settings-grid">
+            <section class="settings-section">
+              <h3 id="settings-screen-title">Tela</h3>
+              <label class="settings-field inline">
+                <input id="setting-fullscreen-auto" type="checkbox" />
+                Fullscreen automatico ao iniciar
+              </label>
+              <label class="settings-field">
+                Resolucao
+                <select id="setting-resolution">
+                  <option value="low">Baixa</option>
+                  <option value="medium">Media</option>
+                  <option value="high">Alta</option>
+                </select>
+              </label>
+            </section>
+
+            <section class="settings-section">
+              <h3 id="settings-audio-title">Audio</h3>
+              <label class="settings-field inline">
+                <input id="setting-audio-enabled" type="checkbox" />
+                Ativar audio
+              </label>
+              <label class="settings-field">
+                Volume geral
+                <input id="setting-audio-master" type="range" min="0" max="100" step="1" />
+              </label>
+              <label class="settings-field">
+                Volume de efeitos
+                <input id="setting-audio-sfx" type="range" min="0" max="100" step="1" />
+              </label>
+              <label class="settings-field">
+                Volume da musica
+                <input id="setting-audio-music" type="range" min="0" max="100" step="1" />
+              </label>
+            </section>
+
+            <section class="settings-section">
+              <h3 id="settings-language-title">Idioma</h3>
+              <label class="settings-field">
+                Idioma das cartas
+                <select id="setting-card-language">
+                  <option value="pt">Portugues</option>
+                  <option value="en">English</option>
+                  <option value="es">Espanol</option>
+                </select>
+              </label>
+              <label class="settings-field">
+                Idioma da interface
+                <select id="setting-ui-language">
+                  <option value="pt">Portugues</option>
+                  <option value="en">English</option>
+                  <option value="es">Espanol</option>
+                </select>
+              </label>
+            </section>
+
+            <section class="settings-section">
+              <h3 id="settings-gameplay-title">Jogabilidade</h3>
+              <label class="settings-field inline">
+                <input id="setting-gameplay-animations" type="checkbox" />
+                Animacoes da interface
+              </label>
+              <label class="settings-field inline">
+                <input id="setting-gameplay-hints" type="checkbox" />
+                Dicas visuais da interface
+              </label>
+            </section>
+
+            <section class="settings-section">
+              <h3 id="settings-progress-title">Conta / Progresso</h3>
+              <button id="reset-progress" type="button">Resetar progresso</button>
+              <p class="settings-note">Funcionalidade completa sera implementada em breve.</p>
+            </section>
+
+            <section class="settings-section admin-observability-section hidden" id="admin-observability-section">
+              <h3>Admin Observability</h3>
+              <p class="settings-note">Latencia, erros, cache e atividade online em tempo real.</p>
+              <div id="admin-observability-grid" class="admin-observability-grid"></div>
+              <div class="admin-observability-actions">
+                <button id="admin-observability-refresh" type="button" class="ghost-btn">Atualizar</button>
+                <small id="admin-observability-updated">Sem dados ainda.</small>
+              </div>
+            </section>
+
+            <section class="settings-section">
+              <h3 id="settings-controls-title">Controles</h3>
+              <div class="keybind-list">
+                <div class="keybind-row"><span>Confirmar Acao</span><button id="keybind-confirmAction" type="button" class="ghost-btn">-</button></div>
+                <div class="keybind-row"><span>Confirmar Attack</span><button id="keybind-confirmAttack" type="button" class="ghost-btn">-</button></div>
+                <div class="keybind-row"><span>Auto Passo</span><button id="keybind-autoStep" type="button" class="ghost-btn">-</button></div>
+                <div class="keybind-row"><span>Abrir Deck Builder</span><button id="keybind-switchBuilder" type="button" class="ghost-btn">-</button></div>
+                <div class="keybind-row"><span>Abrir Battlefield</span><button id="keybind-switchBattle" type="button" class="ghost-btn">-</button></div>
+                <div class="keybind-row"><span>Abrir Configuracoes</span><button id="keybind-switchSettings" type="button" class="ghost-btn">-</button></div>
+                <div class="keybind-row"><span>Cancelar / Passar</span><button id="keybind-cancel" type="button" class="ghost-btn">-</button></div>
+              </div>
+              <label class="settings-field">
+                Sensibilidade do mouse
+                <input id="setting-mouse-sensitivity" type="range" min="1" max="200" step="1" />
+              </label>
+              <button id="keybind-reset-defaults" type="button">Restaurar teclas padrao</button>
+            </section>
+
+            <section class="settings-section">
+              <h3 id="settings-extras-title">Extras</h3>
+              <label class="settings-field">
+                Tema
+                <select id="setting-theme">
+                  <option value="dark">Noturno</option>
+                  <option value="light">Claro</option>
+                </select>
+              </label>
+              <label class="settings-field inline">
+                <input id="setting-fps-counter" type="checkbox" />
+                Mostrar contador de FPS
+              </label>
+              <label class="settings-field inline">
+                <input id="setting-debug-mode" type="checkbox" />
+                Modo debug (gera TXT ao fechar)
+              </label>
+            </section>
+          </div>
+          <p id="settings-feedback" class="settings-feedback"></p>
+        </article>
+      </section>
+    </main>
+
+    <template id="card-template">
+      <article class="card-item">
+        <img loading="lazy" />
+        <div class="card-content">
+          <h4></h4>
+          <p class="meta"></p>
+          <p class="ability"></p>
+          <p class="stats"></p>
+          <div class="card-actions"></div>
+        </div>
+      </article>
+    </template>
+
+    <button id="toggle-music-panel" class="music-floating-btn" title="Mostrar/Ocultar Música">&#127925; Música</button>
+    <section id="music-player" class="music-player hidden" aria-label="Player de musica">
+      <audio id="music-audio" preload="metadata"></audio>
+      <div class="music-player-head">
+        <strong id="music-track-name">Sem musica</strong>
+      </div>
+      <div class="music-player-controls">
+        <button id="music-prev" type="button" title="Anterior">&#9198;</button>
+        <button id="music-toggle" type="button" title="Play/Pause">&#9654;</button>
+        <button id="music-next" type="button" title="Proxima">&#9197;</button>
+        <button id="music-loop" type="button" title="Loop da faixa">Loop</button>
+      </div>
+      <div class="music-player-progress">
+        <span id="music-current-time">0:00</span>
+        <input id="music-progress" type="range" min="0" max="100" step="0.1" value="0" />
+        <span id="music-duration">0:00</span>
+      </div>
+      <label class="music-player-volume">
+        Vol
+        <input id="music-player-volume" type="range" min="0" max="100" step="1" value="100" />
+      </label>
+    </section>
+
+    <div id="hover-preview" class="hover-preview"></div>
+    <div id="fps-counter" class="fps-counter hidden" aria-live="polite">FPS: --</div>
+
+    <script type="module" src="js/app.js?v=7"></script>
+  </body>
+</html>
+
+
+
+
+

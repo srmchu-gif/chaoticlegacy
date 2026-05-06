@@ -1,0 +1,209 @@
+Chaotic Debug Session
+sessionId=moks2nkq-eyeoy3
+startedAt=2026-04-30T01:01:02.810Z
+url=http://localhost:3000/index.html?view=battle
+userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0
+---
+{"type":"session_start","payload":{"url":"http://localhost:3000/index.html?view=battle","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0","settings":{"schemaVersion":1,"updatedAt":"2026-04-30T00:57:46.525Z","screen":{"fullscreenAuto":true,"resolution":"low"},"audio":{"enabled":true,"master":100,"sfx":100,"music":15},"language":{"cards":"pt","ui":"pt"},"gameplay":{"animations":true,"hints":false},"controls":{"mouseSensitivity":100,"keybinds":{"confirmAction":"Enter","confirmAttack":"Space","autoStep":"KeyN","switchBuilder":"Digit1","switchBattle":"Digit2","switchSettings":"Digit3","cancel":"Escape"}},"extras":{"theme":"dark","fpsCounter":true,"debugMode":true},"musicPlayer":{"enabled":true,"loopTrack":false,"lastTrackIndex":6,"volume":48}}}}
+{"at":"2026-04-30T01:01:02.812Z","type":"debug","message":"Debug mode enabled.","payload":null}
+{"at":"2026-04-30T01:01:02.977Z","type":"music","message":"play","payload":{"track":"Unknown Territory"}}
+{"at":"2026-04-30T01:01:09.802Z","type":"battle_log","message":"Partida iniciada.","payload":null}
+{"at":"2026-04-30T01:01:09.802Z","type":"battle_log","message":"Jogador 1 comeca a partida.","payload":null}
+{"at":"2026-04-30T01:01:09.802Z","type":"battle_log","message":"Perfil de regras: official_master.","payload":null}
+{"at":"2026-04-30T01:01:09.802Z","type":"battle_log","message":"Turno 1 - Jogador 1.","payload":null}
+{"at":"2026-04-30T01:01:09.802Z","type":"battle_log","message":"Location: Mipedim Oasis.","payload":null}
+{"at":"2026-04-30T01:01:09.802Z","type":"battle_log","message":"Janela de prioridade (pre_move_priority): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:01:11.361Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:01:11.361Z","type":"battle_log","message":"[noop_filtered_context] Mugic Song of Desperation: sem alvo valido para statModifier.","payload":null}
+{"at":"2026-04-30T01:01:13.999Z","type":"battle_log","message":"Jogador 1 move Headmaster Ankhyja para H e inicia combate.","payload":null}
+{"at":"2026-04-30T01:01:13.999Z","type":"battle_log","message":"Jogador 1: Burithean Axe revelado no inicio do combate.","payload":null}
+{"at":"2026-04-30T01:01:13.999Z","type":"battle_log","message":"Jogador 2: Dread Tread revelado no inicio do combate.","payload":null}
+{"at":"2026-04-30T01:01:13.999Z","type":"battle_log","message":"Jogador 2 vence a iniciativa.","payload":null}
+{"at":"2026-04-30T01:01:13.999Z","type":"battle_log","message":"[passive] Jogador 2 - Uksum: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:01:13.999Z","type":"battle_log","message":"Jogador 2 joga Combustion Carnage.","payload":null}
+{"at":"2026-04-30T01:01:13.999Z","type":"battle_log","message":"Jogador 2 ativa Song of Desperation (custo pago 1 MC, slot 5).","payload":null}
+{"at":"2026-04-30T01:01:13.999Z","type":"battle_log","message":"Jogador 2 coloca Song of Desperation na pilha.","payload":null}
+{"at":"2026-04-30T01:01:13.999Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:01:15.035Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:01:15.035Z","type":"battle_log","message":"Jogador 2 ativa Canon of Casualty (custo pago 1 MC, slot 4).","payload":null}
+{"at":"2026-04-30T01:01:15.035Z","type":"battle_log","message":"Jogador 2 coloca Canon of Casualty na pilha.","payload":null}
+{"at":"2026-04-30T01:01:15.035Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:01:15.478Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:01:15.478Z","type":"battle_log","message":"Jogador 2 ativa Discord of Disarming (custo pago 1 MC, slot 3).","payload":null}
+{"at":"2026-04-30T01:01:15.478Z","type":"battle_log","message":"Jogador 2 coloca Discord of Disarming na pilha.","payload":null}
+{"at":"2026-04-30T01:01:15.478Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:01:15.777Z","type":"battle_event","message":"defeat","payload":{"playerIndex":1,"unitId":"1:creatures:fun:uksum:678:4"}}
+{"at":"2026-04-30T01:01:15.777Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Resolve (LIFO): Mugic Discord of Disarming.","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Jogador 2: Whepcrack removido (foi destruido)","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Resolve (LIFO): Mugic Canon of Casualty.","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Resolve (LIFO): Mugic Song of Desperation.","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Jogador 2 ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Jogador 2 prepara 20 dano com Combustion Carnage.","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Jogador 1 recebe 20 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Uksum foi derrotada.","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Ataque resolvido: Jogador 2 -> Combustion Carnage.","payload":null}
+{"at":"2026-04-30T01:01:18.588Z","type":"battle_log","message":"Headmaster Ankhyja avanca para H.","payload":null}
+{"at":"2026-04-30T01:01:32.055Z","type":"battle_log","message":"Malvadine, The King's Herald se move para F.","payload":null}
+{"at":"2026-04-30T01:01:34.839Z","type":"battle_log","message":"Xelfe se move para C.","payload":null}
+{"at":"2026-04-30T01:01:36.034Z","type":"battle_log","message":"Prince Mudeenu se move para E.","payload":null}
+{"at":"2026-04-30T01:01:37.710Z","type":"battle_log","message":"Jogador 1 finaliza movimentacao pos-combate.","payload":null}
+{"at":"2026-04-30T01:01:37.710Z","type":"battle_log","message":"Turno 2 - Jogador 2.","payload":null}
+{"at":"2026-04-30T01:01:37.710Z","type":"battle_log","message":"Location: The Pits.","payload":null}
+{"at":"2026-04-30T01:01:37.710Z","type":"battle_log","message":"Janela de prioridade (pre_move_priority): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:01:55.678Z","type":"battle_log","message":"Jogador 1 ativa Gear Glissando (custo pago 1 MC, slot 3).","payload":null}
+{"at":"2026-04-30T01:02:04.250Z","type":"battle_log","message":"Jogador 1 coloca Gear Glissando na pilha.","payload":null}
+{"at":"2026-04-30T01:02:04.250Z","type":"battle_log","message":"Janela de prioridade (pre_move_priority): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"Resolve (LIFO): Mugic Gear Glissando.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"Jogador 2: Obliterators virou face-up.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"Jogador 2 move Magmon, Retalliator para E e inicia combate.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"Jogador 1: Sword of Khy'at revelado no inicio do combate.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"Jogador 2: Viledriver revelado no inicio do combate.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"Jogador 2 vence a iniciativa.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"[passive] Jogador 1 - Prince Mudeenu: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"Jogador 2 joga Dry Liquid.","payload":null}
+{"at":"2026-04-30T01:02:05.228Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:02:14.603Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:02:14.610Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:02:14.610Z","type":"battle_log","message":"Jogador 2 ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:02:14.610Z","type":"battle_log","message":"Jogador 2 prepara 15 dano com Dry Liquid.","payload":null}
+{"at":"2026-04-30T01:02:14.610Z","type":"battle_log","message":"Jogador 1 recebe 15 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:02:14.610Z","type":"battle_log","message":"Jogador 2 recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:02:14.610Z","type":"battle_log","message":"Ataque resolvido: Jogador 2 -> Dry Liquid.","payload":null}
+{"at":"2026-04-30T01:02:14.610Z","type":"battle_log","message":"[passive] Jogador 1 - Prince Mudeenu: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:03:30.041Z","type":"battle_log","message":"Jogador 1 joga Flashwarp.","payload":null}
+{"at":"2026-04-30T01:03:30.041Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:03:30.786Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:03:30.802Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:03:30.802Z","type":"battle_log","message":"Jogador 1 ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:03:30.802Z","type":"battle_log","message":"Jogador 1 prepara 15 dano com Flashwarp.","payload":null}
+{"at":"2026-04-30T01:03:30.802Z","type":"battle_log","message":"Jogador 2 recebe 15 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:03:30.802Z","type":"battle_log","message":"Ataque resolvido: Jogador 1 -> Flashwarp.","payload":null}
+{"at":"2026-04-30T01:03:30.802Z","type":"battle_log","message":"[passive] Jogador 1 - Prince Mudeenu: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:03:30.802Z","type":"battle_log","message":"Jogador 2 joga Fearless Strike.","payload":null}
+{"at":"2026-04-30T01:03:30.802Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:03:31.576Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:03:31.587Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:03:31.587Z","type":"battle_log","message":"Jogador 2 ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:03:31.587Z","type":"battle_log","message":"Jogador 2 prepara 15 dano com Fearless Strike.","payload":null}
+{"at":"2026-04-30T01:03:31.587Z","type":"battle_log","message":"Jogador 1 recebe 15 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:03:31.587Z","type":"battle_log","message":"Jogador 2 recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:03:31.587Z","type":"battle_log","message":"Ataque resolvido: Jogador 2 -> Fearless Strike.","payload":null}
+{"at":"2026-04-30T01:03:31.587Z","type":"battle_log","message":"[passive] Jogador 1 - Prince Mudeenu: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:03:36.454Z","type":"battle_log","message":"Jogador 1 joga Atmosfear.","payload":null}
+{"at":"2026-04-30T01:03:36.455Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:03:37.646Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:03:37.658Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:03:37.658Z","type":"battle_log","message":"Jogador 1 ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:03:37.658Z","type":"battle_log","message":"Jogador 1 prepara 5 dano com Atmosfear.","payload":null}
+{"at":"2026-04-30T01:03:37.658Z","type":"battle_log","message":"Jogador 2 recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:03:37.658Z","type":"battle_log","message":"Ataque resolvido: Jogador 1 -> Atmosfear.","payload":null}
+{"at":"2026-04-30T01:03:37.658Z","type":"battle_log","message":"[passive] Jogador 1 - Prince Mudeenu: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:03:37.658Z","type":"battle_log","message":"Jogador 2 joga Ember Swarm.","payload":null}
+{"at":"2026-04-30T01:03:37.658Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:03:38.288Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:03:38.300Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:03:38.300Z","type":"battle_log","message":"Jogador 2 ativa 1 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:03:38.300Z","type":"battle_log","message":"Jogador 2 prepara 10 dano com Ember Swarm.","payload":null}
+{"at":"2026-04-30T01:03:38.300Z","type":"battle_log","message":"Jogador 1 recebe 10 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:03:38.300Z","type":"battle_log","message":"Jogador 2 recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:03:38.300Z","type":"battle_log","message":"Ataque resolvido: Jogador 2 -> Ember Swarm.","payload":null}
+{"at":"2026-04-30T01:03:38.300Z","type":"battle_log","message":"[passive] Jogador 1 - Prince Mudeenu: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:03:46.041Z","type":"battle_log","message":"Jogador 1 joga Before the Storm.","payload":null}
+{"at":"2026-04-30T01:03:46.041Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:03:47.326Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:03:47.339Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:03:47.339Z","type":"battle_log","message":"[noop_pending_kind] Attack Before the Storm: efeito 'treatCurrentAttackAsFirst' ainda nao implementado nesta v1.","payload":null}
+{"at":"2026-04-30T01:03:47.339Z","type":"battle_log","message":"Jogador 1 ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:03:47.339Z","type":"battle_log","message":"Jogador 1 prepara 10 dano com Before the Storm.","payload":null}
+{"at":"2026-04-30T01:03:47.339Z","type":"battle_log","message":"Jogador 2 recebe 10 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:03:47.339Z","type":"battle_log","message":"Ataque resolvido: Jogador 1 -> Before the Storm.","payload":null}
+{"at":"2026-04-30T01:03:47.339Z","type":"battle_log","message":"[passive] Jogador 1 - Prince Mudeenu: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:03:47.339Z","type":"battle_log","message":"Jogador 2 joga Force Strike.","payload":null}
+{"at":"2026-04-30T01:03:47.339Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:03:48.648Z","type":"battle_event","message":"defeat","payload":{"playerIndex":0,"unitId":"0:creatures:dop:prince-mudeenu:965:3"}}
+{"at":"2026-04-30T01:03:48.649Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Jogador 2 ativa 1 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Jogador 2 prepara 20 dano com Force Strike.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Jogador 1 recebe 20 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Prince Mudeenu foi derrotada.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Jogador 2 recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Ataque resolvido: Jogador 2 -> Force Strike.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Magmon, Retalliator avanca para E.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Takinom, The Shadowknight se move para slot 5.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Jogador 2 finaliza movimentacao adicional.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Turno 3 - Jogador 1.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Location: Crystal Cave.","payload":null}
+{"at":"2026-04-30T01:03:51.466Z","type":"battle_log","message":"Janela de prioridade (pre_move_priority): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:03:56.914Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:03:59.466Z","type":"battle_log","message":"Sem habilidade ativavel agora.","payload":null}
+{"at":"2026-04-30T01:04:06.138Z","type":"battle_log","message":"Sem habilidade ativavel agora.","payload":null}
+{"at":"2026-04-30T01:04:09.374Z","type":"battle_log","message":"Jogador 1 move Malvadine, The King's Herald para E e inicia combate.","payload":null}
+{"at":"2026-04-30T01:04:09.374Z","type":"battle_log","message":"Jogador 1: Sword of Khy'at revelado no inicio do combate.","payload":null}
+{"at":"2026-04-30T01:04:09.374Z","type":"battle_log","message":"Jogador 1 vence a iniciativa.","payload":null}
+{"at":"2026-04-30T01:04:09.374Z","type":"battle_log","message":"Location ativa: Crystal Cave.","payload":null}
+{"at":"2026-04-30T01:04:09.374Z","type":"battle_log","message":"[passive] Jogador 1 - Malvadine, The King's Herald: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:04:13.192Z","type":"battle_log","message":"Jogador 1 joga Inferno Gust.","payload":null}
+{"at":"2026-04-30T01:04:13.192Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:04:14.048Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:04:14.061Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:04:14.061Z","type":"battle_log","message":"Jogador 1 ativa 1 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:04:14.061Z","type":"battle_log","message":"Jogador 1 prepara 25 dano com Inferno Gust.","payload":null}
+{"at":"2026-04-30T01:04:14.061Z","type":"battle_log","message":"Jogador 2 recebe 25 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:04:14.061Z","type":"battle_log","message":"Ataque resolvido: Jogador 1 -> Inferno Gust.","payload":null}
+{"at":"2026-04-30T01:04:14.061Z","type":"battle_log","message":"[passive] Jogador 1 - Malvadine, The King's Herald: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:04:14.061Z","type":"battle_log","message":"Jogador 2 joga Ember Swarm.","payload":null}
+{"at":"2026-04-30T01:04:14.061Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:04:14.548Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:04:14.566Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:04:14.566Z","type":"battle_log","message":"Jogador 2 ativa 1 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:04:14.566Z","type":"battle_log","message":"Jogador 2 prepara 10 dano com Ember Swarm.","payload":null}
+{"at":"2026-04-30T01:04:14.566Z","type":"battle_log","message":"Jogador 1 recebe 10 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:04:14.566Z","type":"battle_log","message":"Jogador 2 recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:04:14.566Z","type":"battle_log","message":"Ataque resolvido: Jogador 2 -> Ember Swarm.","payload":null}
+{"at":"2026-04-30T01:04:14.566Z","type":"battle_log","message":"[passive] Jogador 1 - Malvadine, The King's Herald: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:04:17.159Z","type":"battle_log","message":"Jogador 1 joga Hammer Dash.","payload":null}
+{"at":"2026-04-30T01:04:17.159Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:04:17.978Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:04:17.992Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:04:17.992Z","type":"battle_log","message":"Jogador 1 ativa 1 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:04:17.992Z","type":"battle_log","message":"Jogador 1 prepara 15 dano com Hammer Dash.","payload":null}
+{"at":"2026-04-30T01:04:17.992Z","type":"battle_log","message":"Jogador 2 recebe 15 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:04:17.992Z","type":"battle_log","message":"Ataque resolvido: Jogador 1 -> Hammer Dash.","payload":null}
+{"at":"2026-04-30T01:04:17.992Z","type":"battle_log","message":"[passive] Jogador 1 - Malvadine, The King's Herald: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:04:17.992Z","type":"battle_log","message":"Jogador 2 joga Fireram.","payload":null}
+{"at":"2026-04-30T01:04:17.992Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:04:18.580Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:04:18.594Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:04:18.594Z","type":"battle_log","message":"Jogador 2 ativa 1 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:04:18.594Z","type":"battle_log","message":"Jogador 2 prepara 30 dano com Fireram.","payload":null}
+{"at":"2026-04-30T01:04:18.594Z","type":"battle_log","message":"Jogador 1 recebe 30 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:04:18.594Z","type":"battle_log","message":"Jogador 2 recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:04:18.594Z","type":"battle_log","message":"Ataque resolvido: Jogador 2 -> Fireram.","payload":null}
+{"at":"2026-04-30T01:04:18.594Z","type":"battle_log","message":"[passive] Jogador 1 - Malvadine, The King's Herald: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:04:20.973Z","type":"battle_log","message":"Jogador 1 joga Hammer Dash.","payload":null}
+{"at":"2026-04-30T01:04:20.973Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:04:21.828Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:04:21.842Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:04:21.842Z","type":"battle_log","message":"Jogador 1 ativa 1 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:04:21.842Z","type":"battle_log","message":"Jogador 1 prepara 15 dano com Hammer Dash.","payload":null}
+{"at":"2026-04-30T01:04:21.842Z","type":"battle_log","message":"Jogador 2 recebe 15 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:04:21.842Z","type":"battle_log","message":"Ataque resolvido: Jogador 1 -> Hammer Dash.","payload":null}
+{"at":"2026-04-30T01:04:21.842Z","type":"battle_log","message":"[passive] Jogador 1 - Malvadine, The King's Herald: 1 efeito(s) aplicado(s) automaticamente.","payload":null}
+{"at":"2026-04-30T01:04:21.842Z","type":"battle_log","message":"Jogador 2 joga Flashwarp.","payload":null}
+{"at":"2026-04-30T01:04:21.842Z","type":"battle_log","message":"Janela de prioridade (attack_burst): escolha um efeito ou passe.","payload":null}
+{"at":"2026-04-30T01:04:22.560Z","type":"battle_event","message":"defeat","payload":{"playerIndex":1,"unitId":"1:creatures:fun:magmon-retalliator:688:3"}}
+{"at":"2026-04-30T01:04:22.560Z","type":"battle_event","message":"damage","payload":null}
+{"at":"2026-04-30T01:04:25.378Z","type":"battle_log","message":"Jogador 1 passa prioridade.","payload":null}
+{"at":"2026-04-30T01:04:25.378Z","type":"battle_log","message":"Jogador 2 ativa 0 elemento(s) no ataque.","payload":null}
+{"at":"2026-04-30T01:04:25.378Z","type":"battle_log","message":"Jogador 2 prepara 10 dano com Flashwarp.","payload":null}
+{"at":"2026-04-30T01:04:25.378Z","type":"battle_log","message":"Jogador 1 recebe 10 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:04:25.378Z","type":"battle_log","message":"Jogador 2 recebe 5 dano e 0 cura.","payload":null}
+{"at":"2026-04-30T01:04:25.378Z","type":"battle_log","message":"Magmon, Retalliator foi derrotada.","payload":null}
+{"at":"2026-04-30T01:04:25.378Z","type":"battle_log","message":"Ataque resolvido: Jogador 2 -> Flashwarp.","payload":null}
+{"at":"2026-04-30T01:04:25.378Z","type":"battle_log","message":"Malvadine, The King's Herald avanca para E.","payload":null}
+{"at":"2026-04-30T01:04:40.160Z","type":"battle_log","message":"Desistencia: Jogador 1 concedeu a partida.","payload":null}
+{"type":"session_end","at":"2026-04-30T01:04:41.439Z","reason":"beforeunload"}

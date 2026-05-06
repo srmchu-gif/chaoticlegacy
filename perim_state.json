@@ -1,0 +1,1985 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-04-30T02:01:09.542Z",
+  "updatedAt": "2026-05-01T22:59:36.682Z",
+  "players": {
+    "testuser": {
+      "activeRun": {
+        "runId": "ab319b63072f609ffadde078",
+        "locationEntryId": "locations:mi:the-heart-of-the-jungle:1113#0",
+        "locationId": "locations:mi:the-heart-of-the-jungle:1113",
+        "locationName": "The Heart of the Jungle",
+        "locationImage": "/downloads/locations/MI/UnknownTribe/Super%20Rare/The%20Heart%20of%20the%20Jungle%20-%20ic.png",
+        "locationCard": {
+          "id": "locations:mi:the-heart-of-the-jungle:1113",
+          "name": "The Heart of the Jungle",
+          "normalizedName": "the heart of the jungle",
+          "type": "locations",
+          "set": "MI",
+          "rarity": "Super Rare",
+          "tribe": "Generic",
+          "idInSet": "203/222",
+          "unique": true,
+          "loyal": false,
+          "legendary": false,
+          "ability": "When one engaged Creature increases or decreases a Discipline except from this ability, increases or decreases that Discipline of the other engaged Creature by the same amount. Mirage: Creatures in this space have an additional 10 in all Disciplines.",
+          "flavorText": "",
+          "stats": {
+            "courage": 0,
+            "power": 0,
+            "wisdom": 0,
+            "speed": 0,
+            "energy": 0,
+            "mugicability": 0,
+            "bp": 0,
+            "base": 0,
+            "cost": 0,
+            "initiative": "OverWorld",
+            "fire": 0,
+            "air": 0,
+            "earth": 0,
+            "water": 0,
+            "fireAttack": 0,
+            "airAttack": 0,
+            "earthAttack": 0,
+            "waterAttack": 0
+          },
+          "parsedEffects": [],
+          "image": "/downloads/locations/MI/UnknownTribe/Super%20Rare/The%20Heart%20of%20the%20Jungle%20-%20ic.png",
+          "imageVariants": {
+            "ic": "/downloads/locations/MI/UnknownTribe/Super%20Rare/The%20Heart%20of%20the%20Jungle%20-%20ic.png",
+            "if": null,
+            "ia": null
+          },
+          "sourceFile": "chaotic_locations.json",
+          "creatureTypesRaw": "",
+          "creatureTypes": [],
+          "creatureTypeKeywords": [],
+          "creatureTypesInferred": false,
+          "creatureTypesSource": "not_applicable",
+          "raw": {
+            "type": "Locations",
+            "name": "The Heart of the Jungle",
+            "set": "MI",
+            "rarity": "Super Rare",
+            "id": "203/222",
+            "initiative": "OverWorld",
+            "types": "Mirage",
+            "ability": "When one engaged Creature increases or decreases a Discipline except from this ability, increases or decreases that Discipline of the other engaged Creature by the same amount.\r\nMirage: Creatures in this space have an additional 10 in all Disciplines.",
+            "flavortext": "",
+            "unique": "1",
+            "image": "0B6oyUfwoM3u1eXoxcDhrRHZUODg",
+            "thumb": "11w1LGD20ak3PeEdMFLXONo81zj4xuCXy",
+            "splash": "",
+            "artist": "HotShotsVFX",
+            "tags": "",
+            "exclusive": "",
+            "alt": "",
+            "animated": "",
+            "ic": "https://i.imgur.com/o3O2Kj5.png",
+            "meta": {
+              "revision": 0,
+              "created": 1754064928796,
+              "version": 0
+            },
+            "loki": 1113
+          }
+        },
+        "actionId": "track",
+        "actionLabel": "Rastrear Criaturas",
+        "startAt": "2026-04-30T02:10:35.768Z",
+        "endAt": "2026-04-30T02:15:14.768Z",
+        "durationMs": 279000,
+        "scanner": {
+          "key": "",
+          "level": 1
+        },
+        "contextSnapshot": {
+          "capturedAt": "2026-04-30T02:10:35.768Z",
+          "turnLabel": "Madrugada",
+          "climate": "Ensolarado",
+          "creatureChancePercent": 70,
+          "scanSuccessBoostPercent": 0,
+          "eventChancePercent": 0,
+          "locationDropChancePercent": 10
+        },
+        "rewards": [
+          {
+            "type": "creatures",
+            "cardId": "creatures:au:cromaxx:668",
+            "cardName": "Cromaxx",
+            "cardDisplayName": "Cromaxx",
+            "rarity": "Ultra Rare",
+            "image": "/downloads/creatures/AU/Generic/Ultra%20Rare/Cromaxx%20-%20ic.png",
+            "variant": {
+              "energyDelta": 5,
+              "courageDelta": 0,
+              "powerDelta": -5,
+              "wisdomDelta": 5,
+              "speedDelta": 0,
+              "perfect": false
+            }
+          }
+        ],
+        "createdAt": "2026-04-30T02:10:35.771Z"
+      },
+      "pendingRewards": [
+        {
+          "runId": "7dfdabb2aa38767909ea7f1e",
+          "locationId": "locations:mi:the-heart-of-the-jungle:1113",
+          "locationName": "The Heart of the Jungle",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-04-30T02:06:03.135Z",
+          "rewards": [
+            {
+              "type": "battlegear",
+              "cardId": "battlegear:roto:vial-of-liquid-thought:397",
+              "cardName": "Vial of Liquid Thought",
+              "cardDisplayName": "Vial of Liquid Thought",
+              "rarity": "Common",
+              "image": "/downloads/battlegear/ROTO/Common/Vial%20of%20Liquid%20Thought%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:flaming-coals:198",
+              "cardName": "Flaming Coals",
+              "cardDisplayName": "Flaming Coals",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/MI/Rare/Flaming%20Coals%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-04-30T02:10:27.862Z"
+        }
+      ],
+      "history": [
+        {
+          "runId": "7dfdabb2aa38767909ea7f1e",
+          "locationName": "The Heart of the Jungle",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-04-30T02:10:27.862Z",
+          "rewards": [
+            {
+              "type": "battlegear",
+              "cardId": "battlegear:roto:vial-of-liquid-thought:397",
+              "cardName": "Vial of Liquid Thought",
+              "cardDisplayName": "Vial of Liquid Thought",
+              "rarity": "Common",
+              "image": "/downloads/battlegear/ROTO/Common/Vial%20of%20Liquid%20Thought%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:flaming-coals:198",
+              "cardName": "Flaming Coals",
+              "cardDisplayName": "Flaming Coals",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/MI/Rare/Flaming%20Coals%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-04-30T02:10:35.771Z"
+    },
+    "srchuu": {
+      "activeRun": {
+        "runId": "f22a5e94a84ed86b2caa5de7",
+        "locationEntryId": "locations:fun:the-storm-tunnel-kibros-foothold:1074#3",
+        "locationId": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+        "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+        "locationImage": "/downloads/locations/FUN/UnknownTribe/Common/The%20Storm%20Tunnel%2C%20Ki'bro's%20Foothold%20-%20ic.png",
+        "locationCard": {
+          "id": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+          "name": "The Storm Tunnel, Ki'bro's Foothold",
+          "normalizedName": "the storm tunnel kibros foothold",
+          "type": "locations",
+          "set": "FUN",
+          "rarity": "Common",
+          "tribe": "Generic",
+          "idInSet": "100/100",
+          "unique": false,
+          "loyal": false,
+          "legendary": false,
+          "ability": "All attacks also count as Water attacks. Damage dealt by Air attacks is reduced by 5.",
+          "flavorText": "Fighting the war on many fronts stretches even the M'arrillians to their limits.",
+          "stats": {
+            "courage": 0,
+            "power": 0,
+            "wisdom": 0,
+            "speed": 0,
+            "energy": 0,
+            "mugicability": 0,
+            "bp": 0,
+            "base": 0,
+            "cost": 0,
+            "initiative": "Water",
+            "fire": 0,
+            "air": 0,
+            "earth": 0,
+            "water": 0,
+            "fireAttack": 0,
+            "airAttack": 0,
+            "earthAttack": 0,
+            "waterAttack": 0
+          },
+          "parsedEffects": [
+            {
+              "kind": "attackDamageModifier",
+              "modifier": "reduce",
+              "amount": 5,
+              "elements": [
+                "air"
+              ],
+              "sourceText": "Damage dealt by Air attacks is reduced by 5"
+            }
+          ],
+          "image": "/downloads/locations/FUN/UnknownTribe/Common/The%20Storm%20Tunnel%2C%20Ki'bro's%20Foothold%20-%20ic.png",
+          "imageVariants": {
+            "ic": "/downloads/locations/FUN/UnknownTribe/Common/The%20Storm%20Tunnel%2C%20Ki'bro's%20Foothold%20-%20ic.png",
+            "if": null,
+            "ia": null
+          },
+          "sourceFile": "chaotic_locations.json",
+          "creatureTypesRaw": "",
+          "creatureTypes": [],
+          "creatureTypeKeywords": [],
+          "creatureTypesInferred": false,
+          "creatureTypesSource": "not_applicable",
+          "raw": {
+            "type": "Locations",
+            "name": "The Storm Tunnel, Ki'bro's Foothold",
+            "set": "FUN",
+            "rarity": "Common",
+            "id": "100/100",
+            "initiative": "Water",
+            "types": "",
+            "ability": "All attacks also count as Water attacks.\r\nDamage dealt by Air attacks is reduced by 5.",
+            "flavortext": "Fighting the war on many fronts stretches even the M'arrillians to their limits.",
+            "unique": "",
+            "image": "1_-Mu88qs82gbOA3vOpouFwqsmFemzUNS",
+            "thumb": "10i9pff0U5w4CPiFBxROGxQwQUrbO8shw",
+            "splash": "",
+            "artist": "Emilio Lopez, HotShotsVFX",
+            "tags": "The Storm Tunnel Kibro's Foothold The Storm Tunnel Ki bro's Foothold",
+            "exclusive": "",
+            "alt": "",
+            "animated": "",
+            "ic": "https://i.imgur.com/YIuCvfV.png",
+            "meta": {
+              "revision": 0,
+              "created": 1754064928796,
+              "version": 0
+            },
+            "loki": 1074
+          }
+        },
+        "actionId": "track",
+        "actionLabel": "Rastrear Criaturas",
+        "startAt": "2026-05-01T22:59:36.671Z",
+        "endAt": "2026-05-01T23:05:27.671Z",
+        "durationMs": 351000,
+        "scanner": {
+          "key": "",
+          "level": 1
+        },
+        "contextSnapshot": {
+          "capturedAt": "2026-05-01T22:59:36.671Z",
+          "turnLabel": "Tarde",
+          "climate": "Chuvoso",
+          "creatureChancePercent": 82,
+          "scanSuccessBoostPercent": 0,
+          "eventChancePercent": 0,
+          "locationDropChancePercent": 20
+        },
+        "rewards": [
+          {
+            "type": "attacks",
+            "cardId": "attacks:fun:discipline-destruction:106",
+            "cardName": "Discipline Destruction",
+            "cardDisplayName": "Discipline Destruction",
+            "rarity": "Super Rare",
+            "image": "/downloads/attacks/FUN/Super%20Rare/Discipline%20Destruction%20-%20ic.png"
+          },
+          {
+            "type": "locations",
+            "cardId": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+            "cardName": "The Storm Tunnel, Ki'bro's Foothold",
+            "cardDisplayName": "The Storm Tunnel, Ki'bro's Foothold",
+            "rarity": "Common",
+            "image": "/downloads/locations/FUN/UnknownTribe/Common/The%20Storm%20Tunnel%2C%20Ki'bro's%20Foothold%20-%20ic.png"
+          }
+        ],
+        "createdAt": "2026-05-01T22:59:36.682Z"
+      },
+      "pendingRewards": [
+        {
+          "runId": "0e5177a6a9e8d63969f3a9a7",
+          "locationId": "locations:au:rock-river-canyon:1051",
+          "locationName": "Rock River Canyon",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-04-30T02:38:51.402Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:ss:fear-fight:232",
+              "cardName": "Fear Fight",
+              "cardDisplayName": "Fear Fight",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/SS/Uncommon/Fear%20Fight%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-04-30T02:38:55.894Z"
+        },
+        {
+          "runId": "199e7541433693bd5c0dd988",
+          "locationId": "locations:tott:the-storm-tunnel-flooding:1087",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-04-30T02:43:44.762Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:atmosfear:82",
+              "cardName": "Atmosfear",
+              "cardDisplayName": "Atmosfear",
+              "rarity": "Common",
+              "image": "/downloads/attacks/AU/Common/Atmosfear%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-04-30T02:43:47.488Z"
+        },
+        {
+          "runId": "122c7822856a926d03d6faeb",
+          "locationId": "locations:tott:the-storm-tunnel-flooding:1087",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-04-30T03:08:40.884Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:ursis:594",
+              "cardName": "Ursis",
+              "cardDisplayName": "Ursis",
+              "rarity": "Ultra Rare",
+              "image": "/downloads/creatures/AU/Generic/Ultra%20Rare/Ursis%20-%20ic.png",
+              "variant": {
+                "energyDelta": 10,
+                "courageDelta": 5,
+                "powerDelta": 0,
+                "wisdomDelta": -5,
+                "speedDelta": 5,
+                "perfect": false
+              }
+            }
+          ],
+          "claimedAt": "2026-04-30T03:08:53.894Z"
+        },
+        {
+          "runId": "1364034340eeeae8b773eb82",
+          "locationId": "locations:tott:the-storm-tunnel-flooding:1087",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionId": "relic",
+          "actionName": "Procurar Recursos / Reliquias",
+          "completedAt": "2026-04-30T03:16:13.762Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:perplexing-heat:181",
+              "cardName": "Perplexing Heat",
+              "cardDisplayName": "Perplexing Heat",
+              "rarity": "Common",
+              "image": "/downloads/attacks/MI/Common/Perplexing%20Heat%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:roto:swarming-destruction:134",
+              "cardName": "Swarming Destruction",
+              "cardDisplayName": "Swarming Destruction",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/ROTO/Uncommon/Swarming%20Destruction%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-04-30T03:16:18.115Z"
+        },
+        {
+          "runId": "a8f9d46452543d48d6a81cd8",
+          "locationId": "locations:tott:the-storm-tunnel-flooding:1087",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionId": "explore",
+          "actionName": "Explorar a Area",
+          "completedAt": "2026-04-30T03:20:38.287Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:dry-liquid:202",
+              "cardName": "Dry Liquid",
+              "cardDisplayName": "Dry Liquid",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/MI/Uncommon/Dry%20Liquid%20-%20ic.png"
+            },
+            {
+              "type": "mugic",
+              "cardId": "mugic:mi:ballad-of-the-belittled:1301",
+              "cardName": "Ballad of the Belittled",
+              "cardDisplayName": "Ballad of the Belittled",
+              "rarity": "Rare",
+              "image": "/downloads/mugic/MI/Generic/Rare/Ballad%20of%20the%20Belittled%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:accelerated-unity:260",
+              "cardName": "Accelerated Unity",
+              "cardDisplayName": "Accelerated Unity",
+              "rarity": "Common",
+              "image": "/downloads/attacks/ZOTH/Common/Accelerated%20Unity%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:fun:grantkaes-stance:101",
+              "cardName": "Grantkae's Stance",
+              "cardDisplayName": "Grantkae's Stance",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/FUN/Super%20Rare/Grantkae's%20Stance%20-%20ic.png"
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:dop:the-storm-tunnel:1157",
+              "cardName": "The Storm Tunnel",
+              "cardDisplayName": "The Storm Tunnel",
+              "rarity": "Common",
+              "image": "/downloads/locations/DOP/UnknownTribe/Common/The%20Storm%20Tunnel%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-04-30T03:21:03.826Z"
+        },
+        {
+          "runId": "6e1616fbab490aeb4ea9db37",
+          "locationId": "locations:tott:the-storm-tunnel-flooding:1087",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-04-30T03:25:32.017Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:perplexing-heat:45",
+              "cardName": "Perplexing Heat",
+              "cardDisplayName": "Perplexing Heat",
+              "rarity": "Common",
+              "image": "/downloads/attacks/MI/Common/Perplexing%20Heat%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-04-30T03:25:48.708Z"
+        },
+        {
+          "runId": "4350004afda3b439b75e6e1c",
+          "locationId": "locations:dop:the-storm-tunnel:1157",
+          "locationName": "The Storm Tunnel",
+          "actionId": "explore",
+          "actionName": "Explorar a Area",
+          "completedAt": "2026-04-30T03:29:45.806Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:smildon:605",
+              "cardName": "Smildon",
+              "cardDisplayName": "Smildon",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Smildon%20-%20ic.png",
+              "variant": {
+                "energyDelta": 5,
+                "courageDelta": 5,
+                "powerDelta": 5,
+                "wisdomDelta": 5,
+                "speedDelta": -5,
+                "perfect": false
+              }
+            }
+          ],
+          "claimedAt": "2026-04-30T03:29:48.713Z"
+        },
+        {
+          "runId": "113481a5ab6def4ab205f415",
+          "locationId": "locations:au:rock-river-canyon:1051",
+          "locationName": "Rock River Canyon",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-04-30T21:58:47.525Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:smildon:605",
+              "cardName": "Smildon",
+              "cardDisplayName": "Smildon",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Smildon%20-%20ic.png",
+              "variant": {
+                "energyDelta": -10,
+                "courageDelta": 5,
+                "powerDelta": 0,
+                "wisdomDelta": 0,
+                "speedDelta": -5,
+                "perfect": false
+              }
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+              "cardName": "Royal Mipedian Academy of Melee Arts",
+              "cardDisplayName": "Royal Mipedian Academy of Melee Arts",
+              "rarity": "Rare",
+              "image": "/downloads/locations/ROTO/UnknownTribe/Rare/Royal%20Mipedian%20Academy%20of%20Melee%20Arts%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-04-30T22:03:07.555Z"
+        },
+        {
+          "runId": "fbb93f9749641903b2ed7a72",
+          "locationId": "locations:dop:the-storm-tunnel:1157",
+          "locationName": "The Storm Tunnel",
+          "actionId": "explore",
+          "actionName": "Explorar a Area",
+          "completedAt": "2026-04-30T22:02:57.699Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:reverberate:245",
+              "cardName": "Reverberate",
+              "cardDisplayName": "Reverberate",
+              "rarity": "Common",
+              "image": "/downloads/attacks/ZOTH/Common/Reverberate%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:tott:sediment-stormshield:117",
+              "cardName": "Sediment Stormshield",
+              "cardDisplayName": "Sediment Stormshield",
+              "rarity": "Common",
+              "image": "/downloads/attacks/TOTT/Common/Sediment%20Stormshield%20-%20ic.png"
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+              "cardName": "The Storm Tunnel, Ki'bro's Foothold",
+              "cardDisplayName": "The Storm Tunnel, Ki'bro's Foothold",
+              "rarity": "Common",
+              "image": "/downloads/locations/FUN/UnknownTribe/Common/The%20Storm%20Tunnel%2C%20Ki'bro's%20Foothold%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-04-30T22:03:15.061Z"
+        },
+        {
+          "runId": "4962fa196eb8ba290af6121b",
+          "locationId": "locations:au:rock-river-canyon:1051",
+          "locationName": "Rock River Canyon",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-04-30T22:47:51.964Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:proboscar:617",
+              "cardName": "Proboscar",
+              "cardDisplayName": "Proboscar",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Proboscar%20-%20ic.png",
+              "variant": {
+                "energyDelta": -5,
+                "courageDelta": 5,
+                "powerDelta": -5,
+                "wisdomDelta": 0,
+                "speedDelta": -5,
+                "perfect": false
+              }
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:fun:valor-continuum:86",
+              "cardName": "Valor Continuum",
+              "cardDisplayName": "Valor Continuum",
+              "rarity": "Common",
+              "image": "/downloads/attacks/FUN/Common/Valor%20Continuum%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-04-30T22:47:58.204Z"
+        },
+        {
+          "runId": "ebce93853d5377bb7a984b38",
+          "locationId": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T01:52:57.549Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:ss:twister-of-elements:212",
+              "cardName": "Twister of Elements",
+              "cardDisplayName": "Twister of Elements",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/SS/Super%20Rare/Twister%20of%20Elements%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:dop:allmageddon:309",
+              "cardName": "Allmageddon",
+              "cardDisplayName": "Allmageddon",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/PE1/Super%20Rare/Allmageddon%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:mindsink:186",
+              "cardName": "Mindsink",
+              "cardDisplayName": "Mindsink",
+              "rarity": "Common",
+              "image": "/downloads/attacks/MI/Common/Mindsink%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T01:53:10.702Z"
+        },
+        {
+          "runId": "1ad0924e52b6bd7a3e2fa1e6",
+          "locationId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T02:07:48.984Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:hurlicane:58",
+              "cardName": "Hurlicane",
+              "cardDisplayName": "Hurlicane",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/SS/Rare/Hurlicane%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T02:07:51.985Z"
+        },
+        {
+          "runId": "370677c06544fa8421b64617",
+          "locationId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T02:27:20.785Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:smildon:605",
+              "cardName": "Smildon",
+              "cardDisplayName": "Smildon",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Smildon%20-%20ic.png",
+              "variant": {
+                "energyDelta": 0,
+                "courageDelta": -5,
+                "powerDelta": -5,
+                "wisdomDelta": 5,
+                "speedDelta": -5,
+                "perfect": false
+              }
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:whirlwind-scythes:152",
+              "cardName": "Whirlwind Scythes",
+              "cardDisplayName": "Whirlwind Scythes",
+              "rarity": "Common",
+              "image": "/downloads/attacks/MI/Common/Whirlwind%20Scythes%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T02:27:25.298Z"
+        },
+        {
+          "runId": "6e7cf35038dd5acb62fe0e34",
+          "locationId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionId": "explore",
+          "actionName": "Explorar a Area",
+          "completedAt": "2026-05-01T02:32:29.861Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:ember-swarm:200",
+              "cardName": "Ember Swarm",
+              "cardDisplayName": "Ember Swarm",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/MI/Uncommon/Ember%20Swarm%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T02:32:46.708Z"
+        },
+        {
+          "runId": "ffad9ddbff4d3e17b75d287c",
+          "locationId": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionId": "explore",
+          "actionName": "Explorar a Area",
+          "completedAt": "2026-05-01T02:37:24.156Z",
+          "rewards": [
+            {
+              "type": "mugic",
+              "cardId": "mugic:zoth:melody-of-the-meek:1328",
+              "cardName": "Melody of the Meek",
+              "cardDisplayName": "Melody of the Meek",
+              "rarity": "Rare",
+              "image": "/downloads/mugic/ZOTH/Generic/Rare/Melody%20of%20the%20Meek%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:ss:hurlicane:227",
+              "cardName": "Hurlicane",
+              "cardDisplayName": "Hurlicane",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/SS/Rare/Hurlicane%20-%20ic.png"
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:dop:the-storm-tunnel:1157",
+              "cardName": "The Storm Tunnel",
+              "cardDisplayName": "The Storm Tunnel",
+              "rarity": "Common",
+              "image": "/downloads/locations/DOP/UnknownTribe/Common/The%20Storm%20Tunnel%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T02:37:31.722Z"
+        },
+        {
+          "runId": "6076f6d30e74ff6531f404d7",
+          "locationId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionId": "camp",
+          "actionName": "Acampar / Esperar",
+          "completedAt": "2026-05-01T02:49:39.142Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:hampering-winds:193",
+              "cardName": "Hampering Winds",
+              "cardDisplayName": "Hampering Winds",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/SS/Uncommon/Hampering%20Winds%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T02:49:41.246Z"
+        },
+        {
+          "runId": "ff6e45125d547bc03849bc7d",
+          "locationId": "locations:tott:the-storm-tunnel-flooding:1087",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T02:54:35.856Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:proboscar:617",
+              "cardName": "Proboscar",
+              "cardDisplayName": "Proboscar",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Proboscar%20-%20ic.png",
+              "variant": {
+                "energyDelta": -5,
+                "courageDelta": 0,
+                "powerDelta": -5,
+                "wisdomDelta": 0,
+                "speedDelta": -5,
+                "perfect": false
+              }
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:scouts-strike:244",
+              "cardName": "Scout's Strike",
+              "cardDisplayName": "Scout's Strike",
+              "rarity": "Common",
+              "image": "/downloads/attacks/ZOTH/Common/Scout's%20Strike%20-%20ic.png"
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:dop:the-storm-tunnel:1157",
+              "cardName": "The Storm Tunnel",
+              "cardDisplayName": "The Storm Tunnel",
+              "rarity": "Common",
+              "image": "/downloads/locations/DOP/UnknownTribe/Common/The%20Storm%20Tunnel%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T02:54:43.687Z"
+        },
+        {
+          "runId": "284b454a83b28bf0ff4af5f4",
+          "locationId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionId": "relic",
+          "actionName": "Procurar Recursos / Reliquias",
+          "completedAt": "2026-05-01T18:49:10.567Z",
+          "rewards": [
+            {
+              "type": "battlegear",
+              "cardId": "battlegear:mi:prism-of-sloth:413",
+              "cardName": "Prism of Sloth",
+              "cardDisplayName": "Prism of Sloth",
+              "rarity": "Common",
+              "image": "/downloads/battlegear/MI/Common/Prism%20of%20Sloth%20-%20ic.png"
+            },
+            {
+              "type": "mugic",
+              "cardId": "mugic:dop:ember-flourish:1376",
+              "cardName": "Ember Flourish",
+              "cardDisplayName": "Ember Flourish",
+              "rarity": "Uncommon",
+              "image": "/downloads/mugic/DOP/Generic/Uncommon/Ember%20Flourish%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T18:49:13.935Z"
+        },
+        {
+          "runId": "a42a5d30d83d8bd84b379d80",
+          "locationId": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionId": "explore",
+          "actionName": "Explorar a Area",
+          "completedAt": "2026-05-01T18:54:27.633Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:dop:thunder-shout:269",
+              "cardName": "Thunder Shout",
+              "cardDisplayName": "Thunder Shout",
+              "rarity": "Common",
+              "image": "/downloads/attacks/DOP/Common/Thunder%20Shout%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T18:54:31.565Z"
+        },
+        {
+          "runId": "68a1d84fad04073c03ebf760",
+          "locationId": "locations:au:rock-river-canyon:1051",
+          "locationName": "Rock River Canyon",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T19:00:46.465Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:flood-force:63",
+              "cardName": "Flood Force",
+              "cardDisplayName": "Flood Force",
+              "rarity": "Common",
+              "image": "/downloads/attacks/AU/Common/Flood%20Force%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:paraseed:46",
+              "cardName": "Paraseed",
+              "cardDisplayName": "Paraseed",
+              "rarity": "Common",
+              "image": "/downloads/attacks/AU/Common/Paraseed%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T19:00:55.511Z"
+        },
+        {
+          "runId": "ff8fa647c9ac25bc5760aca3",
+          "locationId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T19:07:21.312Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:sunder-ground:36",
+              "cardName": "Sunder Ground",
+              "cardDisplayName": "Sunder Ground",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/ZOTH/Uncommon/Sunder%20Ground%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:tott:reefquake:118",
+              "cardName": "Reefquake",
+              "cardDisplayName": "Reefquake",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/TOTT/Uncommon/Reefquake%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T19:07:30.285Z"
+        },
+        {
+          "runId": "ec5d851a9093246c63bff52c",
+          "locationId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T19:47:26.559Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:dop:fearocity:301",
+              "cardName": "Fearocity",
+              "cardDisplayName": "Fearocity",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/DOP/Super%20Rare/Fearocity%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:roto:petrifying-power:141",
+              "cardName": "Petrifying Power",
+              "cardDisplayName": "Petrifying Power",
+              "rarity": "Common",
+              "image": "/downloads/attacks/ROTO/Common/Petrifying%20Power%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T19:47:29.911Z"
+        },
+        {
+          "runId": "f13f7cad8ba6c1eba3272f34",
+          "locationId": "locations:dop:the-storm-tunnel:1157",
+          "locationName": "The Storm Tunnel",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T19:55:33.668Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:plasmarrow:179",
+              "cardName": "Plasmarrow",
+              "cardDisplayName": "Plasmarrow",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/MI/Rare/Plasmarrow%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T19:55:35.716Z"
+        },
+        {
+          "runId": "4c590aa607c4072ebe259ca5",
+          "locationId": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T20:01:45.958Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:pe1:purifying-mud:3",
+              "cardName": "Purifying Mud",
+              "cardDisplayName": "Purifying Mud",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/SS/Super%20Rare/Purifying%20Mud%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T20:01:52.030Z"
+        },
+        {
+          "runId": "d5f6943d40d2faf3397d3825",
+          "locationId": "locations:tott:the-storm-tunnel-flooding:1087",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionId": "camp",
+          "actionName": "Acampar / Esperar",
+          "completedAt": "2026-05-01T20:10:05.842Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:enlightened-tenacity:70",
+              "cardName": "Enlightened Tenacity",
+              "cardDisplayName": "Enlightened Tenacity",
+              "rarity": "Common",
+              "image": "/downloads/attacks/SS/Common/Enlightened%20Tenacity%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T20:10:50.268Z"
+        },
+        {
+          "runId": "d508bd2eb9ff1f54f9cd21cc",
+          "locationId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T20:20:57.509Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:granite-balls:253",
+              "cardName": "Granite Balls",
+              "cardDisplayName": "Granite Balls",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/ZOTH/Rare/Granite%20Balls%20-%20ic.png"
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:ss:the-hunters-perimeter:1134",
+              "cardName": "The Hunter's Perimeter",
+              "cardDisplayName": "The Hunter's Perimeter",
+              "rarity": "Uncommon",
+              "image": "/downloads/locations/SS/UnknownTribe/Uncommon/The%20Hunter's%20Perimeter%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T20:23:43.239Z"
+        },
+        {
+          "runId": "a5481f2d2014746029f227ad",
+          "locationId": "locations:ss:the-hunters-perimeter:1134",
+          "locationName": "The Hunter's Perimeter",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T20:30:25.948Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:wall-of-flame:27",
+              "cardName": "Wall of Flame",
+              "cardDisplayName": "Wall of Flame",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/AU/Rare/Wall%20of%20Flame%20-%20ic.png"
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:ss:mipedian-dew-farm:1139",
+              "cardName": "Mipedian Dew Farm",
+              "cardDisplayName": "Mipedian Dew Farm",
+              "rarity": "Common",
+              "image": "/downloads/locations/SS/UnknownTribe/Common/Mipedian%20Dew%20Farm%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T20:38:12.462Z"
+        },
+        {
+          "runId": "e7dde449eb8a652892209c52",
+          "locationId": "locations:ss:mipedian-dew-farm:1139",
+          "locationName": "Mipedian Dew Farm",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T22:50:27.518Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:fun:powercut:94",
+              "cardName": "Powercut",
+              "cardDisplayName": "Powercut",
+              "rarity": "Common",
+              "image": "/downloads/attacks/FUN/Common/Powercut%20-%20ic.png"
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:ss:the-hunters-perimeter:1134",
+              "cardName": "The Hunter's Perimeter",
+              "cardDisplayName": "The Hunter's Perimeter",
+              "rarity": "Uncommon",
+              "image": "/downloads/locations/SS/UnknownTribe/Uncommon/The%20Hunter's%20Perimeter%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T22:50:30.137Z"
+        },
+        {
+          "runId": "28c3e1298bc55c6b898b82d7",
+          "locationId": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T22:56:54.992Z",
+          "rewards": [
+            {
+              "type": "locations",
+              "cardId": "locations:dop:the-storm-tunnel:1157",
+              "cardName": "The Storm Tunnel",
+              "cardDisplayName": "The Storm Tunnel",
+              "rarity": "Common",
+              "image": "/downloads/locations/DOP/UnknownTribe/Common/The%20Storm%20Tunnel%20-%20ic.png"
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:magma-might:53",
+              "cardName": "Magma Might",
+              "cardDisplayName": "Magma Might",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/AU/Super%20Rare/Magma%20Might%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T22:59:32.456Z"
+        }
+      ],
+      "history": [
+        {
+          "runId": "0e5177a6a9e8d63969f3a9a7",
+          "locationName": "Rock River Canyon",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-04-30T02:38:55.894Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:ss:fear-fight:232",
+              "cardName": "Fear Fight",
+              "cardDisplayName": "Fear Fight",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/SS/Uncommon/Fear%20Fight%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "199e7541433693bd5c0dd988",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-04-30T02:43:47.488Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:atmosfear:82",
+              "cardName": "Atmosfear",
+              "cardDisplayName": "Atmosfear",
+              "rarity": "Common",
+              "image": "/downloads/attacks/AU/Common/Atmosfear%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "122c7822856a926d03d6faeb",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-04-30T03:08:53.894Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:ursis:594",
+              "cardName": "Ursis",
+              "cardDisplayName": "Ursis",
+              "rarity": "Ultra Rare",
+              "image": "/downloads/creatures/AU/Generic/Ultra%20Rare/Ursis%20-%20ic.png",
+              "variant": {
+                "energyDelta": 10,
+                "courageDelta": 5,
+                "powerDelta": 0,
+                "wisdomDelta": -5,
+                "speedDelta": 5,
+                "perfect": false
+              },
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "1364034340eeeae8b773eb82",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionName": "Procurar Recursos / Reliquias",
+          "claimedAt": "2026-04-30T03:16:18.115Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:perplexing-heat:181",
+              "cardName": "Perplexing Heat",
+              "cardDisplayName": "Perplexing Heat",
+              "rarity": "Common",
+              "image": "/downloads/attacks/MI/Common/Perplexing%20Heat%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:roto:swarming-destruction:134",
+              "cardName": "Swarming Destruction",
+              "cardDisplayName": "Swarming Destruction",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/ROTO/Uncommon/Swarming%20Destruction%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "a8f9d46452543d48d6a81cd8",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionName": "Explorar a Area",
+          "claimedAt": "2026-04-30T03:21:03.826Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:dry-liquid:202",
+              "cardName": "Dry Liquid",
+              "cardDisplayName": "Dry Liquid",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/MI/Uncommon/Dry%20Liquid%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "mugic",
+              "cardId": "mugic:mi:ballad-of-the-belittled:1301",
+              "cardName": "Ballad of the Belittled",
+              "cardDisplayName": "Ballad of the Belittled",
+              "rarity": "Rare",
+              "image": "/downloads/mugic/MI/Generic/Rare/Ballad%20of%20the%20Belittled%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:accelerated-unity:260",
+              "cardName": "Accelerated Unity",
+              "cardDisplayName": "Accelerated Unity",
+              "rarity": "Common",
+              "image": "/downloads/attacks/ZOTH/Common/Accelerated%20Unity%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:fun:grantkaes-stance:101",
+              "cardName": "Grantkae's Stance",
+              "cardDisplayName": "Grantkae's Stance",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/FUN/Super%20Rare/Grantkae's%20Stance%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:dop:the-storm-tunnel:1157",
+              "cardName": "The Storm Tunnel",
+              "cardDisplayName": "The Storm Tunnel",
+              "rarity": "Common",
+              "image": "/downloads/locations/DOP/UnknownTribe/Common/The%20Storm%20Tunnel%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "6e1616fbab490aeb4ea9db37",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-04-30T03:25:48.708Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:perplexing-heat:45",
+              "cardName": "Perplexing Heat",
+              "cardDisplayName": "Perplexing Heat",
+              "rarity": "Common",
+              "image": "/downloads/attacks/MI/Common/Perplexing%20Heat%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "4350004afda3b439b75e6e1c",
+          "locationName": "The Storm Tunnel",
+          "actionName": "Explorar a Area",
+          "claimedAt": "2026-04-30T03:29:48.713Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:smildon:605",
+              "cardName": "Smildon",
+              "cardDisplayName": "Smildon",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Smildon%20-%20ic.png",
+              "variant": {
+                "energyDelta": 5,
+                "courageDelta": 5,
+                "powerDelta": 5,
+                "wisdomDelta": 5,
+                "speedDelta": -5,
+                "perfect": false
+              },
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "113481a5ab6def4ab205f415",
+          "locationName": "Rock River Canyon",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-04-30T22:03:07.555Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:smildon:605",
+              "cardName": "Smildon",
+              "cardDisplayName": "Smildon",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Smildon%20-%20ic.png",
+              "variant": {
+                "energyDelta": -10,
+                "courageDelta": 5,
+                "powerDelta": 0,
+                "wisdomDelta": 0,
+                "speedDelta": -5,
+                "perfect": false
+              },
+              "isNew": false
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:roto:royal-mipedian-academy-of-melee-arts:1102",
+              "cardName": "Royal Mipedian Academy of Melee Arts",
+              "cardDisplayName": "Royal Mipedian Academy of Melee Arts",
+              "rarity": "Rare",
+              "image": "/downloads/locations/ROTO/UnknownTribe/Rare/Royal%20Mipedian%20Academy%20of%20Melee%20Arts%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "fbb93f9749641903b2ed7a72",
+          "locationName": "The Storm Tunnel",
+          "actionName": "Explorar a Area",
+          "claimedAt": "2026-04-30T22:03:15.061Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:reverberate:245",
+              "cardName": "Reverberate",
+              "cardDisplayName": "Reverberate",
+              "rarity": "Common",
+              "image": "/downloads/attacks/ZOTH/Common/Reverberate%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:tott:sediment-stormshield:117",
+              "cardName": "Sediment Stormshield",
+              "cardDisplayName": "Sediment Stormshield",
+              "rarity": "Common",
+              "image": "/downloads/attacks/TOTT/Common/Sediment%20Stormshield%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:fun:the-storm-tunnel-kibros-foothold:1074",
+              "cardName": "The Storm Tunnel, Ki'bro's Foothold",
+              "cardDisplayName": "The Storm Tunnel, Ki'bro's Foothold",
+              "rarity": "Common",
+              "image": "/downloads/locations/FUN/UnknownTribe/Common/The%20Storm%20Tunnel%2C%20Ki'bro's%20Foothold%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "4962fa196eb8ba290af6121b",
+          "locationName": "Rock River Canyon",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-04-30T22:47:58.204Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:proboscar:617",
+              "cardName": "Proboscar",
+              "cardDisplayName": "Proboscar",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Proboscar%20-%20ic.png",
+              "variant": {
+                "energyDelta": -5,
+                "courageDelta": 5,
+                "powerDelta": -5,
+                "wisdomDelta": 0,
+                "speedDelta": -5,
+                "perfect": false
+              },
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:fun:valor-continuum:86",
+              "cardName": "Valor Continuum",
+              "cardDisplayName": "Valor Continuum",
+              "rarity": "Common",
+              "image": "/downloads/attacks/FUN/Common/Valor%20Continuum%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "ebce93853d5377bb7a984b38",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T01:53:10.702Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:ss:twister-of-elements:212",
+              "cardName": "Twister of Elements",
+              "cardDisplayName": "Twister of Elements",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/SS/Super%20Rare/Twister%20of%20Elements%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:dop:allmageddon:309",
+              "cardName": "Allmageddon",
+              "cardDisplayName": "Allmageddon",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/PE1/Super%20Rare/Allmageddon%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:mindsink:186",
+              "cardName": "Mindsink",
+              "cardDisplayName": "Mindsink",
+              "rarity": "Common",
+              "image": "/downloads/attacks/MI/Common/Mindsink%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "1ad0924e52b6bd7a3e2fa1e6",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T02:07:51.985Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:hurlicane:58",
+              "cardName": "Hurlicane",
+              "cardDisplayName": "Hurlicane",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/SS/Rare/Hurlicane%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "370677c06544fa8421b64617",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T02:27:25.298Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:smildon:605",
+              "cardName": "Smildon",
+              "cardDisplayName": "Smildon",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Smildon%20-%20ic.png",
+              "variant": {
+                "energyDelta": 0,
+                "courageDelta": -5,
+                "powerDelta": -5,
+                "wisdomDelta": 5,
+                "speedDelta": -5,
+                "perfect": false
+              },
+              "isNew": false
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:whirlwind-scythes:152",
+              "cardName": "Whirlwind Scythes",
+              "cardDisplayName": "Whirlwind Scythes",
+              "rarity": "Common",
+              "image": "/downloads/attacks/MI/Common/Whirlwind%20Scythes%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "6e7cf35038dd5acb62fe0e34",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionName": "Explorar a Area",
+          "claimedAt": "2026-05-01T02:32:46.708Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:ember-swarm:200",
+              "cardName": "Ember Swarm",
+              "cardDisplayName": "Ember Swarm",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/MI/Uncommon/Ember%20Swarm%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "ffad9ddbff4d3e17b75d287c",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionName": "Explorar a Area",
+          "claimedAt": "2026-05-01T02:37:31.722Z",
+          "rewards": [
+            {
+              "type": "mugic",
+              "cardId": "mugic:zoth:melody-of-the-meek:1328",
+              "cardName": "Melody of the Meek",
+              "cardDisplayName": "Melody of the Meek",
+              "rarity": "Rare",
+              "image": "/downloads/mugic/ZOTH/Generic/Rare/Melody%20of%20the%20Meek%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:ss:hurlicane:227",
+              "cardName": "Hurlicane",
+              "cardDisplayName": "Hurlicane",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/SS/Rare/Hurlicane%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:dop:the-storm-tunnel:1157",
+              "cardName": "The Storm Tunnel",
+              "cardDisplayName": "The Storm Tunnel",
+              "rarity": "Common",
+              "image": "/downloads/locations/DOP/UnknownTribe/Common/The%20Storm%20Tunnel%20-%20ic.png",
+              "isNew": false
+            }
+          ]
+        },
+        {
+          "runId": "6076f6d30e74ff6531f404d7",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionName": "Acampar / Esperar",
+          "claimedAt": "2026-05-01T02:49:41.246Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:hampering-winds:193",
+              "cardName": "Hampering Winds",
+              "cardDisplayName": "Hampering Winds",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/SS/Uncommon/Hampering%20Winds%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "ff6e45125d547bc03849bc7d",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T02:54:43.687Z",
+          "rewards": [
+            {
+              "type": "creatures",
+              "cardId": "creatures:au:proboscar:617",
+              "cardName": "Proboscar",
+              "cardDisplayName": "Proboscar",
+              "rarity": "Super Rare",
+              "image": "/downloads/creatures/AU/Generic/Super%20Rare/Proboscar%20-%20ic.png",
+              "variant": {
+                "energyDelta": -5,
+                "courageDelta": 0,
+                "powerDelta": -5,
+                "wisdomDelta": 0,
+                "speedDelta": -5,
+                "perfect": false
+              },
+              "isNew": false
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:scouts-strike:244",
+              "cardName": "Scout's Strike",
+              "cardDisplayName": "Scout's Strike",
+              "rarity": "Common",
+              "image": "/downloads/attacks/ZOTH/Common/Scout's%20Strike%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:dop:the-storm-tunnel:1157",
+              "cardName": "The Storm Tunnel",
+              "cardDisplayName": "The Storm Tunnel",
+              "rarity": "Common",
+              "image": "/downloads/locations/DOP/UnknownTribe/Common/The%20Storm%20Tunnel%20-%20ic.png",
+              "isNew": false
+            }
+          ]
+        },
+        {
+          "runId": "284b454a83b28bf0ff4af5f4",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionName": "Procurar Recursos / Reliquias",
+          "claimedAt": "2026-05-01T18:49:13.935Z",
+          "rewards": [
+            {
+              "type": "battlegear",
+              "cardId": "battlegear:mi:prism-of-sloth:413",
+              "cardName": "Prism of Sloth",
+              "cardDisplayName": "Prism of Sloth",
+              "rarity": "Common",
+              "image": "/downloads/battlegear/MI/Common/Prism%20of%20Sloth%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "mugic",
+              "cardId": "mugic:dop:ember-flourish:1376",
+              "cardName": "Ember Flourish",
+              "cardDisplayName": "Ember Flourish",
+              "rarity": "Uncommon",
+              "image": "/downloads/mugic/DOP/Generic/Uncommon/Ember%20Flourish%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "a42a5d30d83d8bd84b379d80",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionName": "Explorar a Area",
+          "claimedAt": "2026-05-01T18:54:31.565Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:dop:thunder-shout:269",
+              "cardName": "Thunder Shout",
+              "cardDisplayName": "Thunder Shout",
+              "rarity": "Common",
+              "image": "/downloads/attacks/DOP/Common/Thunder%20Shout%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "68a1d84fad04073c03ebf760",
+          "locationName": "Rock River Canyon",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T19:00:55.511Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:flood-force:63",
+              "cardName": "Flood Force",
+              "cardDisplayName": "Flood Force",
+              "rarity": "Common",
+              "image": "/downloads/attacks/AU/Common/Flood%20Force%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:paraseed:46",
+              "cardName": "Paraseed",
+              "cardDisplayName": "Paraseed",
+              "rarity": "Common",
+              "image": "/downloads/attacks/AU/Common/Paraseed%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "ff8fa647c9ac25bc5760aca3",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T19:07:30.285Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:sunder-ground:36",
+              "cardName": "Sunder Ground",
+              "cardDisplayName": "Sunder Ground",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/ZOTH/Uncommon/Sunder%20Ground%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:tott:reefquake:118",
+              "cardName": "Reefquake",
+              "cardDisplayName": "Reefquake",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/TOTT/Uncommon/Reefquake%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "ec5d851a9093246c63bff52c",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T19:47:29.911Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:dop:fearocity:301",
+              "cardName": "Fearocity",
+              "cardDisplayName": "Fearocity",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/DOP/Super%20Rare/Fearocity%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:roto:petrifying-power:141",
+              "cardName": "Petrifying Power",
+              "cardDisplayName": "Petrifying Power",
+              "rarity": "Common",
+              "image": "/downloads/attacks/ROTO/Common/Petrifying%20Power%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "f13f7cad8ba6c1eba3272f34",
+          "locationName": "The Storm Tunnel",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T19:55:35.716Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:mi:plasmarrow:179",
+              "cardName": "Plasmarrow",
+              "cardDisplayName": "Plasmarrow",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/MI/Rare/Plasmarrow%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "4c590aa607c4072ebe259ca5",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T20:01:52.030Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:pe1:purifying-mud:3",
+              "cardName": "Purifying Mud",
+              "cardDisplayName": "Purifying Mud",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/SS/Super%20Rare/Purifying%20Mud%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "d5f6943d40d2faf3397d3825",
+          "locationName": "The Storm Tunnel, Flooding",
+          "actionName": "Acampar / Esperar",
+          "claimedAt": "2026-05-01T20:10:50.268Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:enlightened-tenacity:70",
+              "cardName": "Enlightened Tenacity",
+              "cardDisplayName": "Enlightened Tenacity",
+              "rarity": "Common",
+              "image": "/downloads/attacks/SS/Common/Enlightened%20Tenacity%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "d508bd2eb9ff1f54f9cd21cc",
+          "locationName": "Royal Mipedian Academy of Melee Arts",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T20:23:43.239Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:granite-balls:253",
+              "cardName": "Granite Balls",
+              "cardDisplayName": "Granite Balls",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/ZOTH/Rare/Granite%20Balls%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:ss:the-hunters-perimeter:1134",
+              "cardName": "The Hunter's Perimeter",
+              "cardDisplayName": "The Hunter's Perimeter",
+              "rarity": "Uncommon",
+              "image": "/downloads/locations/SS/UnknownTribe/Uncommon/The%20Hunter's%20Perimeter%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "a5481f2d2014746029f227ad",
+          "locationName": "The Hunter's Perimeter",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T20:38:12.462Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:wall-of-flame:27",
+              "cardName": "Wall of Flame",
+              "cardDisplayName": "Wall of Flame",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/AU/Rare/Wall%20of%20Flame%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:ss:mipedian-dew-farm:1139",
+              "cardName": "Mipedian Dew Farm",
+              "cardDisplayName": "Mipedian Dew Farm",
+              "rarity": "Common",
+              "image": "/downloads/locations/SS/UnknownTribe/Common/Mipedian%20Dew%20Farm%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "e7dde449eb8a652892209c52",
+          "locationName": "Mipedian Dew Farm",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T22:50:30.137Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:fun:powercut:94",
+              "cardName": "Powercut",
+              "cardDisplayName": "Powercut",
+              "rarity": "Common",
+              "image": "/downloads/attacks/FUN/Common/Powercut%20-%20ic.png",
+              "isNew": true
+            },
+            {
+              "type": "locations",
+              "cardId": "locations:ss:the-hunters-perimeter:1134",
+              "cardName": "The Hunter's Perimeter",
+              "cardDisplayName": "The Hunter's Perimeter",
+              "rarity": "Uncommon",
+              "image": "/downloads/locations/SS/UnknownTribe/Uncommon/The%20Hunter's%20Perimeter%20-%20ic.png",
+              "isNew": false
+            }
+          ]
+        },
+        {
+          "runId": "28c3e1298bc55c6b898b82d7",
+          "locationName": "The Storm Tunnel, Ki'bro's Foothold",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T22:59:32.456Z",
+          "rewards": [
+            {
+              "type": "locations",
+              "cardId": "locations:dop:the-storm-tunnel:1157",
+              "cardName": "The Storm Tunnel",
+              "cardDisplayName": "The Storm Tunnel",
+              "rarity": "Common",
+              "image": "/downloads/locations/DOP/UnknownTribe/Common/The%20Storm%20Tunnel%20-%20ic.png",
+              "isNew": false
+            },
+            {
+              "type": "attacks",
+              "cardId": "attacks:au:magma-might:53",
+              "cardName": "Magma Might",
+              "cardDisplayName": "Magma Might",
+              "rarity": "Super Rare",
+              "image": "/downloads/attacks/AU/Super%20Rare/Magma%20Might%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-05-01T22:59:36.682Z"
+    },
+    "teste": {
+      "activeRun": null,
+      "pendingRewards": [
+        {
+          "runId": "3b8688dc4b4096e9feb55ea8",
+          "locationId": "locations:tott:lores-chamber-of-recall:1092",
+          "locationName": "Lore's Chamber of Recall",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T02:18:16.418Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:pillar-quake:246",
+              "cardName": "Pillar Quake",
+              "cardDisplayName": "Pillar Quake",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/ZOTH/Rare/Pillar%20Quake%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T02:18:19.024Z"
+        },
+        {
+          "runId": "ecade2bbab6db7044ebbb924",
+          "locationId": "locations:tott:shardcrafters-workshop:1089",
+          "locationName": "Shardcrafters' Workshop",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T02:24:05.487Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:ss:reckless-defeat:219",
+              "cardName": "Reckless Defeat",
+              "cardDisplayName": "Reckless Defeat",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/SS/Uncommon/Reckless%20Defeat%20-%20ic.png"
+            }
+          ],
+          "claimedAt": "2026-05-01T02:24:08.625Z"
+        }
+      ],
+      "history": [
+        {
+          "runId": "3b8688dc4b4096e9feb55ea8",
+          "locationName": "Lore's Chamber of Recall",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T02:18:19.024Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:zoth:pillar-quake:246",
+              "cardName": "Pillar Quake",
+              "cardDisplayName": "Pillar Quake",
+              "rarity": "Rare",
+              "image": "/downloads/attacks/ZOTH/Rare/Pillar%20Quake%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        },
+        {
+          "runId": "ecade2bbab6db7044ebbb924",
+          "locationName": "Shardcrafters' Workshop",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T02:24:08.625Z",
+          "rewards": [
+            {
+              "type": "attacks",
+              "cardId": "attacks:ss:reckless-defeat:219",
+              "cardName": "Reckless Defeat",
+              "cardDisplayName": "Reckless Defeat",
+              "rarity": "Uncommon",
+              "image": "/downloads/attacks/SS/Uncommon/Reckless%20Defeat%20-%20ic.png",
+              "isNew": true
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-05-01T02:24:08.625Z"
+    },
+    "admin": {
+      "activeRun": null,
+      "pendingRewards": [
+        {
+          "runId": "7a3c0a517d91a8c3fc0a6d78",
+          "locationId": "locations:pe1:castle-bodhran:1025",
+          "locationName": "Castle Bodhran",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T19:21:14.161Z",
+          "rewards": [],
+          "claimedAt": "2026-05-01T19:22:21.574Z"
+        },
+        {
+          "runId": "2cc45fbb8179991d987f62b7",
+          "locationId": "locations:au:azaia-mindscrying-chamber:1073",
+          "locationName": "AZAIA Mindscrying Chamber",
+          "actionId": "track",
+          "actionName": "Rastrear Criaturas",
+          "completedAt": "2026-05-01T20:22:34.849Z",
+          "rewards": [],
+          "claimedAt": null
+        }
+      ],
+      "history": [
+        {
+          "runId": "7a3c0a517d91a8c3fc0a6d78",
+          "locationName": "Castle Bodhran",
+          "actionName": "Rastrear Criaturas",
+          "claimedAt": "2026-05-01T19:22:21.574Z",
+          "rewards": []
+        }
+      ],
+      "updatedAt": "2026-05-01T20:22:34.849Z"
+    }
+  }
+}

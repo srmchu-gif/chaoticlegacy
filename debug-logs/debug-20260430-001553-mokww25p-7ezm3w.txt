@@ -1,0 +1,10 @@
+Chaotic Debug Session
+sessionId=mokww25p-7ezm3w
+startedAt=2026-04-30T03:15:53.197Z
+url=http://192.168.2.101:3000/index.html?view=builder
+userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0
+---
+{"type":"session_start","payload":{"url":"http://192.168.2.101:3000/index.html?view=builder","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0","settings":{"schemaVersion":1,"updatedAt":"2026-04-30T03:13:32.046Z","screen":{"fullscreenAuto":true,"resolution":"low"},"audio":{"enabled":true,"master":100,"sfx":100,"music":15},"language":{"cards":"pt","ui":"pt"},"gameplay":{"animations":true,"hints":false},"controls":{"mouseSensitivity":100,"keybinds":{"confirmAction":"Enter","confirmAttack":"Space","autoStep":"KeyN","switchBuilder":"Digit1","switchBattle":"Digit2","switchSettings":"Digit3","cancel":"Escape"}},"extras":{"theme":"dark","fpsCounter":true,"debugMode":true},"musicPlayer":{"enabled":true,"loopTrack":false,"lastTrackIndex":1,"volume":0}}}}
+{"at":"2026-04-30T03:15:53.202Z","type":"debug","message":"Debug mode enabled.","payload":null}
+{"at":"2026-04-30T03:15:53.381Z","type":"music","message":"play","payload":{"track":"Cardstorm Rising"}}
+{"type":"session_end","at":"2026-04-30T03:15:55.640Z","reason":"beforeunload"}

@@ -1,0 +1,118 @@
+services:
+  app:
+    # Safe mode (single Node process): multiplayer state lives in memory.
+    # Keep 2 logical CPUs free for Windows/Docker Desktop stability.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chaotic-app
+    restart: unless-stopped
+    cpuset: "0-13"
+    cpus: "14.0"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      PERSIST_DIR: /app/runtime
+      SQLITE_FILE: /app/runtime/chaotic.db
+      UV_THREADPOOL_SIZE: 14
+      SESSION_TTL_MS: ${SESSION_TTL_MS:-604800000}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-60000}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-25}
+      ACTION_RATE_LIMIT_WINDOW_MS: ${ACTION_RATE_LIMIT_WINDOW_MS:-10000}
+      ACTION_RATE_LIMIT_MAX: ${ACTION_RATE_LIMIT_MAX:-40}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    volumes:
+      - ./runtime:/app/runtime
+      - ./exports:/app/exports
+    ports:
+      - "${APP_PUBLIC_PORT:-3000}:3000"
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1));"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - chaotic_net
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: chaotic-caddy
+    profiles: ["duckdns"]
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DUCKDNS_DOMAIN: ${DUCKDNS_DOMAIN}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy_data:/data
+      - ./caddy_config:/config
+    networks:
+      - chaotic_net
+
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    container_name: chaotic-duckdns
+    profiles: ["duckdns"]
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-America/Sao_Paulo}
+      SUBDOMAINS: ${DUCKDNS_SUBDOMAIN}
+      TOKEN: ${DUCKDNS_TOKEN}
+      LOG_FILE: "true"
+      UPDATE_IP: ipv4
+    volumes:
+      - ./duckdns:/config
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: chaotic-cloudflared
+    profiles: ["cloudflare"]
+    restart: unless-stopped
+    depends_on:
+      - app
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+    logging:
+      driver: json-file
+      options:
+        max-size: "8m"
+        max-file: "3"
+    networks:
+      - chaotic_net
+
+  cloudflared-host:
+    image: cloudflare/cloudflared:latest
+    container_name: chaotic-cloudflared-host
+    profiles: ["cloudflare-host"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN} --url http://host.docker.internal:3000
+    logging:
+      driver: json-file
+      options:
+        max-size: "8m"
+        max-file: "3"
+    networks:
+      - chaotic_net
+
+networks:
+  chaotic_net:
+    driver: bridge

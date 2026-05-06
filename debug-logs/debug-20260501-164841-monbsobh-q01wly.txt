@@ -1,0 +1,9 @@
+Chaotic Debug Session
+sessionId=monbsobh-q01wly
+startedAt=2026-05-01T19:48:41.885Z
+url=http://localhost:3000/index.html?view=settings
+userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0
+---
+{"type":"session_start","payload":{"url":"http://localhost:3000/index.html?view=settings","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0","settings":{"schemaVersion":1,"updatedAt":"2026-05-01T19:48:11.724Z","screen":{"fullscreenAuto":true,"resolution":"low"},"audio":{"enabled":false,"master":100,"sfx":100,"music":64},"language":{"cards":"pt","ui":"pt"},"gameplay":{"animations":true,"hints":false},"controls":{"mouseSensitivity":100,"keybinds":{"confirmAction":"Enter","confirmAttack":"Space","autoStep":"KeyN","switchBuilder":"Digit1","switchBattle":"Digit2","switchSettings":"Digit3","cancel":"Escape"}},"extras":{"theme":"dark","fpsCounter":true,"debugMode":true},"musicPlayer":{"enabled":true,"loopTrack":false,"lastTrackIndex":4,"volume":53}}}}
+{"at":"2026-05-01T19:48:41.888Z","type":"debug","message":"Debug mode enabled.","payload":null}
+{"type":"session_end","at":"2026-05-01T19:48:45.281Z","reason":"beforeunload"}
