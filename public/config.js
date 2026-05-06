@@ -14,8 +14,8 @@
     basePath: "/chaotic-api-main/lib/library/",
   };
 
-  window.APP_CONFIG = {
-    ...defaults,
-    ...(window.APP_CONFIG && typeof window.APP_CONFIG === "object" ? window.APP_CONFIG : {}),
-  };
+window.APP_CONFIG = {
+  apiBase: "https://game.chaoticlegacy.qzz.io",
+  basePath: "/chaoticlegacy/"
+};
 })();

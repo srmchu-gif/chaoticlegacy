@@ -1,0 +1,24 @@
+name: Deploy Backend on Self-Hosted Windows
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows, x64]
+    steps:
+      - name: Deploy app folder
+        shell: powershell
+        run: |
+          $app = "C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main"
+          git -C $app fetch origin main
+          git -C $app reset --hard origin/main
+          npm --prefix $app ci
+      - name: Restart service
+        shell: powershell
+        run: |
+          C:\tools\nssm\win64\nssm.exe restart ChaoticAPI
+          Start-Sleep -Seconds 5
+          Invoke-WebRequest http://127.0.0.1:3000/health | Out-Null
