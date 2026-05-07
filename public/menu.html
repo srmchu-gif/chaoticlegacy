@@ -120,13 +120,33 @@
         <h2 class="panel-title">Trocas</h2>
         <div id="trades-status" class="trades-status">Monte uma sala e troque cartas em tempo real.</div>
 
-          <div id="trades-hub-view" class="trades-hub-view">
-            <button id="btn-trades-create-room" class="menu-btn primary-btn compact-action-btn">Criar sala de troca</button>
-            <div class="trades-join-row">
-              <input id="trades-room-code-input" type="text" maxlength="6" placeholder="Codigo da sala" />
-              <button id="btn-trades-join-room" class="menu-btn standard-btn compact-action-btn">Entrar</button>
+        <div id="trades-hub-view" class="trades-hub-view">
+          <button id="btn-trades-create-room" class="menu-btn primary-btn compact-action-btn">Criar sala de troca</button>
+          <div class="trades-join-row">
+            <input id="trades-room-code-input" type="text" maxlength="6" placeholder="Codigo da sala" />
+            <button id="btn-trades-join-room" class="menu-btn standard-btn compact-action-btn">Entrar</button>
+          </div>
+          <div class="trades-friend-invite-box">
+            <h3>Troca com amigo (sem codigo)</h3>
+            <div class="trades-friend-invite-row">
+              <select id="trades-friend-select">
+                <option value="">Carregando amigos online...</option>
+              </select>
+              <button id="btn-trades-invite-friend" class="menu-btn standard-btn compact-action-btn">Convidar</button>
+              <button id="btn-trades-refresh-friends" class="menu-btn ghost-btn compact-action-btn">Atualizar</button>
             </div>
           </div>
+          <div class="trades-invites-grid">
+            <div class="trades-invites-box">
+              <h3>Convites recebidos</h3>
+              <div id="trades-incoming-invites" class="trades-invites-list"></div>
+            </div>
+            <div class="trades-invites-box">
+              <h3>Convites enviados</h3>
+              <div id="trades-outgoing-invites" class="trades-invites-list"></div>
+            </div>
+          </div>
+        </div>
 
         <div id="trades-room-view" class="trades-room-view" style="display:none;">
           <div class="trades-room-head">
@@ -134,30 +154,46 @@
             <span>Assento: <strong id="trades-seat-label">-</strong></span>
           </div>
           <div id="trades-room-presence" class="trades-room-presence">Aguardando jogador...</div>
-
-          <div class="trades-offers-grid">
-            <div class="trades-offer-column">
-              <h3>Minha oferta</h3>
-              <div id="trades-my-offer" class="trades-offer-list"></div>
-            </div>
-            <div class="trades-offer-column">
-              <h3>Oferta do oponente</h3>
-              <div id="trades-opponent-offer" class="trades-offer-list"></div>
-            </div>
+          <div class="trades-room-section-tabs" id="trades-room-section-tabs">
+            <button type="button" class="trades-room-tab active" data-trade-section-tab="inventory">Inventario</button>
+            <button type="button" class="trades-room-tab" data-trade-section-tab="my-offer">Minha oferta</button>
+            <button type="button" class="trades-room-tab" data-trade-section-tab="opponent-offer">Oferta rival</button>
           </div>
 
-          <div class="trades-inventory-controls">
-            <label for="trades-inventory-type">Filtro de tipo:</label>
-            <select id="trades-inventory-type">
-              <option value="all">Todas</option>
-              <option value="creatures">Creatures</option>
-              <option value="attacks">Attacks</option>
-              <option value="battlegear">Battlegear</option>
-              <option value="locations">Locations</option>
-              <option value="mugic">Mugic</option>
-            </select>
+          <div class="trades-room-main-layout">
+            <div id="trades-section-inventory" class="trades-big-panel trades-section-panel active">
+              <div class="trades-big-panel-head">
+                <h3>Inventario de troca</h3>
+              </div>
+              <div class="trades-inventory-controls">
+                <label for="trades-inventory-type">Tipo:</label>
+                <select id="trades-inventory-type">
+                  <option value="all">Todas</option>
+                  <option value="creatures">Creatures</option>
+                  <option value="attacks">Attacks</option>
+                  <option value="battlegear">Battlegear</option>
+                  <option value="locations">Locations</option>
+                  <option value="mugic">Mugic</option>
+                </select>
+                <input id="trades-inventory-search" type="text" placeholder="Buscar carta..." />
+              </div>
+              <div id="trades-inventory-list" class="trades-card-grid"></div>
+            </div>
+
+            <div id="trades-section-my-offer" class="trades-big-panel trades-section-panel">
+              <div class="trades-big-panel-head">
+                <h3>Minha oferta</h3>
+              </div>
+              <div id="trades-my-offer" class="trades-card-grid"></div>
+            </div>
+
+            <div id="trades-section-opponent-offer" class="trades-big-panel trades-section-panel">
+              <div class="trades-big-panel-head">
+                <h3>Oferta do oponente</h3>
+              </div>
+              <div id="trades-opponent-offer" class="trades-card-grid"></div>
+            </div>
           </div>
-          <div id="trades-inventory-list" class="trades-inventory-list"></div>
 
           <div class="trades-room-actions">
             <button id="btn-trades-accept-toggle" class="menu-btn standard-btn compact-action-btn">Aceitar troca</button>
@@ -286,6 +322,7 @@
       <div class="profile-modal-tabs" role="tablist" aria-label="Navegacao do perfil">
         <button id="profile-tab-general-btn" class="profile-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="profile-tab-general">Geral</button>
         <button id="profile-tab-friends-btn" class="profile-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-friends">Amigos</button>
+        <button id="profile-tab-notifications-btn" class="profile-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-notifications">Notificacoes</button>
       </div>
       <div id="profile-tab-general" class="profile-tab-panel active" role="tabpanel">
         <section class="profile-modal-grid">
@@ -322,14 +359,6 @@
           <h4>Historico (ultimas 50)</h4>
           <div id="profile-modal-history" class="profile-history-list"></div>
         </section>
-        <section id="profile-notifications-section" class="profile-modal-section">
-          <h4>Notificacoes de amizade</h4>
-          <div class="profile-social-actions">
-            <button id="profile-notifications-read-all-btn" type="button" class="menu-btn ghost-btn" style="padding:0.4rem 0.65rem;">Marcar todas como lidas</button>
-            <span id="profile-notifications-unread" class="profile-notifications-unread">0 nao lidas</span>
-          </div>
-          <div id="profile-notifications-list" class="profile-notifications-list"></div>
-        </section>
         <section class="profile-modal-section">
           <h4>Avatar</h4>
           <div class="profile-avatar-actions">
@@ -362,6 +391,16 @@
           <div id="profile-friend-preview" class="profile-friend-preview">Selecione um amigo para ver o perfil resumido.</div>
         </section>
       </div>
+      <div id="profile-tab-notifications" class="profile-tab-panel" role="tabpanel" aria-hidden="true">
+        <section id="profile-notifications-section" class="profile-modal-section profile-modal-section-first">
+          <h4>Notificacoes de amizade</h4>
+          <div class="profile-social-actions">
+            <button id="profile-notifications-read-all-btn" type="button" class="menu-btn ghost-btn" style="padding:0.4rem 0.65rem;">Marcar todas como lidas</button>
+            <span id="profile-notifications-unread" class="profile-notifications-unread">0 nao lidas</span>
+          </div>
+          <div id="profile-notifications-list" class="profile-notifications-list"></div>
+        </section>
+      </div>
     </div>
   </div>
 
@@ -382,6 +421,6 @@
   </div>
 
   <script src="config.js"></script>
-  <script type="module" src="js/menu.js?v=12"></script>
+  <script type="module" src="js/menu.js?v=13"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 PERIM - Acoes e Regras de Drops
-Gerado em: 2026-05-07T17:23:52.359Z
+Gerado em: 2026-05-07T22:08:35.146Z
 
 Acoes:
 - Explorar a Area (explore)
@@ -51,9 +51,15 @@ Regras gerais de drops:
 
 Efeitos de Scanner por nivel:
 - Nivel 1: durationMultiplier=1, successBoostPercent=0, rareBoost=0
-- Nivel 2: durationMultiplier=0.93, successBoostPercent=6, rareBoost=0.15
-- Nivel 3: durationMultiplier=0.86, successBoostPercent=12, rareBoost=0.3
-- Nivel 4: durationMultiplier=0.78, successBoostPercent=20, rareBoost=0.48
+- Nivel 2: durationMultiplier=1, successBoostPercent=6, rareBoost=0.15
+- Nivel 3: durationMultiplier=1, successBoostPercent=12, rareBoost=0.3
+- Nivel 4: durationMultiplier=1, successBoostPercent=20, rareBoost=0.48
+- Duracao por soma total dos scanners:
+  totalLevel>=0 => durationMultiplier=1
+  totalLevel>=7 => durationMultiplier=0.96
+  totalLevel>=11 => durationMultiplier=0.92
+  totalLevel>=15 => durationMultiplier=0.88
+  totalLevel>=19 => durationMultiplier=0.84
 
 Clima por local:
 - Definido por perfil de bioma/local (deserto, floresta, aquatico, congelado, etc.).
@@ -84,13 +90,13 @@ Rede de drops de locations (por local de origem):
 - AZAIA Mindscrying Chamber [locations:au:azaia-mindscrying-chamber:1073] chance_location_por_raridade=7% links=Open Doors of the Deepmines, The Oligarch's Path, M'arrillian Pulse Beacons
 - Annex of the Arcane [locations:lr:annex-of-the-arcane:1028] chance_location_por_raridade=20% links=Mipedim Lounge, Mipedim Lounge
 - Bodal's Arsenal [locations:mi:bodals-arsenal:1133] chance_location_por_raridade=4% links=Kiru City, Kiru City Tunnels, Kiru City, (OP)
-- Brawlers' Burrow [locations:au:brawlers-burrow:1072] chance_location_por_raridade=20% links=Kiru City, (OP), Brawlers' Burrow, Pugilist's Pit, Kiru City Tunnels
 - Brawlers' Burrow [locations:mi:brawlers-burrow:1132] chance_location_por_raridade=20% links=Kiru City, (OP), Brawlers' Burrow, Pugilist's Pit, Kiru City Tunnels
+- Brawlers' Burrow [locations:au:brawlers-burrow:1072] chance_location_por_raridade=20% links=Kiru City, (OP), Brawlers' Burrow, Pugilist's Pit, Kiru City Tunnels
 - Brawlers' Burrow, Pugilist's Pit [locations:tott:brawlers-burrow-pugilists-pit:1095] chance_location_por_raridade=20% links=Brawlers' Burrow, Brawlers' Burrow
-- Broken Edge [locations:au:broken-edge:1071] chance_location_por_raridade=16% links=Mipedim Mirage, Mipedim Valley
 - Broken Edge [locations:mi:broken-edge:1131] chance_location_por_raridade=16% links=Mipedim Mirage, Mipedim Valley
-- Carnival of Confusion [locations:pe1:carnival-of-confusion:1021] chance_location_por_raridade=4% links=Carnival of Confusion, Mind Games, Carnival of Confusion, The Entangled Throne, UnderWorld City, Fear Valley
+- Broken Edge [locations:au:broken-edge:1071] chance_location_por_raridade=16% links=Mipedim Mirage, Mipedim Valley
 - Carnival of Confusion [locations:zoth:carnival-of-confusion:1153] chance_location_por_raridade=4% links=Carnival of Confusion, Mind Games, Carnival of Confusion, The Entangled Throne, UnderWorld City, Fear Valley
+- Carnival of Confusion [locations:pe1:carnival-of-confusion:1021] chance_location_por_raridade=4% links=Carnival of Confusion, Mind Games, Carnival of Confusion, The Entangled Throne, UnderWorld City, Fear Valley
 - Carnival of Confusion, Mind Games [locations:fun:carnival-of-confusion-mind-games:1085] chance_location_por_raridade=11% links=Carnival of Confusion, Carnival of Confusion
 - Carnival of Confusion, The Entangled Throne [locations:promo:carnival-of-confusion-the-entangled-throne:1032] chance_location_por_raridade=2% links=Carnival of Confusion, Carnival of Confusion
 - Castle Bodhran [locations:dop:castle-bodhran:1183] chance_location_por_raridade=7% links=The Storm Tunnel, Runic Grove
@@ -159,8 +165,8 @@ Rede de drops de locations (por local de origem):
 - Lore's Chamber of Recall [locations:tott:lores-chamber-of-recall:1092] chance_location_por_raridade=11% links=Mount Pillar
 - M'arrillian Pulse Beacons [locations:fun:marrillian-pulse-beacons:1079] chance_location_por_raridade=20% links=Hall of Fatigue, AZAIA Mindscrying Chamber
 - Mipedian Dew Farm [locations:ss:mipedian-dew-farm:1139] chance_location_por_raridade=20% links=City of Kehn-sep, Tablet Dig Site, The Hunter's Perimeter
-- Mipedim Lounge [locations:pe1:mipedim-lounge:1017] chance_location_por_raridade=7% links=Annex of the Arcane, Rao'Pa Sahkk, The Ocean with No Water, Royal Mipedian Academy of Melee Arts, Catacombs of the Conjurors
 - Mipedim Lounge [locations:ss:mipedim-lounge:1138] chance_location_por_raridade=7% links=Annex of the Arcane, Rao'Pa Sahkk, The Ocean with No Water, Royal Mipedian Academy of Melee Arts, Catacombs of the Conjurors
+- Mipedim Lounge [locations:pe1:mipedim-lounge:1017] chance_location_por_raridade=7% links=Annex of the Arcane, Rao'Pa Sahkk, The Ocean with No Water, Royal Mipedian Academy of Melee Arts, Catacombs of the Conjurors
 - Mipedim Mirage [locations:ss:mipedim-mirage:1137] chance_location_por_raridade=11% links=Broken Edge, Broken Edge, Prototype Demolition Field, Rock River Canyon
 - Mipedim Oasis [locations:dop:mipedim-oasis:1164] chance_location_por_raridade=11% links=Ijahni Outpost, Illusionary Lake, OverWorld Embassy at Mipedim Oasis
 - Mipedim Tropics [locations:au:mipedim-tropics:1059] chance_location_por_raridade=11% links=Catacombs of the Conjurors, Dranakis Threshold, Portal to the Past, The Darkened Dunes, The Darkened Dunes
@@ -196,8 +202,8 @@ Rede de drops de locations (por local de origem):
 - Royal Mipedian Academy of Melee Arts [locations:roto:royal-mipedian-academy-of-melee-arts:1102] chance_location_por_raridade=11% links=Rock River Canyon, The Hunter's Perimeter
 - Runic Grove [locations:dop:runic-grove:1160] chance_location_por_raridade=20% links=Castle Bodhran, Castle Bodhran, Lake Ken-I-Po
 - Sands of the Unseen [locations:zoth:sands-of-the-unseen:1147] chance_location_por_raridade=16% links=Sha-Kree Flats, Sha-Kree Flats
-- Sha-Kree Flats [locations:pe1:sha-kree-flats:1019] chance_location_por_raridade=7% links=Forest of Life, Sands of the Unseen
 - Sha-Kree Flats [locations:zoth:sha-kree-flats:1146] chance_location_por_raridade=7% links=Forest of Life, Sands of the Unseen
+- Sha-Kree Flats [locations:pe1:sha-kree-flats:1019] chance_location_por_raridade=7% links=Forest of Life, Sands of the Unseen
 - Shardcrafters' Workshop [locations:tott:shardcrafters-workshop:1089] chance_location_por_raridade=11% links=Open Doors of the Deepmines
 - Silchaw's Mine [locations:fas:silchaws-mine:1034] chance_location_por_raridade=11% links=Pyrogenousist's Hearth, Iron Pillar, Iron Pillar
 - Siril'ean's Lair [locations:roto:sirileans-lair:1101] chance_location_por_raridade=11% links=The Coralsmithy
@@ -211,27 +217,27 @@ Rede de drops de locations (por local de origem):
 - The Barracks [locations:zoth:the-barracks:1145] chance_location_por_raridade=11% links=Quarters of the Quartet, Vidav's Refectorium, Vidav's Refectorium, The Training Grounds
 - The Cliffs [locations:au:the-cliffs:1048] chance_location_por_raridade=11% links=The Coralsmithy
 - The Coralsmithy [locations:roto:the-coralsmithy:1099] chance_location_por_raridade=11% links=Siril'ean's Lair, Open Doors of the Deepmines, The Cliffs
-- The Darkened Dunes [locations:pe1:the-darkened-dunes:1018] chance_location_por_raridade=7% links=Mipedim Tropics
 - The Darkened Dunes [locations:zoth:the-darkened-dunes:1144] chance_location_por_raridade=7% links=Mipedim Tropics
+- The Darkened Dunes [locations:pe1:the-darkened-dunes:1018] chance_location_por_raridade=7% links=Mipedim Tropics
 - The Flame Gate [locations:fas:the-flame-gate:1033] chance_location_por_raridade=20% links=UnderWorld City, Lava Pond, The Magma Dam
 - The Garden [locations:au:the-garden:1047] chance_location_por_raridade=11% links=Dranakis Threshold, Portal to the Past, The Heart of the Jungle
 - The Golden Heptagon [locations:au:the-golden-heptagon:1046] chance_location_por_raridade=7% links=Kaizeph, City of the Elements
 - The Heart of the Jungle [locations:mi:the-heart-of-the-jungle:1113] chance_location_por_raridade=7% links=The Garden, Forest of Life, Iparu Jungle
-- The Hive Gallery [locations:au:the-hive-gallery:1045] chance_location_por_raridade=16% links=The Infectorium
 - The Hive Gallery [locations:mi:the-hive-gallery:1112] chance_location_por_raridade=16% links=The Infectorium
+- The Hive Gallery [locations:au:the-hive-gallery:1045] chance_location_por_raridade=16% links=The Infectorium
 - The Hunter's Perimeter [locations:ss:the-hunters-perimeter:1134] chance_location_por_raridade=16% links=Royal Mipedian Academy of Melee Arts, Mipedian Dew Farm
 - The Infectorium [locations:mi:the-infectorium:1111] chance_location_por_raridade=11% links=The Hive Gallery, The Hive Gallery
 - The Magma Dam [locations:au:the-magma-dam:1044] chance_location_por_raridade=7% links=Lava Pond, The Flame Gate
 - The Northrange, Highground [locations:fun:the-northrange-highground:1075] chance_location_por_raridade=11% links=Open Doors of the Deepmines
 - The Oligarch's Path [locations:roto:the-oligarchs-path:1098] chance_location_por_raridade=20% links=AZAIA Mindscrying Chamber
-- The OverWorld Library [locations:au:the-overworld-library:1043] chance_location_por_raridade=16% links=Kiru City
 - The OverWorld Library [locations:mi:the-overworld-library:1110] chance_location_por_raridade=16% links=Kiru City
+- The OverWorld Library [locations:au:the-overworld-library:1043] chance_location_por_raridade=16% links=Kiru City
 - The Passage, OverWorld [locations:au:the-passage-overworld:1042] chance_location_por_raridade=11% links=Gloomuck Swamp, The Passage, UnderWorld
 - The Passage, UnderWorld [locations:au:the-passage-underworld:1041] chance_location_por_raridade=11% links=The Passage, OverWorld, The Pits, The Pits, Wooden Pillar, The Phlogiston
 - The Phalanx Portcullis [locations:tott:the-phalanx-portcullis:1088] chance_location_por_raridade=16% links=The Storms
 - The Phlogiston [locations:au:the-phlogiston:1040] chance_location_por_raridade=11% links=The Passage, UnderWorld, Lava Pond
-- The Pits [locations:au:the-pits:1039] chance_location_por_raridade=16% links=The Passage, UnderWorld
 - The Pits [locations:mi:the-pits:1109] chance_location_por_raridade=16% links=The Passage, UnderWorld
+- The Pits [locations:au:the-pits:1039] chance_location_por_raridade=16% links=The Passage, UnderWorld
 - The Rao'Pa Sahkk Chimegrid [locations:roto:the-raopa-sahkk-chimegrid:1097] chance_location_por_raridade=20% links=Rao'Pa Sahkk, The Ocean with No Water
 - The Storm Tunnel [locations:dop:the-storm-tunnel:1157] chance_location_por_raridade=20% links=Castle Bodhran, Castle Bodhran, The Storm Tunnel, Flooding, The Storm Tunnel, Ki'bro's Foothold, The Storm Tunnel, Lingering Monsoon, The Storms
 - The Storm Tunnel, Flooding [locations:tott:the-storm-tunnel-flooding:1087] chance_location_por_raridade=20% links=The Storm Tunnel
@@ -245,6 +251,6 @@ Rede de drops de locations (por local de origem):
 - UnderWorld City, During Van Bloot's Ascent [locations:tott:underworld-city-during-van-bloots-ascent:1086] chance_location_por_raridade=16% links=UnderWorld City
 - UnderWorld Colosseum [locations:dop:underworld-colosseum:1155] chance_location_por_raridade=11% links=Everrain, Ulmar's Projection Cavern
 - Van Bloot's Banquet [locations:mi:van-bloots-banquet:1107] chance_location_por_raridade=7% links=Gothos Tower
-- Vidav's Refectorium [locations:au:vidavs-refectorium:1035] chance_location_por_raridade=16% links=The Barracks
 - Vidav's Refectorium [locations:mi:vidavs-refectorium:1106] chance_location_por_raridade=16% links=The Barracks
+- Vidav's Refectorium [locations:au:vidavs-refectorium:1035] chance_location_por_raridade=16% links=The Barracks
 - Wooden Pillar [locations:dop:wooden-pillar:1154] chance_location_por_raridade=7% links=Castle Pillar, Castle Pillar, Iron Pillar, Iron Pillar, Jade Pillar, Stone Pillar, Everrain, The Passage, UnderWorld

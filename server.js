@@ -1388,7 +1388,9 @@ let engineModulePromise = null;
 const tradeRooms = new Map();
 const TRADE_ROOM_CODE_LENGTH = 6;
 const TRADE_ROOM_IDLE_TTL_MS = 30 * 60 * 1000;
+const TRADE_INVITE_TTL_MS = 10 * 60 * 1000;
 const tradeCardLocks = new Map();
+const tradeInvites = new Map();
 
 const runtimeMetrics = {
   requestSamplesByRoute: new Map(),
@@ -8843,6 +8845,305 @@ function listTradeOnlinePlayersForRequester(ownerKeyRaw) {
     .filter(Boolean);
 }
 
+function isUserOnlineForTrades(ownerKeyRaw) {
+  if (!isSqlV2Ready()) {
+    return false;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return false;
+  }
+  const now = nowIso();
+  const row = sqliteDb
+    .prepare(`
+      SELECT 1
+      FROM users
+      WHERE lower(username) = ?
+        AND session_token IS NOT NULL
+        AND session_token != ''
+        AND session_expires_at IS NOT NULL
+        AND session_expires_at > ?
+      LIMIT 1
+    `)
+    .get(ownerKey, now);
+  return Boolean(row);
+}
+
+function isPlayerInActiveTrade(ownerKeyRaw, options = {}) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return false;
+  }
+  const ignoreRoomCode = String(options?.ignoreRoomCode || "").trim().toUpperCase();
+  for (const room of tradeRooms.values()) {
+    if (!room || room.status === "completed" || room.status === "cancelled") {
+      continue;
+    }
+    if (ignoreRoomCode && String(room.code || "").toUpperCase() === ignoreRoomCode) {
+      continue;
+    }
+    const hostKey = normalizeUserKey(room.host?.username, "");
+    const guestKey = normalizeUserKey(room.guest?.username, "");
+    if (hostKey === ownerKey || guestKey === ownerKey) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function createTradeRoomForHost(usernameRaw, displayNameRaw, options = {}) {
+  const username = normalizeUserKey(usernameRaw || "local-player");
+  const displayName = String(displayNameRaw || username || "Host").trim() || username;
+  const roomCode = generateTradeRoomCode();
+  const room = {
+    code: roomCode,
+    status: "waiting",
+    visibility: options?.visibility === "hidden" ? "hidden" : "public",
+    host: {
+      username,
+      displayName,
+      seatToken: generateSeatToken(),
+    },
+    guest: null,
+    offers: { host: [], guest: [] },
+    accepted: { host: false, guest: false },
+    confirmFinalize: { host: false, guest: false },
+    clients: new Set(),
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    lastActivityAt: Date.now(),
+    completedAt: null,
+    tradeSummary: null,
+  };
+  tradeRooms.set(roomCode, room);
+  return room;
+}
+
+function joinTradeRoomAsGuest(room, authUsernameRaw, playerNameRaw) {
+  if (!room) {
+    throw new Error("Sala de troca nao encontrada.");
+  }
+  if (room.status === "completed") {
+    throw new Error("Sala de troca ja foi concluida.");
+  }
+  if (room.status === "cancelled") {
+    throw new Error("Sala de troca cancelada.");
+  }
+  if (room.guest) {
+    throw new Error("Sala de troca ja esta cheia.");
+  }
+  const username = normalizeUserKey(authUsernameRaw || "guest");
+  if (username === normalizeUserKey(room.host?.username, "")) {
+    throw new Error("Nao e possivel entrar na sala com o mesmo usuario do host.");
+  }
+  const displayName = String(playerNameRaw || authUsernameRaw || username || "Guest").trim() || username;
+  room.guest = {
+    username,
+    displayName,
+    seatToken: generateSeatToken(),
+  };
+  room.status = "ready";
+  room.accepted = { host: false, guest: false };
+  room.confirmFinalize = { host: false, guest: false };
+  room.updatedAt = nowIso();
+  room.lastActivityAt = Date.now();
+  return {
+    roomCode: room.code,
+    seat: "guest",
+    seatToken: room.guest.seatToken,
+    guestKey: username,
+  };
+}
+
+function cleanupExpiredTradeInvites() {
+  const nowMs = Date.now();
+  tradeInvites.forEach((invite, inviteId) => {
+    if (!invite || String(invite.status || "") !== "pending") {
+      tradeInvites.delete(inviteId);
+      return;
+    }
+    const expiresAtMs = Number(invite.expiresAtMs || 0);
+    const roomCode = normalizeTradeCode(invite.roomCode);
+    const room = roomCode ? tradeRooms.get(roomCode) : null;
+    const expired = !expiresAtMs || nowMs >= expiresAtMs;
+    const roomInvalid = !room || room.status === "completed" || room.status === "cancelled" || Boolean(room.guest);
+    if (!expired && !roomInvalid) {
+      return;
+    }
+    if (room && room.status === "waiting" && !room.guest) {
+      room.status = "cancelled";
+      room.updatedAt = nowIso();
+      room.lastActivityAt = Date.now();
+      releaseTradeRoomLocks(room);
+      sendTradeRoomEvent(room, {
+        type: "trade_room_event",
+        event: "trade_cancelled",
+        roomCode: room.code,
+        by: "system",
+      });
+      broadcastTradeRoomSnapshot(room, "cancel");
+    }
+    tradeInvites.delete(inviteId);
+  });
+}
+
+function normalizeTradeInvitePayload(invite) {
+  if (!invite) {
+    return null;
+  }
+  const expiresAtMs = Number(invite.expiresAtMs || 0);
+  return {
+    inviteId: String(invite.id || ""),
+    roomCode: String(invite.roomCode || ""),
+    hostKey: normalizeUserKey(invite.hostKey || "", ""),
+    hostUsername: String(invite.hostUsername || invite.hostKey || ""),
+    guestKey: normalizeUserKey(invite.guestKey || "", ""),
+    guestUsername: String(invite.guestUsername || invite.guestKey || ""),
+    createdAt: String(invite.createdAt || ""),
+    updatedAt: String(invite.updatedAt || ""),
+    expiresAt: expiresAtMs ? new Date(expiresAtMs).toISOString() : null,
+    expiresInMs: Math.max(0, expiresAtMs - Date.now()),
+  };
+}
+
+function listTradeInvitesForOwner(ownerKeyRaw) {
+  cleanupExpiredTradeInvites();
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return { incoming: [], outgoing: [] };
+  }
+  const incoming = [];
+  const outgoing = [];
+  tradeInvites.forEach((invite) => {
+    if (!invite || String(invite.status || "") !== "pending") {
+      return;
+    }
+    const normalized = normalizeTradeInvitePayload(invite);
+    if (!normalized) {
+      return;
+    }
+    if (normalized.guestKey === ownerKey) {
+      incoming.push(normalized);
+      return;
+    }
+    if (normalized.hostKey === ownerKey) {
+      outgoing.push(normalized);
+    }
+  });
+  incoming.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  outgoing.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+  return { incoming, outgoing };
+}
+
+function hasPendingTradeInviteBetweenPlayers(hostKeyRaw, guestKeyRaw) {
+  const hostKey = normalizeUserKey(hostKeyRaw, "");
+  const guestKey = normalizeUserKey(guestKeyRaw, "");
+  if (!hostKey || !guestKey) {
+    return false;
+  }
+  cleanupExpiredTradeInvites();
+  for (const invite of tradeInvites.values()) {
+    if (!invite || String(invite.status || "") !== "pending") {
+      continue;
+    }
+    if (
+      normalizeUserKey(invite.hostKey, "") === hostKey
+      && normalizeUserKey(invite.guestKey, "") === guestKey
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function getFriendPresenceMap(ownerKeyRaw, friendKeysRaw) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const friendKeys = Array.isArray(friendKeysRaw)
+    ? friendKeysRaw
+      .map((value) => normalizeUserKey(value, ""))
+      .filter(Boolean)
+      .filter((value, index, array) => array.indexOf(value) === index && value !== ownerKey)
+    : [];
+  const out = {};
+  if (!friendKeys.length || !isSqlV2Ready()) {
+    return out;
+  }
+  const placeholders = friendKeys.map(() => "?").join(", ");
+  const now = nowIso();
+
+  const onlineRows = sqliteDb
+    .prepare(`
+      SELECT lower(username) AS owner_key
+      FROM users
+      WHERE lower(username) IN (${placeholders})
+        AND session_token IS NOT NULL
+        AND session_token != ''
+        AND session_expires_at IS NOT NULL
+        AND session_expires_at > ?
+    `)
+    .all(...friendKeys, now);
+  const onlineSet = new Set(onlineRows.map((row) => normalizeUserKey(row?.owner_key || "", "")));
+
+  const perimRows = sqliteDb
+    .prepare(`
+      SELECT owner_key, location_name, action_label, updated_at
+      FROM perim_runs
+      WHERE status = 'active' AND owner_key IN (${placeholders})
+      ORDER BY datetime(updated_at) DESC
+    `)
+    .all(...friendKeys);
+  const perimByOwner = new Map();
+  perimRows.forEach((row) => {
+    const key = normalizeUserKey(row?.owner_key || "", "");
+    if (!key || perimByOwner.has(key)) {
+      return;
+    }
+    perimByOwner.set(key, {
+      locationName: String(row?.location_name || ""),
+      actionLabel: String(row?.action_label || ""),
+      updatedAt: String(row?.updated_at || ""),
+    });
+  });
+
+  const tradeSet = new Set();
+  tradeRooms.forEach((room) => {
+    if (!room || room.status === "completed" || room.status === "cancelled") {
+      return;
+    }
+    const hostKey = normalizeUserKey(room.host?.username, "");
+    const guestKey = normalizeUserKey(room.guest?.username, "");
+    if (hostKey && friendKeys.includes(hostKey)) {
+      tradeSet.add(hostKey);
+    }
+    if (guestKey && friendKeys.includes(guestKey)) {
+      tradeSet.add(guestKey);
+    }
+  });
+
+  friendKeys.forEach((key) => {
+    if (tradeSet.has(key)) {
+      out[key] = { status: "em_troca" };
+      return;
+    }
+    const perim = perimByOwner.get(key);
+    if (perim) {
+      out[key] = {
+        status: "em_perim",
+        locationName: perim.locationName,
+        actionLabel: perim.actionLabel,
+        updatedAt: perim.updatedAt,
+      };
+      return;
+    }
+    if (onlineSet.has(key)) {
+      out[key] = { status: "online" };
+      return;
+    }
+    out[key] = { status: "offline" };
+  });
+  return out;
+}
+
 function normalizeTradeCode(value) {
   return String(value || "")
     .toUpperCase()
@@ -9333,6 +9634,7 @@ function applyTradeRoomAction(room, action, seat) {
 
 setInterval(() => {
   cleanupExpiredTradeRooms();
+  cleanupExpiredTradeInvites();
 }, 60 * 1000).unref?.();
 
 function getRoomSeatByToken(room, seatToken) {
@@ -11415,6 +11717,29 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (pathname === "/api/profile/friends/presence" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Sistema de amigos indisponivel sem banco SQL." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const friends = listFriendSummaries(ownerKey);
+    const friendKeys = friends
+      .map((entry) => normalizeUserKey(entry?.ownerKey || entry?.username || "", ""))
+      .filter(Boolean);
+    const presence = getFriendPresenceMap(ownerKey, friendKeys);
+    sendJson(response, 200, {
+      ok: true,
+      presence,
+      generatedAt: nowIso(),
+    });
+    return;
+  }
+
   if (pathname === "/api/profile/friends/requests" && request.method === "GET") {
     const authUser = requireAuthenticatedUser(request, response);
     if (!authUser) {
@@ -12241,6 +12566,7 @@ async function handleRequest(request, response) {
 
   if (pathname.startsWith("/api/trades")) {
     cleanupExpiredTradeRooms();
+    cleanupExpiredTradeInvites();
 
     if (request.method === "GET" && pathname === "/api/trades/online") {
       const authUser = requireAuthenticatedUser(request, response);
@@ -12254,6 +12580,266 @@ async function handleRequest(request, response) {
         total: players.length,
         players,
       });
+    }
+
+    if (request.method === "GET" && pathname === "/api/trades/invites") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      const ownerKey = normalizeUserKey(authUser.username || "");
+      const invites = listTradeInvitesForOwner(ownerKey);
+      return sendJson(response, 200, {
+        ok: true,
+        incoming: invites.incoming,
+        outgoing: invites.outgoing,
+        generatedAt: nowIso(),
+      });
+    }
+
+    if (request.method === "POST" && pathname === "/api/trades/invites/create") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      if (!isSqlV2Ready()) {
+        return sendJson(response, 503, { error: "Trocas indisponiveis: banco SQL ainda nao inicializado." });
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        return sendJson(response, 413, { error: error.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido." });
+      }
+      const hostKey = normalizeUserKey(authUser.username || "");
+      if (applyRateLimitWithUser(request, response, "trade_invite_create_user", hostKey, {
+        windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+        maxHits: Math.max(8, Math.floor(ACTION_RATE_LIMIT_MAX / 2)),
+      })) {
+        return;
+      }
+      if (isPlayerInActiveTrade(hostKey)) {
+        return sendJson(response, 409, { error: "Voce ja esta em uma troca ativa." });
+      }
+      const targetUsername = String(payload.friendUsername || payload.username || "").trim();
+      if (!targetUsername) {
+        return sendJson(response, 400, { error: "Username do amigo obrigatorio." });
+      }
+      const targetSummary = getProfileSummaryByUsername(targetUsername);
+      const guestKey = normalizeUserKey(targetSummary?.username || targetUsername, "");
+      if (!targetSummary || !guestKey) {
+        return sendJson(response, 404, { error: "Amigo nao encontrado." });
+      }
+      if (guestKey === hostKey) {
+        return sendJson(response, 400, { error: "Nao e possivel convidar a si mesmo para troca." });
+      }
+      const alreadyFriends = sqliteDb
+        .prepare("SELECT 1 FROM friends WHERE owner_key = ? AND friend_key = ? LIMIT 1")
+        .get(hostKey, guestKey);
+      if (!alreadyFriends) {
+        return sendJson(response, 403, { error: "A troca direta sem codigo exige amizade confirmada." });
+      }
+      if (!isUserOnlineForTrades(guestKey)) {
+        return sendJson(response, 409, { error: "Esse amigo nao esta online no momento." });
+      }
+      if (isPlayerInActiveTrade(guestKey)) {
+        return sendJson(response, 409, { error: "Esse amigo ja esta em outra troca ativa." });
+      }
+      if (hasPendingTradeInviteBetweenPlayers(hostKey, guestKey)) {
+        return sendJson(response, 409, { error: "Ja existe um convite pendente para esse amigo." });
+      }
+      const hostDisplayName = String(payload.playerName || authUser.username || hostKey || "Host").trim() || hostKey;
+      const room = createTradeRoomForHost(hostKey, hostDisplayName, { visibility: "hidden" });
+      const inviteId = `tinv_${crypto.randomBytes(8).toString("hex")}`;
+      const createdAt = nowIso();
+      const expiresAtMs = Date.now() + TRADE_INVITE_TTL_MS;
+      tradeInvites.set(inviteId, {
+        id: inviteId,
+        roomCode: room.code,
+        hostKey,
+        hostUsername: String(authUser.username || hostKey),
+        guestKey,
+        guestUsername: String(targetSummary?.username || guestKey),
+        status: "pending",
+        createdAt,
+        updatedAt: createdAt,
+        expiresAtMs,
+      });
+      createProfileNotification(
+        guestKey,
+        "trade_invite_received",
+        "Convite de troca",
+        `${authUser.username} convidou voce para uma troca direta.`,
+        { inviteId, from: hostKey, fromUsername: String(authUser.username || hostKey) }
+      );
+      appendAuditLog("trade_invite_created", {
+        severity: "info",
+        ownerKey: hostKey,
+        ipAddress: getClientIp(request),
+        message: `Convite de troca criado para ${guestKey}.`,
+        payload: { inviteId, roomCode: room.code, guestKey },
+      });
+      return sendJson(response, 200, {
+        ok: true,
+        invite: normalizeTradeInvitePayload(tradeInvites.get(inviteId)),
+        room: {
+          roomCode: room.code,
+          seat: "host",
+          seatToken: room.host.seatToken,
+        },
+      });
+    }
+
+    if (request.method === "POST" && pathname === "/api/trades/invites/respond") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        return sendJson(response, 413, { error: error.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido." });
+      }
+      const ownerKey = normalizeUserKey(authUser.username || "");
+      const inviteId = String(payload.inviteId || "").trim();
+      const decision = String(payload.decision || "").trim().toLowerCase();
+      if (!inviteId || (decision !== "accept" && decision !== "reject")) {
+        return sendJson(response, 400, { error: "Dados de resposta invalidos." });
+      }
+      if (applyRateLimitWithUser(request, response, "trade_invite_respond_user", ownerKey, {
+        windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+        maxHits: Math.max(8, Math.floor(ACTION_RATE_LIMIT_MAX / 2)),
+      })) {
+        return;
+      }
+      cleanupExpiredTradeInvites();
+      const invite = tradeInvites.get(inviteId);
+      if (!invite || String(invite.status || "") !== "pending") {
+        return sendJson(response, 404, { error: "Convite de troca nao encontrado." });
+      }
+      const guestKey = normalizeUserKey(invite.guestKey || "", "");
+      if (guestKey !== ownerKey) {
+        return sendJson(response, 403, { error: "Convite de troca invalido para este usuario." });
+      }
+      if (decision === "reject") {
+        tradeInvites.delete(inviteId);
+        createProfileNotification(
+          normalizeUserKey(invite.hostKey || "", ""),
+          "trade_invite_rejected",
+          "Convite de troca recusado",
+          `${authUser.username} recusou seu convite de troca.`,
+          { inviteId, by: ownerKey, byUsername: String(authUser.username || ownerKey) }
+        );
+        return sendJson(response, 200, { ok: true, decision: "reject", inviteId });
+      }
+      if (!isSqlV2Ready()) {
+        return sendJson(response, 503, { error: "Trocas indisponiveis: banco SQL ainda nao inicializado." });
+      }
+      if (isPlayerInActiveTrade(ownerKey, { ignoreRoomCode: invite.roomCode })) {
+        return sendJson(response, 409, { error: "Voce ja esta em uma troca ativa." });
+      }
+      const roomCode = normalizeTradeCode(invite.roomCode);
+      const room = requireTradeRoomOr404(response, roomCode);
+      if (!room) {
+        tradeInvites.delete(inviteId);
+        return;
+      }
+      try {
+        const joinResult = joinTradeRoomAsGuest(room, ownerKey, String(payload.playerName || authUser.username || ownerKey));
+        tradeInvites.delete(inviteId);
+        console.log(`[TRADES] Jogador entrou: code=${roomCode} guest=${joinResult.guestKey}`);
+        sendTradeRoomEvent(room, { type: "trade_room_event", event: "guest_joined", roomCode });
+        broadcastTradeRoomSnapshot(room, "guest_joined");
+        createProfileNotification(
+          normalizeUserKey(invite.hostKey || "", ""),
+          "trade_invite_accepted",
+          "Convite de troca aceito",
+          `${authUser.username} aceitou seu convite de troca.`,
+          { inviteId, by: ownerKey, byUsername: String(authUser.username || ownerKey), roomCode }
+        );
+        appendAuditLog("trade_invite_accepted", {
+          severity: "info",
+          ownerKey,
+          ipAddress: getClientIp(request),
+          message: `Convite ${inviteId} aceito.`,
+          payload: { inviteId, roomCode },
+        });
+        return sendJson(response, 200, {
+          ok: true,
+          decision: "accept",
+          inviteId,
+          room: {
+            roomCode: joinResult.roomCode,
+            seat: joinResult.seat,
+            seatToken: joinResult.seatToken,
+          },
+        });
+      } catch (error) {
+        return sendJson(response, 400, { error: error?.message || "Falha ao aceitar convite de troca." });
+      }
+    }
+
+    if (request.method === "POST" && pathname === "/api/trades/invites/cancel") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        return sendJson(response, 413, { error: error.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido." });
+      }
+      const ownerKey = normalizeUserKey(authUser.username || "");
+      const inviteId = String(payload.inviteId || "").trim();
+      if (!inviteId) {
+        return sendJson(response, 400, { error: "inviteId obrigatorio." });
+      }
+      cleanupExpiredTradeInvites();
+      const invite = tradeInvites.get(inviteId);
+      if (!invite || String(invite.status || "") !== "pending") {
+        return sendJson(response, 404, { error: "Convite de troca nao encontrado." });
+      }
+      if (normalizeUserKey(invite.hostKey || "", "") !== ownerKey) {
+        return sendJson(response, 403, { error: "Somente quem convidou pode cancelar o convite." });
+      }
+      const roomCode = normalizeTradeCode(invite.roomCode);
+      const room = roomCode ? tradeRooms.get(roomCode) : null;
+      if (room && room.status === "waiting" && !room.guest) {
+        room.status = "cancelled";
+        room.updatedAt = nowIso();
+        room.lastActivityAt = Date.now();
+        releaseTradeRoomLocks(room);
+        sendTradeRoomEvent(room, {
+          type: "trade_room_event",
+          event: "trade_cancelled",
+          roomCode: room.code,
+          by: "host",
+        });
+        broadcastTradeRoomSnapshot(room, "cancel");
+      }
+      tradeInvites.delete(inviteId);
+      createProfileNotification(
+        normalizeUserKey(invite.guestKey || "", ""),
+        "trade_invite_cancelled",
+        "Convite de troca cancelado",
+        `${authUser.username} cancelou o convite de troca.`,
+        { inviteId, by: ownerKey, byUsername: String(authUser.username || ownerKey) }
+      );
+      return sendJson(response, 200, { ok: true, inviteId, cancelled: true });
     }
 
     if (request.method === "GET" && pathname === "/api/trades/wishlist") {
@@ -12315,31 +12901,11 @@ async function handleRequest(request, response) {
       if (!isSqlV2Ready()) {
         return sendJson(response, 503, { error: "Trocas indisponiveis: banco SQL ainda nao inicializado." });
       }
-      const roomCode = generateTradeRoomCode();
-      const room = {
-        code: roomCode,
-        status: "waiting",
-        host: {
-          username,
-          displayName,
-          seatToken: generateSeatToken(),
-        },
-        guest: null,
-        offers: { host: [], guest: [] },
-        accepted: { host: false, guest: false },
-        confirmFinalize: { host: false, guest: false },
-        clients: new Set(),
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-        lastActivityAt: Date.now(),
-        completedAt: null,
-        tradeSummary: null,
-      };
-      tradeRooms.set(roomCode, room);
-      console.log(`[TRADES] Sala criada: code=${roomCode} host=${username}`);
+      const room = createTradeRoomForHost(username, displayName, { visibility: "public" });
+      console.log(`[TRADES] Sala criada: code=${room.code} host=${username}`);
       return sendJson(response, 200, {
         ok: true,
-        roomCode,
+        roomCode: room.code,
         seat: "host",
         seatToken: room.host.seatToken,
       });
@@ -12365,39 +12931,24 @@ async function handleRequest(request, response) {
       if (!room) {
         return;
       }
-      if (room.status === "completed") {
-        return sendJson(response, 400, { error: "Sala de troca ja foi concluida." });
+      try {
+        const joinResult = joinTradeRoomAsGuest(
+          room,
+          authUser.username || "guest",
+          String(payload.playerName || authUser.username || "Guest")
+        );
+        console.log(`[TRADES] Jogador entrou: code=${roomCode} guest=${joinResult.guestKey}`);
+        sendTradeRoomEvent(room, { type: "trade_room_event", event: "guest_joined", roomCode });
+        broadcastTradeRoomSnapshot(room, "guest_joined");
+        return sendJson(response, 200, {
+          ok: true,
+          roomCode: joinResult.roomCode,
+          seat: joinResult.seat,
+          seatToken: joinResult.seatToken,
+        });
+      } catch (error) {
+        return sendJson(response, 400, { error: error?.message || "Erro ao entrar na sala de troca." });
       }
-      if (room.status === "cancelled") {
-        return sendJson(response, 400, { error: "Sala de troca cancelada." });
-      }
-      if (room.guest) {
-        return sendJson(response, 400, { error: "Sala de troca ja esta cheia." });
-      }
-      const username = normalizeUserKey(authUser.username || "guest");
-      if (username === normalizeUserKey(room.host?.username)) {
-        return sendJson(response, 400, { error: "Nao e possivel entrar na sala com o mesmo usuario do host." });
-      }
-      const displayName = String(payload.playerName || authUser.username || username || "Guest").trim() || username;
-      room.guest = {
-        username,
-        displayName,
-        seatToken: generateSeatToken(),
-      };
-      room.status = "ready";
-      room.accepted = { host: false, guest: false };
-      room.confirmFinalize = { host: false, guest: false };
-      room.updatedAt = nowIso();
-      room.lastActivityAt = Date.now();
-      console.log(`[TRADES] Jogador entrou: code=${roomCode} guest=${username}`);
-      sendTradeRoomEvent(room, { type: "trade_room_event", event: "guest_joined", roomCode });
-      broadcastTradeRoomSnapshot(room, "guest_joined");
-      return sendJson(response, 200, {
-        ok: true,
-        roomCode,
-        seat: "guest",
-        seatToken: room.guest.seatToken,
-      });
     }
 
     if (request.method === "GET" && pathname === "/api/trades/history") {

@@ -185,8 +185,10 @@ async function bindProfile(username, sessionData) {
   const profileModalClose = qs("profile-modal-close");
   const profileTabGeneralBtn = qs("profile-tab-general-btn");
   const profileTabFriendsBtn = qs("profile-tab-friends-btn");
+  const profileTabNotificationsBtn = qs("profile-tab-notifications-btn");
   const profileTabGeneralPanel = qs("profile-tab-general");
   const profileTabFriendsPanel = qs("profile-tab-friends");
+  const profileTabNotificationsPanel = qs("profile-tab-notifications");
   const profileNotificationsSection = qs("profile-notifications-section");
   const profileModalName = qs("profile-modal-name");
   const profileModalUpdated = qs("profile-modal-updated");
@@ -219,6 +221,7 @@ async function bindProfile(username, sessionData) {
   const profileCardRarity = qs("profile-card-rarity");
   const profileCardStats = qs("profile-card-stats");
   const profileCardAbility = qs("profile-card-ability");
+  let profileSocialPollTimer = null;
 
   const applyWinrateColor = (element, value) => {
     if (!element) {
@@ -233,22 +236,33 @@ async function bindProfile(username, sessionData) {
   };
 
   const setProfileTab = (tab) => {
-    const isGeneral = tab !== "friends";
+    const normalizedTab = tab === "friends" || tab === "notifications" ? tab : "general";
+    const isGeneral = normalizedTab === "general";
+    const isFriends = normalizedTab === "friends";
+    const isNotifications = normalizedTab === "notifications";
     if (profileTabGeneralBtn) {
       profileTabGeneralBtn.classList.toggle("active", isGeneral);
       profileTabGeneralBtn.setAttribute("aria-selected", isGeneral ? "true" : "false");
     }
     if (profileTabFriendsBtn) {
-      profileTabFriendsBtn.classList.toggle("active", !isGeneral);
-      profileTabFriendsBtn.setAttribute("aria-selected", !isGeneral ? "true" : "false");
+      profileTabFriendsBtn.classList.toggle("active", isFriends);
+      profileTabFriendsBtn.setAttribute("aria-selected", isFriends ? "true" : "false");
+    }
+    if (profileTabNotificationsBtn) {
+      profileTabNotificationsBtn.classList.toggle("active", isNotifications);
+      profileTabNotificationsBtn.setAttribute("aria-selected", isNotifications ? "true" : "false");
     }
     if (profileTabGeneralPanel) {
       profileTabGeneralPanel.classList.toggle("active", isGeneral);
       profileTabGeneralPanel.setAttribute("aria-hidden", isGeneral ? "false" : "true");
     }
     if (profileTabFriendsPanel) {
-      profileTabFriendsPanel.classList.toggle("active", !isGeneral);
-      profileTabFriendsPanel.setAttribute("aria-hidden", !isGeneral ? "false" : "true");
+      profileTabFriendsPanel.classList.toggle("active", isFriends);
+      profileTabFriendsPanel.setAttribute("aria-hidden", isFriends ? "false" : "true");
+    }
+    if (profileTabNotificationsPanel) {
+      profileTabNotificationsPanel.classList.toggle("active", isNotifications);
+      profileTabNotificationsPanel.setAttribute("aria-hidden", isNotifications ? "false" : "true");
     }
   };
 
@@ -272,6 +286,10 @@ async function bindProfile(username, sessionData) {
   const closeProfileModal = () => {
     if (!profileModal) {
       return;
+    }
+    if (profileSocialPollTimer) {
+      clearInterval(profileSocialPollTimer);
+      profileSocialPollTimer = null;
     }
     profileModal.classList.add("hidden");
     profileModal.setAttribute("aria-hidden", "true");
@@ -313,17 +331,16 @@ async function bindProfile(username, sessionData) {
     if (!profileModal) {
       return;
     }
-    setProfileTab(tab);
+    const targetTab = focusNotifications ? "notifications" : tab;
+    setProfileTab(targetTab);
     profileModal.classList.remove("hidden");
     profileModal.setAttribute("aria-hidden", "false");
-    if (focusNotifications && profileNotificationsSection) {
-      setProfileTab("general");
-      profileNotificationsSection.classList.add("profile-section-focus");
-      profileNotificationsSection.scrollIntoView({ behavior: "smooth", block: "start" });
-      setTimeout(() => {
-        profileNotificationsSection.classList.remove("profile-section-focus");
-      }, 1200);
+    if (profileSocialPollTimer) {
+      clearInterval(profileSocialPollTimer);
     }
+    profileSocialPollTimer = setInterval(() => {
+      void refreshProfileSocial({ silent: true });
+    }, 20000);
   };
 
   const socialState = {
@@ -471,6 +488,44 @@ async function bindProfile(username, sessionData) {
     }
   };
 
+  const normalizePresenceStatus = (presence) => {
+    const status = String(presence?.status || "").toLowerCase();
+    if (status === "em_troca" || status === "em_perim" || status === "online") {
+      return status;
+    }
+    return "offline";
+  };
+
+  const formatFriendPresenceLabel = (presence) => {
+    const status = normalizePresenceStatus(presence);
+    if (status === "em_troca") {
+      return "Em troca";
+    }
+    if (status === "em_perim") {
+      return "Em perim";
+    }
+    if (status === "online") {
+      return "Online";
+    }
+    return "Offline";
+  };
+
+  const formatFriendPresenceDetail = (presence) => {
+    const status = normalizePresenceStatus(presence);
+    if (status === "em_perim") {
+      const locationName = String(presence?.locationName || "-");
+      const actionLabel = String(presence?.actionLabel || "-");
+      return `Perim: ${locationName} • Acao: ${actionLabel}`;
+    }
+    if (status === "em_troca") {
+      return "Negociando cartas agora";
+    }
+    if (status === "online") {
+      return "Disponivel para convite direto";
+    }
+    return "Fora da sessao";
+  };
+
   const renderFriendsList = () => {
     if (!profileFriendsList) {
       return;
@@ -487,6 +542,8 @@ async function bindProfile(username, sessionData) {
             <strong>${escapeHtml(entry?.username || entry?.ownerKey || "Jogador")}</strong>
             <span>Pontuacao ${Number(entry?.score || 0)} • W/L ${Number(entry?.wins || 0)}/${Number(entry?.losses || 0)} • WR ${Number(entry?.winRate || 0).toFixed(2).replace(/\\.00$/, "")}%</span>
             <span>Tribo: ${escapeHtml(entry?.favoriteTribe || "-")}</span>
+            <span class="profile-friend-presence status-${escapeAttr(normalizePresenceStatus(entry?.presence))}">${escapeHtml(formatFriendPresenceLabel(entry?.presence))}</span>
+            <span>${escapeHtml(formatFriendPresenceDetail(entry?.presence))}</span>
           </div>
           <div class="profile-friend-actions">
             <button class="menu-btn ghost-btn" data-friend-view="${escapeAttr(entry?.username || "")}" style="padding:0.25rem 0.45rem;">Ver perfil</button>
@@ -540,23 +597,36 @@ async function bindProfile(username, sessionData) {
     }
   }
 
-  async function refreshProfileSocial() {
+  async function refreshProfileSocial({ silent = false } = {}) {
     try {
-      const [notificationsPayload, friendsPayload, requestsPayload] = await Promise.all([
+      const [notificationsPayload, friendsPayload, requestsPayload, presencePayload] = await Promise.all([
         fetchJsonWithTimeout("/api/profile/notifications?limit=30", { method: "GET" }),
         fetchJsonWithTimeout("/api/profile/friends", { method: "GET" }),
         fetchJsonWithTimeout("/api/profile/friends/requests", { method: "GET" }),
+        fetchJsonWithTimeout("/api/profile/friends/presence", { method: "GET" }),
       ]);
       socialState.notifications = Array.isArray(notificationsPayload?.notifications) ? notificationsPayload.notifications : [];
       socialState.unreadCount = Math.max(0, Number(notificationsPayload?.unreadCount || 0));
-      socialState.friends = Array.isArray(friendsPayload?.friends) ? friendsPayload.friends : [];
+      const presenceMap = presencePayload?.presence && typeof presencePayload.presence === "object"
+        ? presencePayload.presence
+        : {};
+      const friends = Array.isArray(friendsPayload?.friends) ? friendsPayload.friends : [];
+      socialState.friends = friends.map((entry) => {
+        const ownerKey = normalizeUsername(entry?.ownerKey || entry?.username || "");
+        return {
+          ...entry,
+          presence: presenceMap[ownerKey] || { status: "offline" },
+        };
+      });
       socialState.incoming = Array.isArray(requestsPayload?.incoming) ? requestsPayload.incoming : [];
       socialState.outgoing = Array.isArray(requestsPayload?.outgoing) ? requestsPayload.outgoing : [];
       renderNotifications();
       renderFriendRequests();
       renderFriendsList();
     } catch (error) {
-      alert(error?.message || "Falha ao carregar dados sociais do perfil.");
+      if (!silent) {
+        alert(error?.message || "Falha ao carregar dados sociais do perfil.");
+      }
     }
   }
 
@@ -772,7 +842,7 @@ async function bindProfile(username, sessionData) {
           refreshProfile(),
           refreshProfileSocial(),
         ]);
-        openProfileModal({ tab: "general", focusNotifications: true });
+        openProfileModal({ tab: "notifications" });
       } catch (error) {
         alert(error?.message || "Falha ao carregar notificacoes.");
       }
@@ -783,6 +853,9 @@ async function bindProfile(username, sessionData) {
   }
   if (profileTabFriendsBtn) {
     profileTabFriendsBtn.addEventListener("click", () => setProfileTab("friends"));
+  }
+  if (profileTabNotificationsBtn) {
+    profileTabNotificationsBtn.addEventListener("click", () => setProfileTab("notifications"));
   }
   if (profileModalClose) {
     profileModalClose.addEventListener("click", closeProfileModal);
@@ -1906,12 +1979,19 @@ function bindTrades(username) {
   const roomCodeInput = qs("trades-room-code-input");
   const btnCreateRoom = qs("btn-trades-create-room");
   const btnJoinRoom = qs("btn-trades-join-room");
+  const friendSelect = qs("trades-friend-select");
+  const btnInviteFriend = qs("btn-trades-invite-friend");
+  const btnRefreshFriends = qs("btn-trades-refresh-friends");
+  const incomingInvitesEl = qs("trades-incoming-invites");
+  const outgoingInvitesEl = qs("trades-outgoing-invites");
   const roomCodeLabel = qs("trades-room-code-label");
   const seatLabel = qs("trades-seat-label");
   const roomPresence = qs("trades-room-presence");
+  const roomSectionTabs = qs("trades-room-section-tabs");
   const myOfferEl = qs("trades-my-offer");
   const oppOfferEl = qs("trades-opponent-offer");
   const inventoryType = qs("trades-inventory-type");
+  const inventorySearch = qs("trades-inventory-search");
   const inventoryList = qs("trades-inventory-list");
   const btnAcceptToggle = qs("btn-trades-accept-toggle");
   const btnFinalize = qs("btn-trades-finalize");
@@ -1929,6 +2009,9 @@ function bindTrades(username) {
     seat: "",
     snapshot: null,
     eventSource: null,
+    invitePollTimer: null,
+    activeSection: "inventory",
+    friendOptions: [],
   };
 
   function persistTradeSession() {
@@ -1980,6 +2063,24 @@ function bindTrades(username) {
     tradesStatus.style.color = isError ? "#ff8d8d" : "#88b5d5";
   }
 
+  function stopHubPolling() {
+    if (state.invitePollTimer) {
+      clearInterval(state.invitePollTimer);
+      state.invitePollTimer = null;
+    }
+  }
+
+  function startHubPolling() {
+    stopHubPolling();
+    state.invitePollTimer = setInterval(() => {
+      if (state.snapshot) {
+        return;
+      }
+      void refreshFriendTradeOptions(true);
+      void refreshTradeInvites(true);
+    }, 20000);
+  }
+
   function formatCardType(type) {
     const normalized = String(type || "").toLowerCase();
     if (normalized === "creatures") return "Creature";
@@ -1990,24 +2091,44 @@ function bindTrades(username) {
     return normalized || "Carta";
   }
 
-  function escapeAttr(value) {
-    return String(value || "").replace(/"/g, "&quot;");
+  function setTradeSection(section) {
+    const normalized = section === "my-offer" || section === "opponent-offer" ? section : "inventory";
+    state.activeSection = normalized;
+    if (!roomSectionTabs) {
+      return;
+    }
+    roomSectionTabs.querySelectorAll("[data-trade-section-tab]").forEach((button) => {
+      const tab = String(button.getAttribute("data-trade-section-tab") || "");
+      button.classList.toggle("active", tab === normalized);
+    });
+    ["inventory", "my-offer", "opponent-offer"].forEach((tab) => {
+      const panel = qs(`trades-section-${tab}`);
+      if (!panel) {
+        return;
+      }
+      panel.classList.toggle("active", tab === normalized);
+    });
   }
 
-  function renderCardRow(entry, actionHtml = "", offered = false) {
+  function renderTradeCard(entry, actionHtml = "", offered = false) {
     if (!entry || !entry.scanEntryId) {
       return "";
     }
     const variantTag = entry?.variant?.perfect ? " ★" : "";
-    const offeredTag = offered ? " (ofertada)" : "";
-    const lockedTag = entry?.lockedByOtherRoom ? " (travada em outra troca)" : "";
+    const offeredTag = offered ? "Ofertada" : "";
+    const lockedTag = entry?.lockedByOtherRoom ? "Travada em outra troca" : "";
+    const stateLine = [offeredTag, lockedTag].filter(Boolean).join(" • ");
     return `
-      <div class="trades-card-row">
-        <div class="trades-card-meta">
-          <strong>${escapeHtml(entry.cardName || entry.cardId || "Carta")}${variantTag}${offeredTag}${lockedTag}</strong>
-          <span>${escapeHtml(formatCardType(entry.cardType))} • ${escapeHtml(entry.rarity || "Unknown")} • ${escapeHtml(entry.set || "Unknown")}</span>
+      <div class="trades-card-item">
+        <img class="trades-card-thumb" src="${escapeAttr(entry.image || "/fundo%20cartas.png")}" alt="${escapeAttr(entry.cardName || entry.cardId || "Carta")}" />
+        <div class="trades-card-body">
+          <strong>${escapeHtml(entry.cardName || entry.cardId || "Carta")}${variantTag}</strong>
+          <span>${escapeHtml(formatCardType(entry.cardType))} • ${escapeHtml(entry.rarity || "Unknown")}</span>
+          <span>${escapeHtml(entry.set || "Unknown")}${stateLine ? ` • ${escapeHtml(stateLine)}` : ""}</span>
+          <div class="trades-card-actions">
+            ${actionHtml}
+          </div>
         </div>
-        ${actionHtml}
       </div>
     `;
   }
@@ -2046,7 +2167,7 @@ function bindTrades(username) {
         const button = canRemove
           ? `<button class="menu-btn ghost-btn" data-trade-remove="${escapeAttr(entry.scanEntryId)}">Remover</button>`
           : "";
-        return renderCardRow(entry, button, false);
+        return renderTradeCard(entry, button, false);
       })
       .join("");
 
@@ -2072,11 +2193,18 @@ function bindTrades(username) {
     }
     const myInventory = Array.isArray(state.snapshot?.myInventory) ? state.snapshot.myInventory : [];
     const filter = String(inventoryType?.value || "all").toLowerCase();
+    const searchToken = normalizeFilterToken(inventorySearch?.value || "");
     const filtered = myInventory.filter((entry) => {
+      const cardToken = normalizeFilterToken(
+        `${entry?.cardName || ""} ${entry?.cardId || ""} ${entry?.rarity || ""} ${entry?.set || ""} ${formatCardType(entry?.cardType)}`
+      );
       if (filter === "all") {
-        return true;
+        return !searchToken || cardToken.includes(searchToken);
       }
-      return String(entry?.cardType || "").toLowerCase() === filter;
+      if (String(entry?.cardType || "").toLowerCase() !== filter) {
+        return false;
+      }
+      return !searchToken || cardToken.includes(searchToken);
     });
     if (!filtered.length) {
       inventoryList.innerHTML = '<div class="trades-empty">Nenhuma carta disponivel neste filtro.</div>';
@@ -2087,7 +2215,7 @@ function bindTrades(username) {
         const disabledAttr = entry.offered || entry.lockedByOtherRoom ? "disabled" : "";
         const buttonLabel = entry.lockedByOtherRoom ? "Travada" : "Adicionar";
         const actionHtml = `<button class="menu-btn primary-btn" data-trade-add="${escapeAttr(entry.scanEntryId)}" ${disabledAttr}>${buttonLabel}</button>`;
-        return renderCardRow(entry, actionHtml, Boolean(entry.offered));
+        return renderTradeCard(entry, actionHtml, Boolean(entry.offered));
       })
       .join("");
 
@@ -2108,6 +2236,7 @@ function bindTrades(username) {
   function renderTradeSnapshot() {
     const snapshot = state.snapshot;
     if (!snapshot) {
+      startHubPolling();
       if (roomView) {
         roomView.style.display = "none";
       }
@@ -2123,6 +2252,7 @@ function bindTrades(username) {
     if (roomView) {
       roomView.style.display = "grid";
     }
+    stopHubPolling();
 
     const seat = String(snapshot.seat || state.seat || "spectator");
     state.seat = seat;
@@ -2181,6 +2311,7 @@ function bindTrades(username) {
     if (btnCancelRoom) {
       btnCancelRoom.disabled = !canAct || snapshot.status === "completed" || snapshot.status === "cancelled";
     }
+    setTradeSection(state.activeSection);
   }
 
   async function fetchTradeState() {
@@ -2227,6 +2358,7 @@ function bindTrades(username) {
     state.seat = "";
     state.snapshot = null;
     localStorage.removeItem(TRADE_SESSION_KEY);
+    setTradeSection("inventory");
     if (!keepStatus) {
       setTradesStatus("Monte uma sala e troque cartas em tempo real.");
     }
@@ -2238,6 +2370,193 @@ function bindTrades(username) {
     }
     if (roomCodeInput) {
       roomCodeInput.value = "";
+    }
+    startHubPolling();
+  }
+
+  function renderFriendTradeOptions() {
+    if (!friendSelect) {
+      return;
+    }
+    const options = Array.isArray(state.friendOptions) ? state.friendOptions : [];
+    if (!options.length) {
+      friendSelect.innerHTML = '<option value="">Nenhum amigo online disponivel</option>';
+      return;
+    }
+    friendSelect.innerHTML = '<option value="">Selecione um amigo online</option>'
+      + options
+        .map((entry) => `<option value="${escapeAttr(entry.username)}">${escapeHtml(entry.username)} • Score ${Number(entry.score || 0)}</option>`)
+        .join("");
+  }
+
+  async function refreshFriendTradeOptions(silent = false) {
+    try {
+      const [friendsPayload, presencePayload] = await Promise.all([
+        fetchJsonWithTimeout("/api/profile/friends", { method: "GET" }),
+        fetchJsonWithTimeout("/api/profile/friends/presence", { method: "GET" }),
+      ]);
+      const friends = Array.isArray(friendsPayload?.friends) ? friendsPayload.friends : [];
+      const presence = presencePayload?.presence && typeof presencePayload.presence === "object"
+        ? presencePayload.presence
+        : {};
+      state.friendOptions = friends.filter((entry) => {
+        const key = normalizeUsername(entry?.ownerKey || entry?.username || "");
+        const status = String(presence[key]?.status || "offline").toLowerCase();
+        return status === "online";
+      });
+      renderFriendTradeOptions();
+    } catch (error) {
+      if (!silent) {
+        setTradesStatus(error?.message || "Falha ao carregar amigos online.", true);
+      }
+    }
+  }
+
+  function renderTradeInvites(payload) {
+    const incoming = Array.isArray(payload?.incoming) ? payload.incoming : [];
+    const outgoing = Array.isArray(payload?.outgoing) ? payload.outgoing : [];
+    if (incomingInvitesEl) {
+      if (!incoming.length) {
+        incomingInvitesEl.innerHTML = '<div class="trades-empty">Nenhum convite recebido.</div>';
+      } else {
+        incomingInvitesEl.innerHTML = incoming
+          .map((entry) => `
+            <div class="trades-invite-row">
+              <strong>${escapeHtml(entry.hostUsername || entry.hostKey || "Jogador")}</strong>
+              <span>Expira em ${Math.max(0, Math.ceil(Number(entry.expiresInMs || 0) / 60000))} min</span>
+              <div class="trades-invite-actions">
+                <button class="menu-btn primary-btn" data-trade-invite-accept="${escapeAttr(entry.inviteId)}">Aceitar</button>
+                <button class="menu-btn ghost-btn" data-trade-invite-reject="${escapeAttr(entry.inviteId)}">Recusar</button>
+              </div>
+            </div>
+          `)
+          .join("");
+      }
+      incomingInvitesEl.querySelectorAll("[data-trade-invite-accept]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const inviteId = String(button.getAttribute("data-trade-invite-accept") || "").trim();
+          if (!inviteId) {
+            return;
+          }
+          void respondTradeInvite(inviteId, "accept");
+        });
+      });
+      incomingInvitesEl.querySelectorAll("[data-trade-invite-reject]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const inviteId = String(button.getAttribute("data-trade-invite-reject") || "").trim();
+          if (!inviteId) {
+            return;
+          }
+          void respondTradeInvite(inviteId, "reject");
+        });
+      });
+    }
+    if (outgoingInvitesEl) {
+      if (!outgoing.length) {
+        outgoingInvitesEl.innerHTML = '<div class="trades-empty">Nenhum convite enviado.</div>';
+      } else {
+        outgoingInvitesEl.innerHTML = outgoing
+          .map((entry) => `
+            <div class="trades-invite-row">
+              <strong>${escapeHtml(entry.guestUsername || entry.guestKey || "Jogador")}</strong>
+              <span>Aguardando resposta (${Math.max(0, Math.ceil(Number(entry.expiresInMs || 0) / 60000))} min)</span>
+              <div class="trades-invite-actions">
+                <button class="menu-btn ghost-btn" data-trade-invite-cancel="${escapeAttr(entry.inviteId)}">Cancelar</button>
+              </div>
+            </div>
+          `)
+          .join("");
+      }
+      outgoingInvitesEl.querySelectorAll("[data-trade-invite-cancel]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const inviteId = String(button.getAttribute("data-trade-invite-cancel") || "").trim();
+          if (!inviteId) {
+            return;
+          }
+          void cancelTradeInvite(inviteId);
+        });
+      });
+    }
+  }
+
+  async function refreshTradeInvites(silent = false) {
+    try {
+      const payload = await fetchJsonWithTimeout("/api/trades/invites", { method: "GET" });
+      renderTradeInvites(payload);
+    } catch (error) {
+      if (!silent) {
+        setTradesStatus(error?.message || "Falha ao carregar convites de troca.", true);
+      }
+    }
+  }
+
+  async function createTradeInvite() {
+    const friendUsername = String(friendSelect?.value || "").trim();
+    if (!friendUsername) {
+      setTradesStatus("Selecione um amigo online para convidar.", true);
+      return;
+    }
+    try {
+      const payload = await fetchJsonWithTimeout("/api/trades/invites/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          friendUsername,
+          playerName: username,
+        }),
+      });
+      state.roomCode = String(payload?.room?.roomCode || "");
+      state.seatToken = String(payload?.room?.seatToken || "");
+      state.seat = String(payload?.room?.seat || "host");
+      persistTradeSession();
+      setTradesStatus(`Convite enviado para ${friendUsername}. Aguardando aceitar...`);
+      await fetchTradeState();
+      connectTradeEvents();
+      await refreshTradeInvites(true);
+    } catch (error) {
+      setTradesStatus(error?.message || "Falha ao convidar amigo para troca.", true);
+    }
+  }
+
+  async function respondTradeInvite(inviteId, decision) {
+    try {
+      const payload = await fetchJsonWithTimeout("/api/trades/invites/respond", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inviteId,
+          decision,
+          playerName: username,
+        }),
+      });
+      if (decision === "accept" && payload?.room) {
+        state.roomCode = String(payload.room.roomCode || "");
+        state.seatToken = String(payload.room.seatToken || "");
+        state.seat = String(payload.room.seat || "guest");
+        persistTradeSession();
+        setTradesStatus("Convite aceito. Conectando na troca...");
+        await fetchTradeState();
+        connectTradeEvents();
+        return;
+      }
+      await refreshTradeInvites(true);
+      setTradesStatus("Convite recusado.");
+    } catch (error) {
+      setTradesStatus(error?.message || "Falha ao responder convite de troca.", true);
+    }
+  }
+
+  async function cancelTradeInvite(inviteId) {
+    try {
+      await fetchJsonWithTimeout("/api/trades/invites/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inviteId }),
+      });
+      await refreshTradeInvites(true);
+      setTradesStatus("Convite cancelado.");
+    } catch (error) {
+      setTradesStatus(error?.message || "Falha ao cancelar convite.", true);
     }
   }
 
@@ -2257,6 +2576,7 @@ function bindTrades(username) {
       setTradesStatus(`Sala criada: ${state.roomCode}. Compartilhe o codigo com outro jogador.`);
       await fetchTradeState();
       connectTradeEvents();
+      await refreshTradeInvites(true);
     } catch (error) {
       setTradesStatus(error?.message || "Erro ao criar sala de troca.", true);
     }
@@ -2304,6 +2624,8 @@ function bindTrades(username) {
     }
     tradesPanel.style.display = "block";
     clearEventSource();
+    void refreshFriendTradeOptions(true);
+    void refreshTradeInvites(true);
     if (!restoreTradeSession()) {
       if (hubView) {
         hubView.style.display = "grid";
@@ -2311,6 +2633,7 @@ function bindTrades(username) {
       if (roomView) {
         roomView.style.display = "none";
       }
+      startHubPolling();
       setTradesStatus("Monte uma sala e troque cartas em tempo real.");
       return;
     }
@@ -2337,6 +2660,17 @@ function bindTrades(username) {
       void joinTradeRoom();
     });
   }
+  if (btnInviteFriend) {
+    btnInviteFriend.addEventListener("click", () => {
+      void createTradeInvite();
+    });
+  }
+  if (btnRefreshFriends) {
+    btnRefreshFriends.addEventListener("click", () => {
+      void refreshFriendTradeOptions();
+      void refreshTradeInvites();
+    });
+  }
 
   if (roomCodeInput) {
     roomCodeInput.addEventListener("input", () => {
@@ -2353,6 +2687,19 @@ function bindTrades(username) {
   if (inventoryType) {
     inventoryType.addEventListener("change", () => {
       renderInventoryList();
+    });
+  }
+  if (inventorySearch) {
+    inventorySearch.addEventListener("input", () => {
+      renderInventoryList();
+    });
+  }
+  if (roomSectionTabs) {
+    roomSectionTabs.querySelectorAll("[data-trade-section-tab]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const section = String(button.getAttribute("data-trade-section-tab") || "inventory");
+        setTradeSection(section);
+      });
     });
   }
 
@@ -2396,6 +2743,7 @@ function bindTrades(username) {
   if (btnTradesBack) {
     btnTradesBack.addEventListener("click", () => {
       clearEventSource();
+      stopHubPolling();
       tradesPanel.style.display = "none";
       if (menuNav) {
         menuNav.style.display = "flex";

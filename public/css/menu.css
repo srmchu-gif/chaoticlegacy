@@ -1459,8 +1459,8 @@ body {
   gap: 0.5rem;
 }
 
-.trades-online-box,
-.trades-wishlist-box {
+.trades-friend-invite-box,
+.trades-invites-box {
   border: 1px solid rgba(0, 210, 255, 0.18);
   border-radius: 10px;
   padding: 0.55rem;
@@ -1469,57 +1469,23 @@ body {
   gap: 0.45rem;
 }
 
-.trades-online-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.55rem;
+.trades-friend-invite-box h3,
+.trades-invites-box h3 {
+  margin: 0;
   font-size: 0.74rem;
   color: #9dd9ff;
-}
-
-.trades-online-list {
-  max-height: 150px;
-  overflow-y: auto;
-  display: grid;
-  gap: 0.35rem;
-}
-
-.trades-online-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.45rem;
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 0.4rem 0.45rem;
-  background: rgba(3, 9, 15, 0.75);
-}
-
-.trades-online-row small {
-  color: #8ba8bf;
-  font-size: 0.66rem;
-}
-
-.trades-wishlist-box label {
-  font-size: 0.72rem;
-  color: #9dd9ff;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
-#trades-wishlist-input {
-  width: 100%;
-  min-height: 92px;
-  resize: vertical;
-  padding: 0.5rem 0.6rem;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 210, 255, 0.35);
-  background: rgba(5, 12, 20, 0.82);
-  color: #d9eefc;
-  font-family: "Inter", sans-serif;
-  font-size: 0.74rem;
+.trades-friend-invite-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.45rem;
 }
 
+#trades-friend-select,
+#trades-inventory-search,
 #trades-room-code-input,
 #trades-inventory-type {
   min-height: 40px;
@@ -1528,6 +1494,67 @@ body {
   border: 1px solid rgba(0, 210, 255, 0.35);
   background: rgba(5, 12, 20, 0.82);
   color: #d9eefc;
+}
+
+.trades-invites-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.trades-invites-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.trades-invite-row {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(3, 9, 15, 0.75);
+  padding: 0.42rem 0.45rem;
+}
+
+.trades-invite-row strong {
+  font-size: 0.72rem;
+  color: #e8f7ff;
+}
+
+.trades-invite-row span {
+  font-size: 0.66rem;
+  color: #8ba8bf;
+}
+
+.trades-invite-actions {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.trades-room-section-tabs {
+  display: none;
+  gap: 0.35rem;
+}
+
+.trades-room-tab {
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  background: rgba(6, 13, 21, 0.72);
+  color: #9ec7de;
+  font-family: var(--font-display);
+  font-size: 0.67rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.trades-room-tab.active {
+  color: #eaf9ff;
+  border-color: rgba(0, 210, 255, 0.6);
+  background: rgba(0, 210, 255, 0.15);
 }
 
 .trades-room-head {
@@ -1547,20 +1574,24 @@ body {
   background: rgba(6, 13, 21, 0.7);
 }
 
-.trades-offers-grid {
+.trades-room-main-layout {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0.65rem;
 }
 
-.trades-offer-column {
+.trades-big-panel {
   border: 1px solid rgba(0, 210, 255, 0.18);
   border-radius: 10px;
   padding: 0.55rem;
   background: rgba(6, 13, 21, 0.7);
+  display: grid;
+  gap: 0.45rem;
+  min-height: 220px;
 }
 
-.trades-offer-column h3 {
+.trades-big-panel-head h3 {
   margin: 0 0 0.45rem;
   font-size: 0.74rem;
   color: #9dd9ff;
@@ -1568,42 +1599,79 @@ body {
   text-transform: uppercase;
 }
 
-.trades-offer-list,
-.trades-inventory-list {
+.trades-section-panel {
   display: grid;
-  gap: 0.42rem;
-  max-height: 210px;
+}
+
+#trades-section-inventory {
+  grid-row: 1 / span 2;
+}
+
+.trades-inventory-controls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 170px) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.trades-inventory-controls label {
+  font-size: 0.67rem;
+  color: #9ec7de;
+  text-transform: uppercase;
+}
+
+.trades-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.48rem;
+  max-height: 430px;
   overflow-y: auto;
 }
 
-.trades-card-row {
+.trades-card-item {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.45rem;
-  align-items: center;
+  grid-template-columns: 58px 1fr;
+  gap: 0.5rem;
+  align-items: start;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  padding: 0.4rem 0.45rem;
+  padding: 0.45rem;
   background: rgba(3, 9, 15, 0.75);
 }
 
-.trades-card-meta {
-  display: grid;
-  gap: 0.08rem;
+.trades-card-thumb {
+  width: 58px;
+  height: 78px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.trades-card-meta strong {
+.trades-card-body {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.trades-card-body strong {
   font-size: 0.72rem;
   color: #e9f8ff;
+  line-height: 1.2;
 }
 
-.trades-card-meta span {
+.trades-card-body span {
   font-size: 0.67rem;
   color: #89aecd;
 }
 
-.trades-card-row button {
-  min-width: 72px;
+.trades-card-actions {
+  margin-top: 0.12rem;
+  display: inline-flex;
+  gap: 0.28rem;
+}
+
+.trades-card-actions button {
+  min-width: 70px;
   padding: 0.35rem 0.45rem !important;
   font-size: 0.66rem !important;
 }
@@ -1621,6 +1689,48 @@ body {
   padding: 0.55rem;
   border: 1px dashed rgba(255, 255, 255, 0.14);
   border-radius: 8px;
+}
+
+.profile-modal-section-first {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.profile-friend-presence {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.61rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.profile-friend-presence.status-online {
+  color: #98ffc6;
+  border-color: rgba(88, 255, 174, 0.5);
+  background: rgba(88, 255, 174, 0.12);
+}
+
+.profile-friend-presence.status-offline {
+  color: #a8b6c5;
+  border-color: rgba(154, 177, 199, 0.35);
+  background: rgba(116, 139, 160, 0.12);
+}
+
+.profile-friend-presence.status-em_troca {
+  color: #ffd799;
+  border-color: rgba(255, 201, 120, 0.5);
+  background: rgba(255, 183, 76, 0.12);
+}
+
+.profile-friend-presence.status-em_perim {
+  color: #8de8ff;
+  border-color: rgba(77, 223, 255, 0.5);
+  background: rgba(77, 223, 255, 0.12);
 }
 
 @media (max-width: 900px) {
@@ -1653,10 +1763,28 @@ body {
     width: 100%;
     height: 160px;
   }
-  .trades-offers-grid,
+  .trades-friend-invite-row,
+  .trades-invites-grid,
+  .trades-room-main-layout,
+  .trades-inventory-controls,
   .trades-room-actions,
   .trades-join-row {
     grid-template-columns: 1fr;
+  }
+  #trades-section-inventory {
+    grid-row: auto;
+  }
+  .trades-room-section-tabs {
+    display: flex;
+  }
+  .trades-section-panel {
+    display: none;
+  }
+  .trades-section-panel.active {
+    display: grid;
+  }
+  .trades-card-grid {
+    max-height: 280px;
   }
   .profile-friends-add-row {
     grid-template-columns: 1fr;
