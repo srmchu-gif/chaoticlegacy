@@ -920,6 +920,128 @@ body {
   color: #ff8282;
 }
 
+.profile-social-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+}
+
+.profile-notifications-unread {
+  font-size: 0.7rem;
+  color: #9ec7de;
+}
+
+.profile-notifications-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.profile-notification-item {
+  display: grid;
+  gap: 0.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(8, 16, 26, 0.64);
+  padding: 0.45rem 0.5rem;
+}
+
+.profile-notification-item.unread {
+  border-color: rgba(0, 210, 255, 0.45);
+}
+
+.profile-notification-item strong {
+  color: #d9f2ff;
+  font-size: 0.72rem;
+}
+
+.profile-notification-item p {
+  margin: 0;
+  font-size: 0.69rem;
+  color: #b4c8d9;
+}
+
+.profile-notification-item small {
+  font-size: 0.64rem;
+  color: #90a5b9;
+}
+
+.profile-friends-add-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+
+#profile-friend-username-input {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  background: rgba(5, 12, 20, 0.82);
+  color: #d9eefc;
+  padding: 0.45rem 0.6rem;
+}
+
+.profile-friends-columns {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.profile-friends-column h5 {
+  margin: 0 0 0.35rem;
+  color: #9ec7de;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.profile-friends-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 150px;
+  overflow: auto;
+}
+
+.profile-friend-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(8, 16, 26, 0.64);
+  padding: 0.4rem 0.45rem;
+}
+
+.profile-friend-meta strong {
+  color: #e8f7ff;
+  font-size: 0.72rem;
+}
+
+.profile-friend-meta span {
+  display: block;
+  color: #95b0c7;
+  font-size: 0.65rem;
+}
+
+.profile-friend-actions {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.profile-friend-preview {
+  margin-top: 0.55rem;
+  border: 1px solid rgba(0, 210, 255, 0.22);
+  border-radius: 8px;
+  padding: 0.45rem 0.5rem;
+  background: rgba(6, 13, 21, 0.7);
+  color: #b8d1e4;
+  font-size: 0.7rem;
+}
+
 /* Most Played Creature - Card Popup (above profile modal) */
 #profile-card-modal.perim-location-preview-modal {
   z-index: 3000;
@@ -1430,6 +1552,15 @@ body {
   .trades-room-actions,
   .trades-join-row {
     grid-template-columns: 1fr;
+  }
+  .profile-friends-add-row {
+    grid-template-columns: 1fr;
+  }
+  .profile-friend-row {
+    grid-template-columns: 1fr;
+  }
+  .profile-friend-actions {
+    justify-content: flex-end;
   }
 }
 

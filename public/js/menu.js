@@ -76,6 +76,10 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/`/g, "&#96;");
+}
+
 function normalizeFilterToken(value) {
   return String(value || "")
     .toLowerCase()
@@ -188,6 +192,15 @@ async function bindProfile(username, sessionData) {
   const profileModalScanners = qs("profile-modal-scanners");
   const profileModalMostPlayed = qs("profile-modal-most-played");
   const profileModalHistory = qs("profile-modal-history");
+  const profileNotificationsUnread = qs("profile-notifications-unread");
+  const profileNotificationsList = qs("profile-notifications-list");
+  const profileNotificationsReadAllBtn = qs("profile-notifications-read-all-btn");
+  const profileFriendUsernameInput = qs("profile-friend-username-input");
+  const profileFriendAddBtn = qs("profile-friend-add-btn");
+  const profileFriendsIncoming = qs("profile-friends-incoming");
+  const profileFriendsOutgoing = qs("profile-friends-outgoing");
+  const profileFriendsList = qs("profile-friends-list");
+  const profileFriendPreview = qs("profile-friend-preview");
   const profileAvatarChangeBtn = qs("profile-avatar-change-btn");
   const profileCardModal = qs("profile-card-modal");
   const profileCardBackdrop = qs("profile-card-backdrop");
@@ -256,6 +269,295 @@ async function bindProfile(username, sessionData) {
     profileModal.classList.remove("hidden");
     profileModal.setAttribute("aria-hidden", "false");
   };
+
+  const socialState = {
+    notifications: [],
+    unreadCount: 0,
+    incoming: [],
+    outgoing: [],
+    friends: [],
+  };
+
+  const formatDateTimeLabel = (value) => {
+    if (!value) {
+      return "-";
+    }
+    try {
+      return new Date(value).toLocaleString("pt-BR");
+    } catch {
+      return String(value);
+    }
+  };
+
+  const setFriendPreviewText = (text) => {
+    if (!profileFriendPreview) {
+      return;
+    }
+    profileFriendPreview.textContent = String(text || "");
+  };
+
+  const setFriendPreviewHtml = (html) => {
+    if (!profileFriendPreview) {
+      return;
+    }
+    profileFriendPreview.innerHTML = String(html || "");
+  };
+
+  const renderNotifications = () => {
+    if (profileNotificationsUnread) {
+      profileNotificationsUnread.textContent = `${Number(socialState.unreadCount || 0)} nao lidas`;
+    }
+    if (!profileNotificationsList) {
+      return;
+    }
+    const notifications = Array.isArray(socialState.notifications) ? socialState.notifications : [];
+    if (!notifications.length) {
+      profileNotificationsList.innerHTML = '<div class="trades-empty">Nenhuma notificacao por enquanto.</div>';
+      return;
+    }
+    profileNotificationsList.innerHTML = notifications
+      .map((entry) => {
+        const unreadClass = entry?.isRead ? "" : " unread";
+        const button = entry?.isRead
+          ? ""
+          : `<button class="menu-btn ghost-btn" data-profile-notification-read="${Number(entry.id || 0)}" style="padding:0.25rem 0.45rem;">Lida</button>`;
+        return `
+          <div class="profile-notification-item${unreadClass}">
+            <strong>${escapeHtml(entry?.title || "Notificacao")}</strong>
+            <p>${escapeHtml(entry?.message || "")}</p>
+            <small>${escapeHtml(formatDateTimeLabel(entry?.createdAt))}</small>
+            ${button}
+          </div>
+        `;
+      })
+      .join("");
+    profileNotificationsList.querySelectorAll("[data-profile-notification-read]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const id = Number(button.getAttribute("data-profile-notification-read") || 0);
+        if (!id) {
+          return;
+        }
+        try {
+          const payload = await fetchJsonWithTimeout("/api/profile/notifications/read-one", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id }),
+          });
+          socialState.notifications = socialState.notifications.map((entry) => (
+            Number(entry?.id || 0) === id ? { ...entry, isRead: true } : entry
+          ));
+          socialState.unreadCount = Math.max(0, Number(payload?.unreadCount || 0));
+          renderNotifications();
+        } catch (error) {
+          alert(error?.message || "Falha ao marcar notificacao como lida.");
+        }
+      });
+    });
+  };
+
+  const renderFriendRequests = () => {
+    if (profileFriendsIncoming) {
+      const incoming = Array.isArray(socialState.incoming) ? socialState.incoming : [];
+      if (!incoming.length) {
+        profileFriendsIncoming.innerHTML = '<div class="trades-empty">Sem pedidos pendentes.</div>';
+      } else {
+        profileFriendsIncoming.innerHTML = incoming
+          .map((entry) => `
+            <div class="profile-friend-row">
+              <div class="profile-friend-meta">
+                <strong>${escapeHtml(entry?.fromUsername || entry?.fromOwnerKey || "Jogador")}</strong>
+                <span>${escapeHtml(formatDateTimeLabel(entry?.createdAt))}</span>
+              </div>
+              <div class="profile-friend-actions">
+                <button class="menu-btn primary-btn" data-friend-accept="${Number(entry?.requestId || 0)}" style="padding:0.25rem 0.45rem;">Aceitar</button>
+                <button class="menu-btn ghost-btn" data-friend-reject="${Number(entry?.requestId || 0)}" style="padding:0.25rem 0.45rem;">Recusar</button>
+              </div>
+            </div>
+          `)
+          .join("");
+      }
+      profileFriendsIncoming.querySelectorAll("[data-friend-accept]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const requestId = Number(button.getAttribute("data-friend-accept") || 0);
+          if (!requestId) return;
+          void respondFriendRequest(requestId, "accept");
+        });
+      });
+      profileFriendsIncoming.querySelectorAll("[data-friend-reject]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const requestId = Number(button.getAttribute("data-friend-reject") || 0);
+          if (!requestId) return;
+          void respondFriendRequest(requestId, "reject");
+        });
+      });
+    }
+
+    if (profileFriendsOutgoing) {
+      const outgoing = Array.isArray(socialState.outgoing) ? socialState.outgoing : [];
+      if (!outgoing.length) {
+        profileFriendsOutgoing.innerHTML = '<div class="trades-empty">Nenhum pedido enviado.</div>';
+      } else {
+        profileFriendsOutgoing.innerHTML = outgoing
+          .map((entry) => `
+            <div class="profile-friend-row">
+              <div class="profile-friend-meta">
+                <strong>${escapeHtml(entry?.toUsername || entry?.toOwnerKey || "Jogador")}</strong>
+                <span>${escapeHtml(formatDateTimeLabel(entry?.createdAt))}</span>
+              </div>
+              <div class="profile-friend-actions">
+                <span style="font-size:0.66rem;color:#9ec7de;">Aguardando</span>
+              </div>
+            </div>
+          `)
+          .join("");
+      }
+    }
+  };
+
+  const renderFriendsList = () => {
+    if (!profileFriendsList) {
+      return;
+    }
+    const friends = Array.isArray(socialState.friends) ? socialState.friends : [];
+    if (!friends.length) {
+      profileFriendsList.innerHTML = '<div class="trades-empty">Voce ainda nao adicionou amigos.</div>';
+      return;
+    }
+    profileFriendsList.innerHTML = friends
+      .map((entry) => `
+        <div class="profile-friend-row">
+          <div class="profile-friend-meta">
+            <strong>${escapeHtml(entry?.username || entry?.ownerKey || "Jogador")}</strong>
+            <span>Pontuacao ${Number(entry?.score || 0)} • W/L ${Number(entry?.wins || 0)}/${Number(entry?.losses || 0)} • WR ${Number(entry?.winRate || 0).toFixed(2).replace(/\\.00$/, "")}%</span>
+            <span>Tribo: ${escapeHtml(entry?.favoriteTribe || "-")}</span>
+          </div>
+          <div class="profile-friend-actions">
+            <button class="menu-btn ghost-btn" data-friend-view="${escapeAttr(entry?.username || "")}" style="padding:0.25rem 0.45rem;">Ver perfil</button>
+            <button class="menu-btn ghost-btn" data-friend-remove="${escapeAttr(entry?.username || "")}" style="padding:0.25rem 0.45rem;">Remover</button>
+          </div>
+        </div>
+      `)
+      .join("");
+    profileFriendsList.querySelectorAll("[data-friend-view]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const friendUsername = String(button.getAttribute("data-friend-view") || "").trim();
+        if (!friendUsername) return;
+        void previewFriendProfile(friendUsername);
+      });
+    });
+    profileFriendsList.querySelectorAll("[data-friend-remove]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const friendUsername = String(button.getAttribute("data-friend-remove") || "").trim();
+        if (!friendUsername) return;
+        void removeFriend(friendUsername);
+      });
+    });
+  };
+
+  async function previewFriendProfile(friendUsername) {
+    try {
+      const payload = await fetchJsonWithTimeout(`/api/profile?username=${encodeURIComponent(friendUsername)}`, { method: "GET" });
+      const profile = payload?.profile || null;
+      if (!profile) {
+        setFriendPreviewText("Nao foi possivel carregar o perfil do amigo.");
+        return;
+      }
+      const score = Number(profile.score || 0);
+      const wins = Number(profile.wins || 0);
+      const losses = Number(profile.losses || 0);
+      const winRate = Number(profile.winRate || 0).toFixed(2).replace(/\\.00$/, "");
+      const tribe = String(profile.favoriteTribe || "-");
+      const avatar = String(profile.avatar || "/fundo%20cartas.png");
+      setFriendPreviewHtml(`
+        <div style="display:flex;gap:0.55rem;align-items:center;">
+          <img src="${escapeAttr(avatar)}" alt="Avatar de ${escapeAttr(friendUsername)}" style="width:48px;height:48px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);object-fit:cover;background:rgba(255,255,255,0.08);" />
+          <div style="display:grid;gap:0.1rem;">
+            <strong style="color:#e8f7ff;">${escapeHtml(friendUsername)}</strong>
+            <span>Tribo: ${escapeHtml(tribe)} | Pontuacao: ${score}</span>
+            <span>W/L: ${wins}/${losses} | WR: ${winRate}%</span>
+          </div>
+        </div>
+      `);
+    } catch (error) {
+      setFriendPreviewText(error?.message || "Falha ao carregar perfil do amigo.");
+    }
+  }
+
+  async function refreshProfileSocial() {
+    try {
+      const [notificationsPayload, friendsPayload, requestsPayload] = await Promise.all([
+        fetchJsonWithTimeout("/api/profile/notifications?limit=30", { method: "GET" }),
+        fetchJsonWithTimeout("/api/profile/friends", { method: "GET" }),
+        fetchJsonWithTimeout("/api/profile/friends/requests", { method: "GET" }),
+      ]);
+      socialState.notifications = Array.isArray(notificationsPayload?.notifications) ? notificationsPayload.notifications : [];
+      socialState.unreadCount = Math.max(0, Number(notificationsPayload?.unreadCount || 0));
+      socialState.friends = Array.isArray(friendsPayload?.friends) ? friendsPayload.friends : [];
+      socialState.incoming = Array.isArray(requestsPayload?.incoming) ? requestsPayload.incoming : [];
+      socialState.outgoing = Array.isArray(requestsPayload?.outgoing) ? requestsPayload.outgoing : [];
+      renderNotifications();
+      renderFriendRequests();
+      renderFriendsList();
+    } catch (error) {
+      alert(error?.message || "Falha ao carregar dados sociais do perfil.");
+    }
+  }
+
+  async function respondFriendRequest(requestId, decision) {
+    try {
+      const payload = await fetchJsonWithTimeout("/api/profile/friends/respond", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId, decision }),
+      });
+      socialState.friends = Array.isArray(payload?.friends) ? payload.friends : socialState.friends;
+      socialState.incoming = Array.isArray(payload?.requests?.incoming) ? payload.requests.incoming : socialState.incoming;
+      socialState.outgoing = Array.isArray(payload?.requests?.outgoing) ? payload.requests.outgoing : socialState.outgoing;
+      renderFriendRequests();
+      renderFriendsList();
+      await refreshProfileSocial();
+    } catch (error) {
+      alert(error?.message || "Falha ao responder pedido de amizade.");
+    }
+  }
+
+  async function addFriendByUsername() {
+    const value = String(profileFriendUsernameInput?.value || "").trim();
+    if (!value) {
+      alert("Informe o username exato para enviar convite.");
+      return;
+    }
+    try {
+      await fetchJsonWithTimeout("/api/profile/friends/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: value }),
+      });
+      if (profileFriendUsernameInput) {
+        profileFriendUsernameInput.value = "";
+      }
+      await refreshProfileSocial();
+    } catch (error) {
+      alert(error?.message || "Falha ao enviar convite de amizade.");
+    }
+  }
+
+  async function removeFriend(friendUsername) {
+    if (!friendUsername) {
+      return;
+    }
+    try {
+      await fetchJsonWithTimeout("/api/profile/friends/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: friendUsername }),
+      });
+      await refreshProfileSocial();
+      setFriendPreviewText("Amizade removida.");
+    } catch (error) {
+      alert(error?.message || "Falha ao remover amigo.");
+    }
+  }
 
   const renderProfile = (profile) => {
     if (!profile) {
@@ -396,7 +698,10 @@ async function bindProfile(username, sessionData) {
   if (avatarContainer) {
     avatarContainer.addEventListener("click", async () => {
       try {
-        await refreshProfile();
+        await Promise.all([
+          refreshProfile(),
+          refreshProfileSocial(),
+        ]);
         openProfileModal();
       } catch (error) {
         alert(error?.message || "Falha ao carregar perfil.");
@@ -485,12 +790,48 @@ async function bindProfile(username, sessionData) {
     });
   }
 
+  if (profileNotificationsReadAllBtn) {
+    profileNotificationsReadAllBtn.addEventListener("click", async () => {
+      try {
+        const payload = await fetchJsonWithTimeout("/api/profile/notifications/read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ all: true }),
+        });
+        socialState.notifications = socialState.notifications.map((entry) => ({ ...entry, isRead: true }));
+        socialState.unreadCount = Math.max(0, Number(payload?.unreadCount || 0));
+        renderNotifications();
+      } catch (error) {
+        alert(error?.message || "Falha ao marcar notificacoes.");
+      }
+    });
+  }
+
+  if (profileFriendAddBtn) {
+    profileFriendAddBtn.addEventListener("click", () => {
+      void addFriendByUsername();
+    });
+  }
+
+  if (profileFriendUsernameInput) {
+    profileFriendUsernameInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void addFriendByUsername();
+      }
+    });
+  }
+
   try {
-    await refreshProfile();
+    await Promise.all([
+      refreshProfile(),
+      refreshProfileSocial(),
+    ]);
   } catch {
     if (nameEl) nameEl.textContent = username;
     if (scoreEl) scoreEl.textContent = "1200";
     if (winrateEl) winrateEl.textContent = "0%";
+    setFriendPreviewText("Falha ao carregar dados sociais.");
   }
 }
 
@@ -1497,10 +1838,6 @@ function bindTrades(username) {
   const btnAcceptToggle = qs("btn-trades-accept-toggle");
   const btnFinalize = qs("btn-trades-finalize");
   const btnCancelRoom = qs("btn-trades-cancel-room");
-  const btnRefreshOnline = qs("btn-trades-refresh-online");
-  const onlineListEl = qs("trades-online-list");
-  const wishlistInput = qs("trades-wishlist-input");
-  const btnSaveWishlist = qs("btn-trades-save-wishlist");
   const normalizedTradeUser = normalizeUsername(username);
   const TRADE_SESSION_KEY = `chaotic_trade_session_v2:${normalizedTradeUser}`;
   localStorage.removeItem("chaotic_trade_session_v1");
@@ -1563,119 +1900,6 @@ function bindTrades(username) {
     }
     tradesStatus.textContent = String(message || "");
     tradesStatus.style.color = isError ? "#ff8d8d" : "#88b5d5";
-  }
-
-  function parseWishlistText(rawText) {
-    const lines = String(rawText || "")
-      .split(/\r?\n/g)
-      .map((line) => line.trim())
-      .filter(Boolean);
-    const entries = [];
-    lines.forEach((line) => {
-      const [typePart, ...idParts] = line.split(":");
-      const cardType = String(typePart || "").trim().toLowerCase();
-      const cardId = String(idParts.join(":") || "").trim();
-      if (!cardType || !cardId) {
-        return;
-      }
-      entries.push({
-        cardType,
-        cardId,
-        priority: 3,
-      });
-    });
-    return entries;
-  }
-
-  function formatWishlistText(entries) {
-    if (!Array.isArray(entries) || !entries.length) {
-      return "";
-    }
-    return entries
-      .map((entry) => `${String(entry?.cardType || "").toLowerCase()}:${String(entry?.cardId || "").trim()}`)
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  function renderTradesOnlinePlayers(playersRaw) {
-    if (!onlineListEl) {
-      return;
-    }
-    const players = Array.isArray(playersRaw) ? playersRaw : [];
-    if (!players.length) {
-      onlineListEl.innerHTML = '<div class="trades-empty">Nenhum jogador online agora.</div>';
-      return;
-    }
-    onlineListEl.innerHTML = players
-      .map((player) => {
-        const safeUser = escapeHtml(player?.username || "");
-        const safeTribe = escapeHtml(player?.tribe || "sem tribo");
-        const safeScore = Number(player?.score || 0);
-        return `
-          <div class="trades-online-row">
-            <div>
-              <strong>${safeUser}</strong><br/>
-              <small>${safeTribe} • score ${safeScore}</small>
-            </div>
-            <button class="menu-btn ghost-btn" data-trade-copy-user="${escapeAttr(player?.username || "")}">Copiar</button>
-          </div>
-        `;
-      })
-      .join("");
-    onlineListEl.querySelectorAll("[data-trade-copy-user]").forEach((button) => {
-      button.addEventListener("click", async () => {
-        const playerName = String(button.getAttribute("data-trade-copy-user") || "").trim();
-        if (!playerName) {
-          return;
-        }
-        try {
-          await navigator.clipboard.writeText(playerName);
-          setTradesStatus(`Usuario ${playerName} copiado. Compartilhe o codigo da sala com ele.`);
-        } catch (_) {
-          setTradesStatus("Nao foi possivel copiar automaticamente. Copie manualmente.", true);
-        }
-      });
-    });
-  }
-
-  async function refreshTradesOnlinePlayers() {
-    try {
-      const payload = await fetchJsonWithTimeout("/api/trades/online", { method: "GET" });
-      renderTradesOnlinePlayers(payload.players);
-    } catch (error) {
-      renderTradesOnlinePlayers([]);
-      setTradesStatus(error?.message || "Nao foi possivel carregar jogadores online.", true);
-    }
-  }
-
-  async function loadTradeWishlist() {
-    if (!wishlistInput) {
-      return;
-    }
-    try {
-      const payload = await fetchJsonWithTimeout("/api/trades/wishlist", { method: "GET" });
-      wishlistInput.value = formatWishlistText(payload.entries);
-    } catch {
-      wishlistInput.value = "";
-    }
-  }
-
-  async function saveTradeWishlist() {
-    if (!wishlistInput) {
-      return;
-    }
-    const entries = parseWishlistText(wishlistInput.value);
-    try {
-      const payload = await fetchJsonWithTimeout("/api/trades/wishlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entries }),
-      });
-      wishlistInput.value = formatWishlistText(payload.entries);
-      setTradesStatus(`Wishlist salva (${payload.entries?.length || 0} itens).`);
-    } catch (error) {
-      setTradesStatus(error?.message || "Falha ao salvar wishlist.", true);
-    }
   }
 
   function formatCardType(type) {
@@ -2001,8 +2225,6 @@ function bindTrades(username) {
       perimPanel.style.display = "none";
     }
     tradesPanel.style.display = "block";
-    void refreshTradesOnlinePlayers();
-    void loadTradeWishlist();
     clearEventSource();
     if (!restoreTradeSession()) {
       if (hubView) {
@@ -2090,18 +2312,6 @@ function bindTrades(username) {
   if (btnCancelRoom) {
     btnCancelRoom.addEventListener("click", () => {
       void sendTradeAction({ type: "cancel" });
-    });
-  }
-
-  if (btnRefreshOnline) {
-    btnRefreshOnline.addEventListener("click", () => {
-      void refreshTradesOnlinePlayers();
-    });
-  }
-
-  if (btnSaveWishlist) {
-    btnSaveWishlist.addEventListener("click", () => {
-      void saveTradeWishlist();
     });
   }
 

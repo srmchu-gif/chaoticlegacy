@@ -590,6 +590,42 @@ function createSqlV2Tables() {
       PRIMARY KEY (owner_key, card_id)
     );
   `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS friend_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_owner_key TEXT NOT NULL,
+      to_owner_key TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      responded_at TEXT
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_friend_requests_target_status_created ON friend_requests(to_owner_key, status, created_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS friends (
+      owner_key TEXT NOT NULL,
+      friend_key TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      source_request_id INTEGER,
+      PRIMARY KEY (owner_key, friend_key)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_friends_owner_created ON friends(owner_key, created_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS profile_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_key TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      payload_json TEXT,
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      read_at TEXT
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_profile_notifications_owner_read_created ON profile_notifications(owner_key, is_read, created_at DESC);");
 
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_player_state (
@@ -7960,6 +7996,208 @@ function resolveAvatarForUsername(usernameRaw) {
   return String(profile?.avatar || "");
 }
 
+function createProfileNotification(ownerKeyRaw, typeRaw, titleRaw, messageRaw, payload = null) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return null;
+  }
+  const type = String(typeRaw || "info").trim().slice(0, 80) || "info";
+  const title = String(titleRaw || "").trim().slice(0, 140);
+  const message = String(messageRaw || "").trim().slice(0, 500);
+  if (!title || !message) {
+    return null;
+  }
+  const createdAt = nowIso();
+  const payloadJson = payload && typeof payload === "object" ? JSON.stringify(payload) : null;
+  const result = sqliteDb.prepare(`
+    INSERT INTO profile_notifications (owner_key, type, title, message, payload_json, is_read, created_at, read_at)
+    VALUES (?, ?, ?, ?, ?, 0, ?, NULL)
+  `).run(ownerKey, type, title, message, payloadJson, createdAt);
+  return Number(result?.lastInsertRowid || 0) || null;
+}
+
+function normalizeFriendProfileSummaryRow(row) {
+  if (!row) {
+    return null;
+  }
+  const wins = Math.max(0, Number(row.wins || 0));
+  const losses = Math.max(0, Number(row.losses || 0));
+  const total = wins + losses;
+  const winRateRaw = Number(row.win_rate);
+  const winRate = Number.isFinite(winRateRaw)
+    ? Math.max(0, Math.min(100, winRateRaw))
+    : (total > 0 ? Math.round((wins / total) * 10000) / 100 : 0);
+  return {
+    username: String(row.username || ""),
+    ownerKey: normalizeUserKey(row.owner_key || row.username || "", ""),
+    avatar: String(row.avatar || ""),
+    score: Math.max(0, Number(row.score || 0)),
+    wins,
+    losses,
+    winRate,
+    favoriteTribe: String(row.favorite_tribe || row.tribe || ""),
+    updatedAt: String(row.updated_at || ""),
+    addedAt: String(row.created_at || ""),
+  };
+}
+
+function getProfileSummaryByOwnerKey(ownerKeyRaw) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return null;
+  }
+  const row = sqliteDb.prepare(`
+    SELECT
+      u.username AS username,
+      ? AS owner_key,
+      COALESCE(p.avatar, '') AS avatar,
+      COALESCE(p.score, 1200) AS score,
+      COALESCE(p.wins, 0) AS wins,
+      COALESCE(p.losses, 0) AS losses,
+      COALESCE(p.win_rate, 0) AS win_rate,
+      COALESCE(p.favorite_tribe, u.tribe, '') AS favorite_tribe,
+      COALESCE(p.updated_at, u.updated_at, u.created_at, '') AS updated_at
+    FROM users u
+    LEFT JOIN player_profiles p ON p.owner_key = lower(u.username)
+    WHERE lower(u.username) = ?
+    LIMIT 1
+  `).get(ownerKey, ownerKey);
+  if (!row) {
+    return null;
+  }
+  return normalizeFriendProfileSummaryRow(row);
+}
+
+function getProfileSummaryByUsername(usernameRaw) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const username = String(usernameRaw || "").trim();
+  if (!username) {
+    return null;
+  }
+  const userRow = sqliteDb.prepare("SELECT username, verified FROM users WHERE username = ? COLLATE NOCASE LIMIT 1").get(username);
+  if (!userRow?.username || Number(userRow?.verified || 0) !== 1) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(userRow.username, "");
+  return getProfileSummaryByOwnerKey(ownerKey);
+}
+
+function listFriendSummaries(ownerKeyRaw) {
+  if (!sqliteDb) {
+    return [];
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return [];
+  }
+  const rows = sqliteDb.prepare(`
+    SELECT
+      f.friend_key AS owner_key,
+      f.created_at AS created_at,
+      u.username AS username,
+      u.tribe AS tribe,
+      p.avatar AS avatar,
+      p.score AS score,
+      p.wins AS wins,
+      p.losses AS losses,
+      p.win_rate AS win_rate,
+      p.favorite_tribe AS favorite_tribe,
+      p.updated_at AS updated_at
+    FROM friends f
+    LEFT JOIN users u ON lower(u.username) = f.friend_key
+    LEFT JOIN player_profiles p ON p.owner_key = f.friend_key
+    WHERE f.owner_key = ?
+    ORDER BY datetime(f.created_at) DESC, f.friend_key ASC
+  `).all(ownerKey);
+  return rows
+    .map((row) => normalizeFriendProfileSummaryRow(row))
+    .filter(Boolean);
+}
+
+function listFriendRequests(ownerKeyRaw) {
+  if (!sqliteDb) {
+    return { incoming: [], outgoing: [] };
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return { incoming: [], outgoing: [] };
+  }
+  const incomingRows = sqliteDb.prepare(`
+    SELECT fr.id, fr.from_owner_key, fr.to_owner_key, fr.status, fr.created_at, fr.updated_at,
+           u.username AS from_username
+    FROM friend_requests fr
+    LEFT JOIN users u ON lower(u.username) = fr.from_owner_key
+    WHERE fr.to_owner_key = ? AND fr.status = 'pending'
+    ORDER BY fr.id DESC
+  `).all(ownerKey);
+  const outgoingRows = sqliteDb.prepare(`
+    SELECT fr.id, fr.from_owner_key, fr.to_owner_key, fr.status, fr.created_at, fr.updated_at,
+           u.username AS to_username
+    FROM friend_requests fr
+    LEFT JOIN users u ON lower(u.username) = fr.to_owner_key
+    WHERE fr.from_owner_key = ? AND fr.status = 'pending'
+    ORDER BY fr.id DESC
+  `).all(ownerKey);
+  return {
+    incoming: incomingRows.map((row) => ({
+      requestId: Number(row?.id || 0),
+      fromOwnerKey: String(row?.from_owner_key || ""),
+      fromUsername: String(row?.from_username || row?.from_owner_key || ""),
+      createdAt: String(row?.created_at || ""),
+    })),
+    outgoing: outgoingRows.map((row) => ({
+      requestId: Number(row?.id || 0),
+      toOwnerKey: String(row?.to_owner_key || ""),
+      toUsername: String(row?.to_username || row?.to_owner_key || ""),
+      createdAt: String(row?.created_at || ""),
+    })),
+  };
+}
+
+function listProfileNotifications(ownerKeyRaw, limitRaw = 50) {
+  if (!sqliteDb) {
+    return { entries: [], unreadCount: 0 };
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return { entries: [], unreadCount: 0 };
+  }
+  const limit = Math.max(1, Math.min(200, Number.isFinite(Number(limitRaw)) ? Number(limitRaw) : 50));
+  const rows = sqliteDb.prepare(`
+    SELECT id, type, title, message, payload_json, is_read, created_at, read_at
+    FROM profile_notifications
+    WHERE owner_key = ?
+    ORDER BY id DESC
+    LIMIT ?
+  `).all(ownerKey, limit);
+  const unreadRow = sqliteDb.prepare(`
+    SELECT COUNT(*) AS total
+    FROM profile_notifications
+    WHERE owner_key = ? AND is_read = 0
+  `).get(ownerKey);
+  return {
+    entries: rows.map((row) => ({
+      id: Number(row?.id || 0),
+      type: String(row?.type || ""),
+      title: String(row?.title || ""),
+      message: String(row?.message || ""),
+      payload: safeJsonParse(row?.payload_json, null),
+      isRead: Number(row?.is_read || 0) === 1,
+      createdAt: String(row?.created_at || ""),
+      readAt: row?.read_at ? String(row.read_at) : null,
+    })),
+    unreadCount: Math.max(0, Number(unreadRow?.total || 0)),
+  };
+}
+
 async function getBattleEngine() {
   if (!engineModulePromise) {
     engineModulePromise = import(pathToFileURL(ENGINE_FILE).href);
@@ -10698,6 +10936,420 @@ async function handleRequest(request, response) {
     const cacheKey = normalizeUserKey(username);
     const payload = cacheRead(userResponseCache.profile, cacheKey, () => ({ ok: true, profile: buildProfilePayload(username) }));
     sendJson(response, 200, payload);
+    return;
+  }
+
+  if (pathname === "/api/profile/friends" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Sistema de amigos indisponivel sem banco SQL." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const friends = listFriendSummaries(ownerKey);
+    sendJson(response, 200, {
+      ok: true,
+      friends,
+      total: friends.length,
+      generatedAt: nowIso(),
+    });
+    return;
+  }
+
+  if (pathname === "/api/profile/friends/requests" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Sistema de amigos indisponivel sem banco SQL." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const requests = listFriendRequests(ownerKey);
+    sendJson(response, 200, {
+      ok: true,
+      incoming: requests.incoming,
+      outgoing: requests.outgoing,
+      generatedAt: nowIso(),
+    });
+    return;
+  }
+
+  if (pathname === "/api/profile/friends/request" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Sistema de amigos indisponivel sem banco SQL." });
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const targetUsername = String(payload.username || "").trim();
+    if (!targetUsername) {
+      sendJson(response, 400, { error: "Username do amigo obrigatorio." });
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "friends_request_user", ownerKey, {
+      windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+      maxHits: Math.max(6, Math.floor(ACTION_RATE_LIMIT_MAX / 2)),
+    })) {
+      return;
+    }
+    const targetSummary = getProfileSummaryByUsername(targetUsername);
+    const targetKey = normalizeUserKey(targetSummary?.username || targetUsername, "");
+    if (!targetSummary || !targetKey) {
+      sendJson(response, 404, { error: "Jogador nao encontrado." });
+      return;
+    }
+    if (targetKey === ownerKey) {
+      sendJson(response, 400, { error: "Nao e possivel adicionar a si mesmo." });
+      return;
+    }
+    const alreadyFriends = sqliteDb
+      .prepare("SELECT 1 FROM friends WHERE owner_key = ? AND friend_key = ? LIMIT 1")
+      .get(ownerKey, targetKey);
+    if (alreadyFriends) {
+      sendJson(response, 409, { error: "Esse jogador ja esta na sua lista de amigos." });
+      return;
+    }
+    const pendingAnyDirection = sqliteDb
+      .prepare(`
+        SELECT id, from_owner_key, to_owner_key
+        FROM friend_requests
+        WHERE status = 'pending'
+          AND ((from_owner_key = ? AND to_owner_key = ?) OR (from_owner_key = ? AND to_owner_key = ?))
+        LIMIT 1
+      `)
+      .get(ownerKey, targetKey, targetKey, ownerKey);
+    if (pendingAnyDirection) {
+      const fromOwner = String(pendingAnyDirection.from_owner_key || "");
+      if (fromOwner === targetKey) {
+        sendJson(response, 409, { error: "Esse jogador ja te enviou um convite pendente." });
+        return;
+      }
+      sendJson(response, 409, { error: "Voce ja enviou um convite para esse jogador." });
+      return;
+    }
+    const createdAt = nowIso();
+    const insertResult = sqliteDb.prepare(`
+      INSERT INTO friend_requests (from_owner_key, to_owner_key, status, created_at, updated_at, responded_at)
+      VALUES (?, ?, 'pending', ?, ?, NULL)
+    `).run(ownerKey, targetKey, createdAt, createdAt);
+    createProfileNotification(
+      targetKey,
+      "friend_request_received",
+      "Novo convite de amizade",
+      `${authUser.username} enviou um convite de amizade.`,
+      { from: ownerKey, fromUsername: String(authUser.username || ownerKey) }
+    );
+    appendAuditLog("friend_request_sent", {
+      severity: "info",
+      ownerKey,
+      ipAddress: getClientIp(request),
+      message: `Convite de amizade enviado para ${targetKey}.`,
+      payload: { requestId: Number(insertResult?.lastInsertRowid || 0), targetKey },
+    });
+    sendJson(response, 200, {
+      ok: true,
+      requestId: Number(insertResult?.lastInsertRowid || 0),
+      target: targetSummary,
+    });
+    return;
+  }
+
+  if (pathname === "/api/profile/friends/respond" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Sistema de amigos indisponivel sem banco SQL." });
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const requestId = Number(payload.requestId || 0);
+    const decision = String(payload.decision || "").toLowerCase();
+    if (!requestId || (decision !== "accept" && decision !== "reject")) {
+      sendJson(response, 400, { error: "Dados de resposta invalidos." });
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "friends_respond_user", ownerKey, {
+      windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+      maxHits: Math.max(8, Math.floor(ACTION_RATE_LIMIT_MAX / 2)),
+    })) {
+      return;
+    }
+    const requestRow = sqliteDb
+      .prepare(`
+        SELECT id, from_owner_key, to_owner_key, status
+        FROM friend_requests
+        WHERE id = ? AND to_owner_key = ?
+        LIMIT 1
+      `)
+      .get(requestId, ownerKey);
+    if (!requestRow) {
+      sendJson(response, 404, { error: "Convite nao encontrado." });
+      return;
+    }
+    if (String(requestRow.status) !== "pending") {
+      sendJson(response, 409, { error: "Esse convite ja foi respondido." });
+      return;
+    }
+    const fromOwnerKey = normalizeUserKey(requestRow.from_owner_key, "");
+    const respondedAt = nowIso();
+    sqliteDb.prepare(`
+      UPDATE friend_requests
+      SET status = ?, updated_at = ?, responded_at = ?
+      WHERE id = ?
+    `).run(decision === "accept" ? "accepted" : "rejected", respondedAt, respondedAt, requestId);
+    if (decision === "accept") {
+      sqliteDb.prepare(`
+        INSERT OR IGNORE INTO friends (owner_key, friend_key, created_at, source_request_id)
+        VALUES (?, ?, ?, ?)
+      `).run(ownerKey, fromOwnerKey, respondedAt, requestId);
+      sqliteDb.prepare(`
+        INSERT OR IGNORE INTO friends (owner_key, friend_key, created_at, source_request_id)
+        VALUES (?, ?, ?, ?)
+      `).run(fromOwnerKey, ownerKey, respondedAt, requestId);
+      createProfileNotification(
+        fromOwnerKey,
+        "friend_request_accepted",
+        "Convite aceito",
+        `${authUser.username} aceitou seu convite de amizade.`,
+        { by: ownerKey, byUsername: String(authUser.username || ownerKey) }
+      );
+    } else {
+      createProfileNotification(
+        fromOwnerKey,
+        "friend_request_rejected",
+        "Convite recusado",
+        `${authUser.username} recusou seu convite de amizade.`,
+        { by: ownerKey, byUsername: String(authUser.username || ownerKey) }
+      );
+    }
+    appendAuditLog("friend_request_responded", {
+      severity: "info",
+      ownerKey,
+      ipAddress: getClientIp(request),
+      message: `Convite ${requestId} respondido com ${decision}.`,
+      payload: { requestId, decision, fromOwnerKey },
+    });
+    sendJson(response, 200, {
+      ok: true,
+      decision,
+      requestId,
+      friends: listFriendSummaries(ownerKey),
+      requests: listFriendRequests(ownerKey),
+    });
+    return;
+  }
+
+  if (pathname === "/api/profile/friends/remove" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Sistema de amigos indisponivel sem banco SQL." });
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const targetUsername = String(payload.username || "").trim();
+    const targetSummary = getProfileSummaryByUsername(targetUsername);
+    const targetKey = normalizeUserKey(targetSummary?.username || targetUsername, "");
+    if (!targetSummary || !targetKey) {
+      sendJson(response, 404, { error: "Jogador nao encontrado." });
+      return;
+    }
+    if (targetKey === ownerKey) {
+      sendJson(response, 400, { error: "Operacao invalida para o proprio usuario." });
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "friends_remove_user", ownerKey, {
+      windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+      maxHits: Math.max(6, Math.floor(ACTION_RATE_LIMIT_MAX / 2)),
+    })) {
+      return;
+    }
+    const deleteForward = sqliteDb.prepare("DELETE FROM friends WHERE owner_key = ? AND friend_key = ?").run(ownerKey, targetKey);
+    const deleteBackward = sqliteDb.prepare("DELETE FROM friends WHERE owner_key = ? AND friend_key = ?").run(targetKey, ownerKey);
+    if (!Number(deleteForward?.changes || 0) && !Number(deleteBackward?.changes || 0)) {
+      sendJson(response, 404, { error: "Esse jogador nao esta na sua lista de amigos." });
+      return;
+    }
+    createProfileNotification(
+      targetKey,
+      "friend_removed",
+      "Amizade removida",
+      `${authUser.username} removeu voce da lista de amigos.`,
+      { by: ownerKey, byUsername: String(authUser.username || ownerKey) }
+    );
+    appendAuditLog("friend_removed", {
+      severity: "info",
+      ownerKey,
+      ipAddress: getClientIp(request),
+      message: `Amizade removida com ${targetKey}.`,
+      payload: { targetKey },
+    });
+    sendJson(response, 200, {
+      ok: true,
+      removed: targetKey,
+      friends: listFriendSummaries(ownerKey),
+    });
+    return;
+  }
+
+  if (pathname === "/api/profile/notifications" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Notificacoes indisponiveis sem banco SQL." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const limit = Number(parsedUrl.searchParams.get("limit") || 50);
+    const result = listProfileNotifications(ownerKey, limit);
+    sendJson(response, 200, {
+      ok: true,
+      notifications: result.entries,
+      unreadCount: result.unreadCount,
+      generatedAt: nowIso(),
+    });
+    return;
+  }
+
+  if (pathname === "/api/profile/notifications/read-one" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Notificacoes indisponiveis sem banco SQL." });
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const id = Number(payload.id || 0);
+    if (!id) {
+      sendJson(response, 400, { error: "Id de notificacao invalido." });
+      return;
+    }
+    sqliteDb.prepare(`
+      UPDATE profile_notifications
+      SET is_read = 1, read_at = COALESCE(read_at, ?)
+      WHERE owner_key = ? AND id = ?
+    `).run(nowIso(), ownerKey, id);
+    const result = listProfileNotifications(ownerKey, 50);
+    sendJson(response, 200, {
+      ok: true,
+      unreadCount: result.unreadCount,
+    });
+    return;
+  }
+
+  if (pathname === "/api/profile/notifications/read" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Notificacoes indisponiveis sem banco SQL." });
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const now = nowIso();
+    if (payload.all === true) {
+      sqliteDb.prepare(`
+        UPDATE profile_notifications
+        SET is_read = 1, read_at = COALESCE(read_at, ?)
+        WHERE owner_key = ? AND is_read = 0
+      `).run(now, ownerKey);
+    } else {
+      const ids = Array.isArray(payload.ids)
+        ? payload.ids.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0).slice(0, 300)
+        : [];
+      if (!ids.length) {
+        sendJson(response, 400, { error: "Informe ids de notificacao validos ou all=true." });
+        return;
+      }
+      const placeholders = ids.map(() => "?").join(", ");
+      sqliteDb.prepare(`
+        UPDATE profile_notifications
+        SET is_read = 1, read_at = COALESCE(read_at, ?)
+        WHERE owner_key = ? AND id IN (${placeholders})
+      `).run(now, ownerKey, ...ids);
+    }
+    const result = listProfileNotifications(ownerKey, 50);
+    sendJson(response, 200, {
+      ok: true,
+      unreadCount: result.unreadCount,
+    });
     return;
   }
 

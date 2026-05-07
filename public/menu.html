@@ -120,18 +120,6 @@
               <input id="trades-room-code-input" type="text" maxlength="6" placeholder="Codigo da sala" />
               <button id="btn-trades-join-room" class="menu-btn standard-btn compact-action-btn">Entrar</button>
             </div>
-            <div class="trades-online-box">
-              <div class="trades-online-head">
-                <strong>Jogadores online</strong>
-                <button id="btn-trades-refresh-online" class="menu-btn ghost-btn compact-action-btn">Atualizar</button>
-              </div>
-              <div id="trades-online-list" class="trades-online-list"></div>
-            </div>
-            <div class="trades-wishlist-box">
-              <label for="trades-wishlist-input">Wishlist (tipo:cardId, um por linha)</label>
-              <textarea id="trades-wishlist-input" rows="4" placeholder="creatures:chaotic-creatures-001"></textarea>
-              <button id="btn-trades-save-wishlist" class="menu-btn standard-btn compact-action-btn">Salvar wishlist</button>
-            </div>
           </div>
 
         <div id="trades-room-view" class="trades-room-view" style="display:none;">
@@ -322,6 +310,36 @@
       <section class="profile-modal-section">
         <h4>Histórico (últimas 50)</h4>
         <div id="profile-modal-history" class="profile-history-list"></div>
+      </section>
+      <section class="profile-modal-section">
+        <h4>Notificacoes de amizade</h4>
+        <div class="profile-social-actions">
+          <button id="profile-notifications-read-all-btn" type="button" class="menu-btn ghost-btn" style="padding:0.4rem 0.65rem;">Marcar todas como lidas</button>
+          <span id="profile-notifications-unread" class="profile-notifications-unread">0 nao lidas</span>
+        </div>
+        <div id="profile-notifications-list" class="profile-notifications-list"></div>
+      </section>
+      <section class="profile-modal-section">
+        <h4>Amigos</h4>
+        <div class="profile-friends-add-row">
+          <input id="profile-friend-username-input" type="text" placeholder="Username exato" />
+          <button id="profile-friend-add-btn" type="button" class="menu-btn standard-btn" style="padding:0.5rem 0.75rem;">Adicionar</button>
+        </div>
+        <div class="profile-friends-columns">
+          <div class="profile-friends-column">
+            <h5>Pedidos recebidos</h5>
+            <div id="profile-friends-incoming" class="profile-friends-list"></div>
+          </div>
+          <div class="profile-friends-column">
+            <h5>Pedidos enviados</h5>
+            <div id="profile-friends-outgoing" class="profile-friends-list"></div>
+          </div>
+          <div class="profile-friends-column">
+            <h5>Meus amigos</h5>
+            <div id="profile-friends-list" class="profile-friends-list"></div>
+          </div>
+        </div>
+        <div id="profile-friend-preview" class="profile-friend-preview">Selecione um amigo para ver o perfil resumido.</div>
       </section>
       <section class="profile-modal-section">
         <h4>Avatar</h4>
