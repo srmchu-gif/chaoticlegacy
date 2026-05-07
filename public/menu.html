@@ -32,7 +32,13 @@
           </div>
         </div>
         <div class="profile-info">
-          <h2 id="player-name">Carregando...</h2>
+          <div class="profile-title-row">
+            <h2 id="player-name">Carregando...</h2>
+            <button id="profile-notification-bell" class="profile-notification-bell" type="button" title="Notificacoes">
+              <span class="profile-notification-bell-icon">&#128276;</span>
+              <span id="profile-notification-badge" class="profile-notification-badge hidden">0</span>
+            </button>
+          </div>
           <div class="profile-stats">
             <div class="stat-box">
               <span class="stat-label">Pontua&ccedil;&atilde;o</span>
@@ -277,77 +283,85 @@
           <p id="profile-modal-updated">Atualizado agora</p>
         </div>
       </header>
-      <section class="profile-modal-grid">
-        <div class="profile-metric">
-          <span>Pontuação</span>
-          <strong id="profile-modal-score">0</strong>
-        </div>
-        <div class="profile-metric">
-          <span>Vitórias / Derrotas</span>
-          <strong id="profile-modal-wl">0 / 0</strong>
-        </div>
-        <div class="profile-metric">
-          <span>Winrate</span>
-          <strong id="profile-modal-winrate">0%</strong>
-        </div>
-        <div class="profile-metric">
-          <span>Total de Scans</span>
-          <strong id="profile-modal-scans-total">0</strong>
-        </div>
-      </section>
-      <section class="profile-modal-section">
-        <h4>Scans por Tipo</h4>
-        <div id="profile-modal-scans-types" class="profile-scans-types"></div>
-      </section>
-      <section class="profile-modal-section">
-        <h4>Progressao do Scanner</h4>
-        <div id="profile-modal-scanners" class="profile-scanners-grid"></div>
-      </section>
-      <section class="profile-modal-section">
-        <h4>Criatura Mais Jogada</h4>
-        <p id="profile-modal-most-played">Nenhuma partida registrada ainda.</p>
-      </section>
-      <section class="profile-modal-section">
-        <h4>Histórico (últimas 50)</h4>
-        <div id="profile-modal-history" class="profile-history-list"></div>
-      </section>
-      <section class="profile-modal-section">
-        <h4>Notificacoes de amizade</h4>
-        <div class="profile-social-actions">
-          <button id="profile-notifications-read-all-btn" type="button" class="menu-btn ghost-btn" style="padding:0.4rem 0.65rem;">Marcar todas como lidas</button>
-          <span id="profile-notifications-unread" class="profile-notifications-unread">0 nao lidas</span>
-        </div>
-        <div id="profile-notifications-list" class="profile-notifications-list"></div>
-      </section>
-      <section class="profile-modal-section">
-        <h4>Amigos</h4>
-        <div class="profile-friends-add-row">
-          <input id="profile-friend-username-input" type="text" placeholder="Username exato" />
-          <button id="profile-friend-add-btn" type="button" class="menu-btn standard-btn" style="padding:0.5rem 0.75rem;">Adicionar</button>
-        </div>
-        <div class="profile-friends-columns">
-          <div class="profile-friends-column">
-            <h5>Pedidos recebidos</h5>
-            <div id="profile-friends-incoming" class="profile-friends-list"></div>
+      <div class="profile-modal-tabs" role="tablist" aria-label="Navegacao do perfil">
+        <button id="profile-tab-general-btn" class="profile-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="profile-tab-general">Geral</button>
+        <button id="profile-tab-friends-btn" class="profile-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-friends">Amigos</button>
+      </div>
+      <div id="profile-tab-general" class="profile-tab-panel active" role="tabpanel">
+        <section class="profile-modal-grid">
+          <div class="profile-metric">
+            <span>Pontuacao</span>
+            <strong id="profile-modal-score">0</strong>
           </div>
-          <div class="profile-friends-column">
-            <h5>Pedidos enviados</h5>
-            <div id="profile-friends-outgoing" class="profile-friends-list"></div>
+          <div class="profile-metric">
+            <span>Vitorias / Derrotas</span>
+            <strong id="profile-modal-wl">0 / 0</strong>
           </div>
-          <div class="profile-friends-column">
-            <h5>Meus amigos</h5>
-            <div id="profile-friends-list" class="profile-friends-list"></div>
+          <div class="profile-metric">
+            <span>Winrate</span>
+            <strong id="profile-modal-winrate">0%</strong>
           </div>
-        </div>
-        <div id="profile-friend-preview" class="profile-friend-preview">Selecione um amigo para ver o perfil resumido.</div>
-      </section>
-      <section class="profile-modal-section">
-        <h4>Avatar</h4>
-        <div class="profile-avatar-actions">
-          <button id="profile-avatar-change-btn" type="button" class="menu-btn standard-btn" style="padding:0.5rem 0.75rem;">Alterar foto</button>
-          <input type="file" id="avatar-upload" accept="image/*" style="display:none;" />
-        </div>
-      </section>
+          <div class="profile-metric">
+            <span>Total de Scans</span>
+            <strong id="profile-modal-scans-total">0</strong>
+          </div>
+        </section>
+        <section class="profile-modal-section">
+          <h4>Scans por Tipo</h4>
+          <div id="profile-modal-scans-types" class="profile-scans-types"></div>
+        </section>
+        <section class="profile-modal-section">
+          <h4>Progressao do Scanner</h4>
+          <div id="profile-modal-scanners" class="profile-scanners-grid"></div>
+        </section>
+        <section class="profile-modal-section">
+          <h4>Criatura Mais Jogada</h4>
+          <p id="profile-modal-most-played">Nenhuma partida registrada ainda.</p>
+        </section>
+        <section class="profile-modal-section">
+          <h4>Historico (ultimas 50)</h4>
+          <div id="profile-modal-history" class="profile-history-list"></div>
+        </section>
+        <section id="profile-notifications-section" class="profile-modal-section">
+          <h4>Notificacoes de amizade</h4>
+          <div class="profile-social-actions">
+            <button id="profile-notifications-read-all-btn" type="button" class="menu-btn ghost-btn" style="padding:0.4rem 0.65rem;">Marcar todas como lidas</button>
+            <span id="profile-notifications-unread" class="profile-notifications-unread">0 nao lidas</span>
+          </div>
+          <div id="profile-notifications-list" class="profile-notifications-list"></div>
+        </section>
+        <section class="profile-modal-section">
+          <h4>Avatar</h4>
+          <div class="profile-avatar-actions">
+            <button id="profile-avatar-change-btn" type="button" class="menu-btn standard-btn" style="padding:0.5rem 0.75rem;">Alterar foto</button>
+            <input type="file" id="avatar-upload" accept="image/*" style="display:none;" />
+          </div>
+        </section>
+      </div>
+      <div id="profile-tab-friends" class="profile-tab-panel" role="tabpanel" aria-hidden="true">
+        <section class="profile-modal-section">
+          <h4>Amigos</h4>
+          <div class="profile-friends-add-row">
+            <input id="profile-friend-username-input" type="text" placeholder="Username exato" />
+            <button id="profile-friend-add-btn" type="button" class="menu-btn standard-btn" style="padding:0.5rem 0.75rem;">Adicionar</button>
+          </div>
+          <div class="profile-friends-columns">
+            <div class="profile-friends-column">
+              <h5>Pedidos recebidos</h5>
+              <div id="profile-friends-incoming" class="profile-friends-list"></div>
+            </div>
+            <div class="profile-friends-column">
+              <h5>Pedidos enviados</h5>
+              <div id="profile-friends-outgoing" class="profile-friends-list"></div>
+            </div>
+            <div class="profile-friends-column">
+              <h5>Meus amigos</h5>
+              <div id="profile-friends-list" class="profile-friends-list"></div>
+            </div>
+          </div>
+          <div id="profile-friend-preview" class="profile-friend-preview">Selecione um amigo para ver o perfil resumido.</div>
+        </section>
+      </div>
     </div>
   </div>
 
@@ -368,6 +382,6 @@
   </div>
 
   <script src="config.js"></script>
-  <script type="module" src="js/menu.js?v=11"></script>
+  <script type="module" src="js/menu.js?v=12"></script>
 </body>
 </html>

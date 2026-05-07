@@ -177,10 +177,17 @@ async function bindProfile(username, sessionData) {
   const avatarImg = qs("player-avatar-img");
   const avatarContainer = qs("avatar-container");
   const avatarUpload = qs("avatar-upload");
+  const profileNotificationBell = qs("profile-notification-bell");
+  const profileNotificationBadge = qs("profile-notification-badge");
 
   const profileModal = qs("profile-modal");
   const profileModalBackdrop = qs("profile-modal-backdrop");
   const profileModalClose = qs("profile-modal-close");
+  const profileTabGeneralBtn = qs("profile-tab-general-btn");
+  const profileTabFriendsBtn = qs("profile-tab-friends-btn");
+  const profileTabGeneralPanel = qs("profile-tab-general");
+  const profileTabFriendsPanel = qs("profile-tab-friends");
+  const profileNotificationsSection = qs("profile-notifications-section");
   const profileModalName = qs("profile-modal-name");
   const profileModalUpdated = qs("profile-modal-updated");
   const profileModalAvatar = qs("profile-modal-avatar");
@@ -225,12 +232,52 @@ async function bindProfile(username, sessionData) {
     else element.style.color = "#ff4444";
   };
 
+  const setProfileTab = (tab) => {
+    const isGeneral = tab !== "friends";
+    if (profileTabGeneralBtn) {
+      profileTabGeneralBtn.classList.toggle("active", isGeneral);
+      profileTabGeneralBtn.setAttribute("aria-selected", isGeneral ? "true" : "false");
+    }
+    if (profileTabFriendsBtn) {
+      profileTabFriendsBtn.classList.toggle("active", !isGeneral);
+      profileTabFriendsBtn.setAttribute("aria-selected", !isGeneral ? "true" : "false");
+    }
+    if (profileTabGeneralPanel) {
+      profileTabGeneralPanel.classList.toggle("active", isGeneral);
+      profileTabGeneralPanel.setAttribute("aria-hidden", isGeneral ? "false" : "true");
+    }
+    if (profileTabFriendsPanel) {
+      profileTabFriendsPanel.classList.toggle("active", !isGeneral);
+      profileTabFriendsPanel.setAttribute("aria-hidden", !isGeneral ? "false" : "true");
+    }
+  };
+
+  const updateNotificationBell = () => {
+    if (!profileNotificationBell || !profileNotificationBadge) {
+      return;
+    }
+    const unread = Math.max(0, Number(socialState.unreadCount || 0));
+    const hasUnread = unread > 0;
+    profileNotificationBell.classList.toggle("has-unread", hasUnread);
+    profileNotificationBell.setAttribute("aria-label", hasUnread ? `${unread} notificacoes nao lidas` : "Sem notificacoes nao lidas");
+    if (!hasUnread) {
+      profileNotificationBadge.classList.add("hidden");
+      profileNotificationBadge.textContent = "0";
+      return;
+    }
+    profileNotificationBadge.classList.remove("hidden");
+    profileNotificationBadge.textContent = unread > 99 ? "99+" : String(unread);
+  };
+
   const closeProfileModal = () => {
     if (!profileModal) {
       return;
     }
     profileModal.classList.add("hidden");
     profileModal.setAttribute("aria-hidden", "true");
+    if (profileNotificationsSection) {
+      profileNotificationsSection.classList.remove("profile-section-focus");
+    }
   };
 
   const closeProfileCardModal = () => {
@@ -262,12 +309,21 @@ async function bindProfile(username, sessionData) {
     profileCardModal.setAttribute("aria-hidden", "false");
   };
 
-  const openProfileModal = () => {
+  const openProfileModal = ({ tab = "general", focusNotifications = false } = {}) => {
     if (!profileModal) {
       return;
     }
+    setProfileTab(tab);
     profileModal.classList.remove("hidden");
     profileModal.setAttribute("aria-hidden", "false");
+    if (focusNotifications && profileNotificationsSection) {
+      setProfileTab("general");
+      profileNotificationsSection.classList.add("profile-section-focus");
+      profileNotificationsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => {
+        profileNotificationsSection.classList.remove("profile-section-focus");
+      }, 1200);
+    }
   };
 
   const socialState = {
@@ -304,6 +360,7 @@ async function bindProfile(username, sessionData) {
   };
 
   const renderNotifications = () => {
+    updateNotificationBell();
     if (profileNotificationsUnread) {
       profileNotificationsUnread.textContent = `${Number(socialState.unreadCount || 0)} nao lidas`;
     }
@@ -702,11 +759,30 @@ async function bindProfile(username, sessionData) {
           refreshProfile(),
           refreshProfileSocial(),
         ]);
-        openProfileModal();
+        openProfileModal({ tab: "general" });
       } catch (error) {
         alert(error?.message || "Falha ao carregar perfil.");
       }
     });
+  }
+  if (profileNotificationBell) {
+    profileNotificationBell.addEventListener("click", async () => {
+      try {
+        await Promise.all([
+          refreshProfile(),
+          refreshProfileSocial(),
+        ]);
+        openProfileModal({ tab: "general", focusNotifications: true });
+      } catch (error) {
+        alert(error?.message || "Falha ao carregar notificacoes.");
+      }
+    });
+  }
+  if (profileTabGeneralBtn) {
+    profileTabGeneralBtn.addEventListener("click", () => setProfileTab("general"));
+  }
+  if (profileTabFriendsBtn) {
+    profileTabFriendsBtn.addEventListener("click", () => setProfileTab("friends"));
   }
   if (profileModalClose) {
     profileModalClose.addEventListener("click", closeProfileModal);
@@ -827,11 +903,13 @@ async function bindProfile(username, sessionData) {
       refreshProfile(),
       refreshProfileSocial(),
     ]);
+    setProfileTab("general");
   } catch {
     if (nameEl) nameEl.textContent = username;
     if (scoreEl) scoreEl.textContent = "1200";
     if (winrateEl) winrateEl.textContent = "0%";
     setFriendPreviewText("Falha ao carregar dados sociais.");
+    updateNotificationBell();
   }
 }
 
