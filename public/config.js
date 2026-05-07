@@ -25,6 +25,6 @@
   window.APP_CONFIG = {
     apiBase: String(manual.apiBase || defaultApiBase).trim(),
     basePath: String(manual.basePath || detectedBasePath).trim() || "/",
-    turnstileSiteKey: String(manual.turnstileSiteKey || "").trim(),
+    turnstileSiteKey: String(manual.turnstileSiteKey || "0x4AAAAAADKg51_sMUJ5Y1_q").trim(),
   };
 })();
