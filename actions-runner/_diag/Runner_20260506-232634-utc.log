@@ -137,3 +137,203 @@
 [2026-05-06 23:26:37Z INFO JobDispatcher] Set runner/worker IPC timeout to 30 seconds.
 [2026-05-07 00:16:49Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
 [2026-05-07 00:16:50Z INFO GitHubActionsService] AAD Correlation ID for this token request: Unknown
+[2026-05-07 00:58:00Z INFO Runner] Received RunnerRefreshConfigMessage for 'runner' config file
+[2026-05-07 00:58:00Z INFO RunnerConfigUpdater] Verifying runner qualified id: U_kgDOEGdnXw/R_kgDOSWSkow/self-hosted/2
+[2026-05-07 00:58:00Z INFO HostContext] Well known directory 'Bin': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\bin'
+[2026-05-07 00:58:00Z INFO HostContext] Well known directory 'Root': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner'
+[2026-05-07 00:58:00Z INFO HostContext] Well known config file 'Runner': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.runner'
+[2026-05-07 00:58:01Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 00:58:01Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 00:58:02Z INFO GitHubActionsService] AAD Correlation ID for this token request: Unknown
+[2026-05-07 00:58:02Z INFO ConfigurationStore] Saving runner migrated settings
+[2026-05-07 00:58:02Z INFO ConfigurationStore] Migrated Settings Saved.
+[2026-05-07 00:58:02Z INFO Runner] Runner configuration was updated. Session restart has been scheduled
+[2026-05-07 00:58:02Z INFO Runner] Pending session restart detected and job dispatcher is not busy. Restarting session now.
+[2026-05-07 00:58:02Z INFO JobDispatcher] Shutting down JobDispatcher. Make sure all WorkerDispatcher has finished.
+[2026-05-07 00:58:02Z INFO Runner] Deleting Runner Session...
+[2026-05-07 00:58:02Z INFO Runner] Restarting runner session after config update...
+[2026-05-07 00:58:02Z INFO Runner] Runner configuration was refreshed, restarting session...
+[2026-05-07 00:58:02Z INFO ConfigurationManager] LoadSettings
+[2026-05-07 00:58:02Z INFO ConfigurationStore] IsConfigured()
+[2026-05-07 00:58:02Z INFO ConfigurationStore] IsConfigured: True
+[2026-05-07 00:58:02Z INFO ConfigurationManager] Is configured: True
+[2026-05-07 00:58:02Z INFO ConfigurationManager] Settings Loaded
+[2026-05-07 00:58:02Z INFO Runner] RunAsync
+[2026-05-07 00:58:02Z INFO HostContext] Well known directory 'Bin': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\bin'
+[2026-05-07 00:58:02Z INFO HostContext] Well known directory 'Root': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner'
+[2026-05-07 00:58:02Z INFO HostContext] Well known directory 'Work': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\_work'
+[2026-05-07 00:58:02Z INFO Runner] Validating directory permissions for: 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\_work'
+[2026-05-07 00:58:02Z INFO ConfigurationManager] LoadMigratedSettings
+[2026-05-07 00:58:02Z INFO ConfigurationStore] IsMigratedConfigured()
+[2026-05-07 00:58:02Z INFO ConfigurationStore] IsMigratedConfigured: True
+[2026-05-07 00:58:02Z INFO ConfigurationStore] Read migrated setting file: 394 chars
+[2026-05-07 00:58:02Z INFO ConfigurationManager] Migrated Settings Loaded
+[2026-05-07 00:58:02Z INFO Runner] Loaded migrated settings from .runner_migrated file
+[2026-05-07 00:58:02Z INFO Runner] {
+  "AgentId": 2,
+  "AgentName": "SRCHUU",
+  "PoolId": 1,
+  "PoolName": "Default",
+  "ServerUrl": "https://pipelinesghubeus21.actions.githubusercontent.com/vgSPLvdmmawbSLnuWvhFEfVpsxBdJ1vMCRMYD2JBjtb1d2yZIn/",
+  "GitHubUrl": "https://github.com/srmchu-gif/chaoticlegacy",
+  "WorkFolder": "_work",
+  "UseV2Flow": true,
+  "ServerUrlV2": "https://broker.actions.githubusercontent.com/"
+}
+[2026-05-07 00:58:02Z INFO Runner] Attempting to create session using migrated settings
+[2026-05-07 00:58:02Z INFO Runner] Using BrokerMessageListener
+[2026-05-07 00:58:02Z INFO BrokerMessageListener] Using provided settings
+[2026-05-07 00:58:02Z INFO BrokerMessageListener] Using migrated settings from .runner_migrated
+[2026-05-07 00:58:02Z INFO BrokerMessageListener] {
+  "AgentId": 2,
+  "AgentName": "SRCHUU",
+  "PoolId": 1,
+  "PoolName": "Default",
+  "ServerUrl": "https://pipelinesghubeus21.actions.githubusercontent.com/vgSPLvdmmawbSLnuWvhFEfVpsxBdJ1vMCRMYD2JBjtb1d2yZIn/",
+  "GitHubUrl": "https://github.com/srmchu-gif/chaoticlegacy",
+  "WorkFolder": "_work",
+  "UseV2Flow": true,
+  "ServerUrlV2": "https://broker.actions.githubusercontent.com/"
+}
+[2026-05-07 00:58:02Z INFO BrokerMessageListener] Loading Credentials
+[2026-05-07 00:58:02Z INFO ConfigurationStore] HasCredentials()
+[2026-05-07 00:58:02Z INFO ConfigurationStore] stored True
+[2026-05-07 00:58:02Z INFO CredentialManager] GetCredentialProvider
+[2026-05-07 00:58:02Z INFO CredentialManager] Creating type OAuth
+[2026-05-07 00:58:02Z INFO CredentialManager] Creating credential type: OAuth
+[2026-05-07 00:58:02Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 00:58:02Z INFO BrokerMessageListener] Attempt to create session.
+[2026-05-07 00:58:02Z INFO BrokerMessageListener] Connecting to the Broker Server...
+[2026-05-07 00:58:02Z INFO ConfigurationStore] HasCredentials()
+[2026-05-07 00:58:02Z INFO ConfigurationStore] stored True
+[2026-05-07 00:58:02Z INFO CredentialManager] GetCredentialProvider
+[2026-05-07 00:58:02Z INFO CredentialManager] Creating type OAuth
+[2026-05-07 00:58:02Z INFO CredentialManager] Creating credential type: OAuth
+[2026-05-07 00:58:02Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 00:58:02Z INFO BrokerMessageListener] VssConnection created
+[2026-05-07 00:58:02Z INFO BrokerMessageListener] Connecting to the Runner server...
+[2026-05-07 00:58:02Z INFO RunnerServer] EstablishVssConnection
+[2026-05-07 00:58:02Z INFO RunnerServer] Establish connection with 100 seconds timeout.
+[2026-05-07 00:58:02Z INFO GitHubActionsService] Starting operation Location.GetConnectionData
+[2026-05-07 00:58:02Z INFO RunnerServer] EstablishVssConnection
+[2026-05-07 00:58:02Z INFO RunnerServer] Establish connection with 60 seconds timeout.
+[2026-05-07 00:58:02Z INFO GitHubActionsService] Starting operation Location.GetConnectionData
+[2026-05-07 00:58:02Z INFO RunnerServer] EstablishVssConnection
+[2026-05-07 00:58:02Z INFO RunnerServer] Establish connection with 60 seconds timeout.
+[2026-05-07 00:58:02Z INFO GitHubActionsService] Starting operation Location.GetConnectionData
+[2026-05-07 00:58:03Z INFO GitHubActionsService] Finished operation Location.GetConnectionData
+[2026-05-07 00:58:03Z INFO GitHubActionsService] Finished operation Location.GetConnectionData
+[2026-05-07 00:58:03Z INFO GitHubActionsService] Finished operation Location.GetConnectionData
+[2026-05-07 00:58:03Z INFO BrokerMessageListener] VssConnection created
+[2026-05-07 00:58:03Z INFO Terminal] WRITE LINE: 
+[2026-05-07 00:58:03Z INFO Terminal] WRITE LINE: 
+[2026-05-07 00:58:03Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 00:58:03Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 00:58:04Z INFO GitHubActionsService] AAD Correlation ID for this token request: Unknown
+[2026-05-07 00:58:04Z INFO BrokerMessageListener] Session created.
+[2026-05-07 00:58:04Z INFO Runner] Successfully created session with migrated settings
+[2026-05-07 00:58:04Z INFO Terminal] WRITE LINE: Current runner version: '2.334.0'
+[2026-05-07 00:58:04Z INFO Terminal] WRITE LINE: 2026-05-07 00:58:04Z: Listening for Jobs
+[2026-05-07 00:58:04Z INFO JobDispatcher] Set runner/worker IPC timeout to 30 seconds.
+[2026-05-07 01:18:18Z INFO Runner] Received RunnerRefreshConfigMessage for 'runner' config file
+[2026-05-07 01:18:18Z INFO RunnerConfigUpdater] Verifying runner qualified id: U_kgDOEGdnXw/R_kgDOSWSkow/self-hosted/2
+[2026-05-07 01:18:18Z INFO HostContext] Well known directory 'Bin': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\bin'
+[2026-05-07 01:18:18Z INFO HostContext] Well known directory 'Root': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner'
+[2026-05-07 01:18:18Z INFO HostContext] Well known config file 'Runner': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.runner'
+[2026-05-07 01:18:19Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 01:18:19Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 01:18:20Z INFO GitHubActionsService] AAD Correlation ID for this token request: Unknown
+[2026-05-07 01:18:20Z INFO ConfigurationStore] Saving runner migrated settings
+[2026-05-07 01:18:20Z INFO ConfigurationStore] Delete exist runner migrated settings file.
+[2026-05-07 01:18:20Z INFO ConfigurationStore] Migrated Settings Saved.
+[2026-05-07 01:18:20Z INFO Runner] Runner configuration was updated. Session restart has been scheduled
+[2026-05-07 01:18:20Z INFO Runner] Pending session restart detected and job dispatcher is not busy. Restarting session now.
+[2026-05-07 01:18:20Z INFO JobDispatcher] Shutting down JobDispatcher. Make sure all WorkerDispatcher has finished.
+[2026-05-07 01:18:20Z INFO Runner] Deleting Runner Session...
+[2026-05-07 01:18:20Z INFO Runner] Restarting runner session after config update...
+[2026-05-07 01:18:20Z INFO Runner] Runner configuration was refreshed, restarting session...
+[2026-05-07 01:18:20Z INFO ConfigurationManager] LoadSettings
+[2026-05-07 01:18:20Z INFO ConfigurationStore] IsConfigured()
+[2026-05-07 01:18:20Z INFO ConfigurationStore] IsConfigured: True
+[2026-05-07 01:18:20Z INFO ConfigurationManager] Is configured: True
+[2026-05-07 01:18:20Z INFO ConfigurationManager] Settings Loaded
+[2026-05-07 01:18:20Z INFO Runner] RunAsync
+[2026-05-07 01:18:20Z INFO HostContext] Well known directory 'Bin': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\bin'
+[2026-05-07 01:18:20Z INFO HostContext] Well known directory 'Root': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner'
+[2026-05-07 01:18:20Z INFO HostContext] Well known directory 'Work': 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\_work'
+[2026-05-07 01:18:20Z INFO Runner] Validating directory permissions for: 'C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\_work'
+[2026-05-07 01:18:20Z INFO ConfigurationManager] LoadMigratedSettings
+[2026-05-07 01:18:20Z INFO ConfigurationStore] IsMigratedConfigured()
+[2026-05-07 01:18:20Z INFO ConfigurationStore] IsMigratedConfigured: True
+[2026-05-07 01:18:20Z INFO ConfigurationManager] Migrated Settings Loaded
+[2026-05-07 01:18:20Z INFO Runner] Loaded migrated settings from .runner_migrated file
+[2026-05-07 01:18:20Z INFO Runner] {
+  "AgentId": 2,
+  "AgentName": "SRCHUU",
+  "PoolId": 1,
+  "PoolName": "Default",
+  "ServerUrl": "https://pipelinesghubeus21.actions.githubusercontent.com/vgSPLvdmmawbSLnuWvhFEfVpsxBdJ1vMCRMYD2JBjtb1d2yZIn/",
+  "GitHubUrl": "https://github.com/srmchu-gif/chaoticlegacy",
+  "WorkFolder": "_work",
+  "UseV2Flow": true,
+  "ServerUrlV2": "https://broker.actions.githubusercontent.com/"
+}
+[2026-05-07 01:18:20Z INFO Runner] Attempting to create session using migrated settings
+[2026-05-07 01:18:20Z INFO Runner] Using BrokerMessageListener
+[2026-05-07 01:18:20Z INFO BrokerMessageListener] Using provided settings
+[2026-05-07 01:18:20Z INFO BrokerMessageListener] Using migrated settings from .runner_migrated
+[2026-05-07 01:18:20Z INFO BrokerMessageListener] {
+  "AgentId": 2,
+  "AgentName": "SRCHUU",
+  "PoolId": 1,
+  "PoolName": "Default",
+  "ServerUrl": "https://pipelinesghubeus21.actions.githubusercontent.com/vgSPLvdmmawbSLnuWvhFEfVpsxBdJ1vMCRMYD2JBjtb1d2yZIn/",
+  "GitHubUrl": "https://github.com/srmchu-gif/chaoticlegacy",
+  "WorkFolder": "_work",
+  "UseV2Flow": true,
+  "ServerUrlV2": "https://broker.actions.githubusercontent.com/"
+}
+[2026-05-07 01:18:20Z INFO BrokerMessageListener] Loading Credentials
+[2026-05-07 01:18:20Z INFO ConfigurationStore] HasCredentials()
+[2026-05-07 01:18:20Z INFO ConfigurationStore] stored True
+[2026-05-07 01:18:20Z INFO CredentialManager] GetCredentialProvider
+[2026-05-07 01:18:20Z INFO CredentialManager] Creating type OAuth
+[2026-05-07 01:18:20Z INFO CredentialManager] Creating credential type: OAuth
+[2026-05-07 01:18:20Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 01:18:20Z INFO BrokerMessageListener] Attempt to create session.
+[2026-05-07 01:18:20Z INFO BrokerMessageListener] Connecting to the Broker Server...
+[2026-05-07 01:18:20Z INFO ConfigurationStore] HasCredentials()
+[2026-05-07 01:18:20Z INFO ConfigurationStore] stored True
+[2026-05-07 01:18:20Z INFO CredentialManager] GetCredentialProvider
+[2026-05-07 01:18:20Z INFO CredentialManager] Creating type OAuth
+[2026-05-07 01:18:20Z INFO CredentialManager] Creating credential type: OAuth
+[2026-05-07 01:18:20Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 01:18:20Z INFO BrokerMessageListener] VssConnection created
+[2026-05-07 01:18:20Z INFO BrokerMessageListener] Connecting to the Runner server...
+[2026-05-07 01:18:20Z INFO RunnerServer] EstablishVssConnection
+[2026-05-07 01:18:20Z INFO RunnerServer] Establish connection with 100 seconds timeout.
+[2026-05-07 01:18:20Z INFO GitHubActionsService] Starting operation Location.GetConnectionData
+[2026-05-07 01:18:20Z INFO RunnerServer] EstablishVssConnection
+[2026-05-07 01:18:20Z INFO RunnerServer] Establish connection with 60 seconds timeout.
+[2026-05-07 01:18:20Z INFO GitHubActionsService] Starting operation Location.GetConnectionData
+[2026-05-07 01:18:20Z INFO RunnerServer] EstablishVssConnection
+[2026-05-07 01:18:20Z INFO RunnerServer] Establish connection with 60 seconds timeout.
+[2026-05-07 01:18:20Z INFO GitHubActionsService] Starting operation Location.GetConnectionData
+[2026-05-07 01:18:21Z INFO GitHubActionsService] Finished operation Location.GetConnectionData
+[2026-05-07 01:18:21Z INFO GitHubActionsService] Finished operation Location.GetConnectionData
+[2026-05-07 01:18:21Z INFO GitHubActionsService] Finished operation Location.GetConnectionData
+[2026-05-07 01:18:21Z INFO BrokerMessageListener] VssConnection created
+[2026-05-07 01:18:21Z INFO Terminal] WRITE LINE: 
+[2026-05-07 01:18:21Z INFO Terminal] WRITE LINE: 
+[2026-05-07 01:18:21Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 01:18:21Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 01:18:21Z INFO GitHubActionsService] AAD Correlation ID for this token request: Unknown
+[2026-05-07 01:18:22Z INFO BrokerMessageListener] Session created.
+[2026-05-07 01:18:22Z INFO Runner] Successfully created session with migrated settings
+[2026-05-07 01:18:22Z INFO Terminal] WRITE LINE: Current runner version: '2.334.0'
+[2026-05-07 01:18:22Z INFO Terminal] WRITE LINE: 2026-05-07 01:18:22Z: Listening for Jobs
+[2026-05-07 01:18:22Z INFO JobDispatcher] Set runner/worker IPC timeout to 30 seconds.
+[2026-05-07 02:08:35Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 02:08:35Z INFO GitHubActionsService] AAD Correlation ID for this token request: Unknown
+[2026-05-07 02:58:48Z INFO RSAEncryptedFileKeyManager] Loading RSA key parameters from file C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\actions-runner\.credentials_rsaparams
+[2026-05-07 02:58:49Z INFO GitHubActionsService] AAD Correlation ID for this token request: Unknown

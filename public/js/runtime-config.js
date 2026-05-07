@@ -18,12 +18,14 @@ function sanitizeApiBase(value) {
 const rawConfig = window.APP_CONFIG && typeof window.APP_CONFIG === "object" ? window.APP_CONFIG : {};
 const BASE_PATH = normalizeBasePath(rawConfig.basePath || "/");
 const API_BASE = sanitizeApiBase(rawConfig.apiBase || "");
+const TURNSTILE_SITE_KEY = String(rawConfig.turnstileSiteKey || "").trim();
 const API_PREFIXES = ["/api/", "/downloads/", "/music/", "/health"];
 
 export function getRuntimeConfig() {
   return {
     basePath: BASE_PATH,
     apiBase: API_BASE,
+    turnstileSiteKey: TURNSTILE_SITE_KEY,
   };
 }
 

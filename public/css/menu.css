@@ -1232,6 +1232,67 @@ body {
   gap: 0.5rem;
 }
 
+.trades-online-box,
+.trades-wishlist-box {
+  border: 1px solid rgba(0, 210, 255, 0.18);
+  border-radius: 10px;
+  padding: 0.55rem;
+  background: rgba(6, 13, 21, 0.7);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.trades-online-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.74rem;
+  color: #9dd9ff;
+}
+
+.trades-online-list {
+  max-height: 150px;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.trades-online-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.4rem 0.45rem;
+  background: rgba(3, 9, 15, 0.75);
+}
+
+.trades-online-row small {
+  color: #8ba8bf;
+  font-size: 0.66rem;
+}
+
+.trades-wishlist-box label {
+  font-size: 0.72rem;
+  color: #9dd9ff;
+  text-transform: uppercase;
+}
+
+#trades-wishlist-input {
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  background: rgba(5, 12, 20, 0.82);
+  color: #d9eefc;
+  font-family: "Inter", sans-serif;
+  font-size: 0.74rem;
+}
+
 #trades-room-code-input,
 #trades-inventory-type {
   min-height: 40px;

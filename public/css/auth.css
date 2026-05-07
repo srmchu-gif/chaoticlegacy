@@ -297,6 +297,21 @@ input:focus {
 .tribe-option input:checked ~ .shape-wrapper.danian-wrapper { filter: drop-shadow(0 0 8px #b06a3b); }
 .tribe-option input:checked ~ .shape-wrapper.mipedian-wrapper { filter: drop-shadow(0 0 8px #ffd166); }
 
+.turnstile-widget {
+  min-height: 65px;
+}
+
+.turnstile-status {
+  display: block;
+  min-height: 1rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.turnstile-status.error {
+  color: var(--danger);
+}
+
 /* Button */
 .primary-btn {
   background: linear-gradient(135deg, var(--accent-2), var(--accent));

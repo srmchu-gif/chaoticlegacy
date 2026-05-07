@@ -53,7 +53,8 @@ Para funcionar com todas as funcionalidades (auth, PERIM, trocas, multiplayer, p
      - `PORT=10000` (ou porta definida pelo provider)
      - `SQLITE_FILE=/var/data/chaotic.db`
      - `PERSIST_DIR=/var/data`
-     - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+    - `TURNSTILE_SECRET_KEY` (captcha anti-bot do cadastro)
      - `CORS_ALLOWED_ORIGINS=https://SEU-USUARIO.github.io`
 
 2. **Frontend no GitHub Pages**
@@ -64,6 +65,7 @@ Para funcionar com todas as funcionalidades (auth, PERIM, trocas, multiplayer, p
    - Edite `public/config.js`:
      - `apiBase`: URL do backend Render (ex.: `https://seu-backend.onrender.com`)
      - `basePath`: subpasta do repo no Pages (ex.: `/nome-do-repo/`)
+     - `turnstileSiteKey`: site key publico do Turnstile
 
 4. **Depois do deploy**
    - Acesse: `https://SEU-USUARIO.github.io/NOME-DO-REPO/`

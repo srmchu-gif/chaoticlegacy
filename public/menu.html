@@ -114,13 +114,25 @@
         <h2 class="panel-title">Trocas</h2>
         <div id="trades-status" class="trades-status">Monte uma sala e troque cartas em tempo real.</div>
 
-        <div id="trades-hub-view" class="trades-hub-view">
-          <button id="btn-trades-create-room" class="menu-btn primary-btn compact-action-btn">Criar sala de troca</button>
-          <div class="trades-join-row">
-            <input id="trades-room-code-input" type="text" maxlength="6" placeholder="Codigo da sala" />
-            <button id="btn-trades-join-room" class="menu-btn standard-btn compact-action-btn">Entrar</button>
+          <div id="trades-hub-view" class="trades-hub-view">
+            <button id="btn-trades-create-room" class="menu-btn primary-btn compact-action-btn">Criar sala de troca</button>
+            <div class="trades-join-row">
+              <input id="trades-room-code-input" type="text" maxlength="6" placeholder="Codigo da sala" />
+              <button id="btn-trades-join-room" class="menu-btn standard-btn compact-action-btn">Entrar</button>
+            </div>
+            <div class="trades-online-box">
+              <div class="trades-online-head">
+                <strong>Jogadores online</strong>
+                <button id="btn-trades-refresh-online" class="menu-btn ghost-btn compact-action-btn">Atualizar</button>
+              </div>
+              <div id="trades-online-list" class="trades-online-list"></div>
+            </div>
+            <div class="trades-wishlist-box">
+              <label for="trades-wishlist-input">Wishlist (tipo:cardId, um por linha)</label>
+              <textarea id="trades-wishlist-input" rows="4" placeholder="creatures:chaotic-creatures-001"></textarea>
+              <button id="btn-trades-save-wishlist" class="menu-btn standard-btn compact-action-btn">Salvar wishlist</button>
+            </div>
           </div>
-        </div>
 
         <div id="trades-room-view" class="trades-room-view" style="display:none;">
           <div class="trades-room-head">

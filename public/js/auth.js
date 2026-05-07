@@ -1,5 +1,5 @@
 import { initMatrixEffect } from "./matrix.js";
-import { clearSessionToken, getSessionToken, setSessionToken, toPage } from "./runtime-config.js";
+import { clearSessionToken, getRuntimeConfig, getSessionToken, setSessionToken, toPage } from "./runtime-config.js";
 
 const DB_SESSION = "chaotic_session";
 const DB_REMEMBER = "chaotic_remember";
@@ -36,12 +36,19 @@ async function apiJsonWithTimeout(url, options = {}, timeoutMs = 12000) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const runtimeConfig = getRuntimeConfig();
+  const turnstileSiteKey = String(runtimeConfig?.turnstileSiteKey || "").trim();
   const viewLogin = document.getElementById("view-login");
   const viewRegister = document.getElementById("view-register");
   const viewVerify = document.getElementById("view-verify");
   const overlay = document.getElementById("loading-overlay");
+  const turnstileWidgetContainer = document.getElementById("turnstile-widget");
+  const turnstileStatus = document.getElementById("turnstile-status");
 
   let verificationData = null; // { username, tribe }
+  let turnstileToken = "";
+  let turnstileWidgetId = null;
+  let turnstileRendered = false;
 
   const switchView = (viewToShow) => {
     [viewLogin, viewRegister, viewVerify].forEach((view) => {
@@ -49,6 +56,80 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     viewToShow.classList.add("active");
   };
+
+  const setTurnstileStatus = (message = "", isError = false) => {
+    if (!turnstileStatus) {
+      return;
+    }
+    turnstileStatus.textContent = String(message || "");
+    turnstileStatus.classList.toggle("error", Boolean(isError));
+  };
+
+  const resetTurnstileIfPossible = () => {
+    turnstileToken = "";
+    if (window.turnstile && turnstileWidgetId !== null) {
+      try {
+        window.turnstile.reset(turnstileWidgetId);
+      } catch (_) {
+        // ignore reset failure
+      }
+    }
+  };
+
+  function mountTurnstileWidget() {
+    if (!turnstileWidgetContainer || !turnstileSiteKey || turnstileRendered || !window.turnstile) {
+      return;
+    }
+    try {
+      turnstileWidgetId = window.turnstile.render(turnstileWidgetContainer, {
+        sitekey: turnstileSiteKey,
+        theme: "dark",
+        callback(token) {
+          turnstileToken = String(token || "").trim();
+          setTurnstileStatus("Verificacao anti-bot concluida.");
+        },
+        "expired-callback"() {
+          turnstileToken = "";
+          setTurnstileStatus("Verificacao anti-bot expirou. Valide novamente.", true);
+        },
+        "error-callback"() {
+          turnstileToken = "";
+          setTurnstileStatus("Falha ao carregar captcha. Recarregue a pagina.", true);
+        },
+      });
+      turnstileRendered = true;
+      setTurnstileStatus("Complete a verificacao anti-bot para cadastrar.");
+    } catch (_) {
+      setTurnstileStatus("Falha ao iniciar captcha. Recarregue a pagina.", true);
+    }
+  }
+
+  function setupTurnstile() {
+    if (!turnstileWidgetContainer || !turnstileStatus) {
+      return;
+    }
+    if (!turnstileSiteKey) {
+      setTurnstileStatus("Captcha nao configurado no frontend. Defina turnstileSiteKey em public/config.js.", true);
+      return;
+    }
+    if (window.turnstile) {
+      mountTurnstileWidget();
+      return;
+    }
+    const existingScript = document.querySelector('script[data-chaotic-turnstile="1"]');
+    if (existingScript) {
+      return;
+    }
+    const scriptEl = document.createElement("script");
+    scriptEl.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    scriptEl.async = true;
+    scriptEl.defer = true;
+    scriptEl.dataset.chaoticTurnstile = "1";
+    scriptEl.onload = () => mountTurnstileWidget();
+    scriptEl.onerror = () => setTurnstileStatus("Falha ao carregar captcha. Verifique bloqueadores de script.", true);
+    document.head.appendChild(scriptEl);
+    setTurnstileStatus("Carregando verificacao anti-bot...");
+  }
 
   const withLoading = async (fn, minTime = 700) => {
     overlay.classList.remove("hidden");
@@ -99,6 +180,7 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
     switchView(viewRegister);
     document.getElementById("reg-error").textContent = "";
+    setupTurnstile();
   });
 
   document.getElementById("go-login")?.addEventListener("click", (event) => {
@@ -126,6 +208,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   void verifyCookieSessionAndRedirect();
+  setupTurnstile();
 
   document.getElementById("form-login")?.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -190,6 +273,14 @@ document.addEventListener("DOMContentLoaded", () => {
         errorEl.textContent = "Por favor, selecione sua tribo favorita.";
         return;
       }
+      if (!turnstileSiteKey) {
+        errorEl.textContent = "Captcha anti-bot nao configurado. Fale com o administrador.";
+        return;
+      }
+      if (!turnstileToken) {
+        errorEl.textContent = "Complete a verificacao anti-bot para continuar.";
+        return;
+      }
 
       try {
         const data = await apiJsonWithTimeout("/api/auth/register", {
@@ -200,6 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
             email: emailInp,
             passwordHash: hashPassword(passInp),
             tribe: tribeRadio.value,
+            turnstileToken,
           }),
         });
 
@@ -209,8 +301,10 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("verify-success").textContent = "Codigo enviado para seu e-mail. Confira sua caixa de entrada.";
         document.getElementById("verify-code").value = "";
         switchView(viewVerify);
+        resetTurnstileIfPossible();
       } catch (error) {
         errorEl.textContent = error?.message || "Falha ao registrar.";
+        resetTurnstileIfPossible();
       }
     });
   });

@@ -1497,6 +1497,10 @@ function bindTrades(username) {
   const btnAcceptToggle = qs("btn-trades-accept-toggle");
   const btnFinalize = qs("btn-trades-finalize");
   const btnCancelRoom = qs("btn-trades-cancel-room");
+  const btnRefreshOnline = qs("btn-trades-refresh-online");
+  const onlineListEl = qs("trades-online-list");
+  const wishlistInput = qs("trades-wishlist-input");
+  const btnSaveWishlist = qs("btn-trades-save-wishlist");
   const normalizedTradeUser = normalizeUsername(username);
   const TRADE_SESSION_KEY = `chaotic_trade_session_v2:${normalizedTradeUser}`;
   localStorage.removeItem("chaotic_trade_session_v1");
@@ -1559,6 +1563,119 @@ function bindTrades(username) {
     }
     tradesStatus.textContent = String(message || "");
     tradesStatus.style.color = isError ? "#ff8d8d" : "#88b5d5";
+  }
+
+  function parseWishlistText(rawText) {
+    const lines = String(rawText || "")
+      .split(/\r?\n/g)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const entries = [];
+    lines.forEach((line) => {
+      const [typePart, ...idParts] = line.split(":");
+      const cardType = String(typePart || "").trim().toLowerCase();
+      const cardId = String(idParts.join(":") || "").trim();
+      if (!cardType || !cardId) {
+        return;
+      }
+      entries.push({
+        cardType,
+        cardId,
+        priority: 3,
+      });
+    });
+    return entries;
+  }
+
+  function formatWishlistText(entries) {
+    if (!Array.isArray(entries) || !entries.length) {
+      return "";
+    }
+    return entries
+      .map((entry) => `${String(entry?.cardType || "").toLowerCase()}:${String(entry?.cardId || "").trim()}`)
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  function renderTradesOnlinePlayers(playersRaw) {
+    if (!onlineListEl) {
+      return;
+    }
+    const players = Array.isArray(playersRaw) ? playersRaw : [];
+    if (!players.length) {
+      onlineListEl.innerHTML = '<div class="trades-empty">Nenhum jogador online agora.</div>';
+      return;
+    }
+    onlineListEl.innerHTML = players
+      .map((player) => {
+        const safeUser = escapeHtml(player?.username || "");
+        const safeTribe = escapeHtml(player?.tribe || "sem tribo");
+        const safeScore = Number(player?.score || 0);
+        return `
+          <div class="trades-online-row">
+            <div>
+              <strong>${safeUser}</strong><br/>
+              <small>${safeTribe} • score ${safeScore}</small>
+            </div>
+            <button class="menu-btn ghost-btn" data-trade-copy-user="${escapeAttr(player?.username || "")}">Copiar</button>
+          </div>
+        `;
+      })
+      .join("");
+    onlineListEl.querySelectorAll("[data-trade-copy-user]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const playerName = String(button.getAttribute("data-trade-copy-user") || "").trim();
+        if (!playerName) {
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(playerName);
+          setTradesStatus(`Usuario ${playerName} copiado. Compartilhe o codigo da sala com ele.`);
+        } catch (_) {
+          setTradesStatus("Nao foi possivel copiar automaticamente. Copie manualmente.", true);
+        }
+      });
+    });
+  }
+
+  async function refreshTradesOnlinePlayers() {
+    try {
+      const payload = await fetchJsonWithTimeout("/api/trades/online", { method: "GET" });
+      renderTradesOnlinePlayers(payload.players);
+    } catch (error) {
+      renderTradesOnlinePlayers([]);
+      setTradesStatus(error?.message || "Nao foi possivel carregar jogadores online.", true);
+    }
+  }
+
+  async function loadTradeWishlist() {
+    if (!wishlistInput) {
+      return;
+    }
+    try {
+      const payload = await fetchJsonWithTimeout("/api/trades/wishlist", { method: "GET" });
+      wishlistInput.value = formatWishlistText(payload.entries);
+    } catch {
+      wishlistInput.value = "";
+    }
+  }
+
+  async function saveTradeWishlist() {
+    if (!wishlistInput) {
+      return;
+    }
+    const entries = parseWishlistText(wishlistInput.value);
+    try {
+      const payload = await fetchJsonWithTimeout("/api/trades/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entries }),
+      });
+      wishlistInput.value = formatWishlistText(payload.entries);
+      setTradesStatus(`Wishlist salva (${payload.entries?.length || 0} itens).`);
+    } catch (error) {
+      setTradesStatus(error?.message || "Falha ao salvar wishlist.", true);
+    }
   }
 
   function formatCardType(type) {
@@ -1884,6 +2001,8 @@ function bindTrades(username) {
       perimPanel.style.display = "none";
     }
     tradesPanel.style.display = "block";
+    void refreshTradesOnlinePlayers();
+    void loadTradeWishlist();
     clearEventSource();
     if (!restoreTradeSession()) {
       if (hubView) {
@@ -1971,6 +2090,18 @@ function bindTrades(username) {
   if (btnCancelRoom) {
     btnCancelRoom.addEventListener("click", () => {
       void sendTradeAction({ type: "cancel" });
+    });
+  }
+
+  if (btnRefreshOnline) {
+    btnRefreshOnline.addEventListener("click", () => {
+      void refreshTradesOnlinePlayers();
+    });
+  }
+
+  if (btnSaveWishlist) {
+    btnSaveWishlist.addEventListener("click", () => {
+      void saveTradeWishlist();
     });
   }
 

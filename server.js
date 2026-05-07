@@ -100,6 +100,8 @@ const SMTP_SECURE = String(process.env.SMTP_SECURE || "true").toLowerCase() !== 
 const SMTP_USER = String(process.env.SMTP_USER || "").trim();
 const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
 const SMTP_FROM = String(process.env.SMTP_FROM || "").trim();
+const TURNSTILE_SECRET_KEY = String(process.env.TURNSTILE_SECRET_KEY || "").trim();
+const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 const SESSION_COOKIE_NAME = "chaotic_sid";
 const USER_CACHE_TTL_MS = Math.max(5 * 1000, Number(process.env.USER_CACHE_TTL_MS || 30 * 1000));
 const METRICS_WINDOW_MS = Math.max(5 * 60 * 1000, Number(process.env.METRICS_WINDOW_MS || 30 * 60 * 1000));
@@ -109,6 +111,16 @@ const DB_BACKUP_HOUR = Math.max(0, Math.min(23, Number(process.env.DB_BACKUP_HOU
 const SQL_V2_SCHEMA_VERSION = 2;
 const SQL_V2_STORAGE_MODE = "sql_v2_cutover";
 const SQL_CATALOG_SCHEMA_VERSION = 3;
+const DROME_CATALOG = [
+  { id: "crellan", name: "Crellan Drome" },
+  { id: "hotekk", name: "Hotekk Drome" },
+  { id: "amzen", name: "Amzen Drome" },
+  { id: "oron", name: "Oron Drome" },
+  { id: "tirasis", name: "Tirasis Drome" },
+  { id: "imthor", name: "Imthor Drome" },
+  { id: "chirrul", name: "Chirrul Drome" },
+  { id: "beta", name: "Beta Drome" },
+];
 
 if (!fs.existsSync(PERSIST_DIR)) {
   fs.mkdirSync(PERSIST_DIR, { recursive: true });
@@ -327,6 +339,9 @@ try {
       verified INTEGER NOT NULL DEFAULT 0,
       session_token TEXT,
       session_expires_at TEXT,
+      session_ip TEXT NOT NULL DEFAULT '',
+      session_device TEXT NOT NULL DEFAULT '',
+      last_login_at TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -335,6 +350,15 @@ try {
   const userColumnSet = new Set(userColumns.map((entry) => String(entry?.name || "").toLowerCase()));
   if (!userColumnSet.has("session_expires_at")) {
     sqliteDb.exec("ALTER TABLE users ADD COLUMN session_expires_at TEXT;");
+  }
+  if (!userColumnSet.has("session_ip")) {
+    sqliteDb.exec("ALTER TABLE users ADD COLUMN session_ip TEXT NOT NULL DEFAULT '';");
+  }
+  if (!userColumnSet.has("session_device")) {
+    sqliteDb.exec("ALTER TABLE users ADD COLUMN session_device TEXT NOT NULL DEFAULT '';");
+  }
+  if (!userColumnSet.has("last_login_at")) {
+    sqliteDb.exec("ALTER TABLE users ADD COLUMN last_login_at TEXT;");
   }
 } catch (error) {
   console.warn(`[DB] SQLite indisponivel, fallback JSON ativo: ${error.message}`);
@@ -694,6 +718,103 @@ function createSqlV2Tables() {
       card_type TEXT NOT NULL,
       card_id TEXT NOT NULL,
       variant_json TEXT
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS trade_wishlist (
+      owner_key TEXT NOT NULL,
+      card_type TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      notes TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (owner_key, card_type, card_id)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_trade_wishlist_owner ON trade_wishlist(owner_key, updated_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS weekly_missions (
+      mission_key TEXT NOT NULL PRIMARY KEY,
+      week_start TEXT NOT NULL,
+      mission_type TEXT NOT NULL,
+      target_value INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS weekly_mission_progress (
+      mission_key TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      progress_value INTEGER NOT NULL DEFAULT 0,
+      completed_at TEXT,
+      claimed_at TEXT,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (mission_key, owner_key)
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS achievements (
+      owner_key TEXT NOT NULL,
+      achievement_key TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT '',
+      unlocked_at TEXT NOT NULL,
+      payload_json TEXT,
+      PRIMARY KEY (owner_key, achievement_key)
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      severity TEXT NOT NULL DEFAULT 'info',
+      owner_key TEXT NOT NULL DEFAULT '',
+      ip_address TEXT NOT NULL DEFAULT '',
+      message TEXT NOT NULL DEFAULT '',
+      payload_json TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at DESC);");
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_audit_log_owner ON audit_log(owner_key, created_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS ranked_global (
+      owner_key TEXT NOT NULL PRIMARY KEY,
+      elo INTEGER NOT NULL DEFAULT 1200,
+      wins INTEGER NOT NULL DEFAULT 0,
+      losses INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS ranked_drome_selection (
+      season_key TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      drome_id TEXT NOT NULL,
+      locked_at TEXT NOT NULL,
+      PRIMARY KEY (season_key, owner_key)
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS ranked_drome_stats (
+      season_key TEXT NOT NULL,
+      drome_id TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      score INTEGER NOT NULL DEFAULT 0,
+      wins INTEGER NOT NULL DEFAULT 0,
+      losses INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (season_key, drome_id, owner_key)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_ranked_drome_score ON ranked_drome_stats(season_key, drome_id, score DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_group_rooms (
+      room_code TEXT NOT NULL PRIMARY KEY,
+      host_key TEXT NOT NULL,
+      guest_key TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'waiting',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
   `);
 }
@@ -1375,6 +1496,10 @@ function buildRuntimeMetricsSnapshot() {
       },
       ttlMs: USER_CACHE_TTL_MS,
     },
+    security: {
+      turnstileConfigured: Boolean(TURNSTILE_SECRET_KEY),
+      activeLoginBlocks: countActiveLoginBlocks(),
+    },
     jobs: {
       perim: { ...runtimeMetrics.perimJobs },
       backup: { ...runtimeMetrics.backups },
@@ -1607,6 +1732,18 @@ function getClientIp(request) {
   return String(rawSocket || "unknown");
 }
 
+function buildClientFingerprint(request) {
+  const explicit = String(request?.headers?.["x-device-fingerprint"] || "").trim();
+  if (explicit) {
+    return explicit.slice(0, 96);
+  }
+  const userAgent = String(request?.headers?.["user-agent"] || "").trim();
+  if (!userAgent) {
+    return "unknown";
+  }
+  return crypto.createHash("sha256").update(userAgent).digest("hex").slice(0, 24);
+}
+
 function parseCookies(request) {
   const header = String(request?.headers?.cookie || "");
   if (!header) {
@@ -1730,16 +1867,18 @@ function buildSessionExpiryIso(fromMs = nowMs()) {
   return isoFromMs(fromMs + SESSION_TTL_MS);
 }
 
-function issueSessionForUserId(userId) {
+function issueSessionForUserId(userId, options = {}) {
   if (!sqliteDb) {
     return null;
   }
   const token = crypto.randomBytes(32).toString("hex");
   const issuedAt = nowIso();
   const expiresAt = buildSessionExpiryIso(nowMs());
+  const clientIp = String(options.clientIp || "").trim();
+  const clientFingerprint = String(options.clientFingerprint || "").trim();
   sqliteDb
-    .prepare("UPDATE users SET session_token = ?, session_expires_at = ?, updated_at = ? WHERE id = ?")
-    .run(token, expiresAt, issuedAt, Number(userId));
+    .prepare("UPDATE users SET session_token = ?, session_expires_at = ?, session_ip = ?, session_device = ?, last_login_at = ?, updated_at = ? WHERE id = ?")
+    .run(token, expiresAt, clientIp, clientFingerprint, issuedAt, issuedAt, Number(userId));
   return {
     sessionToken: token,
     expiresAt,
@@ -1760,7 +1899,7 @@ function loadUserByValidSessionToken(token) {
     return null;
   }
   const user = sqliteDb
-    .prepare("SELECT id, username, email, tribe, session_expires_at FROM users WHERE session_token = ?")
+    .prepare("SELECT id, username, email, tribe, session_expires_at, session_ip, session_device, last_login_at FROM users WHERE session_token = ?")
     .get(token);
   if (!user) {
     return null;
@@ -1771,6 +1910,110 @@ function loadUserByValidSessionToken(token) {
     return null;
   }
   return user;
+}
+
+function appendAuditLog(eventType, options = {}) {
+  if (!sqliteDb) {
+    return;
+  }
+  const severity = String(options.severity || "info").trim() || "info";
+  const ownerKey = normalizeUserKey(options.ownerKey || "", "");
+  const ipAddress = String(options.ipAddress || "").trim();
+  const message = String(options.message || "").trim();
+  const payload = options.payload && typeof options.payload === "object" ? options.payload : null;
+  try {
+    sqliteDb
+      .prepare(`
+        INSERT INTO audit_log (event_type, severity, owner_key, ip_address, message, payload_json, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `)
+      .run(
+        String(eventType || "event"),
+        severity,
+        ownerKey,
+        ipAddress,
+        message,
+        payload ? JSON.stringify(payload) : null,
+        nowIso()
+      );
+  } catch (error) {
+    console.warn(`[AUDIT] Falha ao gravar evento ${eventType}: ${error?.message || error}`);
+  }
+}
+
+const authLoginFailureState = new Map();
+
+function countActiveLoginBlocks() {
+  const now = nowMs();
+  let total = 0;
+  authLoginFailureState.forEach((entry) => {
+    if (Number(entry?.blockedUntilMs || 0) > now) {
+      total += 1;
+    }
+  });
+  return total;
+}
+
+function getLoginLockState(ipAddress, username) {
+  const key = `${String(ipAddress || "unknown").trim()}::${normalizeUserKey(username || "", "anonymous")}`;
+  const now = nowMs();
+  const state = authLoginFailureState.get(key);
+  if (!state) {
+    return { key, blocked: false, retryAfterSeconds: 0 };
+  }
+  if (state.blockedUntilMs && now < state.blockedUntilMs) {
+    return {
+      key,
+      blocked: true,
+      retryAfterSeconds: Math.max(1, Math.ceil((state.blockedUntilMs - now) / 1000)),
+    };
+  }
+  return { key, blocked: false, retryAfterSeconds: 0 };
+}
+
+function registerLoginFailure(ipAddress, username) {
+  const key = `${String(ipAddress || "unknown").trim()}::${normalizeUserKey(username || "", "anonymous")}`;
+  const current = authLoginFailureState.get(key) || { failures: 0, blockedUntilMs: 0 };
+  const failures = Number(current.failures || 0) + 1;
+  const penaltyMs = Math.min(30 * 60 * 1000, Math.pow(2, Math.max(0, failures - 2)) * 15 * 1000);
+  const blockedUntilMs = nowMs() + penaltyMs;
+  authLoginFailureState.set(key, { failures, blockedUntilMs });
+  return { failures, blockedUntilMs, retryAfterSeconds: Math.max(1, Math.ceil(penaltyMs / 1000)) };
+}
+
+function clearLoginFailure(ipAddress, username) {
+  const key = `${String(ipAddress || "unknown").trim()}::${normalizeUserKey(username || "", "anonymous")}`;
+  authLoginFailureState.delete(key);
+}
+
+async function validateTurnstileToken(turnstileToken, clientIp) {
+  if (!TURNSTILE_SECRET_KEY) {
+    return { ok: false, error: "turnstile_not_configured" };
+  }
+  const token = String(turnstileToken || "").trim();
+  if (!token) {
+    return { ok: false, error: "turnstile_token_missing" };
+  }
+  try {
+    const response = await fetch(TURNSTILE_VERIFY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        secret: TURNSTILE_SECRET_KEY,
+        response: token,
+        remoteip: String(clientIp || "").trim(),
+      }).toString(),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.success) {
+      return { ok: false, error: "turnstile_invalid", details: payload };
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: "turnstile_verify_failed", details: String(error?.message || error) };
+  }
 }
 
 function requireAuthenticatedUser(request, response) {
@@ -3113,7 +3356,14 @@ const PERIM_ACTIONS = [
   },
 ];
 
-const PERIM_EVENTS_DEFAULT = [];
+const PERIM_EVENTS_BY_CLIMATE = {
+  ensolarado: { id: "sun_burst", label: "Surto Solar", effect: "+8% drops de Battlegear e Mugic", bonus: { battlegear: 0.08, mugic: 0.08 } },
+  chuvoso: { id: "rain_echo", label: "Eco Chuvoso", effect: "+10% drops de Attacks aquáticos", bonus: { attacks: 0.1 } },
+  nevando: { id: "frozen_trails", label: "Rastros Congelados", effect: "+6% chance de pistas em anomalias", bonus: { clues: 0.06 } },
+  ventania: { id: "wind_paths", label: "Trilhas de Ventania", effect: "+7% chance de local adjacente em exploração", bonus: { locations: 0.07 } },
+  tempestade: { id: "storm_hunt", label: "Caçada da Tempestade", effect: "+10% chance de criatura em rastreio", bonus: { creatures: 0.1 } },
+  nublado: { id: "mist_watch", label: "Vigília Nebulosa", effect: "Sem bônus extremo; leitura estável de sinais", bonus: {} },
+};
 
 function normalizePerimPlayerKey(value) {
   const fallback = "local-player";
@@ -4681,8 +4931,22 @@ function pickWeightedClimate(profile, seed) {
   return String(valid[valid.length - 1]?.climate || "Nublado");
 }
 
+function perimClimateEventByName(climateRaw) {
+  const key = normalizeClimateText(climateRaw);
+  if (!key) {
+    return PERIM_EVENTS_BY_CLIMATE.nublado;
+  }
+  if (key.includes("ensolar")) return PERIM_EVENTS_BY_CLIMATE.ensolarado;
+  if (key.includes("chuv")) return PERIM_EVENTS_BY_CLIMATE.chuvoso;
+  if (key.includes("nev")) return PERIM_EVENTS_BY_CLIMATE.nevando;
+  if (key.includes("vent")) return PERIM_EVENTS_BY_CLIMATE.ventania;
+  if (key.includes("tempest")) return PERIM_EVENTS_BY_CLIMATE.tempestade;
+  return PERIM_EVENTS_BY_CLIMATE.nublado;
+}
+
 function buildPerimContextSnapshot(locationEntry, actionId, scannerEffect = null, nowDate = new Date(), clues = []) {
   const globalState = getPerimGlobalLocationState(locationEntry, nowDate);
+  const climateEvent = perimClimateEventByName(globalState.climate);
   const chosenAction = String(actionId || "explore");
   const creatureChanceByAction = locationEntry?.creatureChanceByAction || {};
   const creatureChancePercent = clampPercent(
@@ -4697,12 +4961,15 @@ function buildPerimContextSnapshot(locationEntry, actionId, scannerEffect = null
     capturedAt: nowDate.toISOString(),
     turnLabel: globalState.turnLabel,
     climate: globalState.climate,
+    eventId: String(climateEvent?.id || ""),
+    eventLabel: String(climateEvent?.label || ""),
+    eventEffect: String(climateEvent?.effect || ""),
     creatureChancePercent,
     creaturesTodayCount,
     hasCreaturesToday: creaturesTodayCount > 0,
     clues: Array.isArray(clues) ? clues.filter(Boolean) : [],
     scanSuccessBoostPercent: successBoost,
-    eventChancePercent: 0,
+    eventChancePercent: climateEvent?.bonus && Object.keys(climateEvent.bonus).length ? 100 : 0,
     locationDropChancePercent: Math.round(locationDropChanceByRarity(locationEntry?.rarity || "") * 100),
   };
 }
@@ -6131,6 +6398,7 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
     perimClaims: 1,
   });
   incrementPerimMissionProgress(playerKeyRaw, 1, new Date());
+  incrementWeeklyPerimMissionProgress(playerKeyRaw, 1, new Date());
   applyScannerProgressFromRewards(playerKeyRaw, collected);
   invalidateUserCaches(playerKeyRaw);
   return { ok: true, runId: target.runId, rewards: collected, skippedByCap };
@@ -6177,12 +6445,14 @@ function buildPerimStatePayload(playerKeyRaw) {
       contextPreview: buildPerimContextSnapshot(entry, "explore", scannerState.effect, nowDate),
     };
   });
+  const activeEvents = listPerimGlobalEvents(locations);
   const payload = {
     playerKey,
     locations,
     actions: PERIM_ACTIONS,
     eventsSummary: {
-      activeCount: PERIM_EVENTS_DEFAULT.length,
+      activeCount: activeEvents.length,
+      activeEvents,
     },
     activeRun: playerState.activeRun,
     activeRunNewsItems,
@@ -6195,8 +6465,30 @@ function buildPerimStatePayload(playerKeyRaw) {
   return payload;
 }
 
-function listPerimGlobalEvents() {
-  return PERIM_EVENTS_DEFAULT.map((entry) => ({ ...entry }));
+function listPerimGlobalEvents(locationEntries = []) {
+  const eventsById = new Map();
+  (Array.isArray(locationEntries) ? locationEntries : []).forEach((entry) => {
+    const context = entry?.contextPreview || buildPerimContextSnapshot(entry, "explore", null, new Date(), []);
+    const climate = String(context?.climate || "");
+    const event = perimClimateEventByName(climate);
+    if (!event) return;
+    eventsById.set(String(event.id), {
+      id: String(event.id),
+      label: String(event.label),
+      effect: String(event.effect),
+      climate,
+    });
+  });
+  if (!eventsById.size) {
+    const fallback = perimClimateEventByName("nublado");
+    return [{
+      id: String(fallback.id),
+      label: String(fallback.label),
+      effect: String(fallback.effect),
+      climate: "Nublado",
+    }];
+  }
+  return [...eventsById.values()];
 }
 
 function getGlobalDailyCreatures(dateKey = null) {
@@ -7101,6 +7393,141 @@ function claimDailyMissionReward(ownerKeyRaw, missionKeyRaw) {
   };
 }
 
+function weekStartIsoDate(date = new Date()) {
+  const utc = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = utc.getUTCDay();
+  const diff = day === 0 ? 6 : day - 1; // monday-based
+  utc.setUTCDate(utc.getUTCDate() - diff);
+  return utc.toISOString().slice(0, 10);
+}
+
+function buildWeeklyPerimMissionKey(date = new Date()) {
+  return `perim_weekly_claims:${weekStartIsoDate(date)}`;
+}
+
+function ensureWeeklyPerimMission(date = new Date()) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const weekStart = weekStartIsoDate(date);
+  const missionKey = buildWeeklyPerimMissionKey(date);
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO weekly_missions (mission_key, week_start, mission_type, target_value, created_at)
+      VALUES (?, ?, 'perim_claims_weekly', 15, ?)
+    `)
+    .run(missionKey, weekStart, nowIso());
+  return sqliteDb
+    .prepare("SELECT mission_key, week_start, mission_type, target_value, created_at FROM weekly_missions WHERE mission_key = ?")
+    .get(missionKey);
+}
+
+function incrementWeeklyPerimMissionProgress(ownerKeyRaw, increment = 1, date = new Date()) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  if (!ownerKey) {
+    return null;
+  }
+  const mission = ensureWeeklyPerimMission(date);
+  if (!mission) {
+    return null;
+  }
+  sqliteDb
+    .prepare(`
+      INSERT INTO weekly_mission_progress (mission_key, owner_key, progress_value, completed_at, claimed_at, updated_at)
+      VALUES (?, ?, ?, NULL, NULL, ?)
+      ON CONFLICT(mission_key, owner_key) DO UPDATE SET
+        progress_value = weekly_mission_progress.progress_value + excluded.progress_value,
+        updated_at = excluded.updated_at
+    `)
+    .run(String(mission.mission_key), ownerKey, Math.max(0, Number(increment || 0)), nowIso());
+  const progress = sqliteDb
+    .prepare(`
+      SELECT progress_value, completed_at, claimed_at
+      FROM weekly_mission_progress
+      WHERE mission_key = ? AND owner_key = ?
+    `)
+    .get(String(mission.mission_key), ownerKey);
+  const target = Math.max(1, Number(mission?.target_value || 1));
+  if (progress && !progress.completed_at && Number(progress.progress_value || 0) >= target) {
+    const completedAt = nowIso();
+    sqliteDb
+      .prepare("UPDATE weekly_mission_progress SET completed_at = ?, updated_at = ? WHERE mission_key = ? AND owner_key = ?")
+      .run(completedAt, completedAt, String(mission.mission_key), ownerKey);
+  }
+  return {
+    missionKey: String(mission.mission_key),
+    weekStart: String(mission.week_start),
+    targetValue: target,
+  };
+}
+
+function claimWeeklyMissionReward(ownerKeyRaw, missionKeyRaw) {
+  if (!sqliteDb) {
+    return { ok: false, error: "Banco de dados indisponivel." };
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  const missionKey = String(missionKeyRaw || "").trim();
+  if (!ownerKey || !missionKey) {
+    return { ok: false, error: "Missao invalida." };
+  }
+  const mission = sqliteDb
+    .prepare("SELECT mission_key, week_start, target_value FROM weekly_missions WHERE mission_key = ?")
+    .get(missionKey);
+  if (!mission) {
+    return { ok: false, error: "Missao semanal nao encontrada." };
+  }
+  const progress = sqliteDb
+    .prepare("SELECT progress_value, completed_at, claimed_at FROM weekly_mission_progress WHERE mission_key = ? AND owner_key = ?")
+    .get(missionKey, ownerKey);
+  if (!progress) {
+    return { ok: false, error: "Sem progresso nessa missao semanal." };
+  }
+  if (progress.claimed_at) {
+    return { ok: false, error: "Missao semanal ja coletada." };
+  }
+  const target = Math.max(1, Number(mission?.target_value || 1));
+  if (Number(progress?.progress_value || 0) < target) {
+    return { ok: false, error: "Missao semanal ainda nao concluida." };
+  }
+  const claimedAt = nowIso();
+  sqliteDb
+    .prepare("UPDATE weekly_mission_progress SET claimed_at = ?, updated_at = ? WHERE mission_key = ? AND owner_key = ?")
+    .run(claimedAt, claimedAt, missionKey, ownerKey);
+  const season = ensureCurrentSeasonRow(new Date());
+  const weekSuffix = String(mission?.week_start || weekStartIsoDate(new Date()));
+  const rewardBadge = `perim-weekly-${weekSuffix}`;
+  const rewardTitle = "Veterano de Expedicao";
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO season_rewards (season_key, owner_key, reward_type, reward_value, granted_at)
+      VALUES (?, ?, 'badge', ?, ?)
+    `)
+    .run(season?.seasonKey || seasonKeyFromDate(new Date()), ownerKey, rewardBadge, claimedAt);
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO season_rewards (season_key, owner_key, reward_type, reward_value, granted_at)
+      VALUES (?, ?, 'title', ?, ?)
+    `)
+    .run(season?.seasonKey || seasonKeyFromDate(new Date()), ownerKey, rewardTitle, claimedAt);
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO achievements (owner_key, achievement_key, category, unlocked_at, payload_json)
+      VALUES (?, ?, 'perim', ?, ?)
+    `)
+    .run(ownerKey, rewardBadge, claimedAt, JSON.stringify({ missionKey }));
+  return {
+    ok: true,
+    claimedAt,
+    rewards: [
+      { type: "badge", value: rewardBadge },
+      { type: "title", value: rewardTitle },
+    ],
+  };
+}
+
 function listSeasonRewards(ownerKeyRaw, seasonKeyRaw = "") {
   if (!sqliteDb) {
     return [];
@@ -7123,6 +7550,144 @@ function listSeasonRewards(ownerKeyRaw, seasonKeyRaw = "") {
       value: String(row?.reward_value || ""),
       grantedAt: String(row?.granted_at || ""),
     }));
+}
+
+function normalizeDromeId(rawValue) {
+  const token = String(rawValue || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "");
+  if (!token) return "";
+  const found = DROME_CATALOG.find((entry) => entry.id === token);
+  return found ? found.id : "";
+}
+
+function dromeNameById(dromeIdRaw) {
+  const normalized = normalizeDromeId(dromeIdRaw);
+  const found = DROME_CATALOG.find((entry) => entry.id === normalized);
+  return found ? found.name : "";
+}
+
+function getDromeSelectionForSeason(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDate(new Date())) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  const seasonKey = String(seasonKeyRaw || "").trim();
+  if (!ownerKey || !seasonKey) {
+    return null;
+  }
+  const row = sqliteDb
+    .prepare("SELECT season_key, owner_key, drome_id, locked_at FROM ranked_drome_selection WHERE season_key = ? AND owner_key = ?")
+    .get(seasonKey, ownerKey);
+  if (!row) {
+    return null;
+  }
+  return {
+    seasonKey: String(row.season_key || seasonKey),
+    ownerKey,
+    dromeId: String(row.drome_id || ""),
+    dromeName: dromeNameById(row.drome_id),
+    lockedAt: String(row.locked_at || ""),
+  };
+}
+
+function selectDromeForSeason(ownerKeyRaw, dromeIdRaw, nowDate = new Date()) {
+  if (!sqliteDb) {
+    return { ok: false, error: "Banco de dados indisponivel." };
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  const dromeId = normalizeDromeId(dromeIdRaw);
+  if (!ownerKey || !dromeId) {
+    return { ok: false, error: "Dromo invalido." };
+  }
+  const seasonKey = seasonKeyFromDate(nowDate);
+  const existing = getDromeSelectionForSeason(ownerKey, seasonKey);
+  if (existing) {
+    return {
+      ok: false,
+      error: "Dromo ja selecionado neste mes. A troca so e permitida no proximo ciclo mensal.",
+      selection: existing,
+    };
+  }
+  const lockedAt = nowIso();
+  sqliteDb
+    .prepare(`
+      INSERT INTO ranked_drome_selection (season_key, owner_key, drome_id, locked_at)
+      VALUES (?, ?, ?, ?)
+    `)
+    .run(seasonKey, ownerKey, dromeId, lockedAt);
+  const selection = getDromeSelectionForSeason(ownerKey, seasonKey);
+  return { ok: true, selection };
+}
+
+function upsertGlobalRankDelta(ownerKeyRaw, result) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  if (!ownerKey) {
+    return null;
+  }
+  const isWin = String(result || "").toLowerCase() === "win";
+  const isLoss = String(result || "").toLowerCase() === "loss";
+  const eloDelta = isWin ? 16 : isLoss ? -12 : 0;
+  const winsDelta = isWin ? 1 : 0;
+  const lossesDelta = isLoss ? 1 : 0;
+  sqliteDb
+    .prepare(`
+      INSERT INTO ranked_global (owner_key, elo, wins, losses, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(owner_key) DO UPDATE SET
+        elo = MAX(100, ranked_global.elo + excluded.elo - 1200),
+        wins = ranked_global.wins + excluded.wins,
+        losses = ranked_global.losses + excluded.losses,
+        updated_at = excluded.updated_at
+    `)
+    .run(ownerKey, 1200 + eloDelta, winsDelta, lossesDelta, nowIso());
+  return sqliteDb.prepare("SELECT owner_key, elo, wins, losses, updated_at FROM ranked_global WHERE owner_key = ?").get(ownerKey);
+}
+
+function upsertDromeRankDelta(ownerKeyRaw, result, nowDate = new Date()) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  if (!ownerKey) {
+    return null;
+  }
+  const seasonKey = seasonKeyFromDate(nowDate);
+  const selected = getDromeSelectionForSeason(ownerKey, seasonKey);
+  if (!selected?.dromeId) {
+    return null;
+  }
+  const isWin = String(result || "").toLowerCase() === "win";
+  const isLoss = String(result || "").toLowerCase() === "loss";
+  const scoreDelta = isWin ? 24 : isLoss ? -8 : 0;
+  const winsDelta = isWin ? 1 : 0;
+  const lossesDelta = isLoss ? 1 : 0;
+  sqliteDb
+    .prepare(`
+      INSERT INTO ranked_drome_stats (season_key, drome_id, owner_key, score, wins, losses, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(season_key, drome_id, owner_key) DO UPDATE SET
+        score = ranked_drome_stats.score + excluded.score,
+        wins = ranked_drome_stats.wins + excluded.wins,
+        losses = ranked_drome_stats.losses + excluded.losses,
+        updated_at = excluded.updated_at
+    `)
+    .run(seasonKey, selected.dromeId, ownerKey, scoreDelta, winsDelta, lossesDelta, nowIso());
+  return sqliteDb
+    .prepare("SELECT season_key, drome_id, owner_key, score, wins, losses, updated_at FROM ranked_drome_stats WHERE season_key = ? AND drome_id = ? AND owner_key = ?")
+    .get(seasonKey, selected.dromeId, ownerKey);
+}
+
+function titleForDromeRank(rank, dromeName) {
+  const safeDrome = String(dromeName || "Dromo");
+  if (rank === 1) return `Codmestre ${safeDrome}`;
+  if (rank === 2 || rank === 3) return `Elite ${safeDrome}`;
+  if (rank === 4 || rank === 5) return `Jogador #${rank} ${safeDrome}`;
+  return "";
 }
 
 function resolveFavoriteTribeFromUserRecord(usernameRaw) {
@@ -7534,6 +8099,118 @@ function fetchTradeEntriesByIds(scanEntryIds) {
   });
   return ids
     .map((entryId) => byId.get(entryId))
+    .filter(Boolean);
+}
+
+function normalizeTradeWishlistEntries(rawEntries) {
+  const entries = Array.isArray(rawEntries) ? rawEntries : [];
+  const seen = new Set();
+  const normalized = [];
+  for (const rawEntry of entries) {
+    if (!rawEntry || typeof rawEntry !== "object") {
+      continue;
+    }
+    const cardType = String(rawEntry.cardType || rawEntry.type || "").trim().toLowerCase();
+    const cardId = String(rawEntry.cardId || rawEntry.id || "").trim();
+    if (!cardType || !cardId) {
+      continue;
+    }
+    const dedupeKey = `${cardType}:${cardId}`.toLowerCase();
+    if (seen.has(dedupeKey)) {
+      continue;
+    }
+    seen.add(dedupeKey);
+    normalized.push({
+      cardType,
+      cardId,
+      note: String(rawEntry.note || "").trim().slice(0, 120),
+      priority: Math.max(1, Math.min(5, Number(rawEntry.priority || 3))),
+    });
+    if (normalized.length >= 200) {
+      break;
+    }
+  }
+  return normalized;
+}
+
+function readTradeWishlist(ownerKeyRaw) {
+  if (!isSqlV2Ready()) {
+    return [];
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  const rows = sqliteDb
+    .prepare(`
+      SELECT card_type, card_id, note, priority, updated_at
+      FROM trade_wishlist
+      WHERE owner_key = ?
+      ORDER BY priority DESC, updated_at DESC, id DESC
+    `)
+    .all(ownerKey);
+  return rows.map((row) => ({
+    cardType: String(row?.card_type || ""),
+    cardId: String(row?.card_id || ""),
+    note: String(row?.note || ""),
+    priority: Math.max(1, Math.min(5, Number(row?.priority || 3))),
+    updatedAt: String(row?.updated_at || ""),
+  }));
+}
+
+function writeTradeWishlist(ownerKeyRaw, entriesRaw) {
+  if (!isSqlV2Ready()) {
+    return { ok: false, error: "Trocas indisponiveis: banco SQL ainda nao inicializado." };
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  const entries = normalizeTradeWishlistEntries(entriesRaw);
+  const updatedAt = nowIso();
+  const tx = sqliteDb.transaction(() => {
+    sqliteDb.prepare("DELETE FROM trade_wishlist WHERE owner_key = ?").run(ownerKey);
+    if (!entries.length) {
+      return;
+    }
+    const insertStmt = sqliteDb.prepare(`
+      INSERT INTO trade_wishlist (owner_key, card_type, card_id, note, priority, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+    entries.forEach((entry) => {
+      insertStmt.run(ownerKey, entry.cardType, entry.cardId, entry.note, entry.priority, updatedAt);
+    });
+  });
+  tx();
+  return { ok: true, entries };
+}
+
+function listTradeOnlinePlayersForRequester(ownerKeyRaw) {
+  if (!isSqlV2Ready()) {
+    return [];
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw);
+  const now = nowIso();
+  const rows = sqliteDb
+    .prepare(`
+      SELECT username, tribe, session_expires_at
+      FROM users
+      WHERE session_token IS NOT NULL
+        AND session_token != ''
+        AND session_expires_at IS NOT NULL
+        AND session_expires_at > ?
+      ORDER BY username ASC
+    `)
+    .all(now);
+  const scoreStmt = sqliteDb.prepare("SELECT score FROM player_profiles WHERE owner_key = ?");
+  return rows
+    .map((row) => {
+      const username = normalizeUserKey(row?.username || "");
+      if (!username || username === ownerKey) {
+        return null;
+      }
+      const scoreRow = scoreStmt.get(username) || {};
+      return {
+        username,
+        tribe: String(row?.tribe || ""),
+        score: Math.max(0, Number(scoreRow?.score || 0)),
+        sessionExpiresAt: String(row?.session_expires_at || ""),
+      };
+    })
     .filter(Boolean);
 }
 
@@ -9148,6 +9825,7 @@ async function handleRequest(request, response) {
         dailyCreatureRowsToday,
       },
       smtpConfigured: isSmtpConfigured(),
+      turnstileConfigured: Boolean(TURNSTILE_SECRET_KEY),
       jobs: {
         perim: { ...runtimeMetrics.perimJobs },
         backup: { ...runtimeMetrics.backups },
@@ -9170,6 +9848,109 @@ async function handleRequest(request, response) {
     sendJson(response, 200, {
       ok: true,
       metrics: buildRuntimeMetricsSnapshot(),
+    });
+    return;
+  }
+
+  if (request.method === "GET" && pathname === "/api/admin/online-players") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Monitor online indisponivel sem banco SQL." });
+      return;
+    }
+    const now = nowIso();
+    const rows = sqliteDb
+      .prepare(`
+        SELECT username, email, tribe, session_ip, session_device, session_expires_at, last_login_at
+        FROM users
+        WHERE session_token IS NOT NULL
+          AND session_token != ''
+          AND session_expires_at IS NOT NULL
+          AND session_expires_at > ?
+        ORDER BY username ASC
+      `)
+      .all(now);
+    const scoreStmt = sqliteDb.prepare("SELECT score, wins, losses, updated_at FROM player_profiles WHERE owner_key = ?");
+    const scansStmt = sqliteDb.prepare("SELECT card_type, COUNT(*) AS total FROM scan_entries WHERE owner_key = ? GROUP BY card_type");
+    const players = rows.map((row) => {
+      const ownerKey = normalizeUserKey(row?.username);
+      const scoreRow = scoreStmt.get(ownerKey) || {};
+      const scanRows = scansStmt.all(ownerKey) || [];
+      const scansByType = {
+        creatures: 0,
+        attacks: 0,
+        battlegear: 0,
+        locations: 0,
+        mugic: 0,
+      };
+      let scansTotal = 0;
+      scanRows.forEach((scanRow) => {
+        const type = String(scanRow?.card_type || "").toLowerCase();
+        const total = Math.max(0, Number(scanRow?.total || 0));
+        scansByType[type] = total;
+        scansTotal += total;
+      });
+      return {
+        username: String(row?.username || ownerKey),
+        ownerKey,
+        email: String(row?.email || ""),
+        tribe: String(row?.tribe || ""),
+        ip: String(row?.session_ip || ""),
+        device: String(row?.session_device || ""),
+        sessionExpiresAt: String(row?.session_expires_at || ""),
+        lastLoginAt: String(row?.last_login_at || ""),
+        score: Math.max(0, Number(scoreRow?.score || 0)),
+        wins: Math.max(0, Number(scoreRow?.wins || 0)),
+        losses: Math.max(0, Number(scoreRow?.losses || 0)),
+        scans: {
+          total: scansTotal,
+          byType: scansByType,
+        },
+      };
+    });
+    sendJson(response, 200, {
+      ok: true,
+      generatedAt: nowIso(),
+      totalOnline: players.length,
+      players,
+    });
+    return;
+  }
+
+  if (request.method === "GET" && pathname === "/api/admin/audit-log") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Audit log indisponivel sem banco SQL." });
+      return;
+    }
+    const limitRaw = Number(parsedUrl.searchParams.get("limit") || 100);
+    const limit = Math.max(1, Math.min(500, Number.isFinite(limitRaw) ? limitRaw : 100));
+    const rows = sqliteDb
+      .prepare(`
+        SELECT id, event_type, severity, owner_key, ip_address, message, payload_json, created_at
+        FROM audit_log
+        ORDER BY id DESC
+        LIMIT ?
+      `)
+      .all(limit);
+    sendJson(response, 200, {
+      ok: true,
+      entries: rows.map((row) => ({
+        id: Number(row?.id || 0),
+        eventType: String(row?.event_type || ""),
+        severity: String(row?.severity || "info"),
+        ownerKey: String(row?.owner_key || ""),
+        ipAddress: String(row?.ip_address || ""),
+        message: String(row?.message || ""),
+        payload: safeJsonParse(row?.payload_json, null),
+        createdAt: String(row?.created_at || ""),
+      })),
     });
     return;
   }
@@ -9206,6 +9987,8 @@ async function handleRequest(request, response) {
     const email = String(payload.email || "").trim();
     const passwordHash = String(payload.passwordHash || "");
     const tribe = String(payload.tribe || "");
+    const turnstileToken = String(payload.turnstileToken || "").trim();
+    const requestIp = getClientIp(request);
     if (!username || !email || !passwordHash) {
       sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
       return;
@@ -9222,6 +10005,21 @@ async function handleRequest(request, response) {
         `[AUTH][REGISTER] Cadastro bloqueado por SMTP ausente. missing=${missingSmtpKeys.length ? missingSmtpKeys.join(",") : "none"} user=${username || "(empty)"}`
       );
       sendJson(response, 503, { error: "Cadastro indisponivel: SMTP nao configurado no servidor." });
+      return;
+    }
+    const turnstileResult = await validateTurnstileToken(turnstileToken, requestIp);
+    if (!turnstileResult.ok) {
+      appendAuditLog("auth_register_turnstile_reject", {
+        severity: "warn",
+        ownerKey: username,
+        ipAddress: requestIp,
+        message: "Cadastro bloqueado por captcha invalido.",
+        payload: { reason: turnstileResult.error },
+      });
+      const captchaError = turnstileResult.error === "turnstile_not_configured"
+        ? "Cadastro indisponivel: captcha nao configurado no servidor."
+        : "Validacao anti-bot falhou. Tente novamente.";
+      sendJson(response, 400, { error: captchaError });
       return;
     }
     if (username.length < 3 || username.length > 30) {
@@ -9264,6 +10062,12 @@ async function handleRequest(request, response) {
       sendJson(response, 502, { error: "Nao foi possivel enviar o e-mail de verificacao. Tente novamente." });
       return;
     }
+    appendAuditLog("auth_register_success", {
+      severity: "info",
+      ownerKey: username,
+      ipAddress: requestIp,
+      message: "Cadastro iniciado com envio de codigo.",
+    });
     sendJson(response, 200, { ok: true, username });
     return;
   }
@@ -9308,7 +10112,10 @@ async function handleRequest(request, response) {
       .run(nowIso(), username);
     sqlDelete("verification", username.toLowerCase());
     const user = sqliteDb.prepare("SELECT id, username, email, tribe FROM users WHERE username = ? COLLATE NOCASE").get(username);
-    const session = issueSessionForUserId(user?.id);
+    const session = issueSessionForUserId(user?.id, {
+      clientIp: getClientIp(request),
+      clientFingerprint: buildClientFingerprint(request),
+    });
     if (!session) {
       sendJson(response, 500, { error: "Falha ao iniciar sessao." });
       return;
@@ -9390,8 +10197,19 @@ async function handleRequest(request, response) {
     if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
     const username = String(payload.username || "").trim();
     const passwordHash = String(payload.passwordHash || "");
+    const requestIp = getClientIp(request);
+    const fingerprint = buildClientFingerprint(request);
     if (!username || !passwordHash) {
       sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
+      return;
+    }
+    const lockState = getLoginLockState(requestIp, username);
+    if (lockState.blocked) {
+      response.setHeader("Retry-After", String(lockState.retryAfterSeconds));
+      sendJson(response, 429, {
+        error: "Muitas tentativas de login. Aguarde e tente novamente.",
+        retryAfterSeconds: lockState.retryAfterSeconds,
+      });
       return;
     }
     if (applyRateLimitWithUser(request, response, "auth_login_user", username, {
@@ -9404,24 +10222,60 @@ async function handleRequest(request, response) {
       sendJson(response, 500, { error: "Banco de dados indisponivel." });
       return;
     }
-    const user = sqliteDb.prepare("SELECT id, username, email, password_hash, tribe, verified FROM users WHERE username = ? COLLATE NOCASE").get(username);
+    const user = sqliteDb.prepare("SELECT id, username, email, password_hash, tribe, verified, session_ip, session_device, last_login_at FROM users WHERE username = ? COLLATE NOCASE").get(username);
     if (!user) {
+      registerLoginFailure(requestIp, username);
       sendJson(response, 401, { error: "Nome de acesso nao encontrado." });
       return;
     }
     if (user.password_hash !== passwordHash) {
+      const failure = registerLoginFailure(requestIp, username);
+      appendAuditLog("auth_login_failure", {
+        severity: "warn",
+        ownerKey: username,
+        ipAddress: requestIp,
+        message: "Senha incorreta.",
+        payload: { failures: failure.failures },
+      });
       sendJson(response, 401, { error: "Senha incorreta." });
       return;
     }
     if (!user.verified) {
+      registerLoginFailure(requestIp, username);
       sendJson(response, 403, { error: "Conta nao verificada. Cadastre-se novamente." });
       return;
     }
-    const session = issueSessionForUserId(user.id);
+    clearLoginFailure(requestIp, username);
+    const isSuspiciousLogin = Boolean(user?.session_ip) && String(user.session_ip).trim() !== String(requestIp).trim();
+    if (isSuspiciousLogin) {
+      appendAuditLog("auth_login_suspicious_ip_change", {
+        severity: "warn",
+        ownerKey: user.username,
+        ipAddress: requestIp,
+        message: "Mudanca de IP detectada no login.",
+        payload: {
+          previousIp: String(user.session_ip || ""),
+          currentIp: requestIp,
+          previousDevice: String(user.session_device || ""),
+          currentDevice: fingerprint,
+          lastLoginAt: String(user.last_login_at || ""),
+        },
+      });
+    }
+    const session = issueSessionForUserId(user.id, {
+      clientIp: requestIp,
+      clientFingerprint: fingerprint,
+    });
     if (!session) {
       sendJson(response, 500, { error: "Falha ao iniciar sessao." });
       return;
     }
+    appendAuditLog("auth_login_success", {
+      severity: "info",
+      ownerKey: user.username,
+      ipAddress: requestIp,
+      message: "Login concluido com sucesso.",
+    });
     response.setHeader("Set-Cookie", buildSessionCookieHeader(request, session.sessionToken, session.expiresAt));
     sendJson(response, 200, {
       ok: true,
@@ -9557,10 +10411,85 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/perim/events" && request.method === "GET") {
+    const playerKey = parsedUrl.searchParams.get("playerKey") || parsedUrl.searchParams.get("username") || "local-player";
+    const locationEntries = collectPerimLocationEntriesForPlayer(playerKey);
+    const locations = buildPerimLocationsFromScans(locationEntries).map((entry) => ({
+      ...entry,
+      contextPreview: buildPerimContextSnapshot(entry, "explore"),
+    }));
     sendJson(response, 200, {
       ok: true,
-      events: listPerimGlobalEvents(),
+      events: listPerimGlobalEvents(locations),
       updatedAt: nowIso(),
+    });
+    return;
+  }
+
+  if (pathname === "/api/perim/missions/weekly" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Missoes semanais indisponiveis sem banco SQL." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username);
+    const mission = ensureWeeklyPerimMission(new Date());
+    const progress = mission
+      ? sqliteDb
+        .prepare(`
+          SELECT progress_value, completed_at, claimed_at, updated_at
+          FROM weekly_mission_progress
+          WHERE mission_key = ? AND owner_key = ?
+        `)
+        .get(String(mission.mission_key), ownerKey)
+      : null;
+    sendJson(response, 200, {
+      ok: true,
+      missions: mission
+        ? [{
+          missionKey: String(mission.mission_key),
+          weekStart: String(mission.week_start),
+          missionType: String(mission.mission_type),
+          targetValue: Number(mission.target_value || 0),
+          progressValue: Math.max(0, Number(progress?.progress_value || 0)),
+          completedAt: progress?.completed_at || null,
+          claimedAt: progress?.claimed_at || null,
+          updatedAt: progress?.updated_at || null,
+        }]
+        : [],
+    });
+    return;
+  }
+
+  if (pathname === "/api/perim/missions/weekly/claim" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const missionKey = String(payload.missionKey || "").trim();
+    const result = claimWeeklyMissionReward(authUser.username, missionKey);
+    if (!result.ok) {
+      sendJson(response, 400, { error: result.error || "Nao foi possivel coletar missao semanal." });
+      return;
+    }
+    sendJson(response, 200, {
+      ok: true,
+      claimedAt: result.claimedAt,
+      rewards: result.rewards || [],
     });
     return;
   }
@@ -9625,12 +10554,15 @@ async function handleRequest(request, response) {
       }
     }
     if (!selectedLocation) {
+      selectedLocation = locations[0] || null;
       console.warn(
-        `[PERIM][START][INVALID_LOCATION] user=${normalizePerimPlayerKey(playerKeyRaw)} ` +
+        `[PERIM][START][LOCATION_FALLBACK] user=${normalizePerimPlayerKey(playerKeyRaw)} ` +
         `locationCardId=${locationCardId || "-"} locationEntryId=${locationEntryId || "-"} ` +
-        `eligibleCount=${locations.length}`
+        `resolved=${selectedLocation?.cardId || "-"} eligibleCount=${locations.length}`
       );
-      sendJson(response, 400, { error: "Local selecionado nao pertence ao inventario de Scans." });
+    }
+    if (!selectedLocation) {
+      sendJson(response, 400, { error: "Nenhum local elegivel encontrado para iniciar acao." });
       return;
     }
 
@@ -9826,6 +10758,8 @@ async function handleRequest(request, response) {
       wins: result === "win" ? 1 : 0,
       losses: result === "loss" ? 1 : 0,
     });
+    upsertGlobalRankDelta(username, result);
+    upsertDromeRankDelta(username, result, new Date());
     invalidateUserCaches(username);
     sendJson(response, 200, { ok: true, profile: buildProfilePayload(username) });
     return;
@@ -10039,6 +10973,122 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (pathname === "/api/ranked/global" && request.method === "GET") {
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Ranking global indisponivel sem banco SQL." });
+      return;
+    }
+    const rows = sqliteDb
+      .prepare(`
+        SELECT owner_key, elo, wins, losses, updated_at
+        FROM ranked_global
+        ORDER BY elo DESC, wins DESC, losses ASC
+        LIMIT 200
+      `)
+      .all();
+    sendJson(response, 200, {
+      ok: true,
+      leaderboard: rows.map((row, index) => ({
+        rank: index + 1,
+        username: normalizeUserKey(row?.owner_key),
+        elo: Math.max(100, Number(row?.elo || 1200)),
+        wins: Math.max(0, Number(row?.wins || 0)),
+        losses: Math.max(0, Number(row?.losses || 0)),
+        updatedAt: String(row?.updated_at || ""),
+      })),
+    });
+    return;
+  }
+
+  if (pathname === "/api/ranked/dromes" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const seasonKey = seasonKeyFromDate(new Date());
+    const selection = getDromeSelectionForSeason(authUser.username, seasonKey);
+    sendJson(response, 200, {
+      ok: true,
+      seasonKey,
+      dromes: DROME_CATALOG.map((entry) => ({ ...entry })),
+      selection: selection || null,
+      locked: Boolean(selection),
+    });
+    return;
+  }
+
+  if (pathname === "/api/ranked/drome/select" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const dromeId = String(payload.dromeId || "").trim();
+    const result = selectDromeForSeason(authUser.username, dromeId, new Date());
+    if (!result.ok) {
+      sendJson(response, 400, { error: result.error || "Nao foi possivel selecionar o Dromo.", selection: result.selection || null });
+      return;
+    }
+    appendAuditLog("ranked_drome_selected", {
+      severity: "info",
+      ownerKey: authUser.username,
+      ipAddress: getClientIp(request),
+      message: `Dromo mensal selecionado: ${result.selection?.dromeId || dromeId}`,
+    });
+    sendJson(response, 200, { ok: true, selection: result.selection });
+    return;
+  }
+
+  if (pathname.startsWith("/api/ranked/drome/") && pathname.endsWith("/leaderboard") && request.method === "GET") {
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Ranking por Dromo indisponivel sem banco SQL." });
+      return;
+    }
+    const parts = pathname.split("/");
+    const dromeId = normalizeDromeId(parts[4] || "");
+    if (!dromeId) {
+      sendJson(response, 400, { error: "Dromo invalido." });
+      return;
+    }
+    const seasonKey = seasonKeyFromDate(new Date());
+    const dromeName = dromeNameById(dromeId);
+    const rows = sqliteDb
+      .prepare(`
+        SELECT owner_key, score, wins, losses, updated_at
+        FROM ranked_drome_stats
+        WHERE season_key = ? AND drome_id = ?
+        ORDER BY score DESC, wins DESC, losses ASC
+        LIMIT 100
+      `)
+      .all(seasonKey, dromeId);
+    sendJson(response, 200, {
+      ok: true,
+      seasonKey,
+      drome: { id: dromeId, name: dromeName },
+      leaderboard: rows.map((row, index) => ({
+        rank: index + 1,
+        username: normalizeUserKey(row?.owner_key),
+        score: Math.max(0, Number(row?.score || 0)),
+        wins: Math.max(0, Number(row?.wins || 0)),
+        losses: Math.max(0, Number(row?.losses || 0)),
+        title: titleForDromeRank(index + 1, dromeName),
+        updatedAt: String(row?.updated_at || ""),
+      })),
+    });
+    return;
+  }
+
   if (pathname === "/api/admin/reset-card-data" && request.method === "POST") {
     const adminUser = requireAdminUser(request, response);
     if (!adminUser) {
@@ -10083,6 +11133,59 @@ async function handleRequest(request, response) {
 
   if (pathname.startsWith("/api/trades")) {
     cleanupExpiredTradeRooms();
+
+    if (request.method === "GET" && pathname === "/api/trades/online") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      const players = listTradeOnlinePlayersForRequester(authUser.username);
+      return sendJson(response, 200, {
+        ok: true,
+        generatedAt: nowIso(),
+        total: players.length,
+        players,
+      });
+    }
+
+    if (request.method === "GET" && pathname === "/api/trades/wishlist") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      const entries = readTradeWishlist(authUser.username);
+      return sendJson(response, 200, { ok: true, entries });
+    }
+
+    if (request.method === "POST" && pathname === "/api/trades/wishlist") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        return sendJson(response, 413, { error: error.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido." });
+      }
+      const entries = Array.isArray(payload.entries) ? payload.entries : [];
+      const result = writeTradeWishlist(authUser.username, entries);
+      if (!result.ok) {
+        return sendJson(response, 503, { error: result.error || "Wishlist indisponivel no momento." });
+      }
+      appendAuditLog("trade_wishlist_updated", {
+        severity: "info",
+        ownerKey: authUser.username,
+        ipAddress: getClientIp(request),
+        message: "Wishlist de trocas atualizada.",
+        payload: { totalEntries: result.entries.length },
+      });
+      return sendJson(response, 200, { ok: true, entries: result.entries });
+    }
 
     if (request.method === "POST" && pathname === "/api/trades/rooms") {
       const authUser = requireAuthenticatedUser(request, response);
