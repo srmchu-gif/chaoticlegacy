@@ -80,6 +80,7 @@ const ATTACK_PENDING_FILE = path.join(PERSIST_DIR, "ataques_pendentes.txt");
 const CREATURE_PENDING_FILE = path.join(ROOT_DIR, "exports", "criaturas_pendentes.txt");
 const PERIM_ACTIONS_DROPS_REPORT_FILE = path.join(ROOT_DIR, "exports", "perim_acoes_drops.txt");
 const CREATURE_DROPS_ALIAS_REPORT_FILE = path.join(ROOT_DIR, "exports", "creature_drops_alias_report.txt");
+const PERIM_DROP_TABLES_FILE = path.join(ROOT_DIR, "runtime", "perim-drop-tables.json");
 const ENGINE_FILE = path.join(ROOT_DIR, "public", "js", "battle", "engine.js");
 const DEFAULT_SQLITE_FILE = path.join(ROOT_DIR, "runtime", "chaotic.db");
 const LEGACY_SQLITE_FILE = path.join(ROOT_DIR, "chaotic.db");
@@ -110,7 +111,7 @@ const DB_BACKUP_RETENTION_DAYS = Math.max(1, Number(process.env.DB_BACKUP_RETENT
 const DB_BACKUP_HOUR = Math.max(0, Math.min(23, Number(process.env.DB_BACKUP_HOUR || 2)));
 const SQL_V2_SCHEMA_VERSION = 2;
 const SQL_V2_STORAGE_MODE = "sql_v2_cutover";
-const SQL_CATALOG_SCHEMA_VERSION = 3;
+const SQL_CATALOG_SCHEMA_VERSION = 4;
 const DROME_CATALOG = [
   { id: "crellan", name: "Crellan Drome" },
   { id: "hotekk", name: "Hotekk Drome" },
@@ -3742,7 +3743,7 @@ function getLibraryIndexes() {
   return indexes;
 }
 
-const PERIM_CREATURE_CHANCE_BY_ACTION = {
+const DEFAULT_PERIM_CREATURE_CHANCE_BY_ACTION = {
   explore: 58,
   track: 76,
   anomaly: 46,
@@ -3750,7 +3751,7 @@ const PERIM_CREATURE_CHANCE_BY_ACTION = {
   relic: 34,
 };
 
-const PERIM_RARITY_CREATURE_DELTA = {
+const DEFAULT_PERIM_RARITY_CREATURE_DELTA = {
   common: 8,
   uncommon: 4,
   rare: 0,
@@ -3759,7 +3760,7 @@ const PERIM_RARITY_CREATURE_DELTA = {
   promo: -12,
 };
 
-const PERIM_REWARD_PROFILE_BY_ACTION = {
+const DEFAULT_PERIM_REWARD_PROFILE_BY_ACTION = {
   explore: {
     primary: { creatures: 44, attacks: 18, battlegear: 14, mugic: 10, locations: 14 },
     bonusChance: 0.54,
@@ -3797,6 +3798,327 @@ const PERIM_REWARD_PROFILE_BY_ACTION = {
   },
 };
 
+const DEFAULT_CREATURE_RARITY_DROP_CHANCE = {
+  common: 0.55,
+  uncommon: 0.38,
+  rare: 0.24,
+  "super rare": 0.084,
+  "ultra rare": 0.0315,
+  promo: 0.03,
+};
+
+const DEFAULT_CREATURE_SCAN_RARITY_MULTIPLIER = {
+  "super rare": 0.6,
+  "ultra rare": 0.45,
+};
+
+const DEFAULT_LOCATION_RARITY_DROP_CHANCE = {
+  common: 0.2,
+  uncommon: 0.16,
+  rare: 0.11,
+  "super rare": 0.07,
+  "ultra rare": 0.04,
+  promo: 0.02,
+};
+
+const DEFAULT_PERIM_DROP_TABLES = Object.freeze({
+  schemaVersion: 1,
+  actions: {
+    explore: { creatureBaseChance: 58, primary: { creatures: 44, attacks: 18, battlegear: 14, mugic: 10, locations: 14 }, bonusChance: 0.54, attackChance: 0.58, baseSuccessChance: 0.68, locationDropBias: 1.45 },
+    track: { creatureBaseChance: 76, primary: { creatures: 74, attacks: 12, battlegear: 6, mugic: 8 }, bonusChance: 0.38, attackChance: 0.7, baseSuccessChance: 0.76, locationDropBias: 0.92 },
+    anomaly: { creatureBaseChance: 46, primary: { creatures: 34, attacks: 17, battlegear: 23, mugic: 20, locations: 6 }, bonusChance: 0.26, attackChance: 0.36, baseSuccessChance: 0.44, locationDropBias: 0.8 },
+    camp: { creatureBaseChance: 52, primary: { creatures: 58, attacks: 13, battlegear: 15, mugic: 10, locations: 4 }, bonusChance: 0.48, attackChance: 0.5, baseSuccessChance: 0.6, locationDropBias: 0.88 },
+    relic: { creatureBaseChance: 34, primary: { creatures: 12, attacks: 31, battlegear: 39, mugic: 18 }, bonusChance: 0.62, attackChance: 0.66, baseSuccessChance: 0.64, locationDropBias: 0.96 },
+  },
+  rarityCreatureDelta: DEFAULT_PERIM_RARITY_CREATURE_DELTA,
+  creatureRarityDropChance: DEFAULT_CREATURE_RARITY_DROP_CHANCE,
+  creatureScanRarityMultiplier: DEFAULT_CREATURE_SCAN_RARITY_MULTIPLIER,
+  locationRarityDropChance: DEFAULT_LOCATION_RARITY_DROP_CHANCE,
+  climateTypeModifiers: {
+    ensolarado: { creatures: 1.04, attacks: 1.08, battlegear: 1.02, mugic: 0.96, locations: 1.0 },
+    chuvoso: { creatures: 1.02, attacks: 0.98, battlegear: 0.96, mugic: 1.08, locations: 1.0 },
+    nevando: { creatures: 1.01, attacks: 1.0, battlegear: 1.05, mugic: 0.97, locations: 1.0 },
+    ventania: { creatures: 1.03, attacks: 1.05, battlegear: 1.0, mugic: 0.97, locations: 1.0 },
+    tempestade: { creatures: 1.06, attacks: 0.95, battlegear: 0.98, mugic: 1.08, locations: 1.0 },
+    nublado: { creatures: 1.0, attacks: 1.0, battlegear: 1.0, mugic: 1.0, locations: 1.0 },
+  },
+  locationRules: {
+    adjacentFirstChance: 0.72,
+    fallbackCurrentMinChance: 0.05,
+  },
+  limits: {
+    maxCreatureDropsPerRun: 1,
+  },
+  scanner: {
+    globalDurationByTotalLevel: [
+      { minTotalLevel: 0, multiplier: 1.0 },
+      { minTotalLevel: 7, multiplier: 0.96 },
+      { minTotalLevel: 11, multiplier: 0.92 },
+      { minTotalLevel: 15, multiplier: 0.88 },
+      { minTotalLevel: 19, multiplier: 0.84 },
+    ],
+    tribeLevelEffects: {
+      1: { successBoostPercent: 0, creatureRareBoost: 0.0, mugicRareBoost: 0.0 },
+      2: { successBoostPercent: 6, creatureRareBoost: 0.15, mugicRareBoost: 0.12 },
+      3: { successBoostPercent: 12, creatureRareBoost: 0.3, mugicRareBoost: 0.24 },
+      4: { successBoostPercent: 20, creatureRareBoost: 0.48, mugicRareBoost: 0.38 },
+    },
+  },
+});
+
+let perimDropTablesCache = null;
+
+function cloneDefaultPerimDropTables() {
+  return JSON.parse(JSON.stringify(DEFAULT_PERIM_DROP_TABLES));
+}
+
+function clampUnitInterval(value, fallback) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return Number(fallback || 0);
+  }
+  return Math.max(0, Math.min(1, numeric));
+}
+
+function normalizePerimDropTables(payload) {
+  const defaults = cloneDefaultPerimDropTables();
+  const source = payload && typeof payload === "object" ? payload : {};
+
+  const normalized = {
+    schemaVersion: 1,
+    updatedAt: nowIso(),
+    actions: {},
+    rarityCreatureDelta: { ...defaults.rarityCreatureDelta },
+    creatureRarityDropChance: { ...defaults.creatureRarityDropChance },
+    creatureScanRarityMultiplier: { ...defaults.creatureScanRarityMultiplier },
+    locationRarityDropChance: { ...defaults.locationRarityDropChance },
+    climateTypeModifiers: {},
+    locationRules: { ...defaults.locationRules },
+    limits: { ...defaults.limits },
+    scanner: {
+      globalDurationByTotalLevel: [...defaults.scanner.globalDurationByTotalLevel],
+      tribeLevelEffects: { ...defaults.scanner.tribeLevelEffects },
+    },
+  };
+
+  const actionSource = source.actions && typeof source.actions === "object" ? source.actions : {};
+  PERIM_ACTIONS.forEach((action) => {
+    const actionId = String(action?.id || "");
+    const fallback = defaults.actions[actionId] || defaults.actions.explore;
+    const candidate = actionSource[actionId] && typeof actionSource[actionId] === "object"
+      ? actionSource[actionId]
+      : {};
+    const primaryFallback = fallback?.primary && typeof fallback.primary === "object" ? fallback.primary : {};
+    const primaryCandidate = candidate.primary && typeof candidate.primary === "object" ? candidate.primary : {};
+    const primary = {};
+    Object.keys(primaryFallback).forEach((rewardType) => {
+      const weight = Number(primaryCandidate[rewardType]);
+      primary[rewardType] = Number.isFinite(weight) && weight > 0 ? weight : Number(primaryFallback[rewardType] || 0);
+    });
+    normalized.actions[actionId] = {
+      creatureBaseChance: clampPercent(Number(candidate.creatureBaseChance ?? fallback.creatureBaseChance ?? 50)),
+      primary,
+      bonusChance: clampUnitInterval(candidate.bonusChance, fallback.bonusChance),
+      attackChance: clampUnitInterval(candidate.attackChance, fallback.attackChance),
+      baseSuccessChance: clampUnitInterval(candidate.baseSuccessChance, fallback.baseSuccessChance),
+      locationDropBias: Math.max(0.2, Number(candidate.locationDropBias ?? fallback.locationDropBias ?? 1)),
+    };
+  });
+
+  Object.keys(normalized.rarityCreatureDelta).forEach((key) => {
+    const raw = source?.rarityCreatureDelta?.[key];
+    if (Number.isFinite(Number(raw))) {
+      normalized.rarityCreatureDelta[key] = Number(raw);
+    }
+  });
+  Object.keys(normalized.creatureRarityDropChance).forEach((key) => {
+    const raw = source?.creatureRarityDropChance?.[key];
+    if (Number.isFinite(Number(raw))) {
+      normalized.creatureRarityDropChance[key] = clampUnitInterval(raw, normalized.creatureRarityDropChance[key]);
+    }
+  });
+  Object.keys(normalized.creatureScanRarityMultiplier).forEach((key) => {
+    const raw = source?.creatureScanRarityMultiplier?.[key];
+    if (Number.isFinite(Number(raw))) {
+      normalized.creatureScanRarityMultiplier[key] = Math.max(0.05, Number(raw));
+    }
+  });
+  Object.keys(normalized.locationRarityDropChance).forEach((key) => {
+    const raw = source?.locationRarityDropChance?.[key];
+    if (Number.isFinite(Number(raw))) {
+      normalized.locationRarityDropChance[key] = clampUnitInterval(raw, normalized.locationRarityDropChance[key]);
+    }
+  });
+
+  const climateDefaults = defaults.climateTypeModifiers || {};
+  Object.keys(climateDefaults).forEach((climateKey) => {
+    const fallback = climateDefaults[climateKey] || {};
+    const candidate = source?.climateTypeModifiers?.[climateKey] && typeof source.climateTypeModifiers[climateKey] === "object"
+      ? source.climateTypeModifiers[climateKey]
+      : {};
+    normalized.climateTypeModifiers[climateKey] = {};
+    Object.keys(fallback).forEach((rewardType) => {
+      const raw = Number(candidate[rewardType]);
+      normalized.climateTypeModifiers[climateKey][rewardType] = Number.isFinite(raw) ? Math.max(0.1, raw) : Number(fallback[rewardType] || 1);
+    });
+  });
+
+  normalized.locationRules.adjacentFirstChance = clampUnitInterval(
+    source?.locationRules?.adjacentFirstChance,
+    defaults.locationRules.adjacentFirstChance
+  );
+  normalized.locationRules.fallbackCurrentMinChance = clampUnitInterval(
+    source?.locationRules?.fallbackCurrentMinChance,
+    defaults.locationRules.fallbackCurrentMinChance
+  );
+
+  normalized.limits.maxCreatureDropsPerRun = Math.max(
+    0,
+    Math.min(3, Math.floor(Number(source?.limits?.maxCreatureDropsPerRun ?? defaults.limits.maxCreatureDropsPerRun)))
+  );
+
+  const durationEntries = Array.isArray(source?.scanner?.globalDurationByTotalLevel)
+    ? source.scanner.globalDurationByTotalLevel
+    : defaults.scanner.globalDurationByTotalLevel;
+  normalized.scanner.globalDurationByTotalLevel = durationEntries
+    .map((entry) => ({
+      minTotalLevel: Math.max(0, Math.floor(Number(entry?.minTotalLevel ?? 0))),
+      multiplier: Math.max(0.55, Math.min(1.0, Number(entry?.multiplier ?? 1))),
+    }))
+    .filter((entry) => Number.isFinite(entry.minTotalLevel) && Number.isFinite(entry.multiplier))
+    .sort((a, b) => a.minTotalLevel - b.minTotalLevel);
+  if (!normalized.scanner.globalDurationByTotalLevel.length) {
+    normalized.scanner.globalDurationByTotalLevel = [...defaults.scanner.globalDurationByTotalLevel];
+  }
+
+  const tribeDefaultEffects = defaults.scanner.tribeLevelEffects || {};
+  const tribeSource = source?.scanner?.tribeLevelEffects && typeof source.scanner.tribeLevelEffects === "object"
+    ? source.scanner.tribeLevelEffects
+    : {};
+  const tribeEffects = {};
+  [1, 2, 3, 4].forEach((level) => {
+    const fallback = tribeDefaultEffects[level] || tribeDefaultEffects[String(level)] || {};
+    const candidate = tribeSource[level] || tribeSource[String(level)] || {};
+    tribeEffects[level] = {
+      successBoostPercent: Math.max(0, Math.min(40, Number(candidate.successBoostPercent ?? fallback.successBoostPercent ?? 0))),
+      creatureRareBoost: Math.max(0, Math.min(2, Number(candidate.creatureRareBoost ?? fallback.creatureRareBoost ?? 0))),
+      mugicRareBoost: Math.max(0, Math.min(2, Number(candidate.mugicRareBoost ?? fallback.mugicRareBoost ?? 0))),
+    };
+  });
+  normalized.scanner.tribeLevelEffects = tribeEffects;
+
+  return normalized;
+}
+
+function persistPerimDropTables(payload) {
+  fs.mkdirSync(path.dirname(PERIM_DROP_TABLES_FILE), { recursive: true });
+  fs.writeFileSync(PERIM_DROP_TABLES_FILE, JSON.stringify(payload, null, 2), "utf8");
+}
+
+function loadPerimDropTables(forceReload = false) {
+  if (perimDropTablesCache && !forceReload) {
+    return perimDropTablesCache;
+  }
+  let normalized = cloneDefaultPerimDropTables();
+  try {
+    if (fs.existsSync(PERIM_DROP_TABLES_FILE)) {
+      const raw = safeJsonParse(fs.readFileSync(PERIM_DROP_TABLES_FILE, "utf8"), null);
+      normalized = normalizePerimDropTables(raw);
+    } else {
+      normalized = normalizePerimDropTables(cloneDefaultPerimDropTables());
+      persistPerimDropTables(normalized);
+    }
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao carregar perim-drop-tables.json: ${error?.message || error}`);
+    normalized = normalizePerimDropTables(cloneDefaultPerimDropTables());
+  }
+  perimDropTablesCache = normalized;
+  return perimDropTablesCache;
+}
+
+function getPerimDropTables() {
+  return loadPerimDropTables(false);
+}
+
+function getPerimRewardProfile(actionId) {
+  const tables = getPerimDropTables();
+  return tables.actions?.[actionId] || tables.actions?.explore || cloneDefaultPerimDropTables().actions.explore;
+}
+
+function getPerimClimateTypeModifier(climateRaw, rewardType) {
+  const climateKey = normalizeClimateText(climateRaw);
+  const tables = getPerimDropTables();
+  const byClimate = tables.climateTypeModifiers?.[climateKey]
+    || tables.climateTypeModifiers?.nublado
+    || {};
+  const value = Number(byClimate?.[String(rewardType || "")] || 1);
+  return Number.isFinite(value) ? Math.max(0.1, value) : 1;
+}
+
+function getPerimCreatureBaseChanceByAction(actionId) {
+  const profile = getPerimRewardProfile(actionId);
+  return clampPercent(profile?.creatureBaseChance ?? 50);
+}
+
+function getPerimRarityCreatureDelta(rarityKey) {
+  const tables = getPerimDropTables();
+  return Number(tables.rarityCreatureDelta?.[rarityKey] || 0);
+}
+
+function getPerimCreatureRarityDropChance(rarityKey) {
+  const tables = getPerimDropTables();
+  return Math.max(0, Math.min(1, Number(tables.creatureRarityDropChance?.[rarityKey] || 0.15)));
+}
+
+function getPerimCreatureScanRarityMultiplier(rarityKey) {
+  const tables = getPerimDropTables();
+  return Math.max(0.05, Number(tables.creatureScanRarityMultiplier?.[rarityKey] || 1));
+}
+
+function getPerimLocationRarityDropChance(rarityKey) {
+  const tables = getPerimDropTables();
+  return Math.max(0, Math.min(1, Number(tables.locationRarityDropChance?.[rarityKey] || 0.1)));
+}
+
+function getPerimLocationRules() {
+  const tables = getPerimDropTables();
+  return tables.locationRules || cloneDefaultPerimDropTables().locationRules;
+}
+
+function getPerimMaxCreatureDropsPerRun() {
+  const tables = getPerimDropTables();
+  const limit = Math.floor(Number(tables?.limits?.maxCreatureDropsPerRun || 1));
+  return Math.max(0, Math.min(3, limit));
+}
+
+function getScannerDurationMultiplierByTotalLevel(totalLevel) {
+  const tables = getPerimDropTables();
+  const ladder = Array.isArray(tables?.scanner?.globalDurationByTotalLevel)
+    ? tables.scanner.globalDurationByTotalLevel
+    : [];
+  const normalizedTotal = Math.max(0, Number(totalLevel || 0));
+  let multiplier = 1;
+  ladder.forEach((entry) => {
+    if (normalizedTotal >= Number(entry?.minTotalLevel || 0)) {
+      multiplier = Math.max(0.55, Math.min(1, Number(entry?.multiplier || 1)));
+    }
+  });
+  return multiplier;
+}
+
+function getScannerTribeLevelEffect(level) {
+  const tables = getPerimDropTables();
+  const normalizedLevel = Math.max(1, Math.min(4, Number(level || 1)));
+  const effect = tables?.scanner?.tribeLevelEffects?.[normalizedLevel]
+    || tables?.scanner?.tribeLevelEffects?.[String(normalizedLevel)]
+    || { successBoostPercent: 0, creatureRareBoost: 0, mugicRareBoost: 0 };
+  return {
+    successBoostPercent: Math.max(0, Math.min(40, Number(effect?.successBoostPercent || 0))),
+    creatureRareBoost: Math.max(0, Math.min(2, Number(effect?.creatureRareBoost || 0))),
+    mugicRareBoost: Math.max(0, Math.min(2, Number(effect?.mugicRareBoost || 0))),
+  };
+}
+
 function formatPerimWeightMap(weights) {
   return Object.entries(weights || {})
     .map(([key, value]) => `${key}=${Number(value || 0)}`)
@@ -3810,7 +4132,7 @@ function buildPerimActionsDropsReportText() {
   lines.push("");
   lines.push("Acoes:");
   PERIM_ACTIONS.forEach((action) => {
-    const profile = PERIM_REWARD_PROFILE_BY_ACTION[action.id] || {};
+    const profile = getPerimRewardProfile(action.id) || {};
     lines.push(`- ${action.name} (${action.id})`);
     lines.push(`  descricao: ${action.description}`);
     lines.push(`  duracao_base_ms: ${Number(action.durationMs || 0)}`);
@@ -3837,6 +4159,11 @@ function buildPerimActionsDropsReportText() {
     lines.push(
       `- Nivel ${level}: durationMultiplier=${fx.durationMultiplier}, successBoostPercent=${fx.successBoostPercent}, rareBoost=${fx.rareBoost}`
     );
+  });
+  const durationLadder = getPerimDropTables()?.scanner?.globalDurationByTotalLevel || [];
+  lines.push("- Duracao por soma total dos scanners:");
+  durationLadder.forEach((entry) => {
+    lines.push(`  totalLevel>=${Number(entry?.minTotalLevel || 0)} => durationMultiplier=${Number(entry?.multiplier || 1)}`);
   });
   lines.push("");
   lines.push("Clima por local:");
@@ -3918,8 +4245,8 @@ function logPerimPerf(label, startedAtMs, extra = "") {
 
 function calculateCreatureChancePercent(rarityRaw, actionId) {
   const rarity = normalizePerimText(rarityRaw);
-  const base = Number(PERIM_CREATURE_CHANCE_BY_ACTION[actionId] || PERIM_CREATURE_CHANCE_BY_ACTION.explore || 50);
-  const delta = Number(PERIM_RARITY_CREATURE_DELTA[rarity] || 0);
+  const base = Number(getPerimCreatureBaseChanceByAction(actionId));
+  const delta = Number(getPerimRarityCreatureDelta(rarity));
   return clampPercent(base + delta);
 }
 
@@ -4034,7 +4361,7 @@ function buildPerimLocationMetaByCardId() {
       }
       const rarity = row.rarity || card.rarity || "Unknown";
       const perActionCreatureChance = {};
-      Object.keys(PERIM_CREATURE_CHANCE_BY_ACTION).forEach((actionId) => {
+      PERIM_ACTIONS.map((action) => String(action.id || "")).forEach((actionId) => {
         perActionCreatureChance[actionId] = calculateCreatureChancePercent(rarity, actionId);
       });
       const current = byCardId.get(cardId) || {
@@ -4233,7 +4560,7 @@ function hydrateCreatureDropSqlMetadata() {
         loki: Number(creature.loki || 0),
         name: creature.name,
         rarity: creature.rarity,
-        rarityPercent: Number((CREATURE_RARITY_DROP_CHANCE[rarityKey] || 0.15) * 100),
+        rarityPercent: Number(getPerimCreatureRarityDropChance(rarityKey) * 100),
         tribe: creature.tribe,
         types: creature.types,
         possibleLocations,
@@ -4272,6 +4599,19 @@ function weightedPick(weights) {
   return entries[entries.length - 1][0];
 }
 
+function weightedPickWithClimate(weights, climateRaw) {
+  const adjusted = {};
+  Object.entries(weights || {}).forEach(([rewardType, rawWeight]) => {
+    const baseWeight = Number(rawWeight || 0);
+    if (baseWeight <= 0) {
+      return;
+    }
+    const climateFactor = getPerimClimateTypeModifier(climateRaw, rewardType);
+    adjusted[rewardType] = Math.max(0.01, baseWeight * climateFactor);
+  });
+  return weightedPick(adjusted);
+}
+
 function rarityTierScore(rarity) {
   const key = String(rarity || "").trim().toLowerCase();
   if (key === "ultra rare") return 5;
@@ -4284,7 +4624,7 @@ function rarityTierScore(rarity) {
 
 function locationDropChanceByRarity(rarityRaw) {
   const rarityKey = normalizePerimText(rarityRaw);
-  return Math.max(0, Math.min(1, Number(LOCATION_RARITY_DROP_CHANCE[rarityKey] || 0.1)));
+  return getPerimLocationRarityDropChance(rarityKey);
 }
 
 function rollStepFive(min, max) {
@@ -4591,9 +4931,13 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
   const locationEntry = options.locationEntry && typeof options.locationEntry === "object"
     ? options.locationEntry
     : null;
+  const tribeScannerRareBoosts = options.tribeScannerRareBoosts instanceof Map
+    ? options.tribeScannerRareBoosts
+    : new Map();
   const requireLocalMugicEligible = Boolean(options.requireLocalMugicEligible);
   const tribeKey = String(preferredTribe || "").trim().toLowerCase();
   let basePool = cards;
+  let selectedTribeKey = tribeKey;
   if (type === "mugic" && locationEntry) {
     const tribeWeights = selectMugicTribeWeightsFromLocation(locationEntry);
     if (!tribeWeights.size && requireLocalMugicEligible) {
@@ -4603,6 +4947,7 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
       const weightedTribes = [...tribeWeights.entries()].map(([tribe, weight]) => ({ tribe, weight }));
       const selected = weightedRandomChoice(weightedTribes, Math.random);
       const selectedTribe = String(selected?.tribe || "").trim().toLowerCase();
+      selectedTribeKey = selectedTribe;
       const selectedPool = selectedTribe
         ? cards.filter((card) => String(card?.tribe || "").trim().toLowerCase() === selectedTribe)
         : [];
@@ -4631,8 +4976,18 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
     return null;
   }
   const rareBoost = Math.max(0, Number(options.rareBoost || 0));
+  const tribeBoostEntry = tribeScannerRareBoosts.get(selectedTribeKey) || null;
+  const tribeRareBoost = Math.max(
+    0,
+    Number(
+      type === "mugic"
+        ? tribeBoostEntry?.mugicRareBoost
+        : (type === "creatures" ? tribeBoostEntry?.creatureRareBoost : 0)
+    ) || 0
+  );
+  const effectiveRareBoost = Math.max(0, rareBoost + tribeRareBoost);
   const weighted = pool.map((card) => {
-    let weight = Math.max(0.2, 1 + (rarityTierScore(card?.rarity) * rareBoost));
+    let weight = Math.max(0.2, 1 + (rarityTierScore(card?.rarity) * effectiveRareBoost));
     if (type === "attacks" && locationEntry) {
       weight *= attackEnvironmentBiasWeight(card, locationEntry);
     }
@@ -4738,7 +5093,7 @@ function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}
       }
       const dropChance = Math.max(0, Math.min(1, Number(entry.dropChance || 0)));
       const rarityKey = normalizePerimText(card?.rarity || entry?.rarity || "");
-      const rarityDropMultiplier = Number(CREATURE_SCAN_RARITY_MULTIPLIER[rarityKey] || 1);
+      const rarityDropMultiplier = getPerimCreatureScanRarityMultiplier(rarityKey);
       const boostedDropChance = Math.max(0, Math.min(1, (dropChance + (rareBoost * 0.02)) * Math.max(0.05, rarityDropMultiplier)));
       const rarityWeight = Math.max(0.15, 1 + (rarityTierScore(card.rarity) * Math.max(0, rareBoost)));
       const climateWeight = climateTypeWeight(activeClimate, String(entry.types || card.types || ""), card.tribe || "");
@@ -4982,7 +5337,7 @@ function buildPerimContextSnapshot(locationEntry, actionId, scannerEffect = null
   const chosenAction = String(actionId || "explore");
   const creatureChanceByAction = locationEntry?.creatureChanceByAction || {};
   const creatureChancePercent = clampPercent(
-    creatureChanceByAction[chosenAction] ?? locationEntry?.creatureChancePercent ?? PERIM_CREATURE_CHANCE_BY_ACTION.explore
+    creatureChanceByAction[chosenAction] ?? locationEntry?.creatureChancePercent ?? getPerimCreatureBaseChanceByAction("explore")
   );
   const creaturesTodayCount = getCreatureCountAtLocation(
     String(locationEntry?.cardId || locationEntry?.id || locationEntry?.name || ""),
@@ -5088,8 +5443,12 @@ function getPerimGlobalLocationState(locationEntry, nowDate = new Date()) {
 function computePerimDurationMs(locationId, actionId, baseDurationMs, scannerEffect = null) {
   const seed = hashTokenToInt(`${locationId}:${actionId}`);
   const randomMultiplier = 0.82 + ((seed % 53) / 100);
-  const scannerMultiplier = Math.max(0.55, Number(scannerEffect?.durationMultiplier || 1));
-  const multiplier = randomMultiplier * scannerMultiplier;
+  const tribalDurationMultiplier = Math.max(0.55, Number(scannerEffect?.durationMultiplier || 1));
+  const globalDurationMultiplier = Math.max(
+    0.55,
+    Number(scannerEffect?.globalDurationMultiplier ?? scannerEffect?.durationMultiplier ?? 1)
+  );
+  const multiplier = randomMultiplier * tribalDurationMultiplier * globalDurationMultiplier;
   return Math.max(60 * 1000, Math.round(baseDurationMs * multiplier));
 }
 
@@ -5097,23 +5456,38 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   const perfStart = Date.now();
   const tribe = String(locationEntry?.tribe || "").trim();
   const rewards = [];
-  const profile = PERIM_REWARD_PROFILE_BY_ACTION[actionId] || PERIM_REWARD_PROFILE_BY_ACTION.explore;
+  const profile = getPerimRewardProfile(actionId);
   const scannerEffect = options.scannerEffect || scannerEffectsByLevel(1);
+  const tribeScannerRareBoosts = options.tribeScannerRareBoosts instanceof Map ? options.tribeScannerRareBoosts : new Map();
   const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
   const includeCreatureVariant = Boolean(options.includeCreatureVariant);
   const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const locationRules = getPerimLocationRules();
+  const adjacentFirstChance = clampUnitInterval(locationRules?.adjacentFirstChance, 0.72);
+  const fallbackCurrentMinChance = clampUnitInterval(locationRules?.fallbackCurrentMinChance, 0.05);
+  const maxCreatureDropsPerRun = getPerimMaxCreatureDropsPerRun();
+  let creatureDropsInRun = 0;
+  const perimState = getPerimGlobalLocationState(locationEntry, new Date());
+  const activeClimate = normalizeClimateText(perimState?.climate || "nublado");
+  const locationScannerKey = normalizeTribeToScannerKey(tribe);
+  const tribeBoostEntry = tribeScannerRareBoosts.get(locationScannerKey) || null;
+  const creatureRareBoost = Math.max(0, Number(tribeBoostEntry?.creatureRareBoost ?? scannerEffect.rareBoost ?? 0));
+  const mugicRareBoost = Math.max(0, Number(tribeBoostEntry?.mugicRareBoost ?? scannerEffect.mugicRareBoost ?? scannerEffect.rareBoost ?? 0));
   const creatureDropChance = Math.max(
     0,
     Math.min(1, Number(calculateCreatureChancePercent(locationEntry?.rarity, actionId) || 0) / 100)
   );
   const { locationsById: locationCardsById } = getLibraryIndexes();
   const pickCreatureForAction = () => {
+    if (creatureDropsInRun >= maxCreatureDropsPerRun) {
+      return null;
+    }
     if (Math.random() > creatureDropChance) {
       return null;
     }
     return pickCreatureRewardFromLocation(locationEntry, {
       inventoryCounts,
-      rareBoost: scannerEffect.rareBoost,
+      rareBoost: creatureRareBoost,
       includeCreatureVariant,
       ignoreInventoryCap,
     });
@@ -5124,10 +5498,11 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     }
     return rewardCardFromType(type, tribe, {
       inventoryCounts,
-      rareBoost: scannerEffect.rareBoost,
+      rareBoost: type === "mugic" ? mugicRareBoost : scannerEffect.rareBoost,
       includeCreatureVariant,
       ignoreInventoryCap,
       locationEntry,
+      tribeScannerRareBoosts,
       requireLocalMugicEligible: type === "mugic",
     });
   };
@@ -5136,6 +5511,12 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     const normalized = normalizeRewardPayload(rewardLike);
     if (!normalized) {
       return false;
+    }
+    if (normalized.type === "creatures") {
+      if (creatureDropsInRun >= maxCreatureDropsPerRun) {
+        return false;
+      }
+      creatureDropsInRun += 1;
     }
     rewards.push(normalized);
     increaseInventoryCountMap(inventoryCounts, normalized);
@@ -5172,12 +5553,12 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       const sameLocationId = String(locationId || "");
       const adjacentPool = locationCandidates.filter((card) => String(card.id) !== sameLocationId);
       let pickedLocation = null;
-      if (adjacentPool.length && Math.random() < 0.72) {
+      if (adjacentPool.length && Math.random() < adjacentFirstChance) {
         pickedLocation = pickFromList(adjacentPool);
-      } else if (sameLocationId) {
+      } else if (adjacentPool.length) {
+        pickedLocation = pickFromList(adjacentPool);
+      } else if (sameLocationId && Math.random() < fallbackCurrentMinChance) {
         pickedLocation = locationCandidates.find((card) => String(card.id) === sameLocationId) || null;
-      } else {
-        pickedLocation = pickFromList(locationCandidates);
       }
       if (pickedLocation) {
         appendReward({
@@ -5202,18 +5583,21 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
         locationEntry,
+        tribeScannerRareBoosts,
       }) ||
       rewardCardFromType("battlegear", tribe, {
         inventoryCounts,
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
         locationEntry,
+        tribeScannerRareBoosts,
       }) ||
       rewardCardFromType("mugic", tribe, {
         inventoryCounts,
-        rareBoost: scannerEffect.rareBoost,
+        rareBoost: mugicRareBoost,
         ignoreInventoryCap,
         locationEntry,
+        tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
       }) ||
       pickCreatureForAction();
@@ -5224,13 +5608,13 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       pickGuaranteedLocalReward();
     }
   } else {
-    const primaryType = weightedPick(profile.primary) || "creatures";
+    const primaryType = weightedPickWithClimate(profile.primary, activeClimate) || "creatures";
     const primaryReward = pickRewardForType(primaryType);
     if (primaryReward) {
       appendReward(primaryReward);
     }
     if (Math.random() < profile.bonusChance) {
-      const bonusType = weightedPick(profile.primary) || "attacks";
+      const bonusType = weightedPickWithClimate(profile.primary, activeClimate) || "attacks";
       const bonusReward = pickRewardForType(bonusType);
       if (bonusReward) {
         appendReward(bonusReward);
@@ -5250,6 +5634,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
         locationEntry,
+        tribeScannerRareBoosts,
       });
       if (attackReward) {
         appendReward(attackReward);
@@ -5272,9 +5657,11 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       const currentLocationId = String(locationEntry?.cardId || locationEntry?.id || "");
       const sameLocationCard = locationCardsById.get(currentLocationId) || null;
       let picked = null;
-      if (linkedPool.length && Math.random() < 0.72) {
+      if (linkedPool.length && Math.random() < adjacentFirstChance) {
         picked = pickFromList(linkedPool);
-      } else if (sameLocationCard) {
+      } else if (linkedPool.length) {
+        picked = pickFromList(linkedPool);
+      } else if (sameLocationCard && Math.random() < fallbackCurrentMinChance) {
         const stockKey = `locations:${String(sameLocationCard.id)}`;
         const currentAmount = inventoryCounts.get(stockKey) || 0;
         if (ignoreInventoryCap || currentAmount < INVENTORY_MAX_COPIES) {
@@ -5301,18 +5688,21 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       rareBoost: scannerEffect.rareBoost,
       ignoreInventoryCap,
       locationEntry,
+      tribeScannerRareBoosts,
     })
       || rewardCardFromType("battlegear", tribe, {
         inventoryCounts,
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
         locationEntry,
+        tribeScannerRareBoosts,
       })
       || rewardCardFromType("mugic", tribe, {
         inventoryCounts,
-        rareBoost: scannerEffect.rareBoost,
+        rareBoost: mugicRareBoost,
         ignoreInventoryCap,
         locationEntry,
+        tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
       });
     if (fallback) {
@@ -5330,18 +5720,20 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       }
     }
     const topUp =
-      pickRewardForType(weightedPick(profile.primary) || "attacks")
+      pickRewardForType(weightedPickWithClimate(profile.primary, activeClimate) || "attacks")
       || rewardCardFromType("attacks", tribe, {
         inventoryCounts,
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
         locationEntry,
+        tribeScannerRareBoosts,
       })
       || rewardCardFromType("mugic", tribe, {
         inventoryCounts,
-        rareBoost: scannerEffect.rareBoost,
+        rareBoost: mugicRareBoost,
         ignoreInventoryCap,
         locationEntry,
+        tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
       });
     if (!topUp || !appendReward(topUp)) {
@@ -5355,29 +5747,6 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Creature Daily Location System
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const CREATURE_RARITY_DROP_CHANCE = {
-  common: 0.55,
-  uncommon: 0.38,
-  rare: 0.24,
-  "super rare": 0.084,
-  "ultra rare": 0.0315,
-  promo: 0.03,
-};
-
-const CREATURE_SCAN_RARITY_MULTIPLIER = {
-  "super rare": 0.6,
-  "ultra rare": 0.45,
-};
-
-const LOCATION_RARITY_DROP_CHANCE = {
-  common: 0.2,
-  uncommon: 0.16,
-  rare: 0.11,
-  "super rare": 0.07,
-  "ultra rare": 0.04,
-  promo: 0.02,
-};
 
 const PERIM_CLIMATE_SLOTS = [0, 6, 12, 18];
 
@@ -5932,7 +6301,7 @@ function buildDailyPayloadFromSqlRows(dateKey, rows) {
       sourceRule: "sql_daily",
       flavortext: resolveCreatureFlavortext(creature.name),
       cardId: resolveCreatureCardId(creature.name),
-      dropChance: CREATURE_RARITY_DROP_CHANCE[rarityKey] || 0.15,
+      dropChance: getPerimCreatureRarityDropChance(rarityKey),
     });
   });
   return {
@@ -6140,7 +6509,7 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
       sourceRule,
       flavortext,
       cardId,
-      dropChance: CREATURE_RARITY_DROP_CHANCE[rarityKey] || 0.15,
+      dropChance: getPerimCreatureRarityDropChance(rarityKey),
     });
   });
 
@@ -6649,16 +7018,37 @@ function addScannerXp(profile, scannerKey, xpAmount) {
 
 function scannerEffectsByLevel(level) {
   const normalized = Math.max(1, Math.min(4, Number(level || 1)));
-  if (normalized === 4) {
-    return { durationMultiplier: 0.78, successBoostPercent: 20, rareBoost: 0.48 };
-  }
-  if (normalized === 3) {
-    return { durationMultiplier: 0.86, successBoostPercent: 12, rareBoost: 0.3 };
-  }
-  if (normalized === 2) {
-    return { durationMultiplier: 0.93, successBoostPercent: 6, rareBoost: 0.15 };
-  }
-  return { durationMultiplier: 1, successBoostPercent: 0, rareBoost: 0 };
+  const effect = getScannerTribeLevelEffect(normalized);
+  return {
+    durationMultiplier: 1,
+    successBoostPercent: effect.successBoostPercent,
+    rareBoost: effect.creatureRareBoost,
+    mugicRareBoost: effect.mugicRareBoost,
+  };
+}
+
+function getScannerTotalLevel(profile) {
+  const scanners = normalizeScannersPayload(profile?.scanners);
+  return SCANNER_KEYS.reduce((sum, key) => {
+    const scanner = scanners[key] || { xp: 0 };
+    return sum + scannerLevelFromXp(scanner?.xp || 0);
+  }, 0);
+}
+
+function buildScannerTribeRareBoostMap(profile) {
+  const scanners = normalizeScannersPayload(profile?.scanners);
+  const boostMap = new Map();
+  SCANNER_KEYS.forEach((scannerKey) => {
+    const scanner = scanners[scannerKey] || { xp: 0 };
+    const level = scannerLevelFromXp(scanner?.xp || 0);
+    const effect = getScannerTribeLevelEffect(level);
+    boostMap.set(scannerKey, {
+      creatureRareBoost: Math.max(0, Number(effect?.creatureRareBoost || 0)),
+      mugicRareBoost: Math.max(0, Number(effect?.mugicRareBoost || 0)),
+      successBoostPercent: Math.max(0, Number(effect?.successBoostPercent || 0)),
+    });
+  });
+  return boostMap;
 }
 
 function resolveScannerStateForLocation(profile, locationEntry) {
@@ -6666,10 +7056,15 @@ function resolveScannerStateForLocation(profile, locationEntry) {
   const scanners = normalizeScannersPayload(profile?.scanners);
   const scanner = scannerKey ? scanners[scannerKey] : null;
   const level = scannerLevelFromXp(scanner?.xp || 0);
+  const totalScannerLevel = getScannerTotalLevel(profile);
+  const globalDurationMultiplier = getScannerDurationMultiplierByTotalLevel(totalScannerLevel);
   return {
     scannerKey: scannerKey || "",
     level,
+    totalScannerLevel,
+    globalDurationMultiplier,
     effect: scannerEffectsByLevel(level),
+    tribeRareBoostMap: buildScannerTribeRareBoostMap(profile),
   };
 }
 
@@ -10086,6 +10481,67 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (request.method === "GET" && pathname === "/api/admin/perim-drop-tables") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    sendJson(response, 200, {
+      ok: true,
+      tables: getPerimDropTables(),
+      file: PERIM_DROP_TABLES_FILE,
+    });
+    return;
+  }
+
+  if (request.method === "PUT" && pathname === "/api/admin/perim-drop-tables") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const normalized = normalizePerimDropTables(payload);
+    try {
+      persistPerimDropTables(normalized);
+      perimDropTablesCache = normalized;
+      writePerimActionsDropsReport();
+      sendJson(response, 200, {
+        ok: true,
+        tables: normalized,
+      });
+      return;
+    } catch (error) {
+      sendJson(response, 500, { error: `Falha ao salvar tabela de drops: ${error?.message || error}` });
+      return;
+    }
+  }
+
+  if (request.method === "POST" && pathname === "/api/admin/perim-drop-tables/reload") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    const tables = loadPerimDropTables(true);
+    writePerimActionsDropsReport();
+    sendJson(response, 200, {
+      ok: true,
+      tables,
+      reloadedAt: nowIso(),
+    });
+    return;
+  }
+
   if (request.method === "GET" && pathname === "/api/admin/online-players") {
     const adminUser = requireAdminUser(request, response);
     if (!adminUser) {
@@ -10817,13 +11273,17 @@ async function handleRequest(request, response) {
     const startAt = new Date();
     const durationMs = instantPerim
       ? 0
-      : computePerimDurationMs(locationCard.id, actionId, action.durationMs, scannerState.effect);
+      : computePerimDurationMs(locationCard.id, actionId, action.durationMs, {
+        ...scannerState.effect,
+        globalDurationMultiplier: scannerState.globalDurationMultiplier,
+      });
     const endAt = new Date(startAt.getTime() + durationMs);
     const runId = crypto.randomBytes(12).toString("hex");
     const inventoryCounts = buildInventoryCountMap(cards);
     const rewards = buildPerimRewards(selectedLocation, actionId, {
       inventoryCounts,
       scannerEffect: scannerState.effect,
+      tribeScannerRareBoosts: scannerState.tribeRareBoostMap,
       includeCreatureVariant: true,
       ignoreInventoryCap: instantPerim,
     });
@@ -12351,6 +12811,7 @@ async function handleRequest(request, response) {
 
   if (request.method === "POST" && pathname === "/api/reload") {
       refreshLibraryCatalog(true);
+      loadPerimDropTables(true);
       effectPendingStats = writeBasePendingEffectsReport();
       creaturePendingStats = writeBaseCreaturePendingEffectsReport();
       writePerimActionsDropsReport();
@@ -12735,6 +13196,7 @@ try {
 }
 
 refreshLibraryCatalog(false);
+loadPerimDropTables(true);
 hydrateCreatureDropSqlMetadata();
 writePerimActionsDropsReport();
 seedAdminAccount();
