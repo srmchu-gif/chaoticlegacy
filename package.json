@@ -4,7 +4,7 @@
   "description": "Chaotic TCG data-driven game from local JSON and image folder",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --env-file=.env server.js",
     "render:preflight": "node scripts/render-preflight.js",
     "test": "node tests/effect-parser.test.js && node tests/library.test.js && node tests/battle-engine.test.js",
     "analyze:effects": "node scripts/effect-coverage.js",

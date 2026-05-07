@@ -1,0 +1,13 @@
+Chaotic Debug Session
+sessionId=mouuddrb-ehen09
+startedAt=2026-05-07T02:03:04.295Z
+url=https://game.chaoticlegacy.qzz.io/index.html?view=builder
+userAgent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0
+---
+{"type":"session_start","payload":{"url":"https://game.chaoticlegacy.qzz.io/index.html?view=builder","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0","settings":{"schemaVersion":1,"updatedAt":"2026-05-07T01:24:49.207Z","screen":{"fullscreenAuto":true,"resolution":"high"},"audio":{"enabled":true,"master":100,"sfx":100,"music":28},"language":{"cards":"pt","ui":"pt"},"gameplay":{"animations":true,"hints":false},"controls":{"mouseSensitivity":100,"keybinds":{"confirmAction":"Enter","confirmAttack":"Space","autoStep":"KeyN","switchBuilder":"Digit1","switchBattle":"Digit2","switchSettings":"Digit3","cancel":"Escape"}},"extras":{"theme":"dark","fpsCounter":true,"debugMode":true},"musicPlayer":{"enabled":true,"loopTrack":false,"lastTrackIndex":4,"volume":22}}}}
+{"at":"2026-05-07T02:03:04.332Z","type":"debug","message":"Debug mode enabled.","payload":null}
+{"at":"2026-05-07T02:03:08.382Z","type":"music","message":"play","payload":{"track":"Nexus of Cards"}}
+{"at":"2026-05-07T02:04:26.789Z","type":"music_error","message":"Falha ao tocar faixa atual.","payload":{"track":"Nexus of Cards"}}
+{"at":"2026-05-07T02:04:26.791Z","type":"music","message":"next","payload":{"index":5}}
+{"at":"2026-05-07T02:04:26.955Z","type":"music","message":"play","payload":{"track":"Strategic Collapse"}}
+{"type":"session_end","at":"2026-05-07T02:05:21.724Z","reason":"beforeunload"}

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-06T20:59:07.078Z",
+  "updatedAt": "2026-05-07T02:04:26.863Z",
   "settings": {
     "schemaVersion": 1,
-    "updatedAt": "2026-05-06T20:59:07.053Z",
+    "updatedAt": "2026-05-07T02:04:26.789Z",
     "screen": {
       "fullscreenAuto": true,
       "resolution": "high"
@@ -42,7 +42,7 @@
     "musicPlayer": {
       "enabled": true,
       "loopTrack": false,
-      "lastTrackIndex": 4,
+      "lastTrackIndex": 5,
       "volume": 22
     }
   }

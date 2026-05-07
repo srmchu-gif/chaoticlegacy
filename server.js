@@ -12,6 +12,54 @@ const {
   setLocationAdjacencies,
 } = require("./lib/creature-drops-db");
 
+bootstrapEnvFromDotEnv();
+
+function bootstrapEnvFromDotEnv() {
+  const envPath = path.resolve(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) {
+    return;
+  }
+
+  if (typeof process.loadEnvFile === "function") {
+    try {
+      process.loadEnvFile(envPath);
+      return;
+    } catch (error) {
+      console.warn(`[ENV] Falha no process.loadEnvFile(${envPath}): ${error?.message || error}. Aplicando fallback parser.`);
+    }
+  }
+
+  try {
+    const content = fs.readFileSync(envPath, "utf8");
+    const lines = content.split(/\r?\n/);
+    for (const rawLine of lines) {
+      const line = String(rawLine || "").trim();
+      if (!line || line.startsWith("#")) {
+        continue;
+      }
+      const match = line.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+      if (!match) {
+        continue;
+      }
+      const key = String(match[1] || "").trim();
+      let value = String(match[2] || "").trim();
+      if (!key) {
+        continue;
+      }
+      if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      } else {
+        value = value.replace(/\s+#.*$/, "").trim();
+      }
+      if (process.env[key] === undefined) {
+        process.env[key] = value;
+      }
+    }
+  } catch (error) {
+    console.warn(`[ENV] Falha ao carregar .env via fallback parser: ${error?.message || error}`);
+  }
+}
+
 const ROOT_DIR = process.cwd();
 const PERSIST_DIR = process.env.PERSIST_DIR ? path.resolve(process.env.PERSIST_DIR) : ROOT_DIR;
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
@@ -8948,8 +8996,18 @@ function isPathInside(parentPath, childPath) {
 let smtpTransporter = null;
 let smtpValidated = false;
 
+function getMissingSmtpConfigKeys() {
+  const missing = [];
+  if (!SMTP_HOST) missing.push("SMTP_HOST");
+  if (!(SMTP_PORT > 0)) missing.push("SMTP_PORT");
+  if (!SMTP_USER) missing.push("SMTP_USER");
+  if (!SMTP_PASS) missing.push("SMTP_PASS");
+  if (!SMTP_FROM) missing.push("SMTP_FROM");
+  return missing;
+}
+
 function isSmtpConfigured() {
-  return Boolean(SMTP_HOST && SMTP_PORT > 0 && SMTP_USER && SMTP_PASS && SMTP_FROM);
+  return getMissingSmtpConfigKeys().length === 0;
 }
 
 async function getSmtpTransporter() {
@@ -9089,6 +9147,7 @@ async function handleRequest(request, response) {
         profilesReadable,
         dailyCreatureRowsToday,
       },
+      smtpConfigured: isSmtpConfigured(),
       jobs: {
         perim: { ...runtimeMetrics.perimJobs },
         backup: { ...runtimeMetrics.backups },
@@ -9158,6 +9217,10 @@ async function handleRequest(request, response) {
       return;
     }
     if (!isSmtpConfigured()) {
+      const missingSmtpKeys = getMissingSmtpConfigKeys();
+      console.warn(
+        `[AUTH][REGISTER] Cadastro bloqueado por SMTP ausente. missing=${missingSmtpKeys.length ? missingSmtpKeys.join(",") : "none"} user=${username || "(empty)"}`
+      );
       sendJson(response, 503, { error: "Cadastro indisponivel: SMTP nao configurado no servidor." });
       return;
     }
@@ -9278,6 +9341,10 @@ async function handleRequest(request, response) {
       return;
     }
     if (!isSmtpConfigured()) {
+      const missingSmtpKeys = getMissingSmtpConfigKeys();
+      console.warn(
+        `[AUTH][RESEND] Reenvio bloqueado por SMTP ausente. missing=${missingSmtpKeys.length ? missingSmtpKeys.join(",") : "none"} user=${username || "(empty)"}`
+      );
       sendJson(response, 503, { error: "Reenvio indisponivel: SMTP nao configurado no servidor." });
       return;
     }
@@ -10950,9 +11017,15 @@ const server = http.createServer((request, response) => {
 
 server.listen(PORT, () => {
   const stats = library.stats;
+  const missingSmtpKeys = getMissingSmtpConfigKeys();
   // eslint-disable-next-line no-console
   console.log(
     `Chaotic data-driven server online at http://localhost:${PORT} | cards: ${stats.totalCards} (${stats.creatures} creatures, ${stats.attacks} attacks)`
   );
+  if (missingSmtpKeys.length) {
+    console.warn(`[SMTP] Nao configurado. host=${SMTP_HOST || "(empty)"} port=${SMTP_PORT || 0} secure=${SMTP_SECURE ? "true" : "false"} missing=${missingSmtpKeys.join(",")}`);
+  } else {
+    console.log(`[SMTP] Configurado. host=${SMTP_HOST} port=${SMTP_PORT} secure=${SMTP_SECURE ? "true" : "false"} user=ok pass=ok from=ok`);
+  }
 });
 
