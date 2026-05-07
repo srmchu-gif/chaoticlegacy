@@ -2620,25 +2620,22 @@ function normalizeScansEntryByType(type, entry) {
   if (!cardId) {
     return null;
   }
-  if (type !== "creatures") {
-    return cardId;
-  }
   const scanEntryId = typeof entry?.scanEntryId === "string" && entry.scanEntryId.trim()
     ? entry.scanEntryId.trim()
     : generateScanEntryId();
-  const variant = normalizeCreatureVariant(entry?.variant);
   const out = {
     cardId,
     scanEntryId,
+    obtainedAt: entry?.obtainedAt ? String(entry.obtainedAt) : nowIso(),
   };
-  if (variant) {
-    out.variant = variant;
-  }
-  if (entry.obtainedAt) {
-    out.obtainedAt = String(entry.obtainedAt);
-  }
-  if (entry.source) {
+  if (entry?.source) {
     out.source = String(entry.source);
+  }
+  if (type === "creatures") {
+    const variant = normalizeCreatureVariant(entry?.variant);
+    if (variant) {
+      out.variant = variant;
+    }
   }
   return out;
 }
@@ -2807,7 +2804,7 @@ function loadScansData() {
     const players = {};
     const rows = sqliteDb
       .prepare(`
-        SELECT owner_key, card_type, card_id, scan_entry_id, variant_json, obtained_at, source
+        SELECT owner_key, card_type, card_id, scan_entry_id, variant_json, obtained_at, source, created_at
         FROM scan_entries
         ORDER BY owner_key ASC, card_type ASC, rowid ASC
       `)
@@ -2825,25 +2822,26 @@ function loadScansData() {
       if (!cardId) {
         return;
       }
+      const obtainedAt = row?.obtained_at
+        ? String(row.obtained_at)
+        : row?.created_at
+          ? String(row.created_at)
+          : nowIso();
+      const baseEntry = {
+        cardId,
+        scanEntryId: String(row?.scan_entry_id || generateScanEntryId()),
+        obtainedAt,
+      };
+      if (row?.source) {
+        baseEntry.source = String(row.source);
+      }
       if (type === "creatures") {
         const variant = normalizeCreatureVariant(parseJsonText(row?.variant_json, null));
-        const creatureEntry = {
-          cardId,
-          scanEntryId: String(row?.scan_entry_id || generateScanEntryId()),
-        };
         if (variant) {
-          creatureEntry.variant = variant;
+          baseEntry.variant = variant;
         }
-        if (row?.obtained_at) {
-          creatureEntry.obtainedAt = String(row.obtained_at);
-        }
-        if (row?.source) {
-          creatureEntry.source = String(row.source);
-        }
-        players[ownerKey].cards[type].push(creatureEntry);
-      } else {
-        players[ownerKey].cards[type].push(cardId);
       }
+      players[ownerKey].cards[type].push(baseEntry);
     });
     if (!Object.keys(players).length) {
       players["local-player"] = {
@@ -2917,15 +2915,13 @@ function writeScansData(payload, source = "manual") {
             let variantJson = null;
             let obtainedAt = null;
             let sourceValue = null;
+            const normalizedEntry = normalizeScansEntryByType(type, entry);
+            scanEntryId = String(normalizedEntry?.scanEntryId || generateScanEntryId());
+            obtainedAt = normalizedEntry?.obtainedAt ? String(normalizedEntry.obtainedAt) : nowIso();
+            sourceValue = normalizedEntry?.source ? String(normalizedEntry.source) : null;
             if (type === "creatures") {
-              const normalizedEntry = normalizeScansEntryByType(type, entry);
-              scanEntryId = String(normalizedEntry?.scanEntryId || generateScanEntryId());
               const variant = normalizeCreatureVariant(normalizedEntry?.variant);
               variantJson = variant ? JSON.stringify(variant) : null;
-              obtainedAt = normalizedEntry?.obtainedAt ? String(normalizedEntry.obtainedAt) : null;
-              sourceValue = normalizedEntry?.source ? String(normalizedEntry.source) : null;
-            } else {
-              scanEntryId = `scan_${ownerKey}_${type}_${index}_${crypto.randomBytes(6).toString("hex")}`;
             }
             insertScanEntry.run(
               scanEntryId,

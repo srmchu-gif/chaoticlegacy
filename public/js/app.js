@@ -1088,6 +1088,23 @@ function deckEntryCardId(entry) {
   return "";
 }
 
+function formatScanTimestampLabel(value) {
+  if (!value) {
+    return "Scaneada em: sem registro";
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "Scaneada em: sem registro";
+  }
+  return `Scaneada em: ${parsed.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })}`;
+}
+
 function normalizeVariant(rawVariant) {
   if (!rawVariant || typeof rawVariant !== "object") {
     return null;
@@ -1515,7 +1532,8 @@ function attachBattleUnitPreview(node, playerIndex, unit) {
   });
 }
 
-function cardNode(card, buttons = []) {
+function cardNode(card, buttons = [], options = {}) {
+  const { scanTimestamp = null } = options;
   const node = el.cardTemplate.content.firstElementChild.cloneNode(true);
   const image = node.querySelector("img");
   const src = imageOf(card);
@@ -1528,6 +1546,16 @@ function cardNode(card, buttons = []) {
   node.querySelector(".meta").textContent = `${TYPE_LABEL[card.type] || card.type} | ${card.set || "-"} | ${card.rarity || "-"}`;
   node.querySelector(".ability").textContent = card.ability || "Sem habilidade textual";
   node.querySelector(".stats").textContent = statLine(card);
+  if (scanTimestamp !== null) {
+    const scanMeta = document.createElement("p");
+    scanMeta.className = "scan-obtained-meta";
+    scanMeta.textContent = formatScanTimestampLabel(scanTimestamp);
+    const contentEl = node.querySelector(".card-content");
+    const actionsEl = node.querySelector(".card-actions");
+    if (contentEl && actionsEl) {
+      contentEl.insertBefore(scanMeta, actionsEl);
+    }
+  }
   buttons.forEach((button) => node.querySelector(".card-actions").appendChild(button));
   attachHoverPreview(node, card);
   return node;
@@ -2123,7 +2151,10 @@ function renderLibraryCards() {
     });
     addButton.disabled = availableCopies <= 0;
     addButton.textContent = availableCopies > 0 ? `+ Deck (${availableCopies})` : "Esgotado";
-    el.cardLibrary.appendChild(cardNode(card, [addButton]));
+    const scanTimestamp = isScansView
+      ? (card?._deckEntryRef && typeof card._deckEntryRef === "object" ? card._deckEntryRef.obtainedAt || null : null)
+      : null;
+    el.cardLibrary.appendChild(cardNode(card, [addButton], { scanTimestamp }));
   });
 }
 

@@ -148,6 +148,7 @@ body[data-theme="light"] .music-floating-btn{
 .meta{color:var(--ink-soft)}
 .ability{color:#b0b0b0}
 .stats{color:var(--gold);font-weight:700;font-size:.74rem}
+.scan-obtained-meta{color:#8ec8ff;font-size:.67rem;opacity:.95}
 .card-actions{display:flex;gap:.35rem;margin-top:.25rem}
 .deck-tools{margin-top:.4rem}
 .deck-validation{margin:.4rem 0 0;white-space:pre-wrap;border:1px solid var(--border);border-radius:5px;background:#0e0e0e;color:var(--ink-soft);padding:.35rem;min-height:2.5rem;font-size:.74rem}
