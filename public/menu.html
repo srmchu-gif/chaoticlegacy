@@ -107,6 +107,15 @@
             <button id="perim-start-action" class="menu-btn primary-btn pulse-btn compact-action-btn">Iniciar A&ccedil;&atilde;o</button>
             <button id="perim-events-btn" class="menu-btn ghost-btn compact-action-btn">Eventos</button>
           </div>
+          <div class="perim-chat-wrap">
+            <h3>Chat do Local</h3>
+            <div id="perim-chat-state" class="perim-chat-state">Somente jogadores em acao ativa no local podem conversar.</div>
+            <div id="perim-chat-messages" class="perim-chat-messages"></div>
+            <div class="perim-chat-input-row">
+              <input id="perim-chat-input" type="text" maxlength="240" placeholder="Digite uma mensagem..." />
+              <button id="perim-chat-send" class="menu-btn standard-btn compact-action-btn" type="button">Enviar</button>
+            </div>
+          </div>
         </div>
 
         <div id="perim-active-run" class="perim-active-run"></div>
@@ -123,65 +132,89 @@
       <section class="multiplayer-panel" id="dromos-panel" style="display: none;">
         <h2 class="panel-title">Dromos</h2>
         <div id="dromos-status" class="trades-status">Carregando temporada...</div>
-
-        <div class="dromos-layout">
-          <div class="dromos-col">
-            <div class="dromos-card">
-              <h3>Temporada atual</h3>
-              <div id="dromos-season-summary" class="dromos-season-summary"></div>
-            </div>
-            <div class="dromos-card">
-              <h3>Meu Dromo</h3>
-              <div class="dromos-select-row">
-                <select id="dromos-select-drome"></select>
-                <button id="btn-dromos-select" class="menu-btn primary-btn compact-action-btn">Selecionar</button>
+        <div class="dromos-main-tabs" role="tablist" aria-label="Navegacao da aba Dromos">
+          <button id="dromos-tab-btn-season" class="dromos-main-tab active" type="button" data-dromos-tab="season" aria-selected="true">Temporada</button>
+          <button id="dromos-tab-btn-ranked" class="dromos-main-tab" type="button" data-dromos-tab="ranked" aria-selected="false">Ranked</button>
+          <button id="dromos-tab-btn-leaderboard" class="dromos-main-tab" type="button" data-dromos-tab="leaderboard" aria-selected="false">Leaderboard</button>
+          <button id="dromos-tab-btn-live" class="dromos-main-tab" type="button" data-dromos-tab="live" aria-selected="false">Ao Vivo</button>
+        </div>
+        <div class="dromos-tab-panels">
+          <div id="dromos-tab-season" class="dromos-tab-panel active" aria-hidden="false">
+            <div class="dromos-layout single-col">
+              <div class="dromos-col">
+                <div class="dromos-card">
+                  <h3>Temporada atual</h3>
+                  <div id="dromos-season-summary" class="dromos-season-summary"></div>
+                </div>
+                <div class="dromos-card">
+                  <h3>Meu Dromo</h3>
+                  <div class="dromos-select-row">
+                    <select id="dromos-select-drome"></select>
+                    <button id="btn-dromos-select" class="menu-btn primary-btn compact-action-btn">Selecionar</button>
+                  </div>
+                  <small id="dromos-select-note">A selecao fica travada ate o proximo mes.</small>
+                </div>
+                <div class="dromos-card">
+                  <h3>Desafios CodeMaster</h3>
+                  <div class="dromos-select-row">
+                    <select id="dromos-codemaster-drome"></select>
+                    <select id="dromos-codemaster-deck"></select>
+                    <button id="btn-dromos-codemaster-lock" class="menu-btn standard-btn compact-action-btn">Travar deck</button>
+                  </div>
+                  <div class="dromos-select-row">
+                    <input id="dromos-challenge-username" type="text" placeholder="Username do desafiante" />
+                    <button id="btn-dromos-challenge-invite" class="menu-btn primary-btn compact-action-btn">Convidar</button>
+                  </div>
+                  <div class="dromos-duo-list">
+                    <div>
+                      <h4>Convites recebidos</h4>
+                      <div id="dromos-incoming-invites" class="dromos-list"></div>
+                    </div>
+                    <div>
+                      <h4>Convites enviados</h4>
+                      <div id="dromos-outgoing-invites" class="dromos-list"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <small id="dromos-select-note">A selecao fica travada ate o proximo mes.</small>
-            </div>
-            <div class="dromos-card">
-              <h3>Ranked do Dromo</h3>
-              <div class="dromos-select-row">
-                <select id="dromos-ranked-deck"></select>
-                <button id="btn-dromos-ranked-create" class="menu-btn primary-btn compact-action-btn">Criar ranked</button>
-              </div>
-              <div id="dromos-ranked-rooms" class="dromos-list"></div>
             </div>
           </div>
-
-          <div class="dromos-col">
-            <div class="dromos-card">
-              <h3>Leaderboard</h3>
-              <div class="dromos-select-row">
-                <select id="dromos-leaderboard-drome"></select>
-                <button id="btn-dromos-leaderboard-refresh" class="menu-btn ghost-btn compact-action-btn">Atualizar</button>
-              </div>
-              <div id="dromos-leaderboard-list" class="dromos-list"></div>
-            </div>
-            <div class="dromos-card">
-              <h3>Desafios CodeMaster</h3>
-              <div class="dromos-select-row">
-                <select id="dromos-codemaster-drome"></select>
-                <select id="dromos-codemaster-deck"></select>
-                <button id="btn-dromos-codemaster-lock" class="menu-btn standard-btn compact-action-btn">Travar deck</button>
-              </div>
-              <div class="dromos-select-row">
-                <input id="dromos-challenge-username" type="text" placeholder="Username do desafiante" />
-                <button id="btn-dromos-challenge-invite" class="menu-btn primary-btn compact-action-btn">Convidar</button>
-              </div>
-              <div class="dromos-duo-list">
-                <div>
-                  <h4>Convites recebidos</h4>
-                  <div id="dromos-incoming-invites" class="dromos-list"></div>
-                </div>
-                <div>
-                  <h4>Convites enviados</h4>
-                  <div id="dromos-outgoing-invites" class="dromos-list"></div>
+          <div id="dromos-tab-ranked" class="dromos-tab-panel" aria-hidden="true">
+            <div class="dromos-layout single-col">
+              <div class="dromos-col">
+                <div class="dromos-card">
+                  <h3>Ranked do Dromo</h3>
+                  <div class="dromos-select-row">
+                    <select id="dromos-ranked-deck"></select>
+                    <button id="btn-dromos-ranked-create" class="menu-btn primary-btn compact-action-btn">Criar ranked</button>
+                  </div>
+                  <div id="dromos-ranked-rooms" class="dromos-list"></div>
                 </div>
               </div>
             </div>
-            <div class="dromos-card">
-              <h3>Assistir lutas agora</h3>
-              <div id="dromos-live-list" class="dromos-list"></div>
+          </div>
+          <div id="dromos-tab-leaderboard" class="dromos-tab-panel" aria-hidden="true">
+            <div class="dromos-layout single-col">
+              <div class="dromos-col">
+                <div class="dromos-card">
+                  <h3>Leaderboard</h3>
+                  <div class="dromos-select-row">
+                    <select id="dromos-leaderboard-drome"></select>
+                    <button id="btn-dromos-leaderboard-refresh" class="menu-btn ghost-btn compact-action-btn">Atualizar</button>
+                  </div>
+                  <div id="dromos-leaderboard-list" class="dromos-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="dromos-tab-live" class="dromos-tab-panel" aria-hidden="true">
+            <div class="dromos-layout single-col">
+              <div class="dromos-col">
+                <div class="dromos-card">
+                  <h3>Assistir lutas agora</h3>
+                  <div id="dromos-live-list" class="dromos-list"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -191,6 +224,7 @@
       <section class="multiplayer-panel" id="trades-panel" style="display: none;">
         <h2 class="panel-title">Trocas</h2>
         <div id="trades-status" class="trades-status">Monte uma sala e troque cartas em tempo real.</div>
+        <div id="trades-monthly-usage" class="trades-monthly-usage">Trocas no mes: --/2</div>
 
         <div id="trades-hub-view" class="trades-hub-view">
           <button id="btn-trades-create-room" class="menu-btn primary-btn compact-action-btn">Criar sala de troca</button>

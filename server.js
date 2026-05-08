@@ -112,6 +112,7 @@ const DB_BACKUP_HOUR = Math.max(0, Math.min(23, Number(process.env.DB_BACKUP_HOU
 const SQL_V2_SCHEMA_VERSION = 2;
 const SQL_V2_STORAGE_MODE = "sql_v2_cutover";
 const SQL_CATALOG_SCHEMA_VERSION = 4;
+const TRADE_MONTHLY_COMPLETED_LIMIT = 2;
 const MATCH_TYPE_CASUAL_MULTIPLAYER = "casual_multiplayer";
 const MATCH_TYPE_RANKED_DROME = "ranked_drome";
 const MATCH_TYPE_CODEMASTER_CHALLENGE = "codemaster_challenge";
@@ -646,9 +647,15 @@ function createSqlV2Tables() {
     CREATE TABLE IF NOT EXISTS perim_player_state (
       owner_key TEXT NOT NULL PRIMARY KEY,
       history_json TEXT NOT NULL,
+      camp_wait_json TEXT NOT NULL DEFAULT '{}',
       updated_at TEXT NOT NULL
     );
   `);
+  const perimPlayerStateColumns = sqliteDb.prepare("PRAGMA table_info(perim_player_state)").all();
+  const perimPlayerStateColumnSet = new Set(perimPlayerStateColumns.map((entry) => String(entry?.name || "").toLowerCase()));
+  if (!perimPlayerStateColumnSet.has("camp_wait_json")) {
+    sqliteDb.exec("ALTER TABLE perim_player_state ADD COLUMN camp_wait_json TEXT NOT NULL DEFAULT '{}';");
+  }
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_runs (
       run_id TEXT NOT NULL PRIMARY KEY,
@@ -696,6 +703,18 @@ function createSqlV2Tables() {
       updated_at TEXT NOT NULL
     );
   `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_location_chat (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      location_id TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      username TEXT NOT NULL,
+      message TEXT NOT NULL,
+      day_key TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_chat_loc_day_created ON perim_location_chat(location_id, day_key, created_at DESC);");
 
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS seasons (
@@ -1281,7 +1300,9 @@ function migrateKvToSqlV2IfNeeded() {
           String(pending?.completedAt || pending?.claimedAt || now),
           0,
           JSON.stringify({}),
-          JSON.stringify({}),
+          JSON.stringify({
+            choiceSelections: normalizePerimChoiceSelections(pending?.choiceSelections || {}),
+          }),
           JSON.stringify(rewards),
           pending?.claimedAt ? "claimed" : "pending",
           String(pending?.completedAt || now),
@@ -1481,6 +1502,7 @@ const TRADE_ROOM_IDLE_TTL_MS = 30 * 60 * 1000;
 const TRADE_INVITE_TTL_MS = 10 * 60 * 1000;
 const tradeCardLocks = new Map();
 const tradeInvites = new Map();
+const perimLocationChatClients = new Map();
 
 const runtimeMetrics = {
   requestSamplesByRoute: new Map(),
@@ -2685,6 +2707,27 @@ function deckCreatureScanEntryId(entry) {
   return String(entry.scanEntryId || "").trim();
 }
 
+function creatureVariantStarValue(rawVariant) {
+  const variant = rawVariant && typeof rawVariant === "object" ? rawVariant : {};
+  const sum = Number(variant.energyDelta || 0)
+    + Number(variant.courageDelta || 0)
+    + Number(variant.powerDelta || 0)
+    + Number(variant.wisdomDelta || 0)
+    + Number(variant.speedDelta || 0);
+  const normalized = (sum + 25) / 10;
+  const halfStep = Math.round(normalized * 2) / 2;
+  return Math.max(0, Math.min(5, halfStep));
+}
+
+function creatureVariantStarsLabel(rawVariant) {
+  const stars = creatureVariantStarValue(rawVariant);
+  return stars.toFixed(1);
+}
+
+function creatureVariantBadge(rawVariant) {
+  return `${creatureVariantStarsLabel(rawVariant)}★`;
+}
+
 function normalizeCreatureVariant(rawVariant) {
   if (!rawVariant || typeof rawVariant !== "object") {
     return null;
@@ -2716,6 +2759,8 @@ function normalizeCreatureVariant(rawVariant) {
     && variant.wisdomDelta === 5
     && variant.speedDelta === 5
   );
+  variant.stars = creatureVariantStarValue(variant);
+  variant.starsLabel = creatureVariantStarsLabel(variant);
   return variant;
 }
 
@@ -3495,7 +3540,6 @@ const PERIM_ACTIONS = [
 const PERIM_EVENTS_BY_CLIMATE = {
   ensolarado: { id: "sun_burst", label: "Surto Solar", effect: "+8% drops de Battlegear e Mugic", bonus: { battlegear: 0.08, mugic: 0.08 } },
   chuvoso: { id: "rain_echo", label: "Eco Chuvoso", effect: "+10% drops de Attacks aquáticos", bonus: { attacks: 0.1 } },
-  nevando: { id: "frozen_trails", label: "Rastros Congelados", effect: "+6% chance de pistas em anomalias", bonus: { clues: 0.06 } },
   ventania: { id: "wind_paths", label: "Trilhas de Ventania", effect: "+7% chance de local adjacente em exploração", bonus: { locations: 0.07 } },
   tempestade: { id: "storm_hunt", label: "Caçada da Tempestade", effect: "+10% chance de criatura em rastreio", bonus: { creatures: 0.1 } },
   nublado: { id: "mist_watch", label: "Vigília Nebulosa", effect: "Sem bônus extremo; leitura estável de sinais", bonus: {} },
@@ -3534,6 +3578,7 @@ function createEmptyPerimPlayerState() {
     activeRun: null,
     pendingRewards: [],
     history: [],
+    campWaitByLocation: {},
     updatedAt: nowIso(),
   };
 }
@@ -3544,6 +3589,7 @@ function normalizePerimPlayerState(input) {
     state.activeRun = input.activeRun && typeof input.activeRun === "object" ? input.activeRun : null;
     state.pendingRewards = Array.isArray(input.pendingRewards) ? input.pendingRewards.filter(Boolean) : [];
     state.history = Array.isArray(input.history) ? input.history.filter(Boolean).slice(-30) : [];
+    state.campWaitByLocation = normalizePerimCampWaitMap(input.campWaitByLocation);
     state.updatedAt = String(input.updatedAt || state.updatedAt);
   }
   return state;
@@ -3553,7 +3599,7 @@ function loadPerimStateFile() {
   if (isSqlV2Ready()) {
     const players = {};
     const playerRows = sqliteDb
-      .prepare("SELECT owner_key, history_json, updated_at FROM perim_player_state")
+      .prepare("SELECT owner_key, history_json, camp_wait_json, updated_at FROM perim_player_state")
       .all();
     playerRows.forEach((row) => {
       const ownerKey = normalizePerimPlayerKey(row?.owner_key || "local-player");
@@ -3561,6 +3607,7 @@ function loadPerimStateFile() {
       state.history = Array.isArray(parseJsonText(row?.history_json, []))
         ? parseJsonText(row?.history_json, []).filter(Boolean).slice(-30)
         : [];
+      state.campWaitByLocation = normalizePerimCampWaitMap(parseJsonText(row?.camp_wait_json, {}));
       state.updatedAt = String(row?.updated_at || state.updatedAt);
       players[ownerKey] = state;
     });
@@ -3599,6 +3646,7 @@ function loadPerimStateFile() {
       if (status === "active") {
         players[ownerKey].activeRun = baseRun;
       } else {
+        const pendingContext = parseJsonText(row?.context_json, {});
         players[ownerKey].pendingRewards.push({
           runId: baseRun.runId,
           locationId: baseRun.locationId,
@@ -3608,6 +3656,7 @@ function loadPerimStateFile() {
           actionName: baseRun.actionName,
           completedAt: String(row?.completed_at || row?.end_at || nowIso()),
           claimedAt: row?.claimed_at ? String(row.claimed_at) : null,
+          choiceSelections: normalizePerimChoiceSelections(pendingContext?.choiceSelections || {}),
           rewards: rewards,
         });
       }
@@ -3691,8 +3740,8 @@ function writePerimStateFile(state) {
       sqliteDb.prepare("DELETE FROM perim_runs").run();
       sqliteDb.prepare("DELETE FROM perim_player_state").run();
       const insertPerimPlayerState = sqliteDb.prepare(`
-        INSERT INTO perim_player_state (owner_key, history_json, updated_at)
-        VALUES (?, ?, ?)
+        INSERT INTO perim_player_state (owner_key, history_json, camp_wait_json, updated_at)
+        VALUES (?, ?, ?, ?)
       `);
       const insertPerimRun = sqliteDb.prepare(`
         INSERT INTO perim_runs (
@@ -3710,6 +3759,7 @@ function writePerimStateFile(state) {
         insertPerimPlayerState.run(
           ownerKey,
           JSON.stringify(Array.isArray(playerState?.history) ? playerState.history.slice(-30) : []),
+          JSON.stringify(normalizePerimCampWaitMap(playerState?.campWaitByLocation)),
           String(playerState?.updatedAt || nowIso())
         );
         const activeRun = playerState.activeRun && typeof playerState.activeRun === "object" ? playerState.activeRun : null;
@@ -3762,7 +3812,9 @@ function writePerimStateFile(state) {
             String(pending?.completedAt || nowIso()),
             0,
             JSON.stringify({}),
-            JSON.stringify({}),
+            JSON.stringify({
+              choiceSelections: normalizePerimChoiceSelections(pending?.choiceSelections || {}),
+            }),
             JSON.stringify(rewards),
             pending?.claimedAt ? "claimed" : "pending",
             String(pending?.completedAt || nowIso()),
@@ -3902,8 +3954,8 @@ const DEFAULT_PERIM_REWARD_PROFILE_BY_ACTION = {
 };
 
 const DEFAULT_CREATURE_RARITY_DROP_CHANCE = {
-  common: 0.55,
-  uncommon: 0.38,
+  common: 1,
+  uncommon: 0.76,
   rare: 0.24,
   "super rare": 0.084,
   "ultra rare": 0.0315,
@@ -3924,6 +3976,13 @@ const DEFAULT_LOCATION_RARITY_DROP_CHANCE = {
   promo: 0.02,
 };
 
+const DEFAULT_PERIM_CAMP_CREATURE_STACKING = {
+  enabled: true,
+  bonusPerWaitPercent: 5,
+  maxBonusPercent: 40,
+  bonusMaxRarity: "super rare",
+};
+
 const DEFAULT_PERIM_DROP_TABLES = Object.freeze({
   schemaVersion: 1,
   actions: {
@@ -3940,7 +3999,6 @@ const DEFAULT_PERIM_DROP_TABLES = Object.freeze({
   climateTypeModifiers: {
     ensolarado: { creatures: 1.04, attacks: 1.08, battlegear: 1.02, mugic: 0.96, locations: 1.0 },
     chuvoso: { creatures: 1.02, attacks: 0.98, battlegear: 0.96, mugic: 1.08, locations: 1.0 },
-    nevando: { creatures: 1.01, attacks: 1.0, battlegear: 1.05, mugic: 0.97, locations: 1.0 },
     ventania: { creatures: 1.03, attacks: 1.05, battlegear: 1.0, mugic: 0.97, locations: 1.0 },
     tempestade: { creatures: 1.06, attacks: 0.95, battlegear: 0.98, mugic: 1.08, locations: 1.0 },
     nublado: { creatures: 1.0, attacks: 1.0, battlegear: 1.0, mugic: 1.0, locations: 1.0 },
@@ -3949,8 +4007,10 @@ const DEFAULT_PERIM_DROP_TABLES = Object.freeze({
     adjacentFirstChance: 0.72,
     fallbackCurrentMinChance: 0.05,
   },
+  campCreatureStacking: DEFAULT_PERIM_CAMP_CREATURE_STACKING,
   limits: {
     maxCreatureDropsPerRun: 1,
+    maxTotalDropsPerRun: 4,
   },
   scanner: {
     globalDurationByTotalLevel: [
@@ -3997,6 +4057,7 @@ function normalizePerimDropTables(payload) {
     locationRarityDropChance: { ...defaults.locationRarityDropChance },
     climateTypeModifiers: {},
     locationRules: { ...defaults.locationRules },
+    campCreatureStacking: { ...defaults.campCreatureStacking },
     limits: { ...defaults.limits },
     scanner: {
       globalDurationByTotalLevel: [...defaults.scanner.globalDurationByTotalLevel],
@@ -4074,10 +4135,36 @@ function normalizePerimDropTables(payload) {
     source?.locationRules?.fallbackCurrentMinChance,
     defaults.locationRules.fallbackCurrentMinChance
   );
+  const campStackingSource = source?.campCreatureStacking && typeof source.campCreatureStacking === "object"
+    ? source.campCreatureStacking
+    : {};
+  normalized.campCreatureStacking = {
+    enabled: campStackingSource.enabled !== undefined
+      ? Boolean(campStackingSource.enabled)
+      : Boolean(defaults.campCreatureStacking.enabled),
+    bonusPerWaitPercent: clampPercent(
+      Number(campStackingSource.bonusPerWaitPercent ?? defaults.campCreatureStacking.bonusPerWaitPercent)
+    ),
+    maxBonusPercent: clampPercent(
+      Number(campStackingSource.maxBonusPercent ?? defaults.campCreatureStacking.maxBonusPercent)
+    ),
+    bonusMaxRarity: String(
+      campStackingSource.bonusMaxRarity
+      || defaults.campCreatureStacking.bonusMaxRarity
+      || "super rare"
+    ),
+  };
+  if (normalized.campCreatureStacking.maxBonusPercent < normalized.campCreatureStacking.bonusPerWaitPercent) {
+    normalized.campCreatureStacking.maxBonusPercent = normalized.campCreatureStacking.bonusPerWaitPercent;
+  }
 
   normalized.limits.maxCreatureDropsPerRun = Math.max(
     0,
     Math.min(3, Math.floor(Number(source?.limits?.maxCreatureDropsPerRun ?? defaults.limits.maxCreatureDropsPerRun)))
+  );
+  normalized.limits.maxTotalDropsPerRun = Math.max(
+    1,
+    Math.min(12, Math.floor(Number(source?.limits?.maxTotalDropsPerRun ?? defaults.limits.maxTotalDropsPerRun ?? 4)))
   );
 
   const durationEntries = Array.isArray(source?.scanner?.globalDurationByTotalLevel)
@@ -4192,6 +4279,40 @@ function getPerimMaxCreatureDropsPerRun() {
   const tables = getPerimDropTables();
   const limit = Math.floor(Number(tables?.limits?.maxCreatureDropsPerRun || 1));
   return Math.max(0, Math.min(3, limit));
+}
+
+function getPerimMaxTotalDropsPerRun() {
+  const tables = getPerimDropTables();
+  const limit = Math.floor(Number(tables?.limits?.maxTotalDropsPerRun || 4));
+  return Math.max(1, Math.min(12, limit));
+}
+
+function getPerimCampCreatureStackingSettings() {
+  const tables = getPerimDropTables();
+  const fallback = cloneDefaultPerimDropTables().campCreatureStacking || DEFAULT_PERIM_CAMP_CREATURE_STACKING;
+  const raw = tables?.campCreatureStacking && typeof tables.campCreatureStacking === "object"
+    ? tables.campCreatureStacking
+    : fallback;
+  const bonusPerWaitPercent = clampPercent(Number(raw?.bonusPerWaitPercent ?? fallback.bonusPerWaitPercent ?? 0));
+  const maxBonusPercent = clampPercent(Number(raw?.maxBonusPercent ?? fallback.maxBonusPercent ?? 0));
+  return {
+    enabled: Boolean(raw?.enabled ?? fallback.enabled),
+    bonusPerWaitPercent,
+    maxBonusPercent: Math.max(maxBonusPercent, bonusPerWaitPercent),
+    bonusMaxRarity: String(raw?.bonusMaxRarity || fallback.bonusMaxRarity || "super rare"),
+  };
+}
+
+function calculatePerimCampCreatureBonusPercent(waitCountRaw) {
+  const settings = getPerimCampCreatureStackingSettings();
+  if (!settings.enabled) {
+    return 0;
+  }
+  const waitCount = Math.max(0, Math.floor(Number(waitCountRaw || 0)));
+  if (!waitCount) {
+    return 0;
+  }
+  return clampPercent(Math.min(settings.maxBonusPercent, waitCount * settings.bonusPerWaitPercent));
 }
 
 function getScannerDurationMultiplierByTotalLevel(totalLevel) {
@@ -4725,6 +4846,25 @@ function rarityTierScore(rarity) {
   return 0;
 }
 
+function perimRarityRank(rarityRaw) {
+  const key = normalizePerimText(rarityRaw);
+  if (key === "common") return 1;
+  if (key === "uncommon") return 2;
+  if (key === "rare") return 3;
+  if (key === "super rare") return 4;
+  if (key === "ultra rare") return 5;
+  if (key === "promo") return 6;
+  return 99;
+}
+
+function isPerimRarityAtMost(rarityRaw, maxRarityRaw) {
+  const maxRank = perimRarityRank(maxRarityRaw);
+  if (maxRank >= 99) {
+    return true;
+  }
+  return perimRarityRank(rarityRaw) <= maxRank;
+}
+
 function locationDropChanceByRarity(rarityRaw) {
   const rarityKey = normalizePerimText(rarityRaw);
   return getPerimLocationRarityDropChance(rarityKey);
@@ -4869,6 +5009,27 @@ function attackEnvironmentBiasWeight(card, locationEntry = null) {
   }
   const influence = activeElements.reduce((sum, element) => sum + Math.max(0, Number(context[element] || 0)), 0) / activeElements.length;
   return Math.max(0.35, 0.35 + (influence * 1.65));
+}
+
+function attackClimateElementBoostWeight(card, climateRaw) {
+  const elementProfile = parseAttackElementProfile(card);
+  if (!elementProfile.hasElement) {
+    return 1;
+  }
+  const climateKey = normalizeClimateText(climateRaw);
+  const boostedByClimate = {
+    ensolarado: ["fire"],
+    ventania: ["air"],
+    tempestade: ["water", "air"],
+    chuvoso: ["water"],
+    nublado: ["earth"],
+  };
+  const targets = boostedByClimate[climateKey] || [];
+  if (!targets.length) {
+    return 1;
+  }
+  const hasMatch = targets.some((element) => Boolean(elementProfile[element]));
+  return hasMatch ? 1.08 : 1;
 }
 
 function selectMugicTribeWeightsFromLocation(locationEntry = null) {
@@ -5034,6 +5195,7 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
   const locationEntry = options.locationEntry && typeof options.locationEntry === "object"
     ? options.locationEntry
     : null;
+  const activeClimate = String(options.activeClimate || "");
   const tribeScannerRareBoosts = options.tribeScannerRareBoosts instanceof Map
     ? options.tribeScannerRareBoosts
     : new Map();
@@ -5093,6 +5255,7 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
     let weight = Math.max(0.2, 1 + (rarityTierScore(card?.rarity) * effectiveRareBoost));
     if (type === "attacks" && locationEntry) {
       weight *= attackEnvironmentBiasWeight(card, locationEntry);
+      weight *= attackClimateElementBoostWeight(card, activeClimate);
     }
     return { card, weight: Math.max(0.05, weight) };
   });
@@ -5111,7 +5274,7 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
   if (type === "creatures" && options.includeCreatureVariant) {
     const variant = buildCreatureScanVariant();
     reward.variant = variant;
-    reward.cardDisplayName = variant.perfect ? `${picked.name} â˜…` : picked.name;
+    reward.cardDisplayName = `${picked.name} (${creatureVariantBadge(variant)})`;
   }
   return reward;
 }
@@ -5168,6 +5331,7 @@ function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}
   const includeCreatureVariant = Boolean(options.includeCreatureVariant);
   const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
   const forceDrop = Boolean(options.forceDrop);
+  const maxRarity = String(options.maxRarity || "").trim();
   const rareBoost = Math.max(0, Number(options.rareBoost || 0));
   if (!Array.isArray(creaturePoolRaw) || !creaturePoolRaw.length) {
     return null;
@@ -5187,6 +5351,9 @@ function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}
       }
       const cardNameLower = String(card.name || "").toLowerCase();
       if (cardNameLower.includes("unused") || cardNameLower.includes("alpha")) {
+        return null;
+      }
+      if (maxRarity && !isPerimRarityAtMost(card?.rarity || entry?.rarity || "", maxRarity)) {
         return null;
       }
       const stockKey = `creatures:${String(card.id)}`;
@@ -5228,7 +5395,7 @@ function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}
   if (includeCreatureVariant) {
     const variant = buildCreatureScanVariant();
     reward.variant = variant;
-    reward.cardDisplayName = variant.perfect ? `${weighted.card.name} â˜…` : weighted.card.name;
+    reward.cardDisplayName = `${weighted.card.name} (${creatureVariantBadge(variant)})`;
   }
   return reward;
 }
@@ -5265,8 +5432,8 @@ function normalizeRewardPayload(reward) {
   };
   if (type === "creatures" && reward.variant) {
     payload.variant = normalizeCreatureVariant(reward.variant);
-    if (payload.variant?.perfect) {
-      payload.cardDisplayName = `${payload.cardName} â˜…`;
+    if (payload.variant) {
+      payload.cardDisplayName = `${payload.cardName} (${creatureVariantBadge(payload.variant)})`;
     }
   }
   return payload;
@@ -5327,10 +5494,10 @@ function inferPerimClimateProfile(locationEntry) {
   }
   if (nameKey.includes("geleira") || nameKey.includes("glacier") || nameKey.includes("frozen") || nameKey.includes("snow")) {
     return [
-      { climate: "Nevando", weight: 65 },
-      { climate: "Nublado", weight: 22 },
-      { climate: "Ventania", weight: 11 },
-      { climate: "Ensolarado", weight: 2 },
+      { climate: "Nublado", weight: 54 },
+      { climate: "Ventania", weight: 29 },
+      { climate: "Chuvoso", weight: 12 },
+      { climate: "Ensolarado", weight: 5 },
     ];
   }
   if (
@@ -5398,7 +5565,6 @@ function inferPerimClimateProfile(locationEntry) {
     { climate: "Chuvoso", weight: 20 },
     { climate: "Ventania", weight: 10 },
     { climate: "Tempestade", weight: 4 },
-    { climate: "Nevando", weight: 2 },
   ];
 }
 
@@ -5428,7 +5594,6 @@ function perimClimateEventByName(climateRaw) {
   }
   if (key.includes("ensolar")) return PERIM_EVENTS_BY_CLIMATE.ensolarado;
   if (key.includes("chuv")) return PERIM_EVENTS_BY_CLIMATE.chuvoso;
-  if (key.includes("nev")) return PERIM_EVENTS_BY_CLIMATE.nevando;
   if (key.includes("vent")) return PERIM_EVENTS_BY_CLIMATE.ventania;
   if (key.includes("tempest")) return PERIM_EVENTS_BY_CLIMATE.tempestade;
   return PERIM_EVENTS_BY_CLIMATE.nublado;
@@ -5569,6 +5734,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   const adjacentFirstChance = clampUnitInterval(locationRules?.adjacentFirstChance, 0.72);
   const fallbackCurrentMinChance = clampUnitInterval(locationRules?.fallbackCurrentMinChance, 0.05);
   const maxCreatureDropsPerRun = getPerimMaxCreatureDropsPerRun();
+  const maxTotalDropsPerRun = getPerimMaxTotalDropsPerRun();
   let creatureDropsInRun = 0;
   const perimState = getPerimGlobalLocationState(locationEntry, new Date());
   const activeClimate = normalizeClimateText(perimState?.climate || "nublado");
@@ -5576,6 +5742,12 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   const tribeBoostEntry = tribeScannerRareBoosts.get(locationScannerKey) || null;
   const creatureRareBoost = Math.max(0, Number(tribeBoostEntry?.creatureRareBoost ?? scannerEffect.rareBoost ?? 0));
   const mugicRareBoost = Math.max(0, Number(tribeBoostEntry?.mugicRareBoost ?? scannerEffect.mugicRareBoost ?? scannerEffect.rareBoost ?? 0));
+  const campWaitCount = Math.max(0, Math.floor(Number(options?.campWaitCount || 0)));
+  const campStacking = getPerimCampCreatureStackingSettings();
+  const campBonusPercent = actionId === "camp"
+    ? calculatePerimCampCreatureBonusPercent(campWaitCount)
+    : 0;
+  const campBonusChance = clampUnitInterval(campBonusPercent / 100, 0);
   const creatureDropChance = Math.max(
     0,
     Math.min(1, Number(calculateCreatureChancePercent(locationEntry?.rarity, actionId) || 0) / 100)
@@ -5585,7 +5757,21 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     if (creatureDropsInRun >= maxCreatureDropsPerRun) {
       return null;
     }
-    if (Math.random() > creatureDropChance) {
+    if (Math.random() <= creatureDropChance) {
+      const normalRoll = pickCreatureRewardFromLocation(locationEntry, {
+        inventoryCounts,
+        rareBoost: creatureRareBoost,
+        includeCreatureVariant,
+        ignoreInventoryCap,
+      });
+      if (normalRoll) {
+        return normalRoll;
+      }
+    }
+    if (actionId !== "camp" || !campStacking.enabled || campBonusChance <= 0) {
+      return null;
+    }
+    if (Math.random() > campBonusChance) {
       return null;
     }
     return pickCreatureRewardFromLocation(locationEntry, {
@@ -5593,6 +5779,8 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       rareBoost: creatureRareBoost,
       includeCreatureVariant,
       ignoreInventoryCap,
+      maxRarity: String(campStacking.bonusMaxRarity || "super rare"),
+      forceDrop: true,
     });
   };
   const pickRewardForType = (type) => {
@@ -5604,6 +5792,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       rareBoost: type === "mugic" ? mugicRareBoost : scannerEffect.rareBoost,
       includeCreatureVariant,
       ignoreInventoryCap,
+      activeClimate,
       locationEntry,
       tribeScannerRareBoosts,
       requireLocalMugicEligible: type === "mugic",
@@ -5611,6 +5800,9 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   };
 
   const appendReward = (rewardLike) => {
+    if (rewards.length >= maxTotalDropsPerRun) {
+      return false;
+    }
     const normalized = normalizeRewardPayload(rewardLike);
     if (!normalized) {
       return false;
@@ -5685,6 +5877,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         inventoryCounts,
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
+        activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
       }) ||
@@ -5692,6 +5885,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         inventoryCounts,
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
+        activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
       }) ||
@@ -5699,6 +5893,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         inventoryCounts,
         rareBoost: mugicRareBoost,
         ignoreInventoryCap,
+        activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
@@ -5736,6 +5931,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         inventoryCounts,
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
+        activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
       });
@@ -5790,6 +5986,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       inventoryCounts,
       rareBoost: scannerEffect.rareBoost,
       ignoreInventoryCap,
+      activeClimate,
       locationEntry,
       tribeScannerRareBoosts,
     })
@@ -5797,6 +5994,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         inventoryCounts,
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
+        activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
       })
@@ -5804,6 +6002,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         inventoryCounts,
         rareBoost: mugicRareBoost,
         ignoreInventoryCap,
+        activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
@@ -5813,12 +6012,16 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     }
   }
   const minRewardsByAction = String(actionId || "") === "anomaly" ? 1 : 2;
+  const minRewardsTarget = Math.max(1, Math.min(maxTotalDropsPerRun, minRewardsByAction));
   let attempts = 0;
-  while (rewards.length < minRewardsByAction && attempts < 10) {
+  while (rewards.length < minRewardsTarget && attempts < 10) {
     attempts += 1;
+    if (rewards.length >= maxTotalDropsPerRun) {
+      break;
+    }
     if (!rewards.some((reward) => String(reward?.type || "") === "locations")) {
       pickGuaranteedLocalReward();
-      if (rewards.length >= minRewardsByAction) {
+      if (rewards.length >= minRewardsTarget || rewards.length >= maxTotalDropsPerRun) {
         break;
       }
     }
@@ -5828,6 +6031,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         inventoryCounts,
         rareBoost: scannerEffect.rareBoost,
         ignoreInventoryCap,
+        activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
       })
@@ -5835,6 +6039,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         inventoryCounts,
         rareBoost: mugicRareBoost,
         ignoreInventoryCap,
+        activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
@@ -5842,6 +6047,9 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     if (!topUp || !appendReward(topUp)) {
       break;
     }
+  }
+  if (rewards.length > maxTotalDropsPerRun) {
+    rewards.length = maxTotalDropsPerRun;
   }
   logPerimPerf("buildPerimRewards", perfStart, `action=${String(actionId || "")} rewards=${rewards.length}`);
   return rewards.filter(Boolean);
@@ -6795,6 +7003,243 @@ function startDbBackupScheduler() {
   }, 60 * 1000).unref?.();
 }
 
+const PERIM_DUPLICATE_CHOICE_TYPES = new Set(["creatures", "battlegear", "mugic", "locations"]);
+
+function normalizePerimChoiceSelections(rawSelections) {
+  const out = {};
+  const source = rawSelections && typeof rawSelections === "object" ? rawSelections : {};
+  Object.entries(source).forEach(([groupIdRaw, valueRaw]) => {
+    const groupId = String(groupIdRaw || "").trim();
+    if (!groupId) {
+      return;
+    }
+    const numeric = Number(valueRaw);
+    if (!Number.isFinite(numeric)) {
+      return;
+    }
+    out[groupId] = Math.max(0, Math.floor(numeric));
+  });
+  return out;
+}
+
+function buildPerimDuplicateChoiceGroups(rewards, rawSelections = {}) {
+  const rewardList = Array.isArray(rewards) ? rewards.map((entry) => normalizeRewardPayload(entry)).filter(Boolean) : [];
+  const byType = new Map();
+  rewardList.forEach((reward, index) => {
+    const type = String(reward?.type || "");
+    if (!PERIM_DUPLICATE_CHOICE_TYPES.has(type)) {
+      return;
+    }
+    if (!byType.has(type)) {
+      byType.set(type, []);
+    }
+    byType.get(type).push({ index, reward });
+  });
+  const selections = normalizePerimChoiceSelections(rawSelections);
+  const groups = [];
+  byType.forEach((entries, type) => {
+    if (!Array.isArray(entries) || entries.length <= 1) {
+      return;
+    }
+    const groupId = `${type}:0`;
+    const selectedIndex = Number.isFinite(Number(selections[groupId])) ? Number(selections[groupId]) : null;
+    const selectedEntryIndex = selectedIndex !== null && entries[selectedIndex] ? entries[selectedIndex].index : null;
+    groups.push({
+      groupId,
+      type,
+      selectedOptionIndex: selectedIndex !== null && entries[selectedIndex] ? selectedIndex : null,
+      selectedRewardIndex: selectedEntryIndex,
+      options: entries.map((entry, optionIndex) => ({
+        optionIndex,
+        rewardIndex: entry.index,
+        reward: entry.reward,
+      })),
+    });
+  });
+  return groups;
+}
+
+function resolvePerimRewardsWithChoices(rewards, rawSelections = {}) {
+  const rewardList = Array.isArray(rewards) ? rewards.map((entry) => normalizeRewardPayload(entry)).filter(Boolean) : [];
+  const groups = buildPerimDuplicateChoiceGroups(rewardList, rawSelections);
+  const unresolvedGroups = groups.filter((group) => group.selectedRewardIndex === null);
+  if (unresolvedGroups.length) {
+    return { ok: false, unresolvedGroups, rewards: rewardList };
+  }
+  const selectedRewardIndexes = new Set(groups.map((group) => group.selectedRewardIndex));
+  const groupedTypes = new Set(groups.map((group) => String(group.type || "")));
+  const resolvedRewards = rewardList.filter((reward, rewardIndex) => {
+    const type = String(reward?.type || "");
+    if (!PERIM_DUPLICATE_CHOICE_TYPES.has(type) || !groupedTypes.has(type)) {
+      return true;
+    }
+    return selectedRewardIndexes.has(rewardIndex);
+  });
+  return { ok: true, unresolvedGroups: [], rewards: resolvedRewards, groups };
+}
+
+function setPerimClaimChoiceSelections(playerState, runId, selectionsRaw = {}) {
+  const pending = Array.isArray(playerState?.pendingRewards) ? playerState.pendingRewards : [];
+  const target = runId
+    ? pending.find((entry) => String(entry?.runId || "") === String(runId))
+    : pending.find((entry) => !entry?.claimedAt);
+  if (!target) {
+    return { ok: false, error: "Run pendente nao encontrado para atualizar escolhas." };
+  }
+  if (target.claimedAt) {
+    return { ok: false, error: "Esta recompensa ja foi coletada." };
+  }
+  const groups = buildPerimDuplicateChoiceGroups(target.rewards || [], target.choiceSelections || {});
+  if (!groups.length) {
+    target.choiceSelections = {};
+    return { ok: true, runId: target.runId, choiceGroups: [], choiceSelections: {} };
+  }
+  const normalized = normalizePerimChoiceSelections(selectionsRaw);
+  const nextSelections = {};
+  for (const group of groups) {
+    const groupId = String(group.groupId || "");
+    if (!groupId) {
+      continue;
+    }
+    const selectedOptionIndex = Number(normalized[groupId]);
+    if (!Number.isFinite(selectedOptionIndex) || !group.options?.[selectedOptionIndex]) {
+      return { ok: false, error: `Escolha invalida para ${group.type}.` };
+    }
+    nextSelections[groupId] = selectedOptionIndex;
+  }
+  target.choiceSelections = nextSelections;
+  target.updatedAt = nowIso();
+  const hydratedGroups = buildPerimDuplicateChoiceGroups(target.rewards || [], nextSelections);
+  return {
+    ok: true,
+    runId: target.runId,
+    choiceSelections: nextSelections,
+    choiceGroups: hydratedGroups,
+  };
+}
+
+function canAccessPerimLocationChat(playerKeyRaw, locationIdRaw, nowMsValue = Date.now()) {
+  const playerKey = normalizePerimPlayerKey(playerKeyRaw);
+  const locationId = String(locationIdRaw || "").trim();
+  if (!playerKey || !locationId) {
+    return false;
+  }
+  const rootState = loadPerimStateFile();
+  const playerState = rootState?.players?.[playerKey];
+  const activeRun = playerState?.activeRun;
+  if (!activeRun || String(activeRun.locationId || "") !== locationId) {
+    return false;
+  }
+  const endMs = Date.parse(String(activeRun.endAt || ""));
+  if (Number.isFinite(endMs) && endMs <= nowMsValue) {
+    return false;
+  }
+  return true;
+}
+
+function cleanupPerimLocationChatHistory(dayKey = todayDateKey()) {
+  if (!sqliteDb) {
+    return;
+  }
+  sqliteDb
+    .prepare("DELETE FROM perim_location_chat WHERE day_key < ?")
+    .run(String(dayKey || todayDateKey()));
+}
+
+function listPerimLocationChatMessages(locationIdRaw, options = {}) {
+  if (!sqliteDb) {
+    return [];
+  }
+  const locationId = String(locationIdRaw || "").trim();
+  if (!locationId) {
+    return [];
+  }
+  const limitRaw = Number(options.limit || 80);
+  const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 80));
+  const dayKey = String(options.dayKey || todayDateKey());
+  const rows = sqliteDb
+    .prepare(`
+      SELECT id, owner_key, username, message, created_at
+      FROM perim_location_chat
+      WHERE location_id = ? AND day_key = ?
+      ORDER BY id DESC
+      LIMIT ?
+    `)
+    .all(locationId, dayKey, limit);
+  return rows.reverse().map((row) => ({
+    id: Number(row?.id || 0),
+    ownerKey: String(row?.owner_key || ""),
+    username: String(row?.username || ""),
+    message: String(row?.message || ""),
+    createdAt: String(row?.created_at || ""),
+  }));
+}
+
+function broadcastPerimLocationChatEvent(locationIdRaw, payload) {
+  const locationId = String(locationIdRaw || "").trim();
+  if (!locationId) {
+    return;
+  }
+  const clients = perimLocationChatClients.get(locationId);
+  if (!clients || !clients.size) {
+    return;
+  }
+  const message = `data: ${JSON.stringify(payload)}\n\n`;
+  clients.forEach((client) => {
+    try {
+      client.res.write(message);
+    } catch {
+      clients.delete(client);
+    }
+  });
+  if (!clients.size) {
+    perimLocationChatClients.delete(locationId);
+  }
+}
+
+function postPerimLocationChatMessage(locationIdRaw, ownerKeyRaw, usernameRaw, messageRaw) {
+  if (!sqliteDb) {
+    return { ok: false, error: "Chat de local indisponivel sem banco SQL." };
+  }
+  cleanupPerimLocationChatHistory(todayDateKey());
+  const locationId = String(locationIdRaw || "").trim();
+  const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
+  const username = String(usernameRaw || ownerKey || "Jogador").trim() || "Jogador";
+  const message = String(messageRaw || "").replace(/\s+/g, " ").trim();
+  if (!locationId) {
+    return { ok: false, error: "Local invalido para enviar mensagem." };
+  }
+  if (!ownerKey) {
+    return { ok: false, error: "Usuario invalido para enviar mensagem." };
+  }
+  if (!message) {
+    return { ok: false, error: "Digite uma mensagem antes de enviar." };
+  }
+  if (message.length > 240) {
+    return { ok: false, error: "Mensagem muito longa (maximo de 240 caracteres)." };
+  }
+  const createdAt = nowIso();
+  const insert = sqliteDb
+    .prepare(`
+      INSERT INTO perim_location_chat (location_id, owner_key, username, message, day_key, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `)
+    .run(locationId, ownerKey, username, message, todayDateKey(), createdAt);
+  const chatMessage = {
+    id: Number(insert?.lastInsertRowid || 0),
+    ownerKey,
+    username,
+    message,
+    createdAt,
+  };
+  broadcastPerimLocationChatEvent(locationId, {
+    type: "perim_location_chat_message",
+    locationId,
+    message: chatMessage,
+  });
+  return { ok: true, message: chatMessage };
+}
+
 function promotePerimFinishedRuns(playerState, timestampMs = Date.now()) {
   const active = playerState?.activeRun;
   if (!active || !active.endAt) {
@@ -6815,6 +7260,7 @@ function promotePerimFinishedRuns(playerState, timestampMs = Date.now()) {
       actionName: active.actionLabel,
       completedAt: new Date(timestampMs).toISOString(),
       rewards: Array.isArray(active.rewards) ? active.rewards : [],
+      choiceSelections: {},
       claimedAt: null,
     });
   }
@@ -6835,6 +7281,18 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
   if (target.claimedAt) {
     return { ok: false, error: "Esta recompensa ja foi coletada." };
   }
+  const choiceSelections = normalizePerimChoiceSelections(target.choiceSelections || {});
+  const resolvedChoices = resolvePerimRewardsWithChoices(target.rewards || [], choiceSelections);
+  if (!resolvedChoices.ok) {
+    return {
+      ok: false,
+      error: "Voce precisa escolher 1 carta por tipo duplicado antes de coletar.",
+      needsChoices: true,
+      runId: target.runId,
+      choiceGroups: resolvedChoices.unresolvedGroups,
+      choiceSelections,
+    };
+  }
 
   const scans = loadScansData();
   const { key: playerKey, cards } = getScansCardsForUser(scans, playerKeyRaw, true);
@@ -6845,7 +7303,7 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
   const ignoreInventoryCap = isPerimInstantAdmin(playerKeyRaw);
   const collected = [];
   const skippedByCap = [];
-  (target.rewards || []).forEach((reward) => {
+  (resolvedChoices.rewards || []).forEach((reward) => {
     const type = String(reward?.type || "");
     const cardId = String(reward?.cardId || "");
     if (!nextCards[type] || !cardId) {
@@ -6905,7 +7363,14 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
   incrementWeeklyPerimMissionProgress(playerKeyRaw, 1, new Date());
   applyScannerProgressFromRewards(playerKeyRaw, collected);
   invalidateUserCaches(playerKeyRaw);
-  return { ok: true, runId: target.runId, rewards: collected, skippedByCap };
+  return {
+    ok: true,
+    runId: target.runId,
+    rewards: collected,
+    skippedByCap,
+    choiceSelections,
+    choiceGroups: resolvedChoices.groups || [],
+  };
 }
 
 function buildPerimStatePayload(playerKeyRaw) {
@@ -6929,8 +7394,11 @@ function buildPerimStatePayload(playerKeyRaw) {
   const creatureCountByLocation = new Map();
   const dailyIndex = getDailyCreatureIndex();
   const locationCardCountMap = dailyIndex?.byLocationCardId || new Map();
+  const campStackingSettings = getPerimCampCreatureStackingSettings();
   const locations = buildPerimLocationsFromScans(locationEntries).map((entry) => {
     const scannerState = resolveScannerStateForLocation(profile, entry);
+    const campWaitCount = getPerimCampWaitCount(playerState, entry.cardId);
+    const campCreatureBonusPercent = calculatePerimCampCreatureBonusPercent(campWaitCount);
     let creaturesTodayCount = creatureCountByLocation.get(entry.cardId);
     if (typeof creaturesTodayCount !== "number") {
       creaturesTodayCount = (locationCardCountMap.get(String(entry.cardId)) || []).length;
@@ -6942,6 +7410,9 @@ function buildPerimStatePayload(playerKeyRaw) {
     return {
       ...entry,
       creaturesTodayCount,
+      campWaitCount,
+      campCreatureBonusPercent,
+      campCreatureBonusMaxRarity: String(campStackingSettings?.bonusMaxRarity || "super rare"),
       scanner: {
         key: scannerState.scannerKey,
         level: scannerState.level,
@@ -6950,6 +7421,24 @@ function buildPerimStatePayload(playerKeyRaw) {
     };
   });
   const activeEvents = listPerimGlobalEvents(locations);
+  const pendingRewards = (Array.isArray(playerState.pendingRewards) ? playerState.pendingRewards : []).map((entry) => {
+    const choiceSelections = normalizePerimChoiceSelections(entry?.choiceSelections || {});
+    const choiceGroups = buildPerimDuplicateChoiceGroups(entry?.rewards || [], choiceSelections);
+    const unresolvedChoices = choiceGroups.filter((group) => group.selectedRewardIndex === null).length;
+    return {
+      ...entry,
+      choiceSelections,
+      choiceGroups,
+      unresolvedChoices,
+      needsChoice: unresolvedChoices > 0,
+    };
+  });
+  const activeRunLocationId = String(playerState?.activeRun?.locationId || "").trim();
+  const activeRunEndMs = Date.parse(String(playerState?.activeRun?.endAt || ""));
+  const canUseLocationChat = Boolean(
+    activeRunLocationId
+    && (!Number.isFinite(activeRunEndMs) || activeRunEndMs > Date.now())
+  );
   const payload = {
     playerKey,
     locations,
@@ -6960,8 +7449,13 @@ function buildPerimStatePayload(playerKeyRaw) {
     },
     activeRun: playerState.activeRun,
     activeRunNewsItems,
-    pendingRewards: playerState.pendingRewards,
+    pendingRewards,
+    pendingChoicesRequired: pendingRewards.some((entry) => Boolean(entry?.needsChoice)),
     history: playerState.history,
+    chat: {
+      locationId: canUseLocationChat ? activeRunLocationId : "",
+      canChat: canUseLocationChat,
+    },
     updatedAt: playerState.updatedAt,
     now: nowIso(),
   };
@@ -7169,6 +7663,60 @@ function resolveScannerStateForLocation(profile, locationEntry) {
     effect: scannerEffectsByLevel(level),
     tribeRareBoostMap: buildScannerTribeRareBoostMap(profile),
   };
+}
+
+function normalizePerimCampWaitMap(rawMap) {
+  const source = rawMap && typeof rawMap === "object" ? rawMap : {};
+  const normalized = {};
+  Object.entries(source).forEach(([locationIdRaw, countRaw]) => {
+    const locationId = String(locationIdRaw || "").trim();
+    if (!locationId) {
+      return;
+    }
+    const count = Math.max(0, Math.floor(Number(countRaw || 0)));
+    if (count > 0) {
+      normalized[locationId] = Math.min(999, count);
+    }
+  });
+  return normalized;
+}
+
+function getPerimCampWaitCount(stateHolder, locationIdRaw) {
+  const locationId = String(locationIdRaw || "").trim();
+  if (!locationId || !stateHolder || typeof stateHolder !== "object") {
+    return 0;
+  }
+  const map = normalizePerimCampWaitMap(stateHolder.campWaitByLocation);
+  return Math.max(0, Math.floor(Number(map[locationId] || 0)));
+}
+
+function setPerimCampWaitCount(stateHolder, locationIdRaw, nextCountRaw) {
+  const locationId = String(locationIdRaw || "").trim();
+  if (!locationId || !stateHolder || typeof stateHolder !== "object") {
+    return false;
+  }
+  const map = normalizePerimCampWaitMap(stateHolder.campWaitByLocation);
+  const nextCount = Math.max(0, Math.floor(Number(nextCountRaw || 0)));
+  const prevCount = Math.max(0, Math.floor(Number(map[locationId] || 0)));
+  if (nextCount <= 0) {
+    if (!(locationId in map)) {
+      return false;
+    }
+    delete map[locationId];
+  } else {
+    const capped = Math.min(999, nextCount);
+    if (prevCount === capped) {
+      return false;
+    }
+    map[locationId] = capped;
+  }
+  stateHolder.campWaitByLocation = map;
+  return true;
+}
+
+function incrementPerimCampWaitCount(stateHolder, locationIdRaw) {
+  const current = getPerimCampWaitCount(stateHolder, locationIdRaw);
+  return setPerimCampWaitCount(stateHolder, locationIdRaw, current + 1);
 }
 
 const PROFILE_HISTORY_LIMIT = 50;
@@ -8953,7 +9501,7 @@ function applyStarterPackIfEligible(usernameKey, profile, scansData, favoriteTri
     creatureCounts.set(cardId, currentAmount + 1);
     result.items.creatures.push({
       cardId,
-      name: variant.perfect ? `${card.name} â˜…` : card.name,
+      name: `${card.name} (${creatureVariantBadge(variant)})`,
       baseName: card.name,
       image: card.image || "",
       variant,
@@ -10154,6 +10702,64 @@ function persistTradeHistory(room, summary) {
   }
 }
 
+function currentMonthWindow(nowDate = new Date()) {
+  const start = new Date(nowDate.getFullYear(), nowDate.getMonth(), 1, 0, 0, 0, 0);
+  const end = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 1, 0, 0, 0, 0);
+  return {
+    monthKey: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`,
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+    resetsAt: end.toISOString(),
+  };
+}
+
+function getMonthlyCompletedTradeCount(ownerKeyRaw, nowDate = new Date()) {
+  if (!sqliteDb) {
+    return 0;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
+  if (!ownerKey) {
+    return 0;
+  }
+  const window = currentMonthWindow(nowDate);
+  const row = sqliteDb
+    .prepare(`
+      SELECT COUNT(1) AS total
+      FROM trade_history
+      WHERE (host_key = ? OR guest_key = ?)
+        AND completed_at >= ?
+        AND completed_at < ?
+    `)
+    .get(ownerKey, ownerKey, window.startIso, window.endIso);
+  return Math.max(0, Number(row?.total || 0));
+}
+
+function buildTradeMonthlyUsage(ownerKeyRaw, nowDate = new Date()) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
+  const window = currentMonthWindow(nowDate);
+  const used = getMonthlyCompletedTradeCount(ownerKey, nowDate);
+  return {
+    ownerKey,
+    monthKey: window.monthKey,
+    limit: TRADE_MONTHLY_COMPLETED_LIMIT,
+    used,
+    remaining: Math.max(0, TRADE_MONTHLY_COMPLETED_LIMIT - used),
+    resetsAt: window.resetsAt,
+  };
+}
+
+function assertMonthlyTradeQuota(ownerKeyRaw) {
+  const usage = buildTradeMonthlyUsage(ownerKeyRaw, new Date());
+  if (usage.used >= TRADE_MONTHLY_COMPLETED_LIMIT) {
+    return {
+      ok: false,
+      usage,
+      error: `Limite mensal de trocas concluídas atingido (${usage.used}/${usage.limit}). Novo ciclo em ${usage.resetsAt}.`,
+    };
+  }
+  return { ok: true, usage };
+}
+
 function applyTradeRoomAction(room, action, seat) {
   const type = String(action?.type || "");
   if (seat !== "host" && seat !== "guest") {
@@ -10237,6 +10843,13 @@ function applyTradeRoomAction(room, action, seat) {
     }
     if (!room.confirmFinalize?.host || !room.confirmFinalize?.guest) {
       throw new Error("Ambos os jogadores precisam confirmar a finalizacao.");
+    }
+    const hostQuota = assertMonthlyTradeQuota(room.host?.username || "");
+    const guestQuota = assertMonthlyTradeQuota(room.guest?.username || "");
+    if (!hostQuota.ok || !guestQuota.ok) {
+      throw new Error(
+        hostQuota.error || guestQuota.error || "Limite mensal de trocas atingido para um dos jogadores."
+      );
     }
     const summary = transferTradeEntriesAtomic(room);
     const history = persistTradeHistory(room, summary);
@@ -12120,6 +12733,108 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (pathname.startsWith("/api/perim/locations/")) {
+    const parts = pathname.split("/");
+    const locationId = decodeURIComponent(parts[4] || "").trim();
+    const chatSegment = String(parts[5] || "").trim().toLowerCase();
+    const chatSubsegment = String(parts[6] || "").trim().toLowerCase();
+    if (!locationId || chatSegment !== "chat") {
+      sendJson(response, 404, { error: "Rota de chat do Perim nao encontrada." });
+      return;
+    }
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username || "");
+    if (!canAccessPerimLocationChat(ownerKey, locationId, Date.now())) {
+      sendJson(response, 403, { error: "Somente jogadores em acao ativa neste local podem usar o chat." });
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Chat do local indisponivel sem banco SQL." });
+      return;
+    }
+    cleanupPerimLocationChatHistory(todayDateKey());
+    if (request.method === "GET" && !chatSubsegment) {
+      const limitRaw = Number(parsedUrl.searchParams.get("limit") || 80);
+      const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 80));
+      const messages = listPerimLocationChatMessages(locationId, { limit, dayKey: todayDateKey() });
+      sendJson(response, 200, {
+        ok: true,
+        locationId,
+        dayKey: todayDateKey(),
+        messages,
+      });
+      return;
+    }
+    if (request.method === "POST" && !chatSubsegment) {
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        sendJson(response, 413, { error: error.message });
+        return;
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        sendJson(response, 400, { error: "JSON invalido." });
+        return;
+      }
+      const postResult = postPerimLocationChatMessage(
+        locationId,
+        ownerKey,
+        authUser.username || ownerKey,
+        payload.message
+      );
+      if (!postResult.ok) {
+        sendJson(response, 400, { error: postResult.error || "Nao foi possivel enviar a mensagem." });
+        return;
+      }
+      sendJson(response, 200, { ok: true, locationId, message: postResult.message });
+      return;
+    }
+    if (request.method === "GET" && chatSubsegment === "events") {
+      response.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      });
+      if (!perimLocationChatClients.has(locationId)) {
+        perimLocationChatClients.set(locationId, new Set());
+      }
+      const client = { res: response, ownerKey };
+      perimLocationChatClients.get(locationId).add(client);
+      const initialMessages = listPerimLocationChatMessages(locationId, { limit: 60, dayKey: todayDateKey() });
+      response.write(`data: ${JSON.stringify({ type: "perim_location_chat_snapshot", locationId, messages: initialMessages })}\n\n`);
+      const pingTimer = setInterval(() => {
+        if (!canAccessPerimLocationChat(ownerKey, locationId, Date.now())) {
+          try {
+            response.write(`data: ${JSON.stringify({ type: "perim_location_chat_revoked", locationId })}\n\n`);
+          } catch {}
+          try {
+            response.end();
+          } catch {}
+          return;
+        }
+        try {
+          response.write(`data: ${JSON.stringify({ type: "ping", at: nowIso() })}\n\n`);
+        } catch {}
+      }, 25000);
+      request.on("close", () => {
+        clearInterval(pingTimer);
+        const set = perimLocationChatClients.get(locationId);
+        if (set) {
+          set.delete(client);
+          if (!set.size) {
+            perimLocationChatClients.delete(locationId);
+          }
+        }
+      });
+      return;
+    }
+  }
+
   if (pathname === "/api/perim/missions/weekly" && request.method === "GET") {
     const authUser = requireAuthenticatedUser(request, response);
     if (!authUser) {
@@ -12285,13 +13000,26 @@ async function handleRequest(request, response) {
     const endAt = new Date(startAt.getTime() + durationMs);
     const runId = crypto.randomBytes(12).toString("hex");
     const inventoryCounts = buildInventoryCountMap(cards);
+    const campWaitCount = actionId === "camp"
+      ? getPerimCampWaitCount(playerState, locationCard.id)
+      : 0;
     const rewards = buildPerimRewards(selectedLocation, actionId, {
       inventoryCounts,
       scannerEffect: scannerState.effect,
       tribeScannerRareBoosts: scannerState.tribeRareBoostMap,
       includeCreatureVariant: true,
       ignoreInventoryCap: instantPerim,
+      campWaitCount,
     });
+    if (actionId === "camp") {
+      const hasCreatureReward = rewards.some((reward) => String(reward?.type || "") === "creatures");
+      const campWaitChanged = hasCreatureReward
+        ? setPerimCampWaitCount(playerState, locationCard.id, 0)
+        : incrementPerimCampWaitCount(playerState, locationCard.id);
+      if (campWaitChanged) {
+        playerState.updatedAt = nowIso();
+      }
+    }
     const clues = buildPerimCluesForRun(actionId, selectedLocation, rewards, {
       inventoryCounts,
       scannerEffect: scannerState.effect,
@@ -12364,7 +13092,15 @@ async function handleRequest(request, response) {
       if (changed) {
         writePerimStateFile(rootState);
       }
-      sendJson(response, 400, { error: claimResult.error || "Falha ao coletar recompensas." });
+      sendJson(response, 400, {
+        error: claimResult.error || "Falha ao coletar recompensas.",
+        needsChoices: Boolean(claimResult.needsChoices),
+        runId: claimResult.runId || runId || "",
+        choiceGroups: Array.isArray(claimResult.choiceGroups) ? claimResult.choiceGroups : [],
+        choiceSelections: claimResult.choiceSelections && typeof claimResult.choiceSelections === "object"
+          ? claimResult.choiceSelections
+          : {},
+      });
       return;
     }
     writePerimStateFile(rootState);
@@ -12397,6 +13133,45 @@ async function handleRequest(request, response) {
     const cacheKey = normalizeUserKey(username);
     const payload = cacheRead(userResponseCache.profile, cacheKey, () => ({ ok: true, profile: buildProfilePayload(username) }));
     sendJson(response, 200, payload);
+    return;
+  }
+
+  if (pathname === "/api/perim/claim/choices" && request.method === "POST") {
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const playerKeyRaw = String(payload.playerKey || payload.username || "local-player");
+    if (applyRateLimitWithUser(request, response, "perim_claim_choice_user", playerKeyRaw, {
+      windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+      maxHits: ACTION_RATE_LIMIT_MAX,
+    })) {
+      return;
+    }
+    const runId = String(payload.runId || "").trim();
+    const choices = payload.choiceSelections && typeof payload.choiceSelections === "object"
+      ? payload.choiceSelections
+      : (payload.choices && typeof payload.choices === "object" ? payload.choices : {});
+    const rootState = loadPerimStateFile();
+    const { state: playerState } = getOrCreatePerimPlayerState(rootState, playerKeyRaw);
+    promotePerimFinishedRuns(playerState, Date.now());
+    const result = setPerimClaimChoiceSelections(playerState, runId, choices);
+    if (!result.ok) {
+      sendJson(response, 400, { error: result.error || "Falha ao salvar escolhas da recompensa." });
+      return;
+    }
+    playerState.updatedAt = nowIso();
+    writePerimStateFile(rootState);
+    invalidateUserCaches(playerKeyRaw);
+    sendJson(response, 200, { ok: true, ...result });
     return;
   }
 
@@ -13402,15 +14177,19 @@ async function handleRequest(request, response) {
     }
     const seasonKey = seasonKeyFromDate(new Date());
     const dromeName = dromeNameById(dromeId);
+    const authUser = getAuthenticatedUserFromRequest(request);
+    const requestedLimit = Number(parsedUrl.searchParams.get("limit") || 10);
+    const maxLimit = normalizeUserKey(authUser?.username || "", "") === "admin" ? 100 : 10;
+    const limit = Math.max(1, Math.min(maxLimit, Number.isFinite(requestedLimit) ? Math.floor(requestedLimit) : 10));
     const rows = sqliteDb
       .prepare(`
         SELECT owner_key, score, wins, losses, updated_at
         FROM ranked_drome_stats
         WHERE season_key = ? AND drome_id = ?
         ORDER BY score DESC, wins DESC, losses ASC
-        LIMIT 100
+        LIMIT ?
       `)
-      .all(seasonKey, dromeId);
+      .all(seasonKey, dromeId, limit);
     sendJson(response, 200, {
       ok: true,
       seasonKey,
@@ -13916,12 +14695,23 @@ async function handleRequest(request, response) {
       }
       const ownerKey = normalizeUserKey(authUser.username || "");
       const invites = listTradeInvitesForOwner(ownerKey);
+      const usage = buildTradeMonthlyUsage(ownerKey, new Date());
       return sendJson(response, 200, {
         ok: true,
         incoming: invites.incoming,
         outgoing: invites.outgoing,
+        monthlyUsage: usage,
         generatedAt: nowIso(),
       });
+    }
+
+    if (request.method === "GET" && pathname === "/api/trades/usage") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      const usage = buildTradeMonthlyUsage(authUser.username, new Date());
+      return sendJson(response, 200, { ok: true, monthlyUsage: usage });
     }
 
     if (request.method === "POST" && pathname === "/api/trades/invites/create") {
@@ -13952,6 +14742,10 @@ async function handleRequest(request, response) {
       if (isPlayerInActiveTrade(hostKey)) {
         return sendJson(response, 409, { error: "Voce ja esta em uma troca ativa." });
       }
+      const hostQuota = assertMonthlyTradeQuota(hostKey);
+      if (!hostQuota.ok) {
+        return sendJson(response, 409, { error: hostQuota.error, monthlyUsage: hostQuota.usage });
+      }
       const targetUsername = String(payload.friendUsername || payload.username || "").trim();
       if (!targetUsername) {
         return sendJson(response, 400, { error: "Username do amigo obrigatorio." });
@@ -13975,6 +14769,10 @@ async function handleRequest(request, response) {
       }
       if (isPlayerInActiveTrade(guestKey)) {
         return sendJson(response, 409, { error: "Esse amigo ja esta em outra troca ativa." });
+      }
+      const guestQuota = assertMonthlyTradeQuota(guestKey);
+      if (!guestQuota.ok) {
+        return sendJson(response, 409, { error: `Esse amigo atingiu o limite mensal de trocas (${guestQuota.usage.used}/${guestQuota.usage.limit}).` });
       }
       if (hasPendingTradeInviteBetweenPlayers(hostKey, guestKey)) {
         return sendJson(response, 409, { error: "Ja existe um convite pendente para esse amigo." });
@@ -14013,6 +14811,7 @@ async function handleRequest(request, response) {
       return sendJson(response, 200, {
         ok: true,
         invite: normalizeTradeInvitePayload(tradeInvites.get(inviteId)),
+        monthlyUsage: hostQuota.usage,
         room: {
           roomCode: room.code,
           seat: "host",
@@ -14074,6 +14873,15 @@ async function handleRequest(request, response) {
       if (isPlayerInActiveTrade(ownerKey, { ignoreRoomCode: invite.roomCode })) {
         return sendJson(response, 409, { error: "Voce ja esta em uma troca ativa." });
       }
+      const guestQuota = assertMonthlyTradeQuota(ownerKey);
+      if (!guestQuota.ok) {
+        return sendJson(response, 409, { error: guestQuota.error, monthlyUsage: guestQuota.usage });
+      }
+      const hostQuota = assertMonthlyTradeQuota(invite.hostKey || "");
+      if (!hostQuota.ok) {
+        tradeInvites.delete(inviteId);
+        return sendJson(response, 409, { error: "Quem enviou o convite atingiu o limite mensal de trocas." });
+      }
       const roomCode = normalizeTradeCode(invite.roomCode);
       const room = requireTradeRoomOr404(response, roomCode);
       if (!room) {
@@ -14104,6 +14912,7 @@ async function handleRequest(request, response) {
           ok: true,
           decision: "accept",
           inviteId,
+          monthlyUsage: guestQuota.usage,
           room: {
             roomCode: joinResult.roomCode,
             seat: joinResult.seat,
@@ -14228,10 +15037,15 @@ async function handleRequest(request, response) {
       if (!isSqlV2Ready()) {
         return sendJson(response, 503, { error: "Trocas indisponiveis: banco SQL ainda nao inicializado." });
       }
+      const quota = assertMonthlyTradeQuota(username);
+      if (!quota.ok) {
+        return sendJson(response, 409, { error: quota.error, monthlyUsage: quota.usage });
+      }
       const room = createTradeRoomForHost(username, displayName, { visibility: "public" });
       console.log(`[TRADES] Sala criada: code=${room.code} host=${username}`);
       return sendJson(response, 200, {
         ok: true,
+        monthlyUsage: quota.usage,
         roomCode: room.code,
         seat: "host",
         seatToken: room.host.seatToken,
@@ -14258,6 +15072,14 @@ async function handleRequest(request, response) {
       if (!room) {
         return;
       }
+      const guestQuota = assertMonthlyTradeQuota(authUser.username || "guest");
+      if (!guestQuota.ok) {
+        return sendJson(response, 409, { error: guestQuota.error, monthlyUsage: guestQuota.usage });
+      }
+      const hostQuota = assertMonthlyTradeQuota(room?.host?.username || "");
+      if (!hostQuota.ok) {
+        return sendJson(response, 409, { error: "Host atingiu o limite mensal de trocas deste ciclo." });
+      }
       try {
         const joinResult = joinTradeRoomAsGuest(
           room,
@@ -14269,6 +15091,7 @@ async function handleRequest(request, response) {
         broadcastTradeRoomSnapshot(room, "guest_joined");
         return sendJson(response, 200, {
           ok: true,
+          monthlyUsage: guestQuota.usage,
           roomCode: joinResult.roomCode,
           seat: joinResult.seat,
           seatToken: joinResult.seatToken,
@@ -14332,8 +15155,14 @@ async function handleRequest(request, response) {
       }
       const seatToken = parsedUrl.searchParams.get("seatToken") || "";
       room.lastActivityAt = Date.now();
+      let monthlyUsage = null;
+      const seatInfo = getTradeSeatByToken(room, seatToken);
+      if (seatInfo?.playerKey) {
+        monthlyUsage = buildTradeMonthlyUsage(seatInfo.playerKey, new Date());
+      }
       return sendJson(response, 200, {
         ok: true,
+        monthlyUsage,
         snapshot: buildTradeRoomStatePayload(room, seatToken),
       });
     }
@@ -14417,6 +15246,7 @@ async function handleRequest(request, response) {
         return sendJson(response, 200, {
           ok: true,
           reason,
+          monthlyUsage: seatInfo.playerKey ? buildTradeMonthlyUsage(seatInfo.playerKey, new Date()) : null,
           snapshot: buildTradeRoomStatePayload(room, seatToken),
         });
       } catch (error) {

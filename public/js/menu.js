@@ -95,6 +95,28 @@ function formatDurationLabel(ms) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function setExpandedMode(enabled) {
+  const menuWrapper = document.querySelector(".menu-wrapper");
+  if (!menuWrapper) {
+    return;
+  }
+  menuWrapper.classList.toggle("expanded-mode", Boolean(enabled));
+}
+
+function creatureStarsBadge(variant) {
+  if (!variant || typeof variant !== "object") {
+    return "";
+  }
+  const starsRaw = Number(variant.stars);
+  const stars = Number.isFinite(starsRaw)
+    ? Math.max(0, Math.min(5, starsRaw))
+    : null;
+  if (stars === null) {
+    return "";
+  }
+  return `${stars.toFixed(1)}★`;
+}
+
 async function loadLibraryCardsMap() {
   if (!libraryCachePromise) {
     libraryCachePromise = fetch("/api/library")
@@ -1334,7 +1356,6 @@ function bindMultiplayer(username) {
 
 function bindDromos(username) {
   const menuNav = qs("menu-nav");
-  const menuWrapper = document.querySelector(".menu-wrapper");
   const btnDromos = qs("btn-dromos");
   const btnDromosBack = qs("btn-dromos-back");
   const dromosPanel = qs("dromos-panel");
@@ -1359,6 +1380,13 @@ function bindDromos(username) {
   const btnRankedCreate = qs("btn-dromos-ranked-create");
   const btnCodemasterLock = qs("btn-dromos-codemaster-lock");
   const btnChallengeInvite = qs("btn-dromos-challenge-invite");
+  const dromosTabButtons = Array.from(dromosPanel?.querySelectorAll?.("[data-dromos-tab]") || []);
+  const dromosTabPanels = {
+    season: qs("dromos-tab-season"),
+    ranked: qs("dromos-tab-ranked"),
+    leaderboard: qs("dromos-tab-leaderboard"),
+    live: qs("dromos-tab-live"),
+  };
 
   if (!btnDromos || !dromosPanel) {
     return;
@@ -1371,6 +1399,7 @@ function bindDromos(username) {
     invites: { incoming: [], outgoing: [] },
     overview: null,
     pollTimer: null,
+    activeTab: "season",
   };
 
   const setStatus = (text, isError = false) => {
@@ -1386,6 +1415,27 @@ function bindDromos(username) {
       clearInterval(state.pollTimer);
       state.pollTimer = null;
     }
+  }
+
+  function setDromosTab(tabRaw) {
+    const nextTab = ["season", "ranked", "leaderboard", "live"].includes(String(tabRaw || ""))
+      ? String(tabRaw)
+      : "season";
+    state.activeTab = nextTab;
+    dromosTabButtons.forEach((button) => {
+      const tab = String(button.getAttribute("data-dromos-tab") || "");
+      const active = tab === nextTab;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    Object.entries(dromosTabPanels).forEach(([tab, panel]) => {
+      if (!panel) {
+        return;
+      }
+      const active = tab === nextTab;
+      panel.classList.toggle("active", active);
+      panel.setAttribute("aria-hidden", active ? "false" : "true");
+    });
   }
 
   function startPolling() {
@@ -1818,9 +1868,7 @@ function bindDromos(username) {
   }
 
   btnDromos.addEventListener("click", async () => {
-    if (menuWrapper) {
-      menuWrapper.classList.remove("perim-mode");
-    }
+    setExpandedMode(true);
     if (menuNav) menuNav.style.display = "none";
     if (multiplayerPanel) multiplayerPanel.style.display = "none";
     if (perimPanel) perimPanel.style.display = "none";
@@ -1835,18 +1883,35 @@ function bindDromos(username) {
       refreshLiveFights(true),
       refreshInvites(true),
     ]);
+    setDromosTab(state.activeTab || "season");
     startPolling();
   });
 
   if (btnDromosBack) {
     btnDromosBack.addEventListener("click", () => {
       stopPolling();
+      setExpandedMode(false);
       dromosPanel.style.display = "none";
       if (menuNav) {
         menuNav.style.display = "flex";
       }
     });
   }
+  dromosTabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const tab = String(button.getAttribute("data-dromos-tab") || "season");
+      setDromosTab(tab);
+      if (tab === "leaderboard") {
+        void refreshLeaderboard();
+      }
+      if (tab === "live") {
+        void refreshLiveFights(true);
+      }
+      if (tab === "ranked") {
+        void refreshRankedRooms(true);
+      }
+    });
+  });
   if (btnSelect) {
     btnSelect.addEventListener("click", () => {
       void selectDrome();
@@ -1881,7 +1946,6 @@ function bindDromos(username) {
 }
 
 function bindPerim(username) {
-  const menuWrapper = document.querySelector(".menu-wrapper");
   const menuNav = qs("menu-nav");
   const perimPanel = qs("perim-panel");
   const multiplayerPanel = qs("multiplayer-panel");
@@ -1915,6 +1979,10 @@ function bindPerim(username) {
   const eventsBackdrop = qs("perim-events-backdrop");
   const eventsClose = qs("perim-events-close");
   const eventsList = qs("perim-events-list");
+  const chatStateEl = qs("perim-chat-state");
+  const chatMessagesEl = qs("perim-chat-messages");
+  const chatInputEl = qs("perim-chat-input");
+  const chatSendBtn = qs("perim-chat-send");
 
   if (!btnPerim || !perimPanel) {
     return;
@@ -1927,6 +1995,10 @@ function bindPerim(username) {
     filterSearch: "",
     countdownTicker: null,
     finishRefreshSent: false,
+    chatMessages: [],
+    chatEventSource: null,
+    chatLocationId: "",
+    chatLoading: false,
   };
 
   const PRESENCE_PHRASES = {
@@ -2019,6 +2091,157 @@ function pickPresencePhrase(locationEntry, count) {
     }
     statusEl.textContent = text || "";
     statusEl.style.color = isError ? "#ff8d8d" : "#9ec4db";
+  }
+
+  function closeChatEventSource() {
+    if (state.chatEventSource) {
+      try {
+        state.chatEventSource.close();
+      } catch (_) {}
+      state.chatEventSource = null;
+    }
+  }
+
+  function formatChatTimeLabel(rawIso) {
+    const date = new Date(String(rawIso || ""));
+    if (Number.isNaN(date.getTime())) {
+      return "--:--";
+    }
+    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  }
+
+  function renderLocationChat() {
+    if (!chatStateEl || !chatMessagesEl) {
+      return;
+    }
+    const chatMeta = state.payload?.chat || {};
+    const canChat = Boolean(chatMeta?.canChat && chatMeta?.locationId);
+    const locationId = String(chatMeta?.locationId || "");
+    chatStateEl.textContent = canChat
+      ? `Conversa ativa no local ${locationId}. Mensagens visiveis ate o fim do dia.`
+      : "Somente jogadores em acao ativa no local podem conversar.";
+    if (!canChat) {
+      chatMessagesEl.innerHTML = '<div class="trades-empty">Inicie uma acao para liberar o chat deste local.</div>';
+      if (chatInputEl) {
+        chatInputEl.disabled = true;
+      }
+      if (chatSendBtn) {
+        chatSendBtn.disabled = true;
+      }
+      return;
+    }
+    if (chatInputEl) {
+      chatInputEl.disabled = false;
+    }
+    if (chatSendBtn) {
+      chatSendBtn.disabled = false;
+    }
+    const messages = Array.isArray(state.chatMessages) ? state.chatMessages : [];
+    if (!messages.length) {
+      chatMessagesEl.innerHTML = '<div class="trades-empty">Sem mensagens neste local ainda.</div>';
+      return;
+    }
+    chatMessagesEl.innerHTML = messages
+      .map((entry) => `
+        <article class="perim-chat-msg">
+          <strong>${escapeHtml(entry?.username || entry?.ownerKey || "Jogador")}</strong>
+          <span>${escapeHtml(entry?.message || "")}</span>
+          <small>${escapeHtml(formatChatTimeLabel(entry?.createdAt))}</small>
+        </article>
+      `)
+      .join("");
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  async function refreshLocationChat(force = false) {
+    const chatMeta = state.payload?.chat || {};
+    const canChat = Boolean(chatMeta?.canChat && chatMeta?.locationId);
+    const locationId = String(chatMeta?.locationId || "");
+    if (!canChat || !locationId) {
+      state.chatMessages = [];
+      state.chatLocationId = "";
+      closeChatEventSource();
+      renderLocationChat();
+      return;
+    }
+    if (!force && state.chatLoading) {
+      return;
+    }
+    state.chatLoading = true;
+    try {
+      const payload = await fetchJsonWithTimeout(`/api/perim/locations/${encodeURIComponent(locationId)}/chat?limit=120`, { method: "GET" });
+      state.chatMessages = Array.isArray(payload?.messages) ? payload.messages : [];
+      state.chatLocationId = locationId;
+      renderLocationChat();
+      if (!state.chatEventSource || force) {
+        closeChatEventSource();
+        const source = new EventSource(apiUrl(`/api/perim/locations/${encodeURIComponent(locationId)}/chat/events`));
+        state.chatEventSource = source;
+        source.onmessage = (event) => {
+          const data = safeJsonParse(event.data, null);
+          if (!data || typeof data !== "object") {
+            return;
+          }
+          if (data.type === "perim_location_chat_snapshot") {
+            state.chatMessages = Array.isArray(data.messages) ? data.messages : [];
+            renderLocationChat();
+            return;
+          }
+          if (data.type === "perim_location_chat_message" && data.message) {
+            const next = Array.isArray(state.chatMessages) ? [...state.chatMessages] : [];
+            next.push(data.message);
+            state.chatMessages = next.slice(-120);
+            renderLocationChat();
+            return;
+          }
+          if (data.type === "perim_location_chat_revoked") {
+            closeChatEventSource();
+            void refreshPerimState();
+          }
+        };
+        source.onerror = () => {
+          if (chatStateEl) {
+            chatStateEl.textContent = "Conexao do chat instavel. Tentando manter atualizacao.";
+          }
+        };
+      }
+    } catch (error) {
+      if (chatStateEl) {
+        chatStateEl.textContent = error?.message || "Falha ao carregar chat deste local.";
+      }
+    } finally {
+      state.chatLoading = false;
+    }
+  }
+
+  async function sendLocationChatMessage() {
+    const chatMeta = state.payload?.chat || {};
+    const locationId = String(chatMeta?.locationId || "");
+    const message = String(chatInputEl?.value || "").trim();
+    if (!locationId || !message) {
+      return;
+    }
+    if (chatSendBtn) {
+      chatSendBtn.disabled = true;
+    }
+    try {
+      await fetchJsonWithTimeout(`/api/perim/locations/${encodeURIComponent(locationId)}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      if (chatInputEl) {
+        chatInputEl.value = "";
+      }
+    } catch (error) {
+      if (chatStateEl) {
+        chatStateEl.textContent = error?.message || "Falha ao enviar mensagem no chat.";
+      }
+    } finally {
+      if (chatSendBtn) {
+        chatSendBtn.disabled = false;
+      }
+    }
   }
 
   function getLocations() {
@@ -2229,6 +2452,9 @@ function pickPresencePhrase(locationEntry, count) {
       ?? selected?.creaturesTodayCount
       ?? 0
     );
+    const campWaitCount = Math.max(0, Number(selected?.campWaitCount ?? 0));
+    const campCreatureBonusPercent = Math.max(0, Number(selected?.campCreatureBonusPercent ?? 0));
+    const campCreatureBonusMaxRarity = String(selected?.campCreatureBonusMaxRarity || "super rare");
     const clues = Array.isArray(context?.clues) ? context.clues.filter((entry) => String(entry || "").trim()) : [];
     const cluesHtml = clues.length
       ? `<hr style="border-color:rgba(255,255,255,0.1); margin:0.45rem 0;" /><p><strong>Pistas:</strong></p>${clues
@@ -2247,6 +2473,8 @@ function pickPresencePhrase(locationEntry, count) {
       <p>Clima: ${escapeHtml(climate)}</p>
       <p>Sinal de presenca (${escapeHtml(actionKey)}): ${escapeHtml(presencePhrase)}</p>
       <p>Criaturas detectadas hoje na area: <strong>${Number.isFinite(creaturesTodayCount) ? creaturesTodayCount : 0}</strong></p>
+      <p class="perim-camp-wait-line">Esperas no local (acampar): <strong>${campWaitCount}</strong> <span class="perim-camp-wait-mark" title="Quanto mais esperas, maior a chance bonus de criatura ate super rara">rastros</span></p>
+      <p>Bônus atual de criatura no acampar: <strong>+${campCreatureBonusPercent}%</strong> (ate ${escapeHtml(campCreatureBonusMaxRarity)})</p>
       <p>Chance de evento: 0%</p>
       <hr style="border-color:rgba(255,255,255,0.1); margin:0.45rem 0;" />
       <p>Recompensas pendentes: ${pendingCount}</p>
@@ -2342,6 +2570,18 @@ function pickPresencePhrase(locationEntry, count) {
     renderNewsTicker();
   }
 
+  async function savePerimChoiceSelections(runId, choiceSelections) {
+    await fetchJsonWithTimeout("/api/perim/claim/choices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: normalizeUsername(username),
+        runId,
+        choiceSelections,
+      }),
+    });
+  }
+
   function renderPendingRewards() {
     if (!pendingRewardsEl) {
       return;
@@ -2354,17 +2594,75 @@ function pickPresencePhrase(locationEntry, count) {
       return;
     }
     const entry = pending[0];
+    const choiceGroups = Array.isArray(entry.choiceGroups) ? entry.choiceGroups : [];
+    const needsChoice = Boolean(entry.needsChoice);
     const chips = (entry.rewards || [])
       .map((reward) => `<span class="perim-reward-chip">${escapeHtml(reward.type)}: ${escapeHtml(reward.cardDisplayName || reward.cardName || reward.cardId || "Carta")}</span>`)
       .join("");
+    const choicesHtml = choiceGroups.length
+      ? `
+        <div style="margin-top:0.5rem;display:grid;gap:0.42rem;">
+          ${choiceGroups.map((group) => `
+            <div style="display:grid;gap:0.2rem;">
+              <label for="perim-choice-${escapeAttr(group.groupId)}" style="font-size:0.68rem;color:#9cc0d8;">
+                Escolha 1 carta de ${escapeHtml(group.type)}:
+              </label>
+              <select id="perim-choice-${escapeAttr(group.groupId)}" data-perim-choice-group="${escapeAttr(group.groupId)}" style="min-height:34px;background:rgba(4,10,16,0.8);color:#d7edfb;border:1px solid rgba(0,210,255,0.32);border-radius:8px;padding:0.35rem;">
+                <option value="">Selecione...</option>
+                ${(Array.isArray(group.options) ? group.options : []).map((option) => `
+                  <option value="${Number(option.optionIndex)}" ${option.optionIndex === group.selectedOptionIndex ? "selected" : ""}>
+                    ${escapeHtml(option.reward?.cardDisplayName || option.reward?.cardName || option.reward?.cardId || "Carta")}
+                  </option>
+                `).join("")}
+              </select>
+            </div>
+          `).join("")}
+          <button id="perim-save-choices-btn" class="menu-btn standard-btn" style="padding:0.46rem;">Salvar escolhas</button>
+        </div>
+      `
+      : "";
     pendingRewardsEl.innerHTML = `
       <div class="perim-run-title">Recompensas prontas</div>
       <div style="font-size:0.74rem;">Run: ${escapeHtml(entry.runId || "")}</div>
       <div style="font-size:0.74rem;">Local: <strong>${escapeHtml(entry.locationName || "Desconhecido")}</strong></div>
       <div style="font-size:0.74rem;">Acao: <strong>${escapeHtml(entry.actionName || entry.actionId || "N/A")}</strong></div>
       <div style="margin-top:0.3rem;">${chips || '<span style="font-size:0.72rem;color:#8ea8bf;">Sem cartas sorteadas.</span>'}</div>
-      <button id="perim-claim-btn" class="menu-btn primary-btn" style="padding:0.5rem; margin-top:0.55rem;">Coletar recompensas</button>
+      ${choicesHtml}
+      <button id="perim-claim-btn" class="menu-btn primary-btn" style="padding:0.5rem; margin-top:0.55rem;" ${needsChoice ? "disabled" : ""}>${needsChoice ? "Escolha cartas antes de coletar" : "Coletar recompensas"}</button>
     `;
+    const saveChoicesBtn = qs("perim-save-choices-btn");
+    if (saveChoicesBtn) {
+      saveChoicesBtn.addEventListener("click", async () => {
+        const selections = {};
+        let invalid = false;
+        pendingRewardsEl.querySelectorAll("[data-perim-choice-group]").forEach((selectEl) => {
+          const groupId = String(selectEl.getAttribute("data-perim-choice-group") || "").trim();
+          const rawValue = String(selectEl.value || "").trim();
+          if (!groupId) {
+            return;
+          }
+          if (!rawValue) {
+            invalid = true;
+            return;
+          }
+          selections[groupId] = Number(rawValue);
+        });
+        if (invalid) {
+          setStatus("Escolha uma opcao em todos os grupos antes de salvar.", true);
+          return;
+        }
+        saveChoicesBtn.disabled = true;
+        try {
+          await savePerimChoiceSelections(entry.runId, selections);
+          setStatus("Escolhas salvas. Agora voce pode coletar.");
+          await refreshPerimState();
+        } catch (error) {
+          setStatus(error?.message || "Falha ao salvar escolhas.", true);
+        } finally {
+          saveChoicesBtn.disabled = false;
+        }
+      });
+    }
     const claimBtn = qs("perim-claim-btn");
     if (claimBtn) {
       claimBtn.addEventListener("click", async () => {
@@ -2380,6 +2678,11 @@ function pickPresencePhrase(locationEntry, count) {
           });
           const data = await res.json();
           if (!res.ok || !data?.ok) {
+            if (data?.needsChoices) {
+              setStatus(data?.error || "Escolha as cartas duplicadas antes de coletar.", true);
+              await refreshPerimState();
+              return;
+            }
             throw new Error(data?.error || "Falha ao coletar.");
           }
           const skipped = Array.isArray(data.skippedByCap) ? data.skippedByCap.length : 0;
@@ -2465,6 +2768,7 @@ function pickPresencePhrase(locationEntry, count) {
     renderActions();
     renderActiveRun();
     renderPendingRewards();
+    renderLocationChat();
     if (state.payload?.activeRun) {
       runCountdownTicker();
     } else {
@@ -2486,6 +2790,7 @@ function pickPresencePhrase(locationEntry, count) {
       }
       setStatus(locations.length ? `Locais disponiveis: ${locations.length}` : "Sem locais disponiveis para este jogador.");
       renderAll();
+      await refreshLocationChat(true);
     } catch (error) {
       setStatus(error?.message || "Erro ao carregar dados da aba PERIM.", true);
     }
@@ -2527,6 +2832,19 @@ function pickPresencePhrase(locationEntry, count) {
       closeEventsModal();
     }
   });
+  if (chatSendBtn) {
+    chatSendBtn.addEventListener("click", () => {
+      void sendLocationChatMessage();
+    });
+  }
+  if (chatInputEl) {
+    chatInputEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void sendLocationChatMessage();
+      }
+    });
+  }
   if (startBtn) {
     startBtn.addEventListener("click", async () => {
       const selectedLocation = resolveSelectedLocation();
@@ -2564,9 +2882,7 @@ function pickPresencePhrase(locationEntry, count) {
   btnPerim.addEventListener("click", async () => {
     closePreview();
     closeEventsModal();
-    if (menuWrapper) {
-      menuWrapper.classList.add("perim-mode");
-    }
+    setExpandedMode(true);
     if (menuNav) {
       menuNav.style.display = "none";
     }
@@ -2586,11 +2902,10 @@ function pickPresencePhrase(locationEntry, count) {
     if (btnPerimBack) {
     btnPerimBack.addEventListener("click", () => {
       stopCountdownTicker();
+      closeChatEventSource();
       closePreview();
       closeEventsModal();
-      if (menuWrapper) {
-        menuWrapper.classList.remove("perim-mode");
-      }
+      setExpandedMode(false);
       perimPanel.style.display = "none";
       if (menuNav) {
         menuNav.style.display = "flex";
@@ -2601,7 +2916,6 @@ function pickPresencePhrase(locationEntry, count) {
 
 function bindTrades(username) {
   const menuNav = qs("menu-nav");
-  const menuWrapper = document.querySelector(".menu-wrapper");
   const btnTrades = qs("btn-trades");
   const btnTradesBack = qs("btn-trades-back");
   const tradesPanel = qs("trades-panel");
@@ -2609,6 +2923,7 @@ function bindTrades(username) {
   const perimPanel = qs("perim-panel");
   const dromosPanel = qs("dromos-panel");
   const tradesStatus = qs("trades-status");
+  const monthlyUsageEl = qs("trades-monthly-usage");
   const hubView = qs("trades-hub-view");
   const roomView = qs("trades-room-view");
   const roomCodeInput = qs("trades-room-code-input");
@@ -2647,6 +2962,7 @@ function bindTrades(username) {
     invitePollTimer: null,
     activeSection: "inventory",
     friendOptions: [],
+    monthlyUsage: null,
   };
 
   function persistTradeSession() {
@@ -2696,6 +3012,21 @@ function bindTrades(username) {
     }
     tradesStatus.textContent = String(message || "");
     tradesStatus.style.color = isError ? "#ff8d8d" : "#88b5d5";
+  }
+
+  function renderTradeMonthlyUsage() {
+    if (!monthlyUsageEl) {
+      return;
+    }
+    const usage = state.monthlyUsage;
+    if (!usage || typeof usage !== "object") {
+      monthlyUsageEl.textContent = "Trocas no mes: --/2";
+      return;
+    }
+    const used = Number(usage.used || 0);
+    const limit = Number(usage.limit || 2);
+    const remaining = Number(usage.remaining ?? Math.max(0, limit - used));
+    monthlyUsageEl.textContent = `Trocas no mes: ${used}/${limit} • Restantes: ${remaining}`;
   }
 
   function stopHubPolling() {
@@ -2749,7 +3080,8 @@ function bindTrades(username) {
     if (!entry || !entry.scanEntryId) {
       return "";
     }
-    const variantTag = entry?.variant?.perfect ? " ★" : "";
+    const variantBadge = creatureStarsBadge(entry?.variant);
+    const variantTag = variantBadge ? ` (${variantBadge})` : "";
     const offeredTag = offered ? "Ofertada" : "";
     const lockedTag = entry?.lockedByOtherRoom ? "Travada em outra troca" : "";
     const stateLine = [offeredTag, lockedTag].filter(Boolean).join(" • ");
@@ -2782,6 +3114,8 @@ function bindTrades(username) {
           action,
         }),
       });
+      state.monthlyUsage = payload?.monthlyUsage || state.monthlyUsage;
+      renderTradeMonthlyUsage();
       state.snapshot = payload.snapshot || state.snapshot;
       renderTradeSnapshot();
     } catch (error) {
@@ -2958,6 +3292,8 @@ function bindTrades(username) {
       { method: "GET" },
       NETWORK_TIMEOUT_MS.default
     );
+    state.monthlyUsage = payload?.monthlyUsage || state.monthlyUsage;
+    renderTradeMonthlyUsage();
     state.snapshot = payload.snapshot || null;
     renderTradeSnapshot();
   }
@@ -3117,6 +3453,8 @@ function bindTrades(username) {
   async function refreshTradeInvites(silent = false) {
     try {
       const payload = await fetchJsonWithTimeout("/api/trades/invites", { method: "GET" });
+      state.monthlyUsage = payload?.monthlyUsage || state.monthlyUsage;
+      renderTradeMonthlyUsage();
       renderTradeInvites(payload);
     } catch (error) {
       if (!silent) {
@@ -3140,6 +3478,8 @@ function bindTrades(username) {
           playerName: username,
         }),
       });
+      state.monthlyUsage = payload?.monthlyUsage || state.monthlyUsage;
+      renderTradeMonthlyUsage();
       state.roomCode = String(payload?.room?.roomCode || "");
       state.seatToken = String(payload?.room?.seatToken || "");
       state.seat = String(payload?.room?.seat || "host");
@@ -3164,6 +3504,8 @@ function bindTrades(username) {
           playerName: username,
         }),
       });
+      state.monthlyUsage = payload?.monthlyUsage || state.monthlyUsage;
+      renderTradeMonthlyUsage();
       if (decision === "accept" && payload?.room) {
         state.roomCode = String(payload.room.roomCode || "");
         state.seatToken = String(payload.room.seatToken || "");
@@ -3207,6 +3549,10 @@ function bindTrades(username) {
       state.roomCode = String(payload.roomCode || "");
       state.seatToken = String(payload.seatToken || "");
       state.seat = String(payload.seat || "host");
+      if (payload?.monthlyUsage) {
+        state.monthlyUsage = payload.monthlyUsage;
+        renderTradeMonthlyUsage();
+      }
       persistTradeSession();
       setTradesStatus(`Sala criada: ${state.roomCode}. Compartilhe o codigo com outro jogador.`);
       await fetchTradeState();
@@ -3232,6 +3578,8 @@ function bindTrades(username) {
           playerName: username,
         }),
       });
+      state.monthlyUsage = payload?.monthlyUsage || state.monthlyUsage;
+      renderTradeMonthlyUsage();
       state.roomCode = String(payload.roomCode || roomCode);
       state.seatToken = String(payload.seatToken || "");
       state.seat = String(payload.seat || "guest");
@@ -3245,9 +3593,7 @@ function bindTrades(username) {
   }
 
   btnTrades.addEventListener("click", () => {
-    if (menuWrapper) {
-      menuWrapper.classList.remove("perim-mode");
-    }
+    setExpandedMode(true);
     if (menuNav) {
       menuNav.style.display = "none";
     }
@@ -3261,6 +3607,7 @@ function bindTrades(username) {
       perimPanel.style.display = "none";
     }
     tradesPanel.style.display = "block";
+    renderTradeMonthlyUsage();
     clearEventSource();
     void refreshFriendTradeOptions(true);
     void refreshTradeInvites(true);
@@ -3382,6 +3729,7 @@ function bindTrades(username) {
     btnTradesBack.addEventListener("click", () => {
       clearEventSource();
       stopHubPolling();
+      setExpandedMode(false);
       tradesPanel.style.display = "none";
       if (menuNav) {
         menuNav.style.display = "flex";
