@@ -471,6 +471,9 @@ const appState = {
   multiplayer: {
     enabled: false,
     roomId: null,
+    matchType: "",
+    dromeId: "",
+    challengeMeta: null,
     role: "host",
     seatToken: "",
     localPlayerIndex: 0,
@@ -764,6 +767,10 @@ function reportBattleResultIfNeeded(battle) {
       mode: String(battle.mode || appState.currentRuleset || "competitive"),
       opponent: String(opponentPlayer?.label || "Oponente"),
       timestamp: new Date().toISOString(),
+      roomId: String(appState.multiplayer?.roomId || ""),
+      matchType: String(appState.multiplayer?.matchType || ""),
+      dromeId: String(appState.multiplayer?.dromeId || ""),
+      challengeMeta: appState.multiplayer?.challengeMeta || null,
     }),
   }).catch(() => {});
 }
@@ -897,6 +904,16 @@ function applyMultiplayerSnapshot(snapshot) {
   if (typeof snapshot.seat === "string") {
     appState.multiplayer.role = snapshot.seat;
   }
+  appState.multiplayer.matchType = String(snapshot.matchType || "");
+  appState.multiplayer.dromeId = String(snapshot.dromeId || "");
+  appState.multiplayer.challengeMeta = snapshot.challengeMeta && typeof snapshot.challengeMeta === "object"
+    ? {
+        inviteId: String(snapshot.challengeMeta.inviteId || ""),
+        codemasterKey: String(snapshot.challengeMeta.codemasterKey || ""),
+        challengerKey: String(snapshot.challengeMeta.challengerKey || ""),
+        dromeId: String(snapshot.challengeMeta.dromeId || ""),
+      }
+    : null;
   if (snapshot.connection && typeof snapshot.connection === "object") {
     appState.multiplayer.connection = {
       hostConnected: Boolean(snapshot.connection.hostConnected),
@@ -5505,6 +5522,9 @@ async function startBattleFromConfig(config) {
     closeMultiplayerStream();
     appState.multiplayer.enabled = false;
     appState.multiplayer.roomId = null;
+    appState.multiplayer.matchType = "";
+    appState.multiplayer.dromeId = "";
+    appState.multiplayer.challengeMeta = null;
     appState.multiplayer.seatToken = "";
     appState.multiplayer.role = "host";
     appState.multiplayer.localPlayerIndex = 0;
@@ -5642,6 +5662,9 @@ async function startMultiplayerBattle(roomId, seatTokenFromQuery = "", roleFromQ
     clearBattleListeners();
     appState.multiplayer.enabled = true;
     appState.multiplayer.roomId = String(roomId || "");
+    appState.multiplayer.matchType = "";
+    appState.multiplayer.dromeId = "";
+    appState.multiplayer.challengeMeta = null;
     appState.multiplayer.seatToken = String(seatTokenFromQuery || "");
     appState.multiplayer.role = roleFromQuery || "spectator";
 
@@ -6267,6 +6290,9 @@ async function init() {
   } else {
     appState.multiplayer.enabled = false;
     appState.multiplayer.roomId = null;
+    appState.multiplayer.matchType = "";
+    appState.multiplayer.dromeId = "";
+    appState.multiplayer.challengeMeta = null;
     appState.multiplayer.seatToken = "";
     appState.multiplayer.role = "host";
     appState.multiplayer.localPlayerIndex = 0;

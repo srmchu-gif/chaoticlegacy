@@ -39,6 +39,10 @@
               <span id="profile-notification-badge" class="profile-notification-badge hidden">0</span>
             </button>
           </div>
+          <div class="profile-tag-row">
+            <span id="player-drome-tag" class="profile-tag-chip">Dromo: -</span>
+            <span id="player-title-tag" class="profile-tag-chip">Tag: -</span>
+          </div>
           <div class="profile-stats">
             <div class="stat-box">
               <span class="stat-label">Pontua&ccedil;&atilde;o</span>
@@ -114,6 +118,74 @@
         <div id="perim-pending-rewards" class="perim-pending-rewards"></div>
 
         <button id="btn-perim-back" class="menu-btn ghost-btn panel-back-btn">Voltar ao Menu Principal</button>
+      </section>
+
+      <section class="multiplayer-panel" id="dromos-panel" style="display: none;">
+        <h2 class="panel-title">Dromos</h2>
+        <div id="dromos-status" class="trades-status">Carregando temporada...</div>
+
+        <div class="dromos-layout">
+          <div class="dromos-col">
+            <div class="dromos-card">
+              <h3>Temporada atual</h3>
+              <div id="dromos-season-summary" class="dromos-season-summary"></div>
+            </div>
+            <div class="dromos-card">
+              <h3>Meu Dromo</h3>
+              <div class="dromos-select-row">
+                <select id="dromos-select-drome"></select>
+                <button id="btn-dromos-select" class="menu-btn primary-btn compact-action-btn">Selecionar</button>
+              </div>
+              <small id="dromos-select-note">A selecao fica travada ate o proximo mes.</small>
+            </div>
+            <div class="dromos-card">
+              <h3>Ranked do Dromo</h3>
+              <div class="dromos-select-row">
+                <select id="dromos-ranked-deck"></select>
+                <button id="btn-dromos-ranked-create" class="menu-btn primary-btn compact-action-btn">Criar ranked</button>
+              </div>
+              <div id="dromos-ranked-rooms" class="dromos-list"></div>
+            </div>
+          </div>
+
+          <div class="dromos-col">
+            <div class="dromos-card">
+              <h3>Leaderboard</h3>
+              <div class="dromos-select-row">
+                <select id="dromos-leaderboard-drome"></select>
+                <button id="btn-dromos-leaderboard-refresh" class="menu-btn ghost-btn compact-action-btn">Atualizar</button>
+              </div>
+              <div id="dromos-leaderboard-list" class="dromos-list"></div>
+            </div>
+            <div class="dromos-card">
+              <h3>Desafios CodeMaster</h3>
+              <div class="dromos-select-row">
+                <select id="dromos-codemaster-drome"></select>
+                <select id="dromos-codemaster-deck"></select>
+                <button id="btn-dromos-codemaster-lock" class="menu-btn standard-btn compact-action-btn">Travar deck</button>
+              </div>
+              <div class="dromos-select-row">
+                <input id="dromos-challenge-username" type="text" placeholder="Username do desafiante" />
+                <button id="btn-dromos-challenge-invite" class="menu-btn primary-btn compact-action-btn">Convidar</button>
+              </div>
+              <div class="dromos-duo-list">
+                <div>
+                  <h4>Convites recebidos</h4>
+                  <div id="dromos-incoming-invites" class="dromos-list"></div>
+                </div>
+                <div>
+                  <h4>Convites enviados</h4>
+                  <div id="dromos-outgoing-invites" class="dromos-list"></div>
+                </div>
+              </div>
+            </div>
+            <div class="dromos-card">
+              <h3>Assistir lutas agora</h3>
+              <div id="dromos-live-list" class="dromos-list"></div>
+            </div>
+          </div>
+        </div>
+        <button id="btn-dromos-back" class="menu-btn ghost-btn panel-back-btn">Voltar ao Menu Principal</button>
       </section>
 
       <section class="multiplayer-panel" id="trades-panel" style="display: none;">
@@ -342,6 +414,14 @@
             <span>Total de Scans</span>
             <strong id="profile-modal-scans-total">0</strong>
           </div>
+          <div class="profile-metric">
+            <span>Dromo atual</span>
+            <strong id="profile-modal-current-drome">-</strong>
+          </div>
+          <div class="profile-metric">
+            <span>Tag da temporada</span>
+            <strong id="profile-modal-current-title">-</strong>
+          </div>
         </section>
         <section class="profile-modal-section">
           <h4>Scans por Tipo</h4>
@@ -370,11 +450,21 @@
       <div id="profile-tab-friends" class="profile-tab-panel" role="tabpanel" aria-hidden="true">
         <section class="profile-modal-section">
           <h4>Amigos</h4>
-          <div class="profile-friends-add-row">
-            <input id="profile-friend-username-input" type="text" placeholder="Username exato" />
-            <button id="profile-friend-add-btn" type="button" class="menu-btn standard-btn" style="padding:0.5rem 0.75rem;">Adicionar</button>
+          <div class="profile-friends-subtabs" role="tablist" aria-label="Subabas de amigos">
+            <button id="profile-friends-subtab-list-btn" class="profile-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="profile-friends-subtab-list">Lista</button>
+            <button id="profile-friends-subtab-requests-btn" class="profile-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="profile-friends-subtab-requests">Pedidos</button>
           </div>
-          <div class="profile-friends-columns">
+          <div id="profile-friends-subtab-list" class="profile-friends-subtab-panel active" role="tabpanel" aria-hidden="false">
+            <div class="profile-friends-add-row">
+              <input id="profile-friend-username-input" type="text" placeholder="Username exato" />
+              <button id="profile-friend-add-btn" type="button" class="menu-btn standard-btn" style="padding:0.5rem 0.75rem;">Adicionar</button>
+            </div>
+            <div class="profile-friends-column">
+              <h5>Meus amigos</h5>
+              <div id="profile-friends-list" class="profile-friends-list"></div>
+            </div>
+          </div>
+          <div id="profile-friends-subtab-requests" class="profile-friends-subtab-panel" role="tabpanel" aria-hidden="true">
             <div class="profile-friends-column">
               <h5>Pedidos recebidos</h5>
               <div id="profile-friends-incoming" class="profile-friends-list"></div>
@@ -383,12 +473,7 @@
               <h5>Pedidos enviados</h5>
               <div id="profile-friends-outgoing" class="profile-friends-list"></div>
             </div>
-            <div class="profile-friends-column">
-              <h5>Meus amigos</h5>
-              <div id="profile-friends-list" class="profile-friends-list"></div>
-            </div>
           </div>
-          <div id="profile-friend-preview" class="profile-friend-preview">Selecione um amigo para ver o perfil resumido.</div>
         </section>
       </div>
       <div id="profile-tab-notifications" class="profile-tab-panel" role="tabpanel" aria-hidden="true">
@@ -420,7 +505,33 @@
     </div>
   </div>
 
+  <div id="friend-summary-modal" class="profile-modal hidden" aria-hidden="true">
+    <div class="profile-modal-backdrop" id="friend-summary-backdrop"></div>
+    <div class="profile-modal-card friend-summary-card">
+      <button id="friend-summary-close" class="profile-modal-close" type="button" aria-label="Fechar perfil do amigo">&times;</button>
+      <header class="profile-modal-header">
+        <img id="friend-summary-avatar" src="fundo%20cartas.png" alt="Avatar do amigo" />
+        <div>
+          <h3 id="friend-summary-name">Amigo</h3>
+          <p id="friend-summary-presence">Offline</p>
+        </div>
+      </header>
+      <section class="profile-modal-grid">
+        <div class="profile-metric"><span>Pontuacao</span><strong id="friend-summary-score">0</strong></div>
+        <div class="profile-metric"><span>W/L</span><strong id="friend-summary-wl">0 / 0</strong></div>
+        <div class="profile-metric"><span>Winrate</span><strong id="friend-summary-winrate">0%</strong></div>
+        <div class="profile-metric"><span>Tribo favorita</span><strong id="friend-summary-tribe">-</strong></div>
+        <div class="profile-metric"><span>Dromo atual</span><strong id="friend-summary-drome">-</strong></div>
+        <div class="profile-metric"><span>Tag atual</span><strong id="friend-summary-tag">-</strong></div>
+      </section>
+      <section class="profile-modal-section profile-modal-section-first">
+        <h4>Criatura mais jogada</h4>
+        <p id="friend-summary-most-played">Nenhum dado ainda.</p>
+      </section>
+    </div>
+  </div>
+
   <script src="config.js"></script>
-  <script type="module" src="js/menu.js?v=13"></script>
+  <script type="module" src="js/menu.js?v=14"></script>
 </body>
 </html>

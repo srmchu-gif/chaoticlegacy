@@ -112,6 +112,14 @@ const DB_BACKUP_HOUR = Math.max(0, Math.min(23, Number(process.env.DB_BACKUP_HOU
 const SQL_V2_SCHEMA_VERSION = 2;
 const SQL_V2_STORAGE_MODE = "sql_v2_cutover";
 const SQL_CATALOG_SCHEMA_VERSION = 4;
+const MATCH_TYPE_CASUAL_MULTIPLAYER = "casual_multiplayer";
+const MATCH_TYPE_RANKED_DROME = "ranked_drome";
+const MATCH_TYPE_CODEMASTER_CHALLENGE = "codemaster_challenge";
+const DROME_BASE_SCORE = 1200;
+const DROME_RANKED_WIN_SCORE = 24;
+const DROME_RANKED_LOSS_SCORE = -8;
+const CODEMASTER_WIN_BONUS_SCORE = 14;
+const DROME_CHALLENGE_INVITE_TTL_MS = 10 * 60 * 1000;
 const DROME_CATALOG = [
   { id: "crellan", name: "Crellan Drome" },
   { id: "hotekk", name: "Hotekk Drome" },
@@ -122,6 +130,12 @@ const DROME_CATALOG = [
   { id: "chirrul", name: "Chirrul Drome" },
   { id: "beta", name: "Beta Drome" },
 ];
+const DROME_TRIBE_TAGS = {
+  danian: "DANIANS",
+  mipedian: "MIPEDIANS",
+  overworld: "OUTROMUNDO",
+  underworld: "SUBMUNDO",
+};
 
 if (!fs.existsSync(PERSIST_DIR)) {
   fs.mkdirSync(PERSIST_DIR, { recursive: true });
@@ -844,6 +858,82 @@ function createSqlV2Tables() {
     );
   `);
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_ranked_drome_score ON ranked_drome_stats(season_key, drome_id, score DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS ranked_drome_streaks (
+      season_key TEXT NOT NULL,
+      drome_id TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      current_streak INTEGER NOT NULL DEFAULT 0,
+      best_streak INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (season_key, drome_id, owner_key)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_ranked_drome_streaks_current ON ranked_drome_streaks(season_key, drome_id, current_streak DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS drome_season_rollups (
+      season_key TEXT NOT NULL PRIMARY KEY,
+      next_season_key TEXT NOT NULL,
+      finalized_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS drome_season_titles (
+      season_key TEXT NOT NULL,
+      drome_id TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      rank INTEGER NOT NULL,
+      title_text TEXT NOT NULL,
+      tribe_key TEXT NOT NULL DEFAULT '',
+      source_season_key TEXT NOT NULL DEFAULT '',
+      granted_at TEXT NOT NULL,
+      PRIMARY KEY (season_key, drome_id, rank),
+      UNIQUE (season_key, owner_key)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_drome_titles_owner ON drome_season_titles(owner_key, season_key);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS drome_codemasters (
+      season_key TEXT NOT NULL,
+      drome_id TEXT NOT NULL,
+      owner_key TEXT NOT NULL,
+      deck_key TEXT NOT NULL DEFAULT '',
+      declared_at TEXT NOT NULL,
+      deck_locked_at TEXT,
+      source_season_key TEXT NOT NULL DEFAULT '',
+      PRIMARY KEY (season_key, drome_id)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_drome_codemasters_owner ON drome_codemasters(owner_key, season_key);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS drome_challenge_invites (
+      invite_id TEXT NOT NULL PRIMARY KEY,
+      season_key TEXT NOT NULL,
+      drome_id TEXT NOT NULL,
+      codemaster_key TEXT NOT NULL,
+      challenger_key TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      room_id TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      responded_at TEXT
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_drome_challenge_invites_target ON drome_challenge_invites(challenger_key, status, created_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS drome_challenge_outcomes (
+      room_id TEXT NOT NULL PRIMARY KEY,
+      season_key TEXT NOT NULL,
+      drome_id TEXT NOT NULL,
+      codemaster_key TEXT NOT NULL,
+      challenger_key TEXT NOT NULL,
+      winner_key TEXT NOT NULL DEFAULT '',
+      loser_key TEXT NOT NULL DEFAULT '',
+      reward_granted_at TEXT,
+      updated_at TEXT NOT NULL
+    );
+  `);
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_group_rooms (
       room_code TEXT NOT NULL PRIMARY KEY,
@@ -2096,6 +2186,17 @@ function generateScanEntryId() {
 
 function isValidRulesMode(value) {
   return value === "casual" || value === "competitive" || value === "1v1";
+}
+
+function normalizeMatchType(value) {
+  const token = String(value || "").trim().toLowerCase();
+  if (token === MATCH_TYPE_RANKED_DROME) {
+    return MATCH_TYPE_RANKED_DROME;
+  }
+  if (token === MATCH_TYPE_CODEMASTER_CHALLENGE) {
+    return MATCH_TYPE_CODEMASTER_CHALLENGE;
+  }
+  return MATCH_TYPE_CASUAL_MULTIPLAYER;
 }
 
 const RULESET_VALIDATION = {
@@ -7580,14 +7681,21 @@ function markCardDiscovered(profile, reward) {
   profile.discoveredCards[key] = true;
 }
 
-function applyBattleResultToProfile(profile, payload) {
+function applyBattleResultToProfile(profile, payload, options = {}) {
   const result = String(payload?.result || "").toLowerCase();
+  const affectScore = options?.affectScore !== false;
+  const scoreWin = Number.isFinite(Number(options?.scoreWin)) ? Number(options.scoreWin) : 20;
+  const scoreLoss = Number.isFinite(Number(options?.scoreLoss)) ? Number(options.scoreLoss) : 10;
   if (result === "win") {
     profile.wins += 1;
-    profile.score = Math.max(0, Number(profile.score || 0) + 20);
+    if (affectScore) {
+      profile.score = Math.max(0, Number(profile.score || 0) + scoreWin);
+    }
   } else if (result === "loss") {
     profile.losses += 1;
-    profile.score = Math.max(0, Number(profile.score || 0) - 10);
+    if (affectScore) {
+      profile.score = Math.max(0, Number(profile.score || 0) - Math.abs(scoreLoss));
+    }
   } else {
     return;
   }
@@ -7981,6 +8089,42 @@ function listSeasonRewards(ownerKeyRaw, seasonKeyRaw = "") {
     }));
 }
 
+function previousSeasonKeyFromDate(date = new Date()) {
+  const previous = new Date(date.getFullYear(), date.getMonth() - 1, 1, 0, 0, 0, 0);
+  return seasonKeyFromDate(previous);
+}
+
+function normalizeTribeTagKey(rawValue) {
+  const token = String(rawValue || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+  if (token.includes("danian")) return "danian";
+  if (token.includes("mipedian")) return "mipedian";
+  if (token.includes("over")) return "overworld";
+  if (token.includes("outro")) return "overworld";
+  if (token.includes("under")) return "underworld";
+  if (token.includes("sub")) return "underworld";
+  return "";
+}
+
+function tribeTagLabel(rawValue) {
+  const normalized = normalizeTribeTagKey(rawValue);
+  return DROME_TRIBE_TAGS[normalized] || "Sem Tribo";
+}
+
+function titleForDromePlacement(rank, dromeName, tribeRaw = "") {
+  const safeDrome = String(dromeName || "Dromo");
+  const tribe = tribeTagLabel(tribeRaw);
+  if (rank === 1) return `CodeMaster ${safeDrome}`;
+  if (rank === 2) return `Conquistador dos/do ${tribe}`;
+  if (rank === 3) return `Veterano dos/do ${tribe}`;
+  if (rank === 4) return `Guardiao dos/do ${tribe}`;
+  if (rank === 5) return `Explorador dos/do ${tribe}`;
+  return "";
+}
+
 function normalizeDromeId(rawValue) {
   const token = String(rawValue || "")
     .trim()
@@ -8021,10 +8165,125 @@ function getDromeSelectionForSeason(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDat
   };
 }
 
+function ensureDromeSeasonCycle(nowDate = new Date()) {
+  if (!sqliteDb) {
+    return;
+  }
+  const currentSeasonKey = seasonKeyFromDate(nowDate);
+  const previousSeasonKey = previousSeasonKeyFromDate(nowDate);
+  if (!currentSeasonKey || !previousSeasonKey || currentSeasonKey === previousSeasonKey) {
+    return;
+  }
+  const alreadyFinalized = sqliteDb
+    .prepare("SELECT season_key FROM drome_season_rollups WHERE season_key = ? LIMIT 1")
+    .get(previousSeasonKey);
+  if (alreadyFinalized) {
+    return;
+  }
+  const finalizedAt = nowIso();
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    const checkAgain = sqliteDb
+      .prepare("SELECT season_key FROM drome_season_rollups WHERE season_key = ? LIMIT 1")
+      .get(previousSeasonKey);
+    if (checkAgain) {
+      sqliteDb.exec("COMMIT");
+      return;
+    }
+    DROME_CATALOG.forEach((entry) => {
+      const dromeId = String(entry.id || "");
+      const dromeName = String(entry.name || dromeId || "Dromo");
+      const rows = sqliteDb
+        .prepare(`
+          SELECT owner_key, score, wins, losses
+          FROM ranked_drome_stats
+          WHERE season_key = ? AND drome_id = ?
+          ORDER BY score DESC, wins DESC, losses ASC
+          LIMIT 5
+        `)
+        .all(previousSeasonKey, dromeId);
+      rows.forEach((row, index) => {
+        const rank = index + 1;
+        const ownerKey = normalizeUserKey(row?.owner_key, "");
+        if (!ownerKey) {
+          return;
+        }
+        const tribeRaw = resolveFavoriteTribeFromUserRecord(ownerKey);
+        const title = titleForDromePlacement(rank, dromeName, tribeRaw);
+        if (!title) {
+          return;
+        }
+        sqliteDb
+          .prepare(`
+            INSERT OR IGNORE INTO season_rewards (season_key, owner_key, reward_type, reward_value, granted_at)
+            VALUES (?, ?, 'title', ?, ?)
+          `)
+          .run(previousSeasonKey, ownerKey, title, finalizedAt);
+        sqliteDb
+          .prepare(`
+            INSERT OR REPLACE INTO drome_season_titles
+              (season_key, drome_id, owner_key, rank, title_text, tribe_key, source_season_key, granted_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `)
+          .run(
+            currentSeasonKey,
+            dromeId,
+            ownerKey,
+            rank,
+            title,
+            normalizeTribeTagKey(tribeRaw),
+            previousSeasonKey,
+            finalizedAt
+          );
+        if (rank === 1) {
+          sqliteDb
+            .prepare(`
+              INSERT OR REPLACE INTO drome_codemasters
+                (season_key, drome_id, owner_key, deck_key, declared_at, deck_locked_at, source_season_key)
+              VALUES (?, ?, ?, COALESCE((SELECT deck_key FROM drome_codemasters WHERE season_key = ? AND drome_id = ?), ''), ?, NULL, ?)
+            `)
+            .run(currentSeasonKey, dromeId, ownerKey, currentSeasonKey, dromeId, finalizedAt, previousSeasonKey);
+        }
+      });
+    });
+    sqliteDb
+      .prepare(`
+        INSERT INTO drome_season_rollups (season_key, next_season_key, finalized_at)
+        VALUES (?, ?, ?)
+      `)
+      .run(previousSeasonKey, currentSeasonKey, finalizedAt);
+    sqliteDb.exec("COMMIT");
+  } catch (error) {
+    try {
+      sqliteDb.exec("ROLLBACK");
+    } catch {}
+    console.error(`[DROMOS][SEASON] Falha ao finalizar temporada ${previousSeasonKey}: ${error?.message || error}`);
+  }
+}
+
+function ensureDromeBaselineRow(ownerKeyRaw, dromeIdRaw, seasonKeyRaw = seasonKeyFromDate(new Date())) {
+  if (!sqliteDb) {
+    return;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const dromeId = normalizeDromeId(dromeIdRaw);
+  const seasonKey = String(seasonKeyRaw || "").trim();
+  if (!ownerKey || !dromeId || !seasonKey) {
+    return;
+  }
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO ranked_drome_stats (season_key, drome_id, owner_key, score, wins, losses, updated_at)
+      VALUES (?, ?, ?, ?, 0, 0, ?)
+    `)
+    .run(seasonKey, dromeId, ownerKey, DROME_BASE_SCORE, nowIso());
+}
+
 function selectDromeForSeason(ownerKeyRaw, dromeIdRaw, nowDate = new Date()) {
   if (!sqliteDb) {
     return { ok: false, error: "Banco de dados indisponivel." };
   }
+  ensureDromeSeasonCycle(nowDate);
   const ownerKey = normalizeUserKey(ownerKeyRaw);
   const dromeId = normalizeDromeId(dromeIdRaw);
   if (!ownerKey || !dromeId) {
@@ -8046,6 +8305,7 @@ function selectDromeForSeason(ownerKeyRaw, dromeIdRaw, nowDate = new Date()) {
       VALUES (?, ?, ?, ?)
     `)
     .run(seasonKey, ownerKey, dromeId, lockedAt);
+  ensureDromeBaselineRow(ownerKey, dromeId, seasonKey);
   const selection = getDromeSelectionForSeason(ownerKey, seasonKey);
   return { ok: true, selection };
 }
@@ -8077,10 +8337,11 @@ function upsertGlobalRankDelta(ownerKeyRaw, result) {
   return sqliteDb.prepare("SELECT owner_key, elo, wins, losses, updated_at FROM ranked_global WHERE owner_key = ?").get(ownerKey);
 }
 
-function upsertDromeRankDelta(ownerKeyRaw, result, nowDate = new Date()) {
+function upsertDromeRankDelta(ownerKeyRaw, result, nowDate = new Date(), options = {}) {
   if (!sqliteDb) {
     return null;
   }
+  ensureDromeSeasonCycle(nowDate);
   const ownerKey = normalizeUserKey(ownerKeyRaw);
   if (!ownerKey) {
     return null;
@@ -8090,33 +8351,383 @@ function upsertDromeRankDelta(ownerKeyRaw, result, nowDate = new Date()) {
   if (!selected?.dromeId) {
     return null;
   }
+  const forcedDromeId = normalizeDromeId(options?.forcedDromeId || "");
+  if (forcedDromeId && forcedDromeId !== selected.dromeId) {
+    return null;
+  }
+  ensureDromeBaselineRow(ownerKey, selected.dromeId, seasonKey);
   const isWin = String(result || "").toLowerCase() === "win";
   const isLoss = String(result || "").toLowerCase() === "loss";
-  const scoreDelta = isWin ? 24 : isLoss ? -8 : 0;
+  const defaultWin = Number(options?.winScore ?? DROME_RANKED_WIN_SCORE);
+  const defaultLoss = Number(options?.lossScore ?? DROME_RANKED_LOSS_SCORE);
+  const scoreDelta = isWin ? defaultWin : isLoss ? defaultLoss : 0;
   const winsDelta = isWin ? 1 : 0;
   const lossesDelta = isLoss ? 1 : 0;
   sqliteDb
     .prepare(`
-      INSERT INTO ranked_drome_stats (season_key, drome_id, owner_key, score, wins, losses, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      UPDATE ranked_drome_stats
+      SET
+        score = MAX(0, score + ?),
+        wins = wins + ?,
+        losses = losses + ?,
+        updated_at = ?
+      WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+    `)
+    .run(scoreDelta, winsDelta, lossesDelta, nowIso(), seasonKey, selected.dromeId, ownerKey);
+
+  const streakRow = sqliteDb
+    .prepare(`
+      SELECT current_streak, best_streak
+      FROM ranked_drome_streaks
+      WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+    `)
+    .get(seasonKey, selected.dromeId, ownerKey);
+  const prevCurrentStreak = Math.max(0, Number(streakRow?.current_streak || 0));
+  const prevBestStreak = Math.max(0, Number(streakRow?.best_streak || 0));
+  const nextCurrentStreak = isWin ? (prevCurrentStreak + 1) : isLoss ? 0 : prevCurrentStreak;
+  const nextBestStreak = Math.max(prevBestStreak, nextCurrentStreak);
+  sqliteDb
+    .prepare(`
+      INSERT INTO ranked_drome_streaks (season_key, drome_id, owner_key, current_streak, best_streak, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(season_key, drome_id, owner_key) DO UPDATE SET
-        score = ranked_drome_stats.score + excluded.score,
-        wins = ranked_drome_stats.wins + excluded.wins,
-        losses = ranked_drome_stats.losses + excluded.losses,
+        current_streak = excluded.current_streak,
+        best_streak = excluded.best_streak,
         updated_at = excluded.updated_at
     `)
-    .run(seasonKey, selected.dromeId, ownerKey, scoreDelta, winsDelta, lossesDelta, nowIso());
+    .run(seasonKey, selected.dromeId, ownerKey, nextCurrentStreak, nextBestStreak, nowIso());
   return sqliteDb
     .prepare("SELECT season_key, drome_id, owner_key, score, wins, losses, updated_at FROM ranked_drome_stats WHERE season_key = ? AND drome_id = ? AND owner_key = ?")
     .get(seasonKey, selected.dromeId, ownerKey);
 }
 
-function titleForDromeRank(rank, dromeName) {
-  const safeDrome = String(dromeName || "Dromo");
-  if (rank === 1) return `Codmestre ${safeDrome}`;
-  if (rank === 2 || rank === 3) return `Elite ${safeDrome}`;
-  if (rank === 4 || rank === 5) return `Jogador #${rank} ${safeDrome}`;
-  return "";
+function dromeRankRowWithTitle(row, rank, dromeName) {
+  const ownerKey = normalizeUserKey(row?.owner_key || "", "");
+  const tribe = resolveFavoriteTribeFromUserRecord(ownerKey);
+  return {
+    rank,
+    username: ownerKey,
+    score: Math.max(0, Number(row?.score || 0)),
+    wins: Math.max(0, Number(row?.wins || 0)),
+    losses: Math.max(0, Number(row?.losses || 0)),
+    title: titleForDromePlacement(rank, dromeName, tribe),
+    favoriteTribe: tribe || "",
+    updatedAt: String(row?.updated_at || ""),
+  };
+}
+
+function getCurrentSeasonTagForOwner(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDate(new Date())) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const seasonKey = String(seasonKeyRaw || "").trim();
+  if (!ownerKey || !seasonKey) {
+    return null;
+  }
+  const row = sqliteDb
+    .prepare(`
+      SELECT season_key, drome_id, owner_key, rank, title_text, tribe_key, source_season_key, granted_at
+      FROM drome_season_titles
+      WHERE season_key = ? AND owner_key = ?
+      ORDER BY rank ASC
+      LIMIT 1
+    `)
+    .get(seasonKey, ownerKey);
+  if (!row) {
+    return null;
+  }
+  return {
+    seasonKey: String(row.season_key || seasonKey),
+    dromeId: String(row.drome_id || ""),
+    dromeName: dromeNameById(row.drome_id),
+    rank: Number(row.rank || 0),
+    title: String(row.title_text || ""),
+    tribeKey: String(row.tribe_key || ""),
+    sourceSeasonKey: String(row.source_season_key || ""),
+    grantedAt: String(row.granted_at || ""),
+  };
+}
+
+function getCurrentCodemasterByDrome(dromeIdRaw, seasonKeyRaw = seasonKeyFromDate(new Date())) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const dromeId = normalizeDromeId(dromeIdRaw);
+  const seasonKey = String(seasonKeyRaw || "").trim();
+  if (!dromeId || !seasonKey) {
+    return null;
+  }
+  const row = sqliteDb
+    .prepare(`
+      SELECT season_key, drome_id, owner_key, deck_key, declared_at, deck_locked_at, source_season_key
+      FROM drome_codemasters
+      WHERE season_key = ? AND drome_id = ?
+      LIMIT 1
+    `)
+    .get(seasonKey, dromeId);
+  if (!row) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(row?.owner_key || "", "");
+  const summary = getProfileSummaryByOwnerKey(ownerKey) || {};
+  return {
+    seasonKey: String(row.season_key || seasonKey),
+    dromeId,
+    dromeName: dromeNameById(dromeId),
+    ownerKey,
+    username: String(summary?.username || ownerKey),
+    favoriteTribe: String(summary?.favoriteTribe || resolveFavoriteTribeFromUserRecord(ownerKey) || ""),
+    deckKey: String(row?.deck_key || ""),
+    deckLocked: Boolean(String(row?.deck_key || "").trim()),
+    declaredAt: String(row?.declared_at || ""),
+    deckLockedAt: row?.deck_locked_at ? String(row.deck_locked_at) : null,
+    sourceSeasonKey: String(row?.source_season_key || ""),
+  };
+}
+
+function isUserSessionOnline(ownerKeyRaw) {
+  if (!sqliteDb) {
+    return false;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return false;
+  }
+  const row = sqliteDb
+    .prepare(`
+      SELECT 1 AS ok
+      FROM users
+      WHERE lower(username) = ?
+        AND session_token IS NOT NULL
+        AND session_token != ''
+        AND session_expires_at IS NOT NULL
+        AND session_expires_at > ?
+      LIMIT 1
+    `)
+    .get(ownerKey, nowIso());
+  return Boolean(row?.ok);
+}
+
+function cleanupExpiredDromeChallengeInvites() {
+  if (!sqliteDb) {
+    return;
+  }
+  sqliteDb
+    .prepare(`
+      UPDATE drome_challenge_invites
+      SET status = 'expired', updated_at = ?
+      WHERE status = 'pending' AND expires_at <= ?
+    `)
+    .run(nowIso(), nowIso());
+}
+
+function getDromeStreak(ownerKeyRaw, dromeIdRaw, seasonKeyRaw = seasonKeyFromDate(new Date())) {
+  if (!sqliteDb) {
+    return { current: 0, best: 0 };
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const dromeId = normalizeDromeId(dromeIdRaw);
+  const seasonKey = String(seasonKeyRaw || "").trim();
+  if (!ownerKey || !dromeId || !seasonKey) {
+    return { current: 0, best: 0 };
+  }
+  const row = sqliteDb
+    .prepare(`
+      SELECT current_streak, best_streak
+      FROM ranked_drome_streaks
+      WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+      LIMIT 1
+    `)
+    .get(seasonKey, dromeId, ownerKey);
+  return {
+    current: Math.max(0, Number(row?.current_streak || 0)),
+    best: Math.max(0, Number(row?.best_streak || 0)),
+  };
+}
+
+function normalizeChallengeInviteRow(row, ownerKeyRaw) {
+  if (!row) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const codemasterKey = normalizeUserKey(row?.codemaster_key || "", "");
+  const challengerKey = normalizeUserKey(row?.challenger_key || "", "");
+  const isIncoming = ownerKey === challengerKey;
+  const roomId = String(row?.room_id || "");
+  const room = roomId ? multiplayerRooms.get(roomId) : null;
+  const roomPhase = room?.phase || "";
+  const roomMatchType = normalizeMatchType(room?.matchType || "");
+  const seatToken = isIncoming ? String(room?.players?.guest?.seatToken || "") : String(room?.players?.host?.seatToken || "");
+  return {
+    inviteId: String(row?.invite_id || ""),
+    seasonKey: String(row?.season_key || ""),
+    dromeId: String(row?.drome_id || ""),
+    dromeName: dromeNameById(row?.drome_id),
+    status: String(row?.status || "pending"),
+    codemasterKey,
+    challengerKey,
+    codemasterUsername: String(getProfileSummaryByOwnerKey(codemasterKey)?.username || codemasterKey),
+    challengerUsername: String(getProfileSummaryByOwnerKey(challengerKey)?.username || challengerKey),
+    createdAt: String(row?.created_at || ""),
+    updatedAt: String(row?.updated_at || ""),
+    expiresAt: String(row?.expires_at || ""),
+    expiresInMs: Math.max(0, Date.parse(String(row?.expires_at || "")) - Date.now()),
+    room: roomId
+      ? {
+          roomId,
+          phase: roomPhase || "unknown",
+          matchType: roomMatchType || MATCH_TYPE_CODEMASTER_CHALLENGE,
+          seatToken,
+        }
+      : null,
+  };
+}
+
+function listDromeChallengeInvitesForOwner(ownerKeyRaw) {
+  if (!sqliteDb) {
+    return { incoming: [], outgoing: [] };
+  }
+  cleanupExpiredDromeChallengeInvites();
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return { incoming: [], outgoing: [] };
+  }
+  const rows = sqliteDb
+    .prepare(`
+      SELECT invite_id, season_key, drome_id, codemaster_key, challenger_key, status, room_id, created_at, updated_at, expires_at
+      FROM drome_challenge_invites
+      WHERE codemaster_key = ? OR challenger_key = ?
+      ORDER BY datetime(created_at) DESC
+      LIMIT 100
+    `)
+    .all(ownerKey, ownerKey);
+  const incoming = [];
+  const outgoing = [];
+  rows.forEach((row) => {
+    const normalized = normalizeChallengeInviteRow(row, ownerKey);
+    if (!normalized) {
+      return;
+    }
+    if (normalizeUserKey(normalized.challengerKey, "") === ownerKey) {
+      incoming.push(normalized);
+    } else {
+      outgoing.push(normalized);
+    }
+  });
+  return { incoming, outgoing };
+}
+
+function grantCodemasterUltraRareReward({ codemasterKeyRaw, challengerKeyRaw, dromeIdRaw, seasonKeyRaw, roomIdRaw }) {
+  if (!sqliteDb) {
+    return { ok: false, error: "Banco SQL indisponivel." };
+  }
+  const codemasterKey = normalizeUserKey(codemasterKeyRaw, "");
+  const challengerKey = normalizeUserKey(challengerKeyRaw, "");
+  const dromeId = normalizeDromeId(dromeIdRaw);
+  const seasonKey = String(seasonKeyRaw || seasonKeyFromDate(new Date()));
+  const roomId = String(roomIdRaw || "").trim();
+  if (!codemasterKey || !challengerKey || !dromeId || !roomId) {
+    return { ok: false, error: "Parametros de recompensa invalidos." };
+  }
+  const existingOutcome = sqliteDb
+    .prepare("SELECT reward_granted_at FROM drome_challenge_outcomes WHERE room_id = ? LIMIT 1")
+    .get(roomId);
+  if (existingOutcome?.reward_granted_at) {
+    return { ok: true, alreadyGranted: true };
+  }
+  const sourceRows = sqliteDb
+    .prepare(`
+      SELECT scan_entry_id, card_type, card_id, variant_json, obtained_at
+      FROM scan_entries
+      WHERE owner_key = ?
+      ORDER BY RANDOM()
+      LIMIT 200
+    `)
+    .all(codemasterKey);
+  if (!sourceRows.length) {
+    return { ok: false, error: "CodeMaster sem scans disponiveis para premio." };
+  }
+  const selected = sourceRows[Math.floor(Math.random() * sourceRows.length)];
+  const grantedAt = nowIso();
+  const rewardScanEntryId = generateScanEntryId();
+  let variantJson = null;
+  if (String(selected?.card_type || "") === "creatures") {
+    const baseVariant = normalizeCreatureVariant(parseJsonText(selected?.variant_json, null)) || {};
+    variantJson = JSON.stringify({
+      ...baseVariant,
+      ultraRareReward: true,
+      codemasterSource: codemasterKey,
+      challengeRoomId: roomId,
+    });
+  }
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    sqliteDb
+      .prepare(`
+        INSERT INTO scan_entries (scan_entry_id, owner_key, card_type, card_id, variant_json, obtained_at, source, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .run(
+        rewardScanEntryId,
+        challengerKey,
+        String(selected?.card_type || ""),
+        String(selected?.card_id || ""),
+        variantJson,
+        grantedAt,
+        "codemaster_ultrarare_reward",
+        grantedAt
+      );
+    sqliteDb
+      .prepare(`
+        INSERT INTO drome_challenge_outcomes
+          (room_id, season_key, drome_id, codemaster_key, challenger_key, winner_key, loser_key, reward_granted_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(room_id) DO UPDATE SET
+          winner_key = excluded.winner_key,
+          loser_key = excluded.loser_key,
+          reward_granted_at = COALESCE(drome_challenge_outcomes.reward_granted_at, excluded.reward_granted_at),
+          updated_at = excluded.updated_at
+      `)
+      .run(roomId, seasonKey, dromeId, codemasterKey, challengerKey, challengerKey, codemasterKey, grantedAt, grantedAt);
+    sqliteDb.exec("COMMIT");
+  } catch (error) {
+    try {
+      sqliteDb.exec("ROLLBACK");
+    } catch {}
+    return { ok: false, error: error?.message || "Falha ao conceder premio ultrararo." };
+  }
+  invalidateUserCaches(challengerKey);
+  createProfileNotification(
+    challengerKey,
+    "codemaster_reward",
+    "Premio de desafio CodeMaster",
+    `Voce venceu um CodeMaster e recebeu uma copia ultrarara: ${String(selected?.card_id || "carta")}!`,
+    {
+      dromeId,
+      roomId,
+      sourceCodemaster: codemasterKey,
+      rewardScanEntryId,
+      cardType: String(selected?.card_type || ""),
+      cardId: String(selected?.card_id || ""),
+    }
+  );
+  createProfileNotification(
+    codemasterKey,
+    "codemaster_defeat",
+    "Derrota em desafio CodeMaster",
+    `Voce perdeu o desafio e ${challengerKey} recebeu uma copia ultrarara do seu catalogo de scans.`,
+    { dromeId, roomId, challengerKey }
+  );
+  return {
+    ok: true,
+    reward: {
+      scanEntryId: rewardScanEntryId,
+      cardType: String(selected?.card_type || ""),
+      cardId: String(selected?.card_id || ""),
+      source: "codemaster_ultrarare_reward",
+    },
+  };
 }
 
 function resolveFavoriteTribeFromUserRecord(usernameRaw) {
@@ -8138,6 +8749,7 @@ function resolveFavoriteTribeFromUserRecord(usernameRaw) {
 }
 
 function buildProfilePayload(usernameRaw) {
+  ensureDromeSeasonCycle(new Date());
   const profilesState = loadProfilesData();
   const { key, profile } = getOrCreateProfile(profilesState, usernameRaw);
   const recordTribe = resolveFavoriteTribeFromUserRecord(key);
@@ -8163,6 +8775,8 @@ function buildProfilePayload(usernameRaw) {
   }
   const scansStats = countBucketCards(cards);
   const currentSeasonKey = seasonKeyFromDate(new Date());
+  const currentDromeSelection = getDromeSelectionForSeason(key, currentSeasonKey);
+  const currentTag = getCurrentSeasonTagForOwner(key, currentSeasonKey);
   return {
     username: key,
     favoriteTribe: profile.favoriteTribe || "",
@@ -8182,6 +8796,15 @@ function buildProfilePayload(usernameRaw) {
     }, {}),
     mostPlayedCreature: profile.mostPlayedCreature || null,
     seasonRewards: listSeasonRewards(key, currentSeasonKey),
+    currentDrome: currentDromeSelection
+      ? {
+          id: currentDromeSelection.dromeId,
+          name: currentDromeSelection.dromeName || dromeNameById(currentDromeSelection.dromeId),
+          lockedAt: currentDromeSelection.lockedAt || "",
+        }
+      : null,
+    currentTagTitle: currentTag?.title || "",
+    currentTag: currentTag || null,
     battleHistory: Array.isArray(profile.battleHistory) ? profile.battleHistory.slice(-PROFILE_HISTORY_LIMIT).reverse() : [],
     updatedAt: profile.updatedAt || nowIso(),
   };
@@ -9635,6 +10258,7 @@ function applyTradeRoomAction(room, action, seat) {
 setInterval(() => {
   cleanupExpiredTradeRooms();
   cleanupExpiredTradeInvites();
+  cleanupExpiredDromeChallengeInvites();
 }, 60 * 1000).unref?.();
 
 function getRoomSeatByToken(room, seatToken) {
@@ -9699,14 +10323,83 @@ function buildConnectionState(room) {
 
 function buildRoomSummary(room) {
   const occupancyCount = room.players?.guest ? 2 : 1;
+  const matchType = normalizeMatchType(room?.matchType || "");
+  const dromeId = normalizeDromeId(room?.dromeId || room?.challengeMeta?.dromeId || "");
   return {
     id: room.id,
     status: `${occupancyCount}/2 jogadores`,
     occupancy: `${occupancyCount}/2`,
     hostName: room.players?.host?.name || "Host",
+    hostUsername: normalizeUserKey(room.players?.host?.username || room.players?.host?.name || "host"),
     rulesMode: room.rulesMode || "competitive",
+    matchType,
+    dromeId,
+    dromeName: dromeNameById(dromeId),
     phase: room.phase || "lobby",
+    highlight: matchType === MATCH_TYPE_CODEMASTER_CHALLENGE,
     updatedAt: room.updatedAt || nowIso(),
+  };
+}
+
+function createMultiplayerRoomRecord({
+  hostUsername,
+  hostName,
+  hostAvatar,
+  hostDeck,
+  hostDeckName,
+  rulesMode,
+  matchType,
+  dromeId = "",
+  challengeMeta = null,
+  reservedGuestKey = "",
+}) {
+  const hostToken = generateSeatToken();
+  const roomId = String(nextRoomId++);
+  const normalizedMatchType = normalizeMatchType(matchType);
+  const normalizedDromeId = normalizeDromeId(dromeId);
+  const room = {
+    id: roomId,
+    rulesMode: isValidRulesMode(rulesMode) ? rulesMode : "competitive",
+    matchType: normalizedMatchType,
+    dromeId: normalizedDromeId,
+    challengeMeta: challengeMeta && typeof challengeMeta === "object"
+      ? {
+          inviteId: String(challengeMeta.inviteId || ""),
+          codemasterKey: normalizeUserKey(challengeMeta.codemasterKey || ""),
+          challengerKey: normalizeUserKey(challengeMeta.challengerKey || ""),
+          dromeId: normalizeDromeId(challengeMeta.dromeId || normalizedDromeId),
+        }
+      : null,
+    reservedGuestKey: normalizeUserKey(reservedGuestKey || "", ""),
+    phase: "lobby",
+    players: {
+      host: {
+        name: String(hostName || "Host"),
+        username: normalizeUserKey(hostUsername || "host"),
+        avatar: String(hostAvatar || ""),
+        deck: hostDeck,
+        deckName: String(hostDeckName || hostDeck?.name || "Deck Host"),
+        seatToken: hostToken,
+      },
+      guest: null,
+    },
+    battleState: null,
+    clients: new Set(),
+    createdAt: nowIso(),
+    startedAt: null,
+    updatedAt: nowIso(),
+    lastActionSeq: 0,
+    rematch: {
+      pending: false,
+      requestedBy: null,
+      requestedAt: null,
+    },
+  };
+  multiplayerRooms.set(roomId, room);
+  return {
+    room,
+    roomId,
+    hostToken,
   };
 }
 
@@ -9754,6 +10447,8 @@ function buildRoomStatePayload(room, seatToken = "") {
   return {
     roomId: room.id,
     rulesMode: room.rulesMode || "competitive",
+    matchType: normalizeMatchType(room?.matchType || ""),
+    dromeId: normalizeDromeId(room?.dromeId || room?.challengeMeta?.dromeId || ""),
     phase: room.phase || "lobby",
     status: buildRoomSummary(room).status,
     occupancy: buildRoomSummary(room).occupancy,
@@ -9785,6 +10480,14 @@ function buildRoomStatePayload(room, seatToken = "") {
           requestedAt: room.rematch.requestedAt || null,
         }
       : { pending: false, requestedBy: null, requestedAt: null },
+    challengeMeta: room?.challengeMeta && typeof room.challengeMeta === "object"
+      ? {
+          inviteId: String(room.challengeMeta.inviteId || ""),
+          codemasterKey: normalizeUserKey(room.challengeMeta.codemasterKey || ""),
+          challengerKey: normalizeUserKey(room.challengeMeta.challengerKey || ""),
+          dromeId: normalizeDromeId(room.challengeMeta.dromeId || ""),
+        }
+      : null,
     battleState: battleState ? encodeRichValue(battleState) : null,
     updatedAt: room.updatedAt || nowIso(),
     lastActionSeq: Number(room.lastActionSeq || 0),
@@ -11717,6 +12420,63 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (pathname.startsWith("/api/profile/friends/") && pathname.endsWith("/summary") && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Sistema de amigos indisponivel sem banco SQL." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username || "");
+    const parts = pathname.split("/");
+    const friendUsername = decodeURIComponent(parts[4] || "").trim();
+    if (!friendUsername) {
+      sendJson(response, 400, { error: "Username do amigo invalido." });
+      return;
+    }
+    const friendSummary = getProfileSummaryByUsername(friendUsername);
+    const friendKey = normalizeUserKey(friendSummary?.ownerKey || friendSummary?.username || "", "");
+    if (!friendSummary || !friendKey) {
+      sendJson(response, 404, { error: "Amigo nao encontrado." });
+      return;
+    }
+    const relation = sqliteDb
+      .prepare("SELECT 1 AS ok FROM friends WHERE owner_key = ? AND friend_key = ? LIMIT 1")
+      .get(ownerKey, friendKey);
+    if (!relation?.ok) {
+      sendJson(response, 403, { error: "Esse usuario nao esta na sua lista de amigos." });
+      return;
+    }
+    ensureDromeSeasonCycle(new Date());
+    const seasonKey = seasonKeyFromDate(new Date());
+    const friendProfile = buildProfilePayload(friendKey);
+    const presence = getFriendPresenceMap(ownerKey, [friendKey])[friendKey] || { status: "offline" };
+    sendJson(response, 200, {
+      ok: true,
+      seasonKey,
+      friend: {
+        username: friendSummary.username || friendKey,
+        ownerKey: friendKey,
+        avatar: friendProfile.avatar || friendSummary.avatar || "",
+        favoriteTribe: friendProfile.favoriteTribe || friendSummary.favoriteTribe || "",
+        score: Number(friendProfile.score || friendSummary.score || 0),
+        wins: Number(friendProfile.wins || friendSummary.wins || 0),
+        losses: Number(friendProfile.losses || friendSummary.losses || 0),
+        winRate: Number(friendProfile.winRate || friendSummary.winRate || 0),
+        mostPlayedCreature: friendProfile.mostPlayedCreature || null,
+        scans: friendProfile.scans || { total: 0, byType: {} },
+        currentDrome: friendProfile.currentDrome || null,
+        currentTagTitle: friendProfile.currentTagTitle || "",
+        currentTag: friendProfile.currentTag || null,
+        presence,
+        updatedAt: friendProfile.updatedAt || friendSummary.updatedAt || nowIso(),
+      },
+    });
+    return;
+  }
+
   if (pathname === "/api/profile/friends/presence" && request.method === "GET") {
     const authUser = requireAuthenticatedUser(request, response);
     if (!authUser) {
@@ -12182,17 +12942,104 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "Resultado invalido." });
       return;
     }
+    const matchType = normalizeMatchType(payload.matchType || "");
+    const challengeMeta = payload?.challengeMeta && typeof payload.challengeMeta === "object" ? payload.challengeMeta : null;
+    const challengeDromeId = normalizeDromeId(challengeMeta?.dromeId || payload?.dromeId || "");
+    const challengeCodemasterKey = normalizeUserKey(challengeMeta?.codemasterKey || "", "");
+    const challengeChallengerKey = normalizeUserKey(challengeMeta?.challengerKey || "", "");
+    const challengeRoomId = String(payload?.roomId || "").trim();
+    const isRankedMatch = matchType === MATCH_TYPE_RANKED_DROME || matchType === MATCH_TYPE_CODEMASTER_CHALLENGE;
+    if (isRankedMatch && !sqliteDb) {
+      sendJson(response, 503, { error: "Partida ranqueada indisponivel sem banco SQL ativo." });
+      return;
+    }
+    if (matchType === MATCH_TYPE_RANKED_DROME) {
+      const seasonKey = seasonKeyFromDate(new Date());
+      const selection = getDromeSelectionForSeason(username, seasonKey);
+      if (!selection?.dromeId) {
+        sendJson(response, 400, { error: "Selecione um Dromo antes de contabilizar partidas ranqueadas." });
+        return;
+      }
+      if (challengeDromeId && selection.dromeId !== challengeDromeId) {
+        sendJson(response, 400, { error: "Partida ranqueada informada para Dromo diferente do selecionado neste mes." });
+        return;
+      }
+    }
+    if (matchType === MATCH_TYPE_CODEMASTER_CHALLENGE) {
+      if (!challengeDromeId || !challengeCodemasterKey || !challengeChallengerKey || !challengeRoomId) {
+        sendJson(response, 400, { error: "Dados do desafio CodeMaster incompletos." });
+        return;
+      }
+      const callerKey = normalizeUserKey(username, "");
+      if (callerKey !== challengeCodemasterKey && callerKey !== challengeChallengerKey) {
+        sendJson(response, 400, { error: "Usuario desta sessao nao pertence ao desafio informado." });
+        return;
+      }
+    }
     const profilesState = loadProfilesData();
     const { profile } = getOrCreateProfile(profilesState, username);
-    applyBattleResultToProfile(profile, payload);
-    writeProfilesData(profilesState, "profile_battle_result");
-    upsertSeasonPlayerDelta(username, {
-      score: result === "win" ? 20 : -5,
-      wins: result === "win" ? 1 : 0,
-      losses: result === "loss" ? 1 : 0,
+    applyBattleResultToProfile(profile, payload, {
+      affectScore: isRankedMatch,
+      scoreWin: 20,
+      scoreLoss: 10,
     });
-    upsertGlobalRankDelta(username, result);
-    upsertDromeRankDelta(username, result, new Date());
+    writeProfilesData(profilesState, "profile_battle_result");
+    if (isRankedMatch) {
+      upsertSeasonPlayerDelta(username, {
+        score: result === "win" ? 20 : -5,
+        wins: result === "win" ? 1 : 0,
+        losses: result === "loss" ? 1 : 0,
+      });
+      upsertGlobalRankDelta(username, result);
+    }
+    if (matchType === MATCH_TYPE_RANKED_DROME) {
+      upsertDromeRankDelta(username, result, new Date(), {
+        forcedDromeId: challengeDromeId || "",
+      });
+    } else if (matchType === MATCH_TYPE_CODEMASTER_CHALLENGE) {
+      const callerKey = normalizeUserKey(username, "");
+      const codemasterWinScore = DROME_RANKED_WIN_SCORE + CODEMASTER_WIN_BONUS_SCORE;
+      const isCallerCodemaster = callerKey === challengeCodemasterKey;
+      upsertDromeRankDelta(username, result, new Date(), {
+        forcedDromeId: challengeDromeId,
+        winScore: isCallerCodemaster ? codemasterWinScore : DROME_RANKED_WIN_SCORE,
+        lossScore: DROME_RANKED_LOSS_SCORE,
+      });
+
+      const winnerKey = result === "win"
+        ? callerKey
+        : (isCallerCodemaster ? challengeChallengerKey : challengeCodemasterKey);
+      const loserKey = winnerKey === challengeCodemasterKey ? challengeChallengerKey : challengeCodemasterKey;
+      sqliteDb
+        .prepare(`
+          INSERT INTO drome_challenge_outcomes
+            (room_id, season_key, drome_id, codemaster_key, challenger_key, winner_key, loser_key, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(room_id) DO UPDATE SET
+            winner_key = excluded.winner_key,
+            loser_key = excluded.loser_key,
+            updated_at = excluded.updated_at
+        `)
+        .run(
+          challengeRoomId,
+          seasonKeyFromDate(new Date()),
+          challengeDromeId,
+          challengeCodemasterKey,
+          challengeChallengerKey,
+          winnerKey,
+          loserKey,
+          nowIso()
+        );
+      if (winnerKey === challengeChallengerKey) {
+        grantCodemasterUltraRareReward({
+          codemasterKeyRaw: challengeCodemasterKey,
+          challengerKeyRaw: challengeChallengerKey,
+          dromeIdRaw: challengeDromeId,
+          seasonKeyRaw: seasonKeyFromDate(new Date()),
+          roomIdRaw: challengeRoomId,
+        });
+      }
+    }
     invalidateUserCaches(username);
     sendJson(response, 200, { ok: true, profile: buildProfilePayload(username) });
     return;
@@ -12433,24 +13280,80 @@ async function handleRequest(request, response) {
     return;
   }
 
-  if (pathname === "/api/ranked/dromes" && request.method === "GET") {
+  if (pathname === "/api/dromos/overview" && request.method === "GET") {
     const authUser = requireAuthenticatedUser(request, response);
     if (!authUser) {
       return;
     }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Dromos indisponivel sem banco SQL." });
+      return;
+    }
+    ensureDromeSeasonCycle(new Date());
+    cleanupExpiredDromeChallengeInvites();
     const seasonKey = seasonKeyFromDate(new Date());
-    const selection = getDromeSelectionForSeason(authUser.username, seasonKey);
+    const ownerKey = normalizeUserKey(authUser.username || "");
+    const selection = getDromeSelectionForSeason(ownerKey, seasonKey);
+    const currentTag = getCurrentSeasonTagForOwner(ownerKey, seasonKey);
+    const invites = listDromeChallengeInvitesForOwner(ownerKey);
+    const dromes = DROME_CATALOG.map((entry) => {
+      const codemaster = getCurrentCodemasterByDrome(entry.id, seasonKey);
+      const topRow = sqliteDb
+        .prepare(`
+          SELECT owner_key, score, wins, losses, updated_at
+          FROM ranked_drome_stats
+          WHERE season_key = ? AND drome_id = ?
+          ORDER BY score DESC, wins DESC, losses ASC
+          LIMIT 1
+        `)
+        .get(seasonKey, entry.id);
+      return {
+        id: entry.id,
+        name: entry.name,
+        codemaster,
+        liveTop: topRow
+          ? {
+              username: normalizeUserKey(topRow?.owner_key || ""),
+              score: Math.max(0, Number(topRow?.score || 0)),
+              wins: Math.max(0, Number(topRow?.wins || 0)),
+              losses: Math.max(0, Number(topRow?.losses || 0)),
+              updatedAt: String(topRow?.updated_at || ""),
+            }
+          : null,
+      };
+    });
+    const selectedStats = selection?.dromeId
+      ? sqliteDb
+        .prepare(`
+          SELECT score, wins, losses, updated_at
+          FROM ranked_drome_stats
+          WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+          LIMIT 1
+        `)
+        .get(seasonKey, selection.dromeId, ownerKey)
+      : null;
     sendJson(response, 200, {
       ok: true,
       seasonKey,
-      dromes: DROME_CATALOG.map((entry) => ({ ...entry })),
       selection: selection || null,
       locked: Boolean(selection),
+      myTag: currentTag || null,
+      mySelectedStats: selectedStats
+        ? {
+            score: Math.max(0, Number(selectedStats?.score || DROME_BASE_SCORE)),
+            wins: Math.max(0, Number(selectedStats?.wins || 0)),
+            losses: Math.max(0, Number(selectedStats?.losses || 0)),
+            updatedAt: String(selectedStats?.updated_at || ""),
+          }
+        : null,
+      invites,
+      dromes,
+      generatedAt: nowIso(),
     });
     return;
   }
 
-  if (pathname === "/api/ranked/drome/select" && request.method === "POST") {
+  if ((pathname === "/api/dromos/select" || pathname === "/api/ranked/drome/select") && request.method === "POST") {
     const authUser = requireAuthenticatedUser(request, response);
     if (!authUser) {
       return;
@@ -12483,13 +13386,16 @@ async function handleRequest(request, response) {
     return;
   }
 
-  if (pathname.startsWith("/api/ranked/drome/") && pathname.endsWith("/leaderboard") && request.method === "GET") {
+  if ((pathname.startsWith("/api/dromos/") || pathname.startsWith("/api/ranked/drome/")) && pathname.endsWith("/leaderboard") && request.method === "GET") {
     if (!sqliteDb) {
       sendJson(response, 503, { error: "Ranking por Dromo indisponivel sem banco SQL." });
       return;
     }
+    ensureDromeSeasonCycle(new Date());
     const parts = pathname.split("/");
-    const dromeId = normalizeDromeId(parts[4] || "");
+    const dromeId = parts[2] === "dromos"
+      ? normalizeDromeId(parts[3] || "")
+      : normalizeDromeId(parts[4] || "");
     if (!dromeId) {
       sendJson(response, 400, { error: "Dromo invalido." });
       return;
@@ -12509,15 +13415,436 @@ async function handleRequest(request, response) {
       ok: true,
       seasonKey,
       drome: { id: dromeId, name: dromeName },
-      leaderboard: rows.map((row, index) => ({
-        rank: index + 1,
-        username: normalizeUserKey(row?.owner_key),
-        score: Math.max(0, Number(row?.score || 0)),
-        wins: Math.max(0, Number(row?.wins || 0)),
-        losses: Math.max(0, Number(row?.losses || 0)),
-        title: titleForDromeRank(index + 1, dromeName),
-        updatedAt: String(row?.updated_at || ""),
-      })),
+      codemaster: getCurrentCodemasterByDrome(dromeId, seasonKey),
+      leaderboard: rows.map((row, index) => dromeRankRowWithTitle(row, index + 1, dromeName)),
+      generatedAt: nowIso(),
+    });
+    return;
+  }
+
+  if ((pathname === "/api/dromos/live" || pathname === "/api/ranked/dromes/live") && request.method === "GET") {
+    const filterDromeId = normalizeDromeId(parsedUrl.searchParams.get("dromeId") || "");
+    const rooms = Array.from(multiplayerRooms.values())
+      .filter((room) => room?.phase === "in_game")
+      .filter((room) => {
+        const matchType = normalizeMatchType(room?.matchType || "");
+        if (matchType !== MATCH_TYPE_RANKED_DROME && matchType !== MATCH_TYPE_CODEMASTER_CHALLENGE) {
+          return false;
+        }
+        if (filterDromeId) {
+          return normalizeDromeId(room?.dromeId || room?.challengeMeta?.dromeId || "") === filterDromeId;
+        }
+        return true;
+      })
+      .map((room) => {
+        const summary = buildRoomSummary(room);
+        return {
+          roomId: String(room.id || ""),
+          phase: String(room.phase || "in_game"),
+          matchType: summary.matchType,
+          dromeId: summary.dromeId,
+          dromeName: summary.dromeName,
+          highlight: summary.highlight,
+          hostName: String(room?.players?.host?.name || "Host"),
+          hostUsername: String(room?.players?.host?.username || summary.hostUsername),
+          guestName: String(room?.players?.guest?.name || ""),
+          guestUsername: String(room?.players?.guest?.username || ""),
+          updatedAt: String(room?.updatedAt || nowIso()),
+        };
+      });
+    sendJson(response, 200, {
+      ok: true,
+      total: rooms.length,
+      rooms,
+      generatedAt: nowIso(),
+    });
+    return;
+  }
+
+  if ((pathname === "/api/dromos/challenges/invites") && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Desafios indisponiveis sem banco SQL." });
+      return;
+    }
+    ensureDromeSeasonCycle(new Date());
+    const ownerKey = normalizeUserKey(authUser.username || "");
+    const invites = listDromeChallengeInvitesForOwner(ownerKey);
+    sendJson(response, 200, {
+      ok: true,
+      incoming: invites.incoming,
+      outgoing: invites.outgoing,
+      generatedAt: nowIso(),
+    });
+    return;
+  }
+
+  if (pathname === "/api/dromos/codemaster/deck-lock" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "CodeMaster indisponivel sem banco SQL." });
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    ensureDromeSeasonCycle(new Date());
+    const ownerKey = normalizeUserKey(authUser.username || "");
+    const seasonKey = seasonKeyFromDate(new Date());
+    const dromeId = normalizeDromeId(payload.dromeId || "");
+    const deckKey = normalizeDeckName(payload.deckName || payload.deckKey || "");
+    if (!dromeId || !deckKey) {
+      sendJson(response, 400, { error: "dromeId e deckName sao obrigatorios." });
+      return;
+    }
+    const codemaster = sqliteDb
+      .prepare(`
+        SELECT season_key, drome_id, owner_key
+        FROM drome_codemasters
+        WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+        LIMIT 1
+      `)
+      .get(seasonKey, dromeId, ownerKey);
+    if (!codemaster) {
+      sendJson(response, 403, { error: "Apenas o CodeMaster atual deste Dromo pode definir deck de desafio." });
+      return;
+    }
+    const deckData = readDeckFileByName(`${deckKey}.json`);
+    if (!deckData) {
+      sendJson(response, 404, { error: "Deck nao encontrado." });
+      return;
+    }
+    const deckOwner = normalizeUserKey(deckOwnerKey(deckData), "");
+    if (deckOwner && deckOwner !== ownerKey) {
+      sendJson(response, 403, { error: "O deck selecionado pertence a outro jogador." });
+      return;
+    }
+    sqliteDb
+      .prepare(`
+        UPDATE drome_codemasters
+        SET deck_key = ?, deck_locked_at = ?
+        WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+      `)
+      .run(deckKey, nowIso(), seasonKey, dromeId, ownerKey);
+    sendJson(response, 200, {
+      ok: true,
+      codemaster: getCurrentCodemasterByDrome(dromeId, seasonKey),
+    });
+    return;
+  }
+
+  if (pathname === "/api/dromos/challenges/invite" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Desafios indisponiveis sem banco SQL." });
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    ensureDromeSeasonCycle(new Date());
+    cleanupExpiredDromeChallengeInvites();
+    const seasonKey = seasonKeyFromDate(new Date());
+    const codemasterKey = normalizeUserKey(authUser.username || "");
+    const dromeId = normalizeDromeId(payload.dromeId || "");
+    const challengerSummary = getProfileSummaryByUsername(String(payload.challengerUsername || "").trim());
+    const challengerKey = normalizeUserKey(challengerSummary?.ownerKey || challengerSummary?.username || "", "");
+    if (!dromeId || !challengerKey) {
+      sendJson(response, 400, { error: "dromeId e challengerUsername sao obrigatorios." });
+      return;
+    }
+    const codemasterRow = sqliteDb
+      .prepare(`
+        SELECT owner_key, deck_key
+        FROM drome_codemasters
+        WHERE season_key = ? AND drome_id = ?
+        LIMIT 1
+      `)
+      .get(seasonKey, dromeId);
+    if (!codemasterRow || normalizeUserKey(codemasterRow?.owner_key || "", "") !== codemasterKey) {
+      sendJson(response, 403, { error: "Voce nao e o CodeMaster atual deste Dromo." });
+      return;
+    }
+    if (!String(codemasterRow?.deck_key || "").trim()) {
+      sendJson(response, 400, { error: "Defina seu deck de CodeMaster antes de iniciar desafios." });
+      return;
+    }
+    const challengerSelection = getDromeSelectionForSeason(challengerKey, seasonKey);
+    if (!challengerSelection?.dromeId || challengerSelection.dromeId !== dromeId) {
+      sendJson(response, 400, { error: "O desafiante precisa estar no mesmo Dromo nesta temporada." });
+      return;
+    }
+    const streak = getDromeStreak(challengerKey, dromeId, seasonKey);
+    if (streak.current < 7) {
+      sendJson(response, 400, { error: "O desafiante precisa de 7 vitorias seguidas no Dromo para ser elegivel." });
+      return;
+    }
+    if (!isUserSessionOnline(challengerKey)) {
+      sendJson(response, 400, { error: "O desafiante precisa estar online para receber o convite." });
+      return;
+    }
+    const existingPending = sqliteDb
+      .prepare(`
+        SELECT invite_id
+        FROM drome_challenge_invites
+        WHERE season_key = ? AND drome_id = ? AND codemaster_key = ? AND challenger_key = ? AND status = 'pending'
+        LIMIT 1
+      `)
+      .get(seasonKey, dromeId, codemasterKey, challengerKey);
+    if (existingPending) {
+      sendJson(response, 409, { error: "Ja existe um convite pendente para este jogador neste Dromo." });
+      return;
+    }
+    const inviteId = `cm_${crypto.randomBytes(9).toString("hex")}`;
+    const createdAt = nowIso();
+    const expiresAt = new Date(Date.now() + DROME_CHALLENGE_INVITE_TTL_MS).toISOString();
+    sqliteDb
+      .prepare(`
+        INSERT INTO drome_challenge_invites
+          (invite_id, season_key, drome_id, codemaster_key, challenger_key, status, room_id, created_at, updated_at, expires_at, responded_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', '', ?, ?, ?, NULL)
+      `)
+      .run(inviteId, seasonKey, dromeId, codemasterKey, challengerKey, createdAt, createdAt, expiresAt);
+    createProfileNotification(
+      challengerKey,
+      "codemaster_challenge_invite",
+      "Convite de desafio CodeMaster",
+      `${authUser.username} desafiou voce no ${dromeNameById(dromeId)}.`,
+      { inviteId, dromeId, codemasterKey, codemasterUsername: String(authUser.username || codemasterKey) }
+    );
+    const invites = listDromeChallengeInvitesForOwner(codemasterKey);
+    sendJson(response, 200, {
+      ok: true,
+      inviteId,
+      outgoing: invites.outgoing,
+    });
+    return;
+  }
+
+  if (pathname === "/api/dromos/challenges/respond" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Desafios indisponiveis sem banco SQL." });
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    ensureDromeSeasonCycle(new Date());
+    cleanupExpiredDromeChallengeInvites();
+    const ownerKey = normalizeUserKey(authUser.username || "");
+    const inviteId = String(payload.inviteId || "").trim();
+    const decision = String(payload.decision || "").toLowerCase();
+    if (!inviteId || (decision !== "accept" && decision !== "reject")) {
+      sendJson(response, 400, { error: "inviteId e decision validos sao obrigatorios." });
+      return;
+    }
+    const invite = sqliteDb
+      .prepare(`
+        SELECT invite_id, season_key, drome_id, codemaster_key, challenger_key, status, room_id, expires_at
+        FROM drome_challenge_invites
+        WHERE invite_id = ? AND challenger_key = ?
+        LIMIT 1
+      `)
+      .get(inviteId, ownerKey);
+    if (!invite) {
+      sendJson(response, 404, { error: "Convite nao encontrado." });
+      return;
+    }
+    if (String(invite.status || "") !== "pending") {
+      sendJson(response, 409, { error: "Esse convite ja foi respondido." });
+      return;
+    }
+    if (Date.parse(String(invite.expires_at || "")) <= Date.now()) {
+      sqliteDb
+        .prepare("UPDATE drome_challenge_invites SET status = 'expired', updated_at = ? WHERE invite_id = ?")
+        .run(nowIso(), inviteId);
+      sendJson(response, 409, { error: "Convite expirado." });
+      return;
+    }
+    if (decision === "reject") {
+      sqliteDb
+        .prepare(`
+          UPDATE drome_challenge_invites
+          SET status = 'rejected', updated_at = ?, responded_at = ?
+          WHERE invite_id = ?
+        `)
+        .run(nowIso(), nowIso(), inviteId);
+      createProfileNotification(
+        String(invite.codemaster_key || ""),
+        "codemaster_challenge_rejected",
+        "Desafio recusado",
+        `${authUser.username} recusou seu desafio de CodeMaster.`,
+        { inviteId, challengerKey: ownerKey }
+      );
+      sendJson(response, 200, { ok: true, decision: "reject", inviteId });
+      return;
+    }
+
+    const codemasterKey = normalizeUserKey(invite.codemaster_key || "", "");
+    const dromeId = normalizeDromeId(invite.drome_id || "");
+    const seasonKey = String(invite.season_key || seasonKeyFromDate(new Date()));
+    const codemaster = sqliteDb
+      .prepare(`
+        SELECT owner_key, deck_key
+        FROM drome_codemasters
+        WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+        LIMIT 1
+      `)
+      .get(seasonKey, dromeId, codemasterKey);
+    if (!codemaster || !String(codemaster?.deck_key || "").trim()) {
+      sendJson(response, 409, { error: "CodeMaster atual ainda nao definiu deck de desafio." });
+      return;
+    }
+    const challengerDeckName = normalizeDeckName(payload.deckName || "");
+    if (!challengerDeckName) {
+      sendJson(response, 400, { error: "Informe deckName para aceitar o desafio." });
+      return;
+    }
+    const hostDeck = readDeckFileByName(`${normalizeDeckName(codemaster.deck_key)}.json`);
+    if (!hostDeck) {
+      sendJson(response, 409, { error: "Deck travado do CodeMaster nao foi encontrado." });
+      return;
+    }
+    const guestDeck = readDeckFileByName(`${challengerDeckName}.json`);
+    if (!guestDeck) {
+      sendJson(response, 404, { error: "Deck do desafiante nao encontrado." });
+      return;
+    }
+    const guestDeckOwner = normalizeUserKey(deckOwnerKey(guestDeck), "");
+    if (guestDeckOwner && guestDeckOwner !== ownerKey) {
+      sendJson(response, 403, { error: "O deck informado pertence a outro jogador." });
+      return;
+    }
+    const hostDeckValidation = validateDeckForRulesMode(hostDeck, "competitive");
+    const guestDeckValidation = validateDeckForRulesMode(guestDeck, "competitive");
+    if (!hostDeckValidation.ok || !guestDeckValidation.ok) {
+      sendJson(response, 400, {
+        error: "Deck invalido para desafio competitivo.",
+        details: {
+          codemaster: hostDeckValidation.errors || [],
+          challenger: guestDeckValidation.errors || [],
+        },
+      });
+      return;
+    }
+    const hostAvatar = resolveAvatarForUsername(codemasterKey);
+    const hostName = String(getProfileSummaryByOwnerKey(codemasterKey)?.username || codemasterKey || "CodeMaster");
+    const { room, roomId, hostToken } = createMultiplayerRoomRecord({
+      hostUsername: codemasterKey,
+      hostName,
+      hostAvatar,
+      hostDeck,
+      hostDeckName: String(codemaster.deck_key || "Deck CodeMaster"),
+      rulesMode: "competitive",
+      matchType: MATCH_TYPE_CODEMASTER_CHALLENGE,
+      dromeId,
+      challengeMeta: {
+        inviteId,
+        codemasterKey,
+        challengerKey: ownerKey,
+        dromeId,
+      },
+      reservedGuestKey: ownerKey,
+    });
+    const guestToken = generateSeatToken();
+    room.players.guest = {
+      name: String(authUser.username || ownerKey),
+      username: ownerKey,
+      avatar: resolveAvatarForUsername(ownerKey),
+      deck: guestDeck,
+      deckName: String(challengerDeckName || guestDeck?.name || "Deck Challenger"),
+      seatToken: guestToken,
+    };
+    room.updatedAt = nowIso();
+    await startRoomBattle(room);
+    sqliteDb
+      .prepare(`
+        UPDATE drome_challenge_invites
+        SET status = 'accepted', room_id = ?, updated_at = ?, responded_at = ?
+        WHERE invite_id = ?
+      `)
+      .run(roomId, nowIso(), nowIso(), inviteId);
+    createProfileNotification(
+      codemasterKey,
+      "codemaster_challenge_started",
+      "Desafio CodeMaster iniciado",
+      `${authUser.username} aceitou o desafio no ${dromeNameById(dromeId)}.`,
+      {
+        inviteId,
+        roomId,
+        seat: "host",
+        seatToken: hostToken,
+        dromeId,
+      }
+    );
+    sendJson(response, 200, {
+      ok: true,
+      decision: "accept",
+      inviteId,
+      room: {
+        roomId,
+        seat: "guest",
+        seatToken: guestToken,
+        matchType: MATCH_TYPE_CODEMASTER_CHALLENGE,
+        dromeId,
+      },
+    });
+    return;
+  }
+
+  if (pathname === "/api/ranked/dromes" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const seasonKey = seasonKeyFromDate(new Date());
+    const selection = getDromeSelectionForSeason(authUser.username, seasonKey);
+    sendJson(response, 200, {
+      ok: true,
+      seasonKey,
+      dromes: DROME_CATALOG.map((entry) => ({ ...entry })),
+      selection: selection || null,
+      locked: Boolean(selection),
     });
     return;
   }
@@ -13120,16 +14447,54 @@ async function handleRequest(request, response) {
         return sendJson(response, 400, { error: "JSON invalido" });
       }
 
+      const requestedMatchType = normalizeMatchType(payload.matchType || "");
+      const matchType = requestedMatchType || MATCH_TYPE_CASUAL_MULTIPLAYER;
+      if (matchType === MATCH_TYPE_CODEMASTER_CHALLENGE) {
+        return sendJson(response, 400, {
+          error: "Partidas CodeMaster sao criadas apenas pelo fluxo de convite de desafio.",
+        });
+      }
+      const rankedMatch = matchType === MATCH_TYPE_RANKED_DROME;
+      let rankedAuthUser = null;
+      if (rankedMatch) {
+        rankedAuthUser = requireAuthenticatedUser(request, response);
+        if (!rankedAuthUser) {
+          return;
+        }
+      }
+
       if (!payload.deck) {
         return sendJson(response, 400, { error: "Deck is required" });
       }
       const rulesMode = isValidRulesMode(payload.rulesMode) ? payload.rulesMode : "competitive";
-      const hostUsername = normalizeUserKey(payload.username || payload.playerName || "host");
+      const hostUsername = normalizeUserKey(
+        payload.username
+          || payload.playerName
+          || rankedAuthUser?.username
+          || "host"
+      );
+      if (rankedAuthUser && normalizeUserKey(rankedAuthUser.username || "", "") !== hostUsername) {
+        return sendJson(response, 403, { error: "Usuario da sessao nao corresponde ao host da partida ranqueada." });
+      }
       if (applyRateLimitWithUser(request, response, "multiplayer_create_user", hostUsername, {
         windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
         maxHits: ACTION_RATE_LIMIT_MAX,
       })) {
         return;
+      }
+      let dromeId = "";
+      if (rankedMatch) {
+        ensureDromeSeasonCycle(new Date());
+        const seasonKey = seasonKeyFromDate(new Date());
+        const selection = getDromeSelectionForSeason(hostUsername, seasonKey);
+        if (!selection?.dromeId) {
+          return sendJson(response, 400, { error: "Selecione um Dromo antes de criar partida ranked." });
+        }
+        const requestedDromeId = normalizeDromeId(payload.dromeId || "");
+        dromeId = requestedDromeId || selection.dromeId;
+        if (dromeId !== selection.dromeId) {
+          return sendJson(response, 400, { error: "Partida ranked deve usar o Dromo selecionado para esta temporada." });
+        }
       }
       const hostDeckValidation = validateDeckForRulesMode(payload.deck, rulesMode);
       if (!hostDeckValidation.ok) {
@@ -13137,43 +14502,24 @@ async function handleRequest(request, response) {
           error: `Deck invalido para modo ${rulesMode}: ${hostDeckValidation.errors.slice(0, 3).join(" | ")}`,
         });
       }
-      const hostToken = generateSeatToken();
       const hostAvatar = resolveAvatarForUsername(hostUsername);
-
-      const roomId = String(nextRoomId++);
-      const room = {
-        id: roomId,
+      const { room, roomId, hostToken } = createMultiplayerRoomRecord({
+        hostUsername,
+        hostName: String(payload.playerName || rankedAuthUser?.username || "Host"),
+        hostAvatar,
+        hostDeck: payload.deck,
+        hostDeckName: String(payload.deckName || payload.deck?.name || "Deck Host"),
         rulesMode,
-        phase: "lobby",
-        players: {
-          host: {
-            name: String(payload.playerName || "Host"),
-            username: hostUsername,
-            avatar: hostAvatar,
-            deck: payload.deck,
-            deckName: String(payload.deckName || payload.deck?.name || "Deck Host"),
-            seatToken: hostToken,
-          },
-          guest: null,
-        },
-        battleState: null,
-        clients: new Set(),
-        createdAt: nowIso(),
-        startedAt: null,
-        updatedAt: nowIso(),
-        lastActionSeq: 0,
-        rematch: {
-          pending: false,
-          requestedBy: null,
-          requestedAt: null,
-        },
-      };
-      multiplayerRooms.set(roomId, room);
+        matchType,
+        dromeId,
+      });
       sendJson(response, 200, {
         roomId,
         seat: "host",
         seatToken: hostToken,
         rulesMode: room.rulesMode,
+        matchType: normalizeMatchType(room.matchType || ""),
+        dromeId: normalizeDromeId(room.dromeId || ""),
       });
       return;
     }
@@ -13201,12 +14547,20 @@ async function handleRequest(request, response) {
       }
 
       if (payload.spectator) {
-        return sendJson(response, 200, { ok: true, seat: "spectator", roomId });
+        return sendJson(response, 200, {
+          ok: true,
+          seat: "spectator",
+          roomId,
+          matchType: normalizeMatchType(room?.matchType || ""),
+          dromeId: normalizeDromeId(room?.dromeId || room?.challengeMeta?.dromeId || ""),
+        });
       }
 
       if (!payload.deck) {
         return sendJson(response, 400, { error: "Deck is required" });
       }
+      const roomMatchType = normalizeMatchType(room?.matchType || "");
+      const roomDromeId = normalizeDromeId(room?.dromeId || room?.challengeMeta?.dromeId || "");
       const guestDeckValidation = validateDeckForRulesMode(payload.deck, room.rulesMode || "competitive");
       if (!guestDeckValidation.ok) {
         return sendJson(response, 400, {
@@ -13214,14 +14568,39 @@ async function handleRequest(request, response) {
         });
       }
 
-      const guestToken = generateSeatToken();
-      const guestUsername = normalizeUserKey(payload.username || payload.playerName || "guest");
+      let guestUsername = normalizeUserKey(payload.username || payload.playerName || "guest");
+      if (roomMatchType === MATCH_TYPE_RANKED_DROME) {
+        const joinAuth = requireAuthenticatedUser(request, response);
+        if (!joinAuth) {
+          return;
+        }
+        const joinOwner = normalizeUserKey(joinAuth.username || "", "");
+        if (!joinOwner || (guestUsername && guestUsername !== joinOwner)) {
+          return sendJson(response, 403, { error: "Usuario da sessao nao corresponde ao convidado da partida ranked." });
+        }
+        guestUsername = joinOwner;
+        ensureDromeSeasonCycle(new Date());
+        const seasonKey = seasonKeyFromDate(new Date());
+        const selection = getDromeSelectionForSeason(guestUsername, seasonKey);
+        if (!selection?.dromeId) {
+          return sendJson(response, 400, { error: "Selecione um Dromo antes de entrar em partida ranked." });
+        }
+        if (selection.dromeId !== roomDromeId) {
+          return sendJson(response, 400, { error: "Este ranked pertence a outro Dromo." });
+        }
+      }
+      if (roomMatchType === MATCH_TYPE_CODEMASTER_CHALLENGE) {
+        if (!room?.reservedGuestKey || normalizeUserKey(room.reservedGuestKey, "") !== guestUsername) {
+          return sendJson(response, 403, { error: "Esta sala de desafio CodeMaster e reservada para outro jogador." });
+        }
+      }
       if (applyRateLimitWithUser(request, response, "multiplayer_join_user", guestUsername, {
         windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
         maxHits: ACTION_RATE_LIMIT_MAX,
       })) {
         return;
       }
+      const guestToken = generateSeatToken();
       const guestAvatar = resolveAvatarForUsername(guestUsername);
       room.players.guest = {
         name: String(payload.playerName || "Guest"),
@@ -13241,6 +14620,8 @@ async function handleRequest(request, response) {
         seat: "guest",
         seatToken: guestToken,
         rulesMode: room.rulesMode,
+        matchType: roomMatchType,
+        dromeId: roomDromeId,
       });
       return;
     }

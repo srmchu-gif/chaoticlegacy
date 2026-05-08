@@ -1095,6 +1095,41 @@ body {
   gap: 0.45rem;
 }
 
+.profile-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.3rem 0 0.2rem;
+}
+
+.profile-tag-chip {
+  font-size: 0.62rem;
+  color: #9fd6f3;
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  border-radius: 999px;
+  padding: 0.18rem 0.45rem;
+  background: rgba(0, 210, 255, 0.1);
+}
+
+.profile-friends-subtabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.profile-friends-subtabs .profile-tab-btn {
+  flex: 1;
+}
+
+.profile-friends-subtab-panel {
+  display: none;
+  gap: 0.45rem;
+}
+
+.profile-friends-subtab-panel.active {
+  display: grid;
+}
+
 .profile-friends-column h5 {
   margin: 0 0 0.35rem;
   color: #9ec7de;
@@ -1145,6 +1180,10 @@ body {
   background: rgba(6, 13, 21, 0.7);
   color: #b8d1e4;
   font-size: 0.7rem;
+}
+
+.friend-summary-card {
+  width: min(540px, calc(100vw - 2rem));
 }
 
 /* Most Played Creature - Card Popup (above profile modal) */
@@ -1682,6 +1721,104 @@ body {
   gap: 0.5rem;
 }
 
+.dromos-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.dromos-col {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.dromos-card {
+  border: 1px solid rgba(0, 210, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(6, 13, 21, 0.7);
+  padding: 0.6rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dromos-card h3,
+.dromos-card h4 {
+  margin: 0;
+  color: #9dd9ff;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dromos-select-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.45rem;
+}
+
+#dromos-select-drome,
+#dromos-leaderboard-drome,
+#dromos-codemaster-drome,
+#dromos-codemaster-deck,
+#dromos-ranked-deck,
+#dromos-challenge-username {
+  min-height: 40px;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  background: rgba(5, 12, 20, 0.82);
+  color: #d9eefc;
+}
+
+#dromos-select-note {
+  color: #8faec3;
+  font-size: 0.65rem;
+}
+
+.dromos-season-summary {
+  display: grid;
+  gap: 0.28rem;
+  color: #9ec7de;
+  font-size: 0.68rem;
+}
+
+.dromos-list {
+  max-height: 220px;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.dromos-row {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(3, 9, 15, 0.75);
+  padding: 0.42rem 0.45rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.dromos-row strong {
+  color: #e9f8ff;
+  font-size: 0.72rem;
+}
+
+.dromos-row span {
+  color: #8ba8bf;
+  font-size: 0.66rem;
+}
+
+.dromos-row-actions {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.dromos-duo-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
 .trades-empty {
   font-size: 0.72rem;
   color: #8ba8bf;
@@ -1768,7 +1905,10 @@ body {
   .trades-room-main-layout,
   .trades-inventory-controls,
   .trades-room-actions,
-  .trades-join-row {
+  .trades-join-row,
+  .dromos-layout,
+  .dromos-duo-list,
+  .dromos-select-row {
     grid-template-columns: 1fr;
   }
   #trades-section-inventory {
