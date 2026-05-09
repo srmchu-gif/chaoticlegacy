@@ -1431,8 +1431,13 @@ function bindSidePanels(username) {
     }
   };
 
-  const toggleGlobalPanel = () => {
-    if (menuHomePanelSettings.globalChatEnabled === false || document.body.classList.contains("menu-sidebars-hidden")) {
+  const toggleGlobalPanel = (eventOrOptions = null) => {
+    const eventType = String(eventOrOptions?.type || "");
+    const bypassHiddenGuard = eventType === "menu:toggle-global-chat" || Boolean(eventOrOptions?.bypassHiddenGuard);
+    if (menuHomePanelSettings.globalChatEnabled === false) {
+      return;
+    }
+    if (!bypassHiddenGuard && document.body.classList.contains("menu-sidebars-hidden")) {
       return;
     }
     const nextOpen = !state.globalOpen;
@@ -3503,14 +3508,55 @@ function pickPresencePhrase(locationEntry, count) {
       state.selectedActionId = actions[0].id;
     }
     actionsList.innerHTML = "";
+    const selectedLocation = resolveSelectedLocation();
+    const ownedLocationSet = new Set(
+      getLocations()
+        .map((entry) => String(entry?.cardId || "").trim())
+        .filter(Boolean)
+    );
+    const computeExploreProgress = () => {
+      if (!selectedLocation) {
+        return { nearbyOwnedCount: 0, nearbyTotalCount: 0, progressPercent: 0 };
+      }
+      const linkedIds = [...new Set(
+        (Array.isArray(selectedLocation?.linkedLocationIds) ? selectedLocation.linkedLocationIds : [])
+          .map((cardId) => String(cardId || "").trim())
+          .filter((cardId) => cardId && cardId !== String(selectedLocation?.cardId || ""))
+      )];
+      const nearbyTotalCount = linkedIds.length;
+      if (!nearbyTotalCount) {
+        return { nearbyOwnedCount: 0, nearbyTotalCount: 0, progressPercent: 0 };
+      }
+      const nearbyOwnedCount = linkedIds.reduce(
+        (count, cardId) => count + (ownedLocationSet.has(cardId) ? 1 : 0),
+        0
+      );
+      const progressPercent = Math.max(0, Math.min(100, Math.round((nearbyOwnedCount / nearbyTotalCount) * 100)));
+      return { nearbyOwnedCount, nearbyTotalCount, progressPercent };
+    };
+    const exploreProgress = computeExploreProgress();
     actions.forEach((action) => {
       const item = document.createElement("button");
       item.type = "button";
       item.className = `perim-action-item${state.selectedActionId === action.id ? " selected" : ""}`;
       item.disabled = Boolean(activeRun);
+      const exploreProgressHtml = action.id === "explore"
+        ? `
+          <div class="perim-explore-progress">
+            <div class="perim-explore-progress-header">
+              <span>Locais proximos descobertos</span>
+              <span>${exploreProgress.nearbyOwnedCount}/${exploreProgress.nearbyTotalCount}</span>
+            </div>
+            <div class="perim-explore-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${exploreProgress.progressPercent}">
+              <div class="perim-explore-progress-fill" style="width:${exploreProgress.progressPercent}%;"></div>
+            </div>
+          </div>
+        `
+        : "";
       item.innerHTML = `
         <strong>${escapeHtml(action.name)}</strong>
         <small>${escapeHtml(action.description)}</small>
+        ${exploreProgressHtml}
       `;
       item.addEventListener("click", () => {
         state.selectedActionId = action.id;

@@ -4001,6 +4001,10 @@ const DEFAULT_LOCATION_RARITY_DROP_CHANCE = {
   promo: 0.02,
 };
 
+const PERIM_ANOMALY_DIRECT_REVEAL_CHANCE = 0.02;
+const PERIM_LOCATION_DROP_COPY_CAP = 3;
+const PERIM_LOCATION_DROP_BASE_CHANCE_MULTIPLIER = 0.82;
+
 const DEFAULT_PERIM_CAMP_CREATURE_STACKING = {
   enabled: true,
   bonusPerWaitPercent: 5,
@@ -4769,6 +4773,77 @@ function collectPerimLocationEntriesForPlayer(playerKeyRaw, preloadedCards = nul
   return entries;
 }
 
+function buildPlayerLocationOwnershipCountMap(playerKeyRaw, preloadedCards = null) {
+  const playerKey = normalizeUserKey(playerKeyRaw || "local-player");
+  const counts = new Map();
+  const addCount = (cardIdRaw, amountRaw = 1) => {
+    const cardId = String(cardIdRaw || "").trim();
+    if (!cardId) {
+      return;
+    }
+    const amount = Math.max(0, Number(amountRaw || 0));
+    if (!amount) {
+      return;
+    }
+    counts.set(cardId, (counts.get(cardId) || 0) + amount);
+  };
+
+  if (isSqlV2Ready()) {
+    const normalizedOwner = normalizeUserKey(playerKey, "");
+    const scanRows = sqliteDb
+      .prepare(`
+        SELECT card_id, COUNT(*) AS total
+        FROM scan_entries
+        WHERE owner_key = ? AND card_type = 'locations'
+        GROUP BY card_id
+      `)
+      .all(playerKey);
+    scanRows.forEach((row) => addCount(row?.card_id, row?.total));
+    const deckRows = sqliteDb
+      .prepare(`
+        SELECT dc.card_id, COUNT(*) AS total
+        FROM deck_cards dc
+        LEFT JOIN deck_headers dh
+          ON dh.deck_key = dc.deck_key
+        WHERE lower(dc.card_type) = 'locations'
+          AND lower(COALESCE(NULLIF(dh.owner_key, ''), NULLIF(dc.owner_key_shadow, ''))) = ?
+        GROUP BY dc.card_id
+      `)
+      .all(normalizedOwner);
+    deckRows.forEach((row) => addCount(row?.card_id, row?.total));
+    return counts;
+  }
+
+  const cards = preloadedCards && typeof preloadedCards === "object"
+    ? preloadedCards
+    : (() => {
+        const scans = loadScansData();
+        const { cards: userCards, changed } = getScansCardsForUser(scans, playerKey, true);
+        if (changed) {
+          writeScansData(scans, "perim_scans_bootstrap");
+        }
+        return userCards;
+      })();
+
+  (cards.locations || []).forEach((entry) => {
+    addCount(scanEntryToCardId("locations", entry), 1);
+  });
+  listDeckFileNames().forEach((fileName) => {
+    const deck = readDeckFileByName(fileName);
+    if (!deck || typeof deck !== "object") {
+      return;
+    }
+    const owner = deckOwnerKey(deck);
+    const isLegacyLocalDeck = !owner && playerKey === "local-player";
+    if (!isLegacyLocalDeck && owner !== playerKey) {
+      return;
+    }
+    const deckLocations = Array.isArray(deck?.cards?.locations) ? deck.cards.locations : [];
+    deckLocations.forEach((entry) => addCount(deckCardIdFromEntry("locations", entry), 1));
+  });
+  return counts;
+}
+
 function locationRarityLevel(rarityRaw) {
   const rarity = normalizePerimText(rarityRaw);
   if (rarity === "promo") return 6;
@@ -5194,6 +5269,12 @@ function buildPerimCluesForRun(actionId, locationEntry, rewards, options = {}) {
   });
   if (!candidate) {
     return ["A anomalia nao estabilizou pistas suficientes sobre criaturas nesta area."];
+  }
+  if (Math.random() < PERIM_ANOMALY_DIRECT_REVEAL_CHANCE) {
+    const revealedName = String(candidate?.card?.name || candidate?.entry?.name || "").trim();
+    if (revealedName) {
+      return [`Voce descobriu que uma das criaturas desta area e: ${revealedName}.`];
+    }
   }
   const allClues = buildCreatureCluesFromCandidate(candidate);
   if (!allClues.length) {
@@ -5753,6 +5834,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   const scannerEffect = options.scannerEffect || scannerEffectsByLevel(1);
   const tribeScannerRareBoosts = options.tribeScannerRareBoosts instanceof Map ? options.tribeScannerRareBoosts : new Map();
   const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
+  const locationOwnedTotalCounts = options.locationOwnedTotalCounts instanceof Map ? new Map(options.locationOwnedTotalCounts) : new Map();
   const includeCreatureVariant = Boolean(options.includeCreatureVariant);
   const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
   const locationRules = getPerimLocationRules();
@@ -5778,6 +5860,85 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     Math.min(1, Number(calculateCreatureChancePercent(locationEntry?.rarity, actionId) || 0) / 100)
   );
   const { locationsById: locationCardsById } = getLibraryIndexes();
+  const resolveOwnedLocationTotal = (cardIdRaw) => {
+    const cardId = String(cardIdRaw || "").trim();
+    if (!cardId) {
+      return 0;
+    }
+    const byScanAndDeck = Math.max(0, Number(locationOwnedTotalCounts.get(cardId) || 0));
+    const byInventory = Math.max(0, Number(inventoryCounts.get(`locations:${cardId}`) || 0));
+    return Math.max(byScanAndDeck, byInventory);
+  };
+  const locationRepeatWeightByOwnedCopies = (ownedCopies) => {
+    if (ownedCopies <= 0) return 1;
+    if (ownedCopies === 1) return 0.72;
+    if (ownedCopies === 2) return 0.45;
+    return 0;
+  };
+  const buildLocationRewardCandidates = (locationIdList) => {
+    const uniqueIds = [...new Set(
+      (Array.isArray(locationIdList) ? locationIdList : [])
+        .map((id) => String(id || "").trim())
+        .filter(Boolean)
+    )];
+    return uniqueIds
+      .map((cardId) => locationCardsById.get(cardId))
+      .filter(Boolean)
+      .map((card) => {
+        const id = String(card?.id || "").trim();
+        if (!id) {
+          return null;
+        }
+        const lowerName = String(card?.name || "").toLowerCase();
+        if (lowerName.includes("unused") || lowerName.includes("alpha")) {
+          return null;
+        }
+        const inventoryAmount = Math.max(0, Number(inventoryCounts.get(`locations:${id}`) || 0));
+        if (!ignoreInventoryCap && inventoryAmount >= INVENTORY_MAX_COPIES) {
+          return null;
+        }
+        const ownedTotal = resolveOwnedLocationTotal(id);
+        if (ownedTotal >= PERIM_LOCATION_DROP_COPY_CAP) {
+          return null;
+        }
+        const rarityChance = Math.max(0.01, locationDropChanceByRarity(card?.rarity || ""));
+        const repeatWeight = Math.max(0, locationRepeatWeightByOwnedCopies(ownedTotal));
+        if (repeatWeight <= 0) {
+          return null;
+        }
+        return {
+          card,
+          weight: Math.max(0.01, rarityChance * repeatWeight),
+        };
+      })
+      .filter(Boolean);
+  };
+  const pickLocationCardWithBias = (locationIdList, includeCurrentLocation = false) => {
+    const currentLocationId = String(locationEntry?.cardId || locationEntry?.id || "").trim();
+    const sourceIds = [...(Array.isArray(locationIdList) ? locationIdList : [])];
+    if (includeCurrentLocation && currentLocationId) {
+      sourceIds.push(currentLocationId);
+    }
+    const candidates = buildLocationRewardCandidates(sourceIds);
+    if (!candidates.length) {
+      return null;
+    }
+    const sameLocationId = String(currentLocationId || "");
+    const adjacentCandidates = sameLocationId
+      ? candidates.filter((entry) => String(entry?.card?.id || "") !== sameLocationId)
+      : candidates;
+    const basePool = adjacentCandidates.length && Math.random() < adjacentFirstChance
+      ? adjacentCandidates
+      : candidates;
+    const picked = weightedRandomChoice(basePool, Math.random)
+      || weightedRandomChoice(candidates, Math.random)
+      || null;
+    if (!picked?.card && sameLocationId && Math.random() < fallbackCurrentMinChance) {
+      const sameLocationCandidate = candidates.find((entry) => String(entry?.card?.id || "") === sameLocationId) || null;
+      return sameLocationCandidate?.card || null;
+    }
+    return picked?.card || null;
+  };
   const pickCreatureForAction = () => {
     if (creatureDropsInRun >= maxCreatureDropsPerRun) {
       return null;
@@ -5837,6 +5998,12 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         return false;
       }
       creatureDropsInRun += 1;
+    } else if (normalized.type === "locations") {
+      const cardId = String(normalized?.cardId || "").trim();
+      if (cardId) {
+        const nextOwned = resolveOwnedLocationTotal(cardId) + 1;
+        locationOwnedTotalCounts.set(cardId, nextOwned);
+      }
     }
     rewards.push(normalized);
     increaseInventoryCountMap(inventoryCounts, normalized);
@@ -5844,51 +6011,16 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   };
 
   const pickGuaranteedLocalReward = () => {
-    const locationPool = [];
-    const locationId = String(locationEntry?.cardId || locationEntry?.id || "").trim();
-    if (locationId) {
-      locationPool.push(locationId);
-    }
     const linked = Array.isArray(locationEntry?.linkedLocationIds) ? locationEntry.linkedLocationIds : [];
-    linked.forEach((id) => {
-      const token = String(id || "").trim();
-      if (token && !locationPool.includes(token)) {
-        locationPool.push(token);
-      }
-    });
-    const locationCandidates = locationPool
-      .map((id) => locationCardsById.get(String(id)))
-      .filter(Boolean)
-      .filter((card) => {
-        const stockKey = `locations:${String(card.id)}`;
-        const currentAmount = inventoryCounts.get(stockKey) || 0;
-        if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
-          return false;
-        }
-        const lowerName = String(card?.name || "").toLowerCase();
-        return !lowerName.includes("unused") && !lowerName.includes("alpha");
+    const pickedLocation = pickLocationCardWithBias(linked, true);
+    if (pickedLocation) {
+      appendReward({
+        type: "locations",
+        cardId: pickedLocation.id,
+        cardName: pickedLocation.name,
+        rarity: pickedLocation.rarity || "Unknown",
+        image: pickedLocation.image || "",
       });
-
-    if (locationCandidates.length) {
-      const sameLocationId = String(locationId || "");
-      const adjacentPool = locationCandidates.filter((card) => String(card.id) !== sameLocationId);
-      let pickedLocation = null;
-      if (adjacentPool.length && Math.random() < adjacentFirstChance) {
-        pickedLocation = pickFromList(adjacentPool);
-      } else if (adjacentPool.length) {
-        pickedLocation = pickFromList(adjacentPool);
-      } else if (sameLocationId && Math.random() < fallbackCurrentMinChance) {
-        pickedLocation = locationCandidates.find((card) => String(card.id) === sameLocationId) || null;
-      }
-      if (pickedLocation) {
-        appendReward({
-          type: "locations",
-          cardId: pickedLocation.id,
-          cardName: pickedLocation.name,
-          rarity: pickedLocation.rarity || "Unknown",
-          image: pickedLocation.image || "",
-        });
-      }
     }
   };
 
@@ -5966,32 +6098,16 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     }
     const locationDropChance = Math.max(
       0,
-      Math.min(1, locationDropChanceByRarity(locationEntry?.rarity || "") * Math.max(0.2, Number(profile.locationDropBias || 1)))
+      Math.min(
+        1,
+        locationDropChanceByRarity(locationEntry?.rarity || "")
+        * Math.max(0.2, Number(profile.locationDropBias || 1))
+        * PERIM_LOCATION_DROP_BASE_CHANCE_MULTIPLIER
+      )
     );
     const linkedLocationIds = Array.isArray(locationEntry?.linkedLocationIds) ? locationEntry.linkedLocationIds : [];
     if (Math.random() < locationDropChance) {
-      const linkedPool = linkedLocationIds
-        .map((cardId) => locationCardsById.get(String(cardId)))
-        .filter((card) => Boolean(card))
-        .filter((card) => {
-          const stockKey = `locations:${String(card.id)}`;
-          const currentAmount = inventoryCounts.get(stockKey) || 0;
-          return ignoreInventoryCap || currentAmount < INVENTORY_MAX_COPIES;
-        });
-      const currentLocationId = String(locationEntry?.cardId || locationEntry?.id || "");
-      const sameLocationCard = locationCardsById.get(currentLocationId) || null;
-      let picked = null;
-      if (linkedPool.length && Math.random() < adjacentFirstChance) {
-        picked = pickFromList(linkedPool);
-      } else if (linkedPool.length) {
-        picked = pickFromList(linkedPool);
-      } else if (sameLocationCard && Math.random() < fallbackCurrentMinChance) {
-        const stockKey = `locations:${String(sameLocationCard.id)}`;
-        const currentAmount = inventoryCounts.get(stockKey) || 0;
-        if (ignoreInventoryCap || currentAmount < INVENTORY_MAX_COPIES) {
-          picked = sameLocationCard;
-        }
-      }
+      const picked = pickLocationCardWithBias(linkedLocationIds, true);
       if (picked?.id) {
         appendReward({
           type: "locations",
@@ -6043,12 +6159,6 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     attempts += 1;
     if (rewards.length >= maxTotalDropsPerRun) {
       break;
-    }
-    if (!rewards.some((reward) => String(reward?.type || "") === "locations")) {
-      pickGuaranteedLocalReward();
-      if (rewards.length >= minRewardsTarget || rewards.length >= maxTotalDropsPerRun) {
-        break;
-      }
     }
     const topUp =
       pickRewardForType(weightedPickWithClimate(profile.primary, activeClimate) || "attacks")
@@ -7531,10 +7641,29 @@ function buildPerimStatePayload(playerKeyRaw) {
   const dailyIndex = getDailyCreatureIndex();
   const locationCardCountMap = dailyIndex?.byLocationCardId || new Map();
   const campStackingSettings = getPerimCampCreatureStackingSettings();
-  const locations = buildPerimLocationsFromScans(locationEntries).map((entry) => {
+  const baseLocations = buildPerimLocationsFromScans(locationEntries);
+  const ownedLocationIds = new Set(
+    baseLocations
+      .map((entry) => String(entry?.cardId || "").trim())
+      .filter(Boolean)
+  );
+  const locations = baseLocations.map((entry) => {
     const scannerState = resolveScannerStateForLocation(profile, entry);
     const campWaitCount = getPerimCampWaitCount(playerState, entry.cardId);
     const campCreatureBonusPercent = calculatePerimCampCreatureBonusPercent(campWaitCount);
+    const linkedLocationIds = [...new Set(
+      (Array.isArray(entry?.linkedLocationIds) ? entry.linkedLocationIds : [])
+        .map((id) => String(id || "").trim())
+        .filter((id) => id && id !== String(entry?.cardId || ""))
+    )];
+    const nearbyTotalCount = linkedLocationIds.length;
+    const nearbyOwnedCount = linkedLocationIds.reduce(
+      (count, cardId) => count + (ownedLocationIds.has(cardId) ? 1 : 0),
+      0
+    );
+    const nearbyProgressPercent = nearbyTotalCount
+      ? Math.max(0, Math.min(100, Math.round((nearbyOwnedCount / nearbyTotalCount) * 100)))
+      : 0;
     let creaturesTodayCount = creatureCountByLocation.get(entry.cardId);
     if (typeof creaturesTodayCount !== "number") {
       creaturesTodayCount = (locationCardCountMap.get(String(entry.cardId)) || []).length;
@@ -7549,6 +7678,9 @@ function buildPerimStatePayload(playerKeyRaw) {
       campWaitCount,
       campCreatureBonusPercent,
       campCreatureBonusMaxRarity: String(campStackingSettings?.bonusMaxRarity || "super rare"),
+      nearbyTotalCount,
+      nearbyOwnedCount,
+      nearbyProgressPercent,
       scanner: {
         key: scannerState.scannerKey,
         level: scannerState.level,
@@ -13622,11 +13754,13 @@ async function handleRequest(request, response) {
     const endAt = new Date(startAt.getTime() + durationMs);
     const runId = crypto.randomBytes(12).toString("hex");
     const inventoryCounts = buildInventoryCountMap(cards);
+    const locationOwnedTotalCounts = buildPlayerLocationOwnershipCountMap(playerKeyRaw, cards);
     const campWaitCount = actionId === "camp"
       ? getPerimCampWaitCount(playerState, locationCard.id)
       : 0;
     const rewards = buildPerimRewards(selectedLocation, actionId, {
       inventoryCounts,
+      locationOwnedTotalCounts,
       scannerEffect: scannerState.effect,
       tribeScannerRareBoosts: scannerState.tribeRareBoostMap,
       includeCreatureVariant: true,
