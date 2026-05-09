@@ -85,6 +85,10 @@ body {
   right: 0.6rem;
 }
 
+body.menu-sidebars-hidden .side-panel {
+  display: none !important;
+}
+
 .side-panel.collapsed.side-panel-left {
   transform: translateX(calc(-100% + 46px));
 }

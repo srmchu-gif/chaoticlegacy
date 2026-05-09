@@ -21,6 +21,25 @@ function qs(id) {
   return document.getElementById(id);
 }
 
+function updateMainMenuSidebarVisibility() {
+  const globalSidebar = qs("global-chat-sidebar");
+  const top50Sidebar = qs("top50-sidebar");
+  if (!globalSidebar && !top50Sidebar) {
+    return;
+  }
+  const menuNav = qs("menu-nav");
+  const dromosPanel = qs("dromos-panel");
+  const perimPanel = qs("perim-panel");
+  const tradesPanel = qs("trades-panel");
+  const multiplayerPanel = qs("multiplayer-panel");
+  const navVisible = menuNav ? getComputedStyle(menuNav).display !== "none" : false;
+  const anyPanelVisible = [dromosPanel, perimPanel, tradesPanel, multiplayerPanel]
+    .filter(Boolean)
+    .some((panel) => getComputedStyle(panel).display !== "none");
+  const showSidebars = navVisible && !anyPanelVisible;
+  document.body.classList.toggle("menu-sidebars-hidden", !showSidebars);
+}
+
 function normalizeUsername(value) {
   return String(value || "")
     .trim()
@@ -1340,6 +1359,9 @@ function bindSidePanels(username) {
     });
   }
 
+  updateMainMenuSidebarVisibility();
+  window.addEventListener("resize", updateMainMenuSidebarVisibility);
+
   window.addEventListener("beforeunload", () => {
     if (chatEventSource) {
       try { chatEventSource.close(); } catch (_) {}
@@ -1693,6 +1715,7 @@ function bindMultiplayer(username) {
       if (menuNav) menuNav.style.display = "none";
       if (dromosPanel) dromosPanel.style.display = "none";
       if (mpPanel) mpPanel.style.display = "block";
+      updateMainMenuSidebarVisibility();
       if (mpCreateView) mpCreateView.style.display = "none";
       if (mpJoinView) mpJoinView.style.display = "none";
       if (mpJoinDeckSection) mpJoinDeckSection.style.display = "none";
@@ -1712,6 +1735,7 @@ function bindMultiplayer(username) {
       stopInvitePolling();
       if (mpPanel) mpPanel.style.display = "none";
       if (menuNav) menuNav.style.display = "flex";
+      updateMainMenuSidebarVisibility();
     });
   }
 
@@ -2387,6 +2411,7 @@ function bindDromos(username) {
     if (perimPanel) perimPanel.style.display = "none";
     if (tradesPanel) tradesPanel.style.display = "none";
     dromosPanel.style.display = "block";
+    updateMainMenuSidebarVisibility();
     await Promise.all([
       populateDecks(rankedDeckEl, username),
       populateDecks(codemasterDeckEl, username),
@@ -2408,6 +2433,7 @@ function bindDromos(username) {
       if (menuNav) {
         menuNav.style.display = "flex";
       }
+      updateMainMenuSidebarVisibility();
     });
   }
   dromosTabButtons.forEach((button) => {
@@ -3415,6 +3441,7 @@ function pickPresencePhrase(locationEntry, count) {
       tradesPanel.style.display = "none";
     }
     perimPanel.style.display = "block";
+    updateMainMenuSidebarVisibility();
     await refreshPerimState();
   });
 
@@ -3429,6 +3456,7 @@ function pickPresencePhrase(locationEntry, count) {
       if (menuNav) {
         menuNav.style.display = "flex";
       }
+      updateMainMenuSidebarVisibility();
     });
   }
 }
@@ -4126,6 +4154,7 @@ function bindTrades(username) {
       perimPanel.style.display = "none";
     }
     tradesPanel.style.display = "block";
+    updateMainMenuSidebarVisibility();
     renderTradeMonthlyUsage();
     clearEventSource();
     void refreshFriendTradeOptions(true);
@@ -4253,6 +4282,7 @@ function bindTrades(username) {
       if (menuNav) {
         menuNav.style.display = "flex";
       }
+      updateMainMenuSidebarVisibility();
     });
   }
 
@@ -4515,6 +4545,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindPerim(username);
   bindTrades(username);
   bindFooterActions();
+  updateMainMenuSidebarVisibility();
   await initMenuMusic();
 });
 
