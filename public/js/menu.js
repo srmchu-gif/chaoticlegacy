@@ -109,6 +109,15 @@ function updateMainMenuSidebarVisibility() {
   if (top50Sidebar) {
     top50Sidebar.hidden = !top50Enabled;
   }
+  window.dispatchEvent(new CustomEvent("menu:sidebar-visibility-updated", {
+    detail: {
+      globalEnabled,
+      top50Enabled,
+      navVisible,
+      anyPanelVisible,
+      showSidebars,
+    },
+  }));
 }
 
 function normalizeUsername(value) {
@@ -1278,6 +1287,10 @@ function bindSidePanels(username) {
 
   const isMobileExclusiveSidebarMode = () => window.matchMedia("(max-width: 480px)").matches;
   const isSidebarDragEnabled = () => !isMobileExclusiveSidebarMode();
+  const isDesktopMainMenuSidebarContext = () => (
+    !isMobileExclusiveSidebarMode()
+    && !document.body.classList.contains("menu-sidebars-hidden")
+  );
 
   const readPanelPosition = (key) => {
     const parsed = safeJsonParse(localStorage.getItem(key), null);
@@ -1420,6 +1433,22 @@ function bindSidePanels(username) {
     if (!state.globalOpen) {
       closeGlobalChatStream();
     }
+  };
+
+  const enforceDesktopGlobalChatVisibility = () => {
+    let changed = false;
+    if (menuHomePanelSettings.globalChatEnabled === false) {
+      if (state.globalOpen) {
+        state.globalOpen = false;
+        changed = true;
+      }
+      return changed;
+    }
+    if (isDesktopMainMenuSidebarContext() && !state.globalOpen) {
+      state.globalOpen = true;
+      changed = true;
+    }
+    return changed;
   };
 
   const toggleGlobalPanel = (eventOrOptions = null) => {
@@ -1654,6 +1683,9 @@ function bindSidePanels(username) {
   state.top50Open = readBool(TOP50_OPEN_KEY, readLegacyOpenFromCollapsed(TOP50_UI_KEY, false));
   state.globalPinned = readBool(GLOBAL_CHAT_PIN_KEY, false);
   state.top50Pinned = readBool(TOP50_PIN_KEY, false);
+  if (enforceDesktopGlobalChatVisibility()) {
+    persistOpenState();
+  }
   persistOpenState();
   persistPinState();
 
@@ -1746,6 +1778,19 @@ function bindSidePanels(username) {
   window.addEventListener("resize", onResize);
   window.addEventListener("menu:toggle-global-chat", toggleGlobalPanel);
   window.addEventListener("menu:toggle-top50", toggleTop50Panel);
+  const sidebarVisibilityHandler = () => {
+    if (enforceDesktopGlobalChatVisibility()) {
+      persistOpenState();
+    }
+    applyAllOpenStates();
+    if (state.globalOpen && isSidebarDragEnabled()) {
+      applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, {
+        side: "left",
+        useCurrentInline: !state.globalPinned,
+      });
+    }
+  };
+  window.addEventListener("menu:sidebar-visibility-updated", sidebarVisibilityHandler);
   const storageHandler = (event) => {
     if (
       event.key !== SETTINGS_KEY
@@ -1762,6 +1807,9 @@ function bindSidePanels(username) {
     if (event.key === GLOBAL_CHAT_OPEN_KEY || event.key === TOP50_OPEN_KEY) {
       state.globalOpen = readBool(GLOBAL_CHAT_OPEN_KEY, state.globalOpen);
       state.top50Open = readBool(TOP50_OPEN_KEY, state.top50Open);
+      if (enforceDesktopGlobalChatVisibility()) {
+        persistOpenState();
+      }
       applyAllOpenStates();
       if (state.globalOpen) {
         applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, { side: "left" });
@@ -1794,6 +1842,9 @@ function bindSidePanels(username) {
       return;
     }
     refreshMenuHomePanelSettingsFromStorage();
+    if (enforceDesktopGlobalChatVisibility()) {
+      persistOpenState();
+    }
     updateMainMenuSidebarVisibility();
     if (menuHomePanelSettings.globalChatEnabled === false && chatEventSource) {
       closeGlobalChatStream();
@@ -1805,6 +1856,7 @@ function bindSidePanels(username) {
     window.removeEventListener("resize", onResize);
     window.removeEventListener("menu:toggle-global-chat", toggleGlobalPanel);
     window.removeEventListener("menu:toggle-top50", toggleTop50Panel);
+    window.removeEventListener("menu:sidebar-visibility-updated", sidebarVisibilityHandler);
     window.removeEventListener("storage", storageHandler);
     closeGlobalChatStream();
   });
