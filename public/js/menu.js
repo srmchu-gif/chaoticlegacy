@@ -4,6 +4,8 @@ import { apiUrl, clearSessionToken, getSessionToken, setSessionToken, toPage } f
 const DB_SESSION = "chaotic_session";
 const SETTINGS_KEY = "chaotic.settings.v1";
 const LEGACY_SETTINGS_KEY = "chaotic_settings";
+const GLOBAL_CHAT_UI_KEY = "chaotic.global_chat_ui";
+const TOP50_UI_KEY = "chaotic.top50_ui";
 let libraryCachePromise = null;
 const NETWORK_TIMEOUT_MS = {
   session: 10000,
@@ -86,6 +88,16 @@ function normalizeFilterToken(value) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
+}
+
+function normalizeTribeThemeClass(value) {
+  const raw = normalizeFilterToken(value).replace(/[^a-z]/g, "");
+  if (!raw) return "";
+  if (raw.includes("outromundo") || raw.includes("overworld")) return "tribe-outromundo";
+  if (raw.includes("submundo") || raw.includes("underworld")) return "tribe-submundo";
+  if (raw.includes("danian")) return "tribe-danians";
+  if (raw.includes("mipedian")) return "tribe-mipedians";
+  return "";
 }
 
 function formatDurationLabel(ms) {
@@ -259,6 +271,7 @@ async function bindProfile(username, sessionData) {
   const friendSummaryScore = qs("friend-summary-score");
   const friendSummaryWL = qs("friend-summary-wl");
   const friendSummaryWinrate = qs("friend-summary-winrate");
+  const friendSummaryScansTotal = qs("friend-summary-scans-total");
   const friendSummaryTribe = qs("friend-summary-tribe");
   const friendSummaryDrome = qs("friend-summary-drome");
   const friendSummaryTag = qs("friend-summary-tag");
@@ -438,6 +451,14 @@ async function bindProfile(username, sessionData) {
     if (!friendSummaryModal || !friend) {
       return;
     }
+    const friendSummaryCard = friendSummaryModal.querySelector(".friend-summary-card");
+    if (friendSummaryCard) {
+      friendSummaryCard.classList.remove("tribe-outromundo", "tribe-submundo", "tribe-danians", "tribe-mipedians");
+      const tribeClass = normalizeTribeThemeClass(friend.favoriteTribe);
+      if (tribeClass) {
+        friendSummaryCard.classList.add(tribeClass);
+      }
+    }
     if (friendSummaryAvatar) {
       friendSummaryAvatar.src = String(friend.avatar || "/fundo%20cartas.png");
     }
@@ -455,6 +476,9 @@ async function bindProfile(username, sessionData) {
     }
     if (friendSummaryWinrate) {
       friendSummaryWinrate.textContent = `${Number(friend.winRate || 0).toFixed(2).replace(/\.00$/, "")}%`;
+    }
+    if (friendSummaryScansTotal) {
+      friendSummaryScansTotal.textContent = String(Number(friend?.scans?.total || 0));
     }
     if (friendSummaryTribe) {
       friendSummaryTribe.textContent = String(friend.favoriteTribe || "Sem Tribo");
@@ -787,15 +811,15 @@ async function bindProfile(username, sessionData) {
     const currentTagTitle = String(profile?.currentTagTitle || "-");
 
     // Apply tribe theme to profile modal card and avatar
-    const tribe = String(profile.favoriteTribe || currentUser?.tribe || "").toLowerCase();
+    const tribeClass = normalizeTribeThemeClass(profile.favoriteTribe || currentUser?.tribe || "");
     const modalCardEl = profileModal?.querySelector(".profile-modal-card");
     if (modalCardEl) {
       modalCardEl.classList.remove("tribe-outromundo", "tribe-submundo", "tribe-danians", "tribe-mipedians");
-      if (tribe) modalCardEl.classList.add(`tribe-${tribe}`);
+      if (tribeClass) modalCardEl.classList.add(tribeClass);
     }
     if (avatarContainer) {
       avatarContainer.classList.remove("tribe-outromundo", "tribe-submundo", "tribe-danians", "tribe-mipedians");
-      if (tribe) avatarContainer.classList.add(`tribe-${tribe}`);
+      if (tribeClass) avatarContainer.classList.add(tribeClass);
     }
 
     if (nameEl) nameEl.textContent = displayName;
@@ -912,7 +936,10 @@ async function bindProfile(username, sessionData) {
   }
 
   if (avatarContainer && currentUser?.tribe) {
-    avatarContainer.classList.add(`tribe-${currentUser.tribe}`);
+    const avatarTribeClass = normalizeTribeThemeClass(currentUser.tribe);
+    if (avatarTribeClass) {
+      avatarContainer.classList.add(avatarTribeClass);
+    }
   }
 
   if (avatarContainer) {
@@ -1094,6 +1121,233 @@ async function bindProfile(username, sessionData) {
   }
 }
 
+function bindSidePanels(username) {
+  const globalSidebar = qs("global-chat-sidebar");
+  const globalToggle = qs("global-chat-toggle");
+  const globalState = qs("global-chat-state");
+  const globalMessages = qs("global-chat-messages");
+  const globalInput = qs("global-chat-input");
+  const globalSend = qs("global-chat-send");
+
+  const top50Sidebar = qs("top50-sidebar");
+  const top50Toggle = qs("top50-toggle");
+  const top50State = qs("top50-state");
+  const top50List = qs("top50-list");
+  const top50TabScore = qs("top50-tab-score");
+  const top50TabScans = qs("top50-tab-scans");
+
+  let chatEventSource = null;
+  let top50Metric = "score";
+  let globalChatMessages = [];
+
+  const formatMessageTime = (value) => {
+    const parsed = new Date(value || Date.now());
+    if (Number.isNaN(parsed.getTime())) {
+      return "--:--";
+    }
+    return parsed.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const applyCollapsedState = (sidebar, toggle, collapsed) => {
+    if (!sidebar || !toggle) return;
+    sidebar.classList.toggle("collapsed", Boolean(collapsed));
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  };
+
+  const readUiState = (key, fallback = true) => {
+    const parsed = safeJsonParse(localStorage.getItem(key), null);
+    if (parsed && typeof parsed === "object" && typeof parsed.collapsed === "boolean") {
+      return parsed.collapsed;
+    }
+    return fallback;
+  };
+
+  const writeUiState = (key, collapsed) => {
+    localStorage.setItem(key, JSON.stringify({ collapsed: Boolean(collapsed), updatedAt: Date.now() }));
+  };
+
+  const renderGlobalMessages = (messages) => {
+    if (!globalMessages) return;
+    const list = Array.isArray(messages) ? messages.slice(-120) : [];
+    globalChatMessages = list;
+    if (!list.length) {
+      globalMessages.innerHTML = '<div class="trades-empty">Sem mensagens no chat global.</div>';
+      return;
+    }
+    globalMessages.innerHTML = list.map((entry) => `
+      <article class="side-panel-chat-msg">
+        <strong>${escapeHtml(entry?.username || "Jogador")}</strong>
+        <span>${escapeHtml(entry?.message || "")}</span>
+        <small>${escapeHtml(formatMessageTime(entry?.createdAt || Date.now()))}</small>
+      </article>
+    `).join("");
+    globalMessages.scrollTop = globalMessages.scrollHeight;
+  };
+
+  const connectGlobalEvents = () => {
+    if (!globalSidebar || !globalState) return;
+    if (chatEventSource) {
+      try { chatEventSource.close(); } catch (_) {}
+      chatEventSource = null;
+    }
+    chatEventSource = new EventSource(apiUrl("/api/chat/global/events"));
+    chatEventSource.onmessage = (event) => {
+      const payload = safeJsonParse(event.data, null);
+      if (!payload) return;
+      if (payload.type === "global_chat_snapshot") {
+        renderGlobalMessages(payload.messages || []);
+        globalState.textContent = "Chat global online.";
+        return;
+      }
+      if (payload.type === "global_chat_message" && payload.message) {
+        const merged = globalChatMessages.concat([payload.message]).slice(-120);
+        renderGlobalMessages(merged);
+      }
+    };
+    chatEventSource.onerror = () => {
+      if (globalState) globalState.textContent = "Conexao instavel no chat global.";
+    };
+  };
+
+  const refreshGlobalChat = async () => {
+    if (!globalState) return;
+    try {
+      const payload = await fetchJsonWithTimeout("/api/chat/global?limit=120", { method: "GET" });
+      renderGlobalMessages(payload?.messages || []);
+      globalState.textContent = "Chat global online.";
+      connectGlobalEvents();
+    } catch (error) {
+      globalState.textContent = error?.message || "Falha ao carregar chat global.";
+    }
+  };
+
+  const sendGlobalChatMessage = async () => {
+    const message = String(globalInput?.value || "").trim();
+    if (!message) return;
+    try {
+      if (globalSend) globalSend.disabled = true;
+      await fetchJsonWithTimeout("/api/chat/global", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+      if (globalInput) globalInput.value = "";
+    } catch (error) {
+      if (globalState) globalState.textContent = error?.message || "Falha ao enviar mensagem.";
+    } finally {
+      if (globalSend) globalSend.disabled = false;
+    }
+  };
+
+  const renderTop50 = (players) => {
+    if (!top50List) return;
+    const list = Array.isArray(players) ? players : [];
+    if (!list.length) {
+      top50List.innerHTML = '<div class="trades-empty">Sem dados de ranking.</div>';
+      return;
+    }
+    const valueLabel = top50Metric === "scans" ? "Scans" : "Score";
+    top50List.innerHTML = list.map((entry) => `
+      <article class="top50-row">
+        <img src="${escapeAttr(entry?.avatar || "/fundo%20cartas.png")}" alt="${escapeAttr(entry?.username || "Jogador")}" />
+        <div>
+          <strong>#${Number(entry?.rank || 0)} ${escapeHtml(entry?.username || "-")}</strong>
+          <span>${valueLabel}: ${top50Metric === "scans" ? Number(entry?.totalScans || 0) : Number(entry?.score || 0)}</span>
+          <span>Dromo: ${escapeHtml(entry?.currentDrome?.name || "-")}</span>
+        </div>
+      </article>
+    `).join("");
+  };
+
+  const refreshTop50 = async () => {
+    if (!top50State) return;
+    try {
+      const payload = await fetchJsonWithTimeout(`/api/leaderboards/top50?metric=${encodeURIComponent(top50Metric)}`, { method: "GET" });
+      renderTop50(payload?.players || []);
+      top50State.textContent = top50Metric === "scans" ? "Top 50 por scans." : "Top 50 por pontuacao.";
+    } catch (error) {
+      top50State.textContent = error?.message || "Falha ao carregar top 50.";
+      if (top50List) top50List.innerHTML = "";
+    }
+  };
+
+  if (globalSidebar && globalToggle) {
+    const collapsed = readUiState(GLOBAL_CHAT_UI_KEY, true);
+    applyCollapsedState(globalSidebar, globalToggle, collapsed);
+    globalToggle.addEventListener("click", () => {
+      const nextCollapsed = !globalSidebar.classList.contains("collapsed");
+      applyCollapsedState(globalSidebar, globalToggle, nextCollapsed);
+      writeUiState(GLOBAL_CHAT_UI_KEY, nextCollapsed);
+      if (!nextCollapsed) {
+        void refreshGlobalChat();
+      } else if (chatEventSource) {
+        try { chatEventSource.close(); } catch (_) {}
+        chatEventSource = null;
+      }
+    });
+    if (!collapsed) {
+      void refreshGlobalChat();
+    }
+  }
+
+  if (top50Sidebar && top50Toggle) {
+    const collapsed = readUiState(TOP50_UI_KEY, true);
+    applyCollapsedState(top50Sidebar, top50Toggle, collapsed);
+    top50Toggle.addEventListener("click", () => {
+      const nextCollapsed = !top50Sidebar.classList.contains("collapsed");
+      applyCollapsedState(top50Sidebar, top50Toggle, nextCollapsed);
+      writeUiState(TOP50_UI_KEY, nextCollapsed);
+      if (!nextCollapsed) {
+        void refreshTop50();
+      }
+    });
+    if (!collapsed) {
+      void refreshTop50();
+    }
+  }
+
+  if (globalSend) {
+    globalSend.addEventListener("click", () => {
+      void sendGlobalChatMessage();
+    });
+  }
+  if (globalInput) {
+    globalInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        void sendGlobalChatMessage();
+      }
+    });
+  }
+
+  if (top50TabScore) {
+    top50TabScore.addEventListener("click", () => {
+      top50Metric = "score";
+      top50TabScore.classList.add("active");
+      if (top50TabScans) top50TabScans.classList.remove("active");
+      void refreshTop50();
+    });
+  }
+  if (top50TabScans) {
+    top50TabScans.addEventListener("click", () => {
+      top50Metric = "scans";
+      top50TabScans.classList.add("active");
+      if (top50TabScore) top50TabScore.classList.remove("active");
+      void refreshTop50();
+    });
+  }
+
+  window.addEventListener("beforeunload", () => {
+    if (chatEventSource) {
+      try { chatEventSource.close(); } catch (_) {}
+      chatEventSource = null;
+    }
+  });
+}
+
 function bindNavigation() {
   const btnBuilder = qs("btn-builder");
   const btnSettings = qs("btn-settings");
@@ -1156,6 +1410,10 @@ function bindMultiplayer(username) {
   const selMpDeckCreate = qs("mp-deck-select-create");
   const selMpDeckJoin = qs("mp-deck-select-join");
   const selMpRulesMode = qs("mp-rules-mode");
+  const selMpFriend = qs("mp-friend-select");
+  const selMpFriendDeck = qs("mp-friend-deck");
+  const incomingInvitesEl = qs("mp-incoming-invites");
+  const outgoingInvitesEl = qs("mp-outgoing-invites");
 
   const btnMultiplayer = qs("btn-multiplayer");
   const btnMpBack = qs("btn-mp-back");
@@ -1163,8 +1421,214 @@ function bindMultiplayer(username) {
   const btnMpJoin = qs("btn-mp-join");
   const btnMpConfirmCreate = qs("btn-mp-confirm-create");
   const btnMpConfirmJoin = qs("btn-mp-confirm-join");
+  const btnMpSendFriendInvite = qs("btn-mp-send-friend-invite");
+  const btnMpRefreshFriendInvites = qs("btn-mp-refresh-friend-invites");
 
   let selectedRoomIdToJoin = null;
+  let invitePollTimer = null;
+
+  function stopInvitePolling() {
+    if (invitePollTimer) {
+      clearInterval(invitePollTimer);
+      invitePollTimer = null;
+    }
+  }
+
+  function startInvitePolling() {
+    stopInvitePolling();
+    invitePollTimer = setInterval(() => {
+      void refreshFriendOptions(true);
+      void refreshCasualInvites(true);
+    }, 15000);
+  }
+
+  async function refreshFriendOptions(silent = false) {
+    if (!selMpFriend) {
+      return;
+    }
+    try {
+      const [friendsPayload, presencePayload] = await Promise.all([
+        fetchJsonWithTimeout("/api/profile/friends", { method: "GET" }),
+        fetchJsonWithTimeout("/api/profile/friends/presence", { method: "GET" }),
+      ]);
+      const presenceMap = presencePayload?.presence && typeof presencePayload.presence === "object"
+        ? presencePayload.presence
+        : {};
+      const friends = Array.isArray(friendsPayload?.friends) ? friendsPayload.friends : [];
+      const onlineFriends = friends.filter((entry) => {
+        const ownerKey = normalizeUsername(entry?.ownerKey || entry?.username || "");
+        const status = String(presenceMap?.[ownerKey]?.status || "offline").toLowerCase();
+        return status === "online";
+      });
+      if (!onlineFriends.length) {
+        selMpFriend.innerHTML = '<option value="">Nenhum amigo online</option>';
+        return;
+      }
+      selMpFriend.innerHTML = onlineFriends
+        .map((entry) => `<option value="${escapeAttr(entry?.username || "")}">${escapeHtml(entry?.username || entry?.ownerKey || "Amigo")}</option>`)
+        .join("");
+    } catch (error) {
+      if (!silent) {
+        alert(error?.message || "Falha ao carregar amigos online.");
+      }
+      selMpFriend.innerHTML = '<option value="">Erro ao carregar amigos</option>';
+    }
+  }
+
+  function renderCasualInvites(payload) {
+    const incoming = Array.isArray(payload?.incoming) ? payload.incoming : [];
+    const outgoing = Array.isArray(payload?.outgoing) ? payload.outgoing : [];
+    if (incomingInvitesEl) {
+      if (!incoming.length) {
+        incomingInvitesEl.innerHTML = '<div class="trades-empty">Sem convites recebidos.</div>';
+      } else {
+        incomingInvitesEl.innerHTML = incoming.map((entry) => `
+          <div class="trades-invite-row">
+            <strong>${escapeHtml(entry.hostUsername || entry.hostKey || "Jogador")}</strong>
+            <span>${escapeHtml(entry.status || "pending")} • expira em ${Math.max(0, Math.ceil(Number(entry.expiresInMs || 0) / 60000))} min</span>
+            <div class="trades-invite-actions">
+              <button class="menu-btn primary-btn" data-mp-invite-accept="${escapeAttr(entry.inviteId)}">Aceitar</button>
+              <button class="menu-btn ghost-btn" data-mp-invite-reject="${escapeAttr(entry.inviteId)}">Recusar</button>
+            </div>
+          </div>
+        `).join("");
+      }
+      incomingInvitesEl.querySelectorAll("[data-mp-invite-accept]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const inviteId = String(button.getAttribute("data-mp-invite-accept") || "").trim();
+          if (!inviteId) return;
+          void respondCasualInvite(inviteId, "accept");
+        });
+      });
+      incomingInvitesEl.querySelectorAll("[data-mp-invite-reject]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const inviteId = String(button.getAttribute("data-mp-invite-reject") || "").trim();
+          if (!inviteId) return;
+          void respondCasualInvite(inviteId, "reject");
+        });
+      });
+    }
+    if (outgoingInvitesEl) {
+      if (!outgoing.length) {
+        outgoingInvitesEl.innerHTML = '<div class="trades-empty">Sem convites enviados.</div>';
+      } else {
+        outgoingInvitesEl.innerHTML = outgoing.map((entry) => {
+          const canJoin = Boolean(entry?.room?.roomId && entry?.status === "accepted");
+          return `
+            <div class="trades-invite-row">
+              <strong>${escapeHtml(entry.targetUsername || entry.targetKey || "Amigo")}</strong>
+              <span>${escapeHtml(entry.status || "pending")} • expira em ${Math.max(0, Math.ceil(Number(entry.expiresInMs || 0) / 60000))} min</span>
+              <div class="trades-invite-actions">
+                ${entry.status === "pending"
+                  ? `<button class="menu-btn ghost-btn" data-mp-invite-cancel="${escapeAttr(entry.inviteId)}">Cancelar</button>`
+                  : ""}
+                ${canJoin
+                  ? `<button class="menu-btn primary-btn" data-mp-invite-join="${escapeAttr(entry.inviteId)}">Entrar</button>`
+                  : ""}
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+      outgoingInvitesEl.querySelectorAll("[data-mp-invite-cancel]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const inviteId = String(button.getAttribute("data-mp-invite-cancel") || "").trim();
+          if (!inviteId) return;
+          void respondCasualInvite(inviteId, "cancel");
+        });
+      });
+      outgoingInvitesEl.querySelectorAll("[data-mp-invite-join]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const inviteId = String(button.getAttribute("data-mp-invite-join") || "").trim();
+          if (!inviteId) return;
+          const payload = await fetchJsonWithTimeout("/api/multiplayer/invites", { method: "GET" });
+          const invites = Array.isArray(payload?.outgoing) ? payload.outgoing : [];
+          const invite = invites.find((entry) => String(entry?.inviteId || "") === inviteId);
+          const room = invite?.room || null;
+          if (!room?.roomId || !room?.hostSeatToken) return;
+          window.location.href = buildMultiplayerBattleUrl({
+            roomId: room.roomId,
+            seat: "host",
+            seatToken: room.hostSeatToken,
+          });
+        });
+      });
+    }
+  }
+
+  async function refreshCasualInvites(silent = false) {
+    try {
+      const payload = await fetchJsonWithTimeout("/api/multiplayer/invites", { method: "GET" });
+      renderCasualInvites(payload);
+    } catch (error) {
+      if (!silent) {
+        alert(error?.message || "Falha ao carregar convites multiplayer.");
+      }
+    }
+  }
+
+  async function sendCasualInvite() {
+    const friendUsername = String(selMpFriend?.value || "").trim();
+    const deckName = String(selMpFriendDeck?.value || "").trim();
+    if (!friendUsername) {
+      alert("Selecione um amigo online.");
+      return;
+    }
+    if (!deckName) {
+      alert("Selecione um deck para convite.");
+      return;
+    }
+    try {
+      const deckData = await fetchDeckByName(deckName, username);
+      await fetchJsonWithTimeout("/api/multiplayer/invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          friendUsername,
+          deckName,
+          deck: deckData,
+        }),
+      });
+      await refreshCasualInvites(true);
+      alert("Convite enviado para batalha casual.");
+    } catch (error) {
+      alert(error?.message || "Falha ao enviar convite.");
+    }
+  }
+
+  async function respondCasualInvite(inviteId, decision) {
+    try {
+      const payloadBody = {
+        inviteId,
+        decision,
+      };
+      if (decision === "accept") {
+        const deckName = String(selMpFriendDeck?.value || selMpDeckJoin?.value || "").trim();
+        if (!deckName) {
+          alert("Selecione um deck para aceitar o convite.");
+          return;
+        }
+        const deckData = await fetchDeckByName(deckName, username);
+        payloadBody.deckName = deckName;
+        payloadBody.deck = deckData;
+      }
+      const payload = await fetchJsonWithTimeout("/api/multiplayer/invites/respond", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadBody),
+      });
+      await refreshCasualInvites(true);
+      if (decision === "accept" && payload?.room?.roomId) {
+        window.location.href = buildMultiplayerBattleUrl({
+          roomId: payload.room.roomId,
+          seat: payload.room.seat || "guest",
+          seatToken: payload.room.seatToken || "",
+        });
+      }
+    } catch (error) {
+      alert(error?.message || "Falha ao responder convite.");
+    }
+  }
 
   async function renderRoomList() {
     if (!mpRoomsList) {
@@ -1234,11 +1698,18 @@ function bindMultiplayer(username) {
       if (mpJoinDeckSection) mpJoinDeckSection.style.display = "none";
       await populateDecks(selMpDeckCreate, username);
       await populateDecks(selMpDeckJoin, username);
+      await populateDecks(selMpFriendDeck, username);
+      await Promise.all([
+        refreshFriendOptions(true),
+        refreshCasualInvites(true),
+      ]);
+      startInvitePolling();
     });
   }
 
   if (btnMpBack) {
     btnMpBack.addEventListener("click", () => {
+      stopInvitePolling();
       if (mpPanel) mpPanel.style.display = "none";
       if (menuNav) menuNav.style.display = "flex";
     });
@@ -1352,6 +1823,20 @@ function bindMultiplayer(username) {
       }
     });
   }
+
+  if (btnMpSendFriendInvite) {
+    btnMpSendFriendInvite.addEventListener("click", () => {
+      void sendCasualInvite();
+    });
+  }
+
+  if (btnMpRefreshFriendInvites) {
+    btnMpRefreshFriendInvites.addEventListener("click", () => {
+      void refreshFriendOptions();
+      void refreshCasualInvites();
+    });
+  }
+
 }
 
 function bindDromos(username) {
@@ -1364,6 +1849,8 @@ function bindDromos(username) {
   const tradesPanel = qs("trades-panel");
   const statusEl = qs("dromos-status");
   const seasonSummaryEl = qs("dromos-season-summary");
+  const selectCardEl = qs("dromos-select-card");
+  const codemasterCardEl = qs("dromos-codemaster-card");
   const selectDromeEl = qs("dromos-select-drome");
   const leaderboardDromeEl = qs("dromos-leaderboard-drome");
   const codemasterDromeEl = qs("dromos-codemaster-drome");
@@ -1374,10 +1861,11 @@ function bindDromos(username) {
   const incomingInvitesEl = qs("dromos-incoming-invites");
   const outgoingInvitesEl = qs("dromos-outgoing-invites");
   const liveListEl = qs("dromos-live-list");
-  const rankedRoomsEl = qs("dromos-ranked-rooms");
+  const rankedQueueStateEl = qs("dromos-ranked-queue-state");
   const btnSelect = qs("btn-dromos-select");
   const btnLeaderboardRefresh = qs("btn-dromos-leaderboard-refresh");
   const btnRankedCreate = qs("btn-dromos-ranked-create");
+  const btnRankedCancel = qs("btn-dromos-ranked-cancel");
   const btnCodemasterLock = qs("btn-dromos-codemaster-lock");
   const btnChallengeInvite = qs("btn-dromos-challenge-invite");
   const dromosTabButtons = Array.from(dromosPanel?.querySelectorAll?.("[data-dromos-tab]") || []);
@@ -1397,6 +1885,8 @@ function bindDromos(username) {
     dromes: [],
     selection: null,
     invites: { incoming: [], outgoing: [] },
+    rankedQueue: null,
+    rankedMatchedRoom: null,
     overview: null,
     pollTimer: null,
     activeTab: "season",
@@ -1444,6 +1934,7 @@ function bindDromos(username) {
       void refreshOverview(true);
       void refreshLiveFights(true);
       void refreshInvites(true);
+      void refreshRankedQueueState(true);
     }, 20000);
   }
 
@@ -1465,14 +1956,22 @@ function bindDromos(username) {
     const selection = overview.selection || null;
     const myStats = overview.mySelectedStats || null;
     const myTag = overview.myTag || null;
+    const fallbackTag = String(overview?.myFallbackTag || "");
+    const tagLabel = String(myTag?.title || fallbackTag || "-");
     const rows = [
       `Temporada: ${escapeHtml(overview.seasonKey || "-")}`,
       `Dromo selecionado: ${escapeHtml(selection?.dromeName || selection?.dromeId || "-")}`,
       `Pontuacao atual: ${myStats ? Number(myStats.score || 0) : 0}`,
       `W/L: ${myStats ? `${Number(myStats.wins || 0)} / ${Number(myStats.losses || 0)}` : "0 / 0"}`,
-      `Tag atual: ${escapeHtml(myTag?.title || "-")}`,
+      `Tag atual: ${escapeHtml(tagLabel)}`,
     ];
     seasonSummaryEl.innerHTML = rows.map((row) => `<span>${row}</span>`).join("");
+    if (selectCardEl) {
+      selectCardEl.style.display = overview?.showSelectDrome ? "grid" : "none";
+    }
+    if (codemasterCardEl) {
+      codemasterCardEl.style.display = overview?.showCodemasterActions ? "grid" : "none";
+    }
   }
 
   function renderInvitesList() {
@@ -1613,13 +2112,31 @@ function bindDromos(username) {
         return;
       }
       liveListEl.innerHTML = rooms.map((entry) => `
-        <div class="dromos-row">
-          <strong>${entry.highlight ? "[CodeMaster] " : ""}${escapeHtml(entry.hostName || "Host")} vs ${escapeHtml(entry.guestName || "Guest")}</strong>
-          <span>${escapeHtml(entry.dromeName || "-")} • ${escapeHtml(entry.matchType || "-")}</span>
+        <article class="dromos-live-card">
+          <strong>${entry.highlight ? "[CodeMaster] " : ""}${escapeHtml(entry.dromeName || "-")} • ${escapeHtml(entry.matchType || "-")}</strong>
+          <div class="dromos-live-versus">
+            <div class="dromos-live-player">
+              <img src="${escapeAttr(entry.hostAvatar || "/fundo%20cartas.png")}" alt="${escapeAttr(entry.hostName || "Host")}" />
+              <div>
+                <strong>${escapeHtml(entry.hostName || "Host")}</strong>
+                <span>Score ${Number(entry.hostScore || 0)} • ${escapeHtml(entry.hostDeckName || "-")}</span>
+                <span>${escapeHtml(entry.hostMessage || `${entry.hostName || "Host"} esta jogando de ${entry.hostDeckName || "-"}`)}</span>
+              </div>
+            </div>
+            <div class="dromos-live-x">X</div>
+            <div class="dromos-live-player">
+              <img src="${escapeAttr(entry.guestAvatar || "/fundo%20cartas.png")}" alt="${escapeAttr(entry.guestName || "Guest")}" />
+              <div>
+                <strong>${escapeHtml(entry.guestName || "Guest")}</strong>
+                <span>Score ${Number(entry.guestScore || 0)} • ${escapeHtml(entry.guestDeckName || "-")}</span>
+                <span>${escapeHtml(entry.guestMessage || `${entry.guestName || "Guest"} esta jogando de ${entry.guestDeckName || "-"}`)}</span>
+              </div>
+            </div>
+          </div>
           <div class="dromos-row-actions">
             <button class="menu-btn ghost-btn" data-dromos-watch-room="${escapeAttr(entry.roomId)}">Assistir</button>
           </div>
-        </div>
+        </article>
       `).join("");
       liveListEl.querySelectorAll("[data-dromos-watch-room]").forEach((button) => {
         button.addEventListener("click", () => {
@@ -1635,39 +2152,50 @@ function bindDromos(username) {
     }
   }
 
-  async function refreshRankedRooms(silent = false) {
-    try {
-      const payload = await fetchJsonWithTimeout("/api/multiplayer/rooms", { method: "GET" });
-      const rooms = Array.isArray(payload?.rooms) ? payload.rooms : [];
-      const selectedDromeId = String(state.selection?.dromeId || "");
-      const rankedRooms = rooms.filter((room) => String(room?.matchType || "") === "ranked_drome" && String(room?.phase || "lobby") === "lobby");
-      const filtered = selectedDromeId ? rankedRooms.filter((room) => String(room?.dromeId || "") === selectedDromeId) : rankedRooms;
-      if (!rankedRoomsEl) {
-        return;
-      }
-      if (!filtered.length) {
-        rankedRoomsEl.innerHTML = '<div class="trades-empty">Nenhuma sala ranked aberta agora.</div>';
-        return;
-      }
-      rankedRoomsEl.innerHTML = filtered.map((room) => `
+  function renderRankedQueueState() {
+    if (!rankedQueueStateEl) {
+      return;
+    }
+    const matchedRoom = state.rankedMatchedRoom || null;
+    if (matchedRoom?.roomId) {
+      rankedQueueStateEl.innerHTML = `
         <div class="dromos-row">
-          <strong>${escapeHtml(room.hostName || room.hostUsername || "Host")}</strong>
-          <span>${escapeHtml(room.dromeName || room.dromeId || "-")} • ${escapeHtml(room.status || room.occupancy || "1/2")}</span>
-          <div class="dromos-row-actions">
-            <button class="menu-btn primary-btn" data-dromos-join-ranked-room="${escapeAttr(room.id)}">Entrar</button>
-          </div>
+          <strong>Partida encontrada!</strong>
+          <span>Dromo ${escapeHtml(matchedRoom.dromeId || state.selection?.dromeId || "-")} • entrando no combate...</span>
         </div>
-      `).join("");
-      rankedRoomsEl.querySelectorAll("[data-dromos-join-ranked-room]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const roomId = String(button.getAttribute("data-dromos-join-ranked-room") || "").trim();
-          if (!roomId) return;
-          void joinRankedRoom(roomId);
+      `;
+      return;
+    }
+    const queue = state.rankedQueue;
+    if (!queue) {
+      rankedQueueStateEl.innerHTML = '<div class="trades-empty">Selecione deck e clique em "Buscar ranked".</div>';
+      return;
+    }
+    rankedQueueStateEl.innerHTML = `
+      <div class="dromos-row">
+        <strong>Buscando oponente...</strong>
+        <span>Dromo: ${escapeHtml(queue.dromeName || queue.dromeId || "-")}</span>
+        <span>Tempo: ${Math.max(0, Math.floor(Number(queue.waitMs || 0) / 1000))}s • Faixa: ±${Number(queue.range || 0)} • Posicao: ${Number(queue.position || 1)}</span>
+      </div>
+    `;
+  }
+
+  async function refreshRankedQueueState(silent = false) {
+    try {
+      const payload = await fetchJsonWithTimeout("/api/dromos/ranked/queue/state", { method: "GET" });
+      state.rankedQueue = payload?.queued ? (payload.queue || null) : null;
+      state.rankedMatchedRoom = payload?.room || null;
+      renderRankedQueueState();
+      if (state.rankedMatchedRoom?.roomId) {
+        window.location.href = buildMultiplayerBattleUrl({
+          roomId: state.rankedMatchedRoom.roomId,
+          seat: state.rankedMatchedRoom.seat || "host",
+          seatToken: state.rankedMatchedRoom.seatToken || "",
         });
-      });
+      }
     } catch (error) {
       if (!silent) {
-        setStatus(error?.message || "Falha ao carregar salas ranked.", true);
+        setStatus(error?.message || "Falha ao consultar fila ranked.", true);
       }
     }
   }
@@ -1690,7 +2218,7 @@ function bindDromos(username) {
       renderSeasonSummary();
       renderInvitesList();
       await refreshLeaderboard();
-      await refreshRankedRooms(true);
+      await refreshRankedQueueState(true);
     } catch (error) {
       if (!silent) {
         setStatus(error?.message || "Falha ao carregar overview de Dromos.", true);
@@ -1720,7 +2248,7 @@ function bindDromos(username) {
   async function createRankedRoom() {
     const dromeId = String(state.selection?.dromeId || "");
     if (!dromeId) {
-      setStatus("Selecione seu Dromo da temporada antes de criar ranked.", true);
+      setStatus("Selecione seu Dromo da temporada antes de buscar ranked.", true);
       return;
     }
     const deckName = String(rankedDeckEl?.value || "").trim();
@@ -1730,55 +2258,40 @@ function bindDromos(username) {
     }
     try {
       const deckData = await fetchDeckByName(deckName, username);
-      const payload = await fetchJsonWithTimeout("/api/multiplayer/rooms", {
+      const payload = await fetchJsonWithTimeout("/api/dromos/ranked/queue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: normalizeUsername(username),
-          playerName: username,
           deckName,
           deck: deckData,
-          rulesMode: "competitive",
-          matchType: "ranked_drome",
-          dromeId,
         }),
       });
-      window.location.href = buildMultiplayerBattleUrl({
-        roomId: payload.roomId,
-        seat: payload.seat || "host",
-        seatToken: payload.seatToken || "",
-      });
+      state.rankedQueue = payload?.queue || null;
+      state.rankedMatchedRoom = payload?.room || null;
+      renderRankedQueueState();
+      if (state.rankedMatchedRoom?.roomId) {
+        window.location.href = buildMultiplayerBattleUrl({
+          roomId: state.rankedMatchedRoom.roomId,
+          seat: state.rankedMatchedRoom.seat || "host",
+          seatToken: state.rankedMatchedRoom.seatToken || "",
+        });
+        return;
+      }
+      setStatus("Fila ranked iniciada. Procurando oponente...", false);
     } catch (error) {
-      setStatus(error?.message || "Falha ao criar sala ranked.", true);
+      setStatus(error?.message || "Falha ao entrar na fila ranked.", true);
     }
   }
 
-  async function joinRankedRoom(roomId) {
-    const deckName = String(rankedDeckEl?.value || "").trim();
-    if (!deckName) {
-      setStatus("Selecione um deck para entrar no ranked.", true);
-      return;
-    }
+  async function cancelRankedQueue() {
     try {
-      const deckData = await fetchDeckByName(deckName, username);
-      const payload = await fetchJsonWithTimeout(`/api/multiplayer/rooms/${encodeURIComponent(roomId)}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          spectator: false,
-          username: normalizeUsername(username),
-          playerName: username,
-          deckName,
-          deck: deckData,
-        }),
-      });
-      window.location.href = buildMultiplayerBattleUrl({
-        roomId,
-        seat: payload.seat || "guest",
-        seatToken: payload.seatToken || "",
-      });
+      await fetchJsonWithTimeout("/api/dromos/ranked/queue/cancel", { method: "POST" });
+      state.rankedQueue = null;
+      state.rankedMatchedRoom = null;
+      renderRankedQueueState();
+      setStatus("Busca ranked cancelada.");
     } catch (error) {
-      setStatus(error?.message || "Falha ao entrar no ranked.", true);
+      setStatus(error?.message || "Falha ao cancelar busca ranked.", true);
     }
   }
 
@@ -1908,7 +2421,7 @@ function bindDromos(username) {
         void refreshLiveFights(true);
       }
       if (tab === "ranked") {
-        void refreshRankedRooms(true);
+        void refreshRankedQueueState(true);
       }
     });
   });
@@ -1933,6 +2446,11 @@ function bindDromos(username) {
       void createRankedRoom();
     });
   }
+  if (btnRankedCancel) {
+    btnRankedCancel.addEventListener("click", () => {
+      void cancelRankedQueue();
+    });
+  }
   if (btnCodemasterLock) {
     btnCodemasterLock.addEventListener("click", () => {
       void lockCodemasterDeck();
@@ -1943,6 +2461,7 @@ function bindDromos(username) {
       void inviteChallenge();
     });
   }
+
 }
 
 function bindPerim(username) {
@@ -3736,6 +4255,7 @@ function bindTrades(username) {
       }
     });
   }
+
 }
 
 async function initMenuMusic() {
@@ -3988,6 +4508,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const username = sessionData.username || "Jogador";
 
   await bindProfile(username, sessionData);
+  bindSidePanels(username);
   bindNavigation();
   bindMultiplayer(username);
   bindDromos(username);

@@ -146,6 +146,19 @@ body[data-theme="light"] .music-floating-btn{
 .card-item img{width:100%;border-radius:4px;aspect-ratio:.72/1;object-fit:cover;background:#1a1a1a}
 .card-content p{margin:.12rem 0;font-size:.76rem}
 .meta{color:var(--ink-soft)}
+.variant-stars-badge{
+  display:inline-flex;
+  align-items:center;
+  margin-left:.3rem;
+  padding:.02rem .32rem;
+  border:1px solid #54779f;
+  border-radius:999px;
+  background:#13263a;
+  color:#ffe5a8;
+  font-size:.62rem;
+  font-weight:700;
+  letter-spacing:.02em;
+}
 .ability{color:#b0b0b0}
 .stats{color:var(--gold);font-weight:700;font-size:.74rem}
 .scan-obtained-meta{color:#8ec8ff;font-size:.67rem;opacity:.95}
@@ -175,6 +188,23 @@ body[data-theme="light"] .music-floating-btn{
 .stage-card{position:absolute;border-radius:.45rem;border:2px solid #e2e2e2;box-shadow:0 8px 20px rgba(0,0,0,.45);background:#111;left:50%;transform:translateX(-50%)}
 .stage-card img{width:100%;height:100%;object-fit:cover;border-radius:.35rem;display:block}
 .stage-card .remove-mini{position:absolute;top:2px;right:2px;z-index:2;background:#121212bf;border-color:#5d5d5d}
+.stage-stars-badge{
+  position:absolute;
+  left:6px;
+  bottom:6px;
+  z-index:3;
+  display:inline-flex;
+  align-items:center;
+  padding:.05rem .35rem;
+  border:1px solid #577ca4;
+  border-radius:999px;
+  background:#0c1f31de;
+  color:#ffe1a0;
+  font-size:.62rem;
+  font-weight:700;
+  letter-spacing:.02em;
+  box-shadow:0 4px 10px rgba(0,0,0,.45);
+}
 .stage-card.creature{top:0;width:118px;aspect-ratio:.72/1}
 .stage-card.gear{top:50px;width:90px;aspect-ratio:.72/1;opacity:.99;border:3px solid #f1f6ff;box-shadow:0 0 0 3px rgba(157,194,248,.52),0 8px 18px rgba(0,0,0,.55)}
 

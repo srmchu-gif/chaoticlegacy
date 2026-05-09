@@ -3,6 +3,7 @@ import { clearSessionToken, getRuntimeConfig, getSessionToken, setSessionToken, 
 
 const DB_SESSION = "chaotic_session";
 const DB_REMEMBER = "chaotic_remember";
+const DB_VERIFY_SESSION = "chaotic_verify_session";
 
 const hashPassword = (pass) => btoa(pass).split("").reverse().join("");
 
@@ -45,7 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const turnstileWidgetContainer = document.getElementById("turnstile-widget");
   const turnstileStatus = document.getElementById("turnstile-status");
 
-  let verificationData = null; // { username, tribe }
+  let verificationData = null; // { username, tribe, email, createdAt }
   let turnstileToken = "";
   let turnstileWidgetId = null;
   let turnstileRendered = false;
@@ -55,6 +56,29 @@ document.addEventListener("DOMContentLoaded", () => {
       view.classList.remove("active");
     });
     viewToShow.classList.add("active");
+  };
+
+  const persistVerificationSession = () => {
+    if (!verificationData?.username) {
+      localStorage.removeItem(DB_VERIFY_SESSION);
+      return;
+    }
+    localStorage.setItem(DB_VERIFY_SESSION, JSON.stringify({
+      username: String(verificationData.username || ""),
+      tribe: String(verificationData.tribe || ""),
+      email: String(verificationData.email || ""),
+      createdAt: Number(verificationData.createdAt || Date.now()),
+    }));
+  };
+
+  const clearVerificationSession = () => {
+    localStorage.removeItem(DB_VERIFY_SESSION);
+  };
+
+  const renderVerifyContext = () => {
+    if (document.getElementById("verify-email-display")) {
+      document.getElementById("verify-email-display").textContent = String(verificationData?.email || "");
+    }
   };
 
   const setTurnstileStatus = (message = "", isError = false) => {
@@ -192,6 +216,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("cancel-verify")?.addEventListener("click", (event) => {
     event.preventDefault();
     verificationData = null;
+    clearVerificationSession();
     switchView(viewLogin);
   });
 
@@ -205,6 +230,35 @@ document.addEventListener("DOMContentLoaded", () => {
     const usernameInput = document.getElementById("login-username");
     if (rememberInput) rememberInput.checked = true;
     if (usernameInput) usernameInput.value = remembered;
+  }
+
+  const restoreVerifySession = safeJsonParse(localStorage.getItem(DB_VERIFY_SESSION), null);
+  if (restoreVerifySession?.username) {
+    const ageMs = Date.now() - Math.max(0, Number(restoreVerifySession.createdAt || 0));
+    if (ageMs <= (30 * 60 * 1000)) {
+      verificationData = {
+        username: String(restoreVerifySession.username || "").trim(),
+        tribe: String(restoreVerifySession.tribe || "").trim(),
+        email: String(restoreVerifySession.email || "").trim(),
+        createdAt: Number(restoreVerifySession.createdAt || Date.now()),
+      };
+      if (verificationData.username) {
+        renderVerifyContext();
+        const successEl = document.getElementById("verify-success");
+        const errorEl = document.getElementById("verify-error");
+        if (successEl) {
+          successEl.textContent = "Continue a verificacao da conta com o codigo recebido por e-mail.";
+        }
+        if (errorEl) {
+          errorEl.textContent = "";
+        }
+        switchView(viewVerify);
+      } else {
+        clearVerificationSession();
+      }
+    } else {
+      clearVerificationSession();
+    }
   }
 
   void verifyCookieSessionAndRedirect();
@@ -295,10 +349,18 @@ document.addEventListener("DOMContentLoaded", () => {
           }),
         });
 
-        verificationData = { username: String(data.username || userInp), tribe: String(tribeRadio.value || "") };
-        document.getElementById("verify-email-display").textContent = emailInp;
+        verificationData = {
+          username: String(data.username || userInp),
+          tribe: String(tribeRadio.value || ""),
+          email: String(data.email || emailInp || ""),
+          createdAt: Date.now(),
+        };
+        persistVerificationSession();
+        renderVerifyContext();
         document.getElementById("verify-error").textContent = "";
-        document.getElementById("verify-success").textContent = "Codigo enviado para seu e-mail. Confira sua caixa de entrada.";
+        document.getElementById("verify-success").textContent = data?.pendingResumed
+          ? "Conta pendente retomada. Enviamos um novo codigo para seu e-mail."
+          : "Codigo enviado para seu e-mail. Confira sua caixa de entrada.";
         document.getElementById("verify-code").value = "";
         switchView(viewVerify);
         resetTurnstileIfPossible();
@@ -384,6 +446,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         verificationData = null;
+        clearVerificationSession();
         window.location.href = toPage("menu.html");
       } catch (error) {
         errorEl.textContent = error?.message || "Falha na verificacao.";

@@ -1140,7 +1140,39 @@ function normalizeVariant(rawVariant) {
     }
     variant[key] = Math.round(variant[key] / 5) * 5;
   });
+  const starsRaw = Number(rawVariant.stars);
+  if (Number.isFinite(starsRaw)) {
+    variant.stars = Math.max(0, Math.min(5, Math.round(starsRaw * 2) / 2));
+  } else {
+    const sumDeltas = Number(variant.energyDelta || 0)
+      + Number(variant.courageDelta || 0)
+      + Number(variant.powerDelta || 0)
+      + Number(variant.wisdomDelta || 0)
+      + Number(variant.speedDelta || 0);
+    const computed = Math.round((((sumDeltas + 25) / 10) * 2)) / 2;
+    variant.stars = Math.max(0, Math.min(5, computed));
+  }
+  if (typeof rawVariant.starsLabel === "string" && rawVariant.starsLabel.trim()) {
+    variant.starsLabel = rawVariant.starsLabel.trim();
+  } else {
+    variant.starsLabel = `${variant.stars.toFixed(1)}★`;
+  }
   return variant;
+}
+
+function creatureStarsLabelFromVariant(variant) {
+  if (!variant || typeof variant !== "object") {
+    return "";
+  }
+  if (typeof variant.starsLabel === "string" && variant.starsLabel.trim()) {
+    return variant.starsLabel.trim();
+  }
+  const stars = Number(variant.stars);
+  if (!Number.isFinite(stars)) {
+    return "";
+  }
+  const normalized = Math.max(0, Math.min(5, Math.round(stars * 2) / 2));
+  return `${normalized.toFixed(1)}★`;
 }
 
 function applyCreatureVariantToCard(baseCard, variant) {
@@ -1559,8 +1591,17 @@ function cardNode(card, buttons = [], options = {}) {
   if (!src) {
     image.style.display = "none";
   }
-  node.querySelector("h4").textContent = card.name;
+  const creatureStars = card?.type === "creatures"
+    ? creatureStarsLabelFromVariant(normalizeVariant(card?._scanVariant))
+    : "";
+  node.querySelector("h4").textContent = creatureStars ? `${card.name} (${creatureStars})` : card.name;
   node.querySelector(".meta").textContent = `${TYPE_LABEL[card.type] || card.type} | ${card.set || "-"} | ${card.rarity || "-"}`;
+  if (creatureStars) {
+    const metaEl = node.querySelector(".meta");
+    if (metaEl) {
+      metaEl.insertAdjacentHTML("beforeend", ` <span class="variant-stars-badge">${creatureStars}</span>`);
+    }
+  }
   node.querySelector(".ability").textContent = card.ability || "Sem habilidade textual";
   node.querySelector(".stats").textContent = statLine(card);
   if (scanTimestamp !== null) {
@@ -2215,6 +2256,15 @@ function createStageCard(card, extraClass, removeHandler, options = {}) {
     <img src="${imageOf(card)}" alt="${card.name}">
     ${removeButton}
   `;
+  if (card?.type === "creatures") {
+    const starsLabel = creatureStarsLabelFromVariant(normalizeVariant(card?._scanVariant));
+    if (starsLabel) {
+      const badge = document.createElement("span");
+      badge.className = "stage-stars-badge";
+      badge.textContent = starsLabel;
+      node.appendChild(badge);
+    }
+  }
   attachHoverPreview(node, card);
   if (showRemoveButton) {
     node.querySelector("button").addEventListener("click", (event) => {

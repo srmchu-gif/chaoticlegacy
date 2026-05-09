@@ -16,6 +16,21 @@
   <div class="bg-shape shape-b"></div>
 
   <main class="menu-wrapper">
+    <aside id="global-chat-sidebar" class="side-panel side-panel-left collapsed" aria-label="Chat global">
+      <button id="global-chat-toggle" class="side-panel-toggle" type="button" aria-expanded="false">Chat Global</button>
+      <div class="side-panel-body">
+        <div class="side-panel-header">
+          <h3>Chat Global</h3>
+        </div>
+        <div id="global-chat-state" class="side-panel-state">Conectando chat...</div>
+        <div id="global-chat-messages" class="side-panel-messages"></div>
+        <div class="side-panel-input-row">
+          <input id="global-chat-input" type="text" maxlength="240" placeholder="Digite uma mensagem..." />
+          <button id="global-chat-send" class="menu-btn standard-btn compact-action-btn" type="button">Enviar</button>
+        </div>
+      </div>
+    </aside>
+
     <div class="menu-panel">
       <img id="menu-main-logo" src="logo.png" alt="Chaotic Legacy Logo" class="menu-main-logo" />
       
@@ -146,7 +161,7 @@
                   <h3>Temporada atual</h3>
                   <div id="dromos-season-summary" class="dromos-season-summary"></div>
                 </div>
-                <div class="dromos-card">
+                <div class="dromos-card" id="dromos-select-card">
                   <h3>Meu Dromo</h3>
                   <div class="dromos-select-row">
                     <select id="dromos-select-drome"></select>
@@ -154,7 +169,7 @@
                   </div>
                   <small id="dromos-select-note">A selecao fica travada ate o proximo mes.</small>
                 </div>
-                <div class="dromos-card">
+                <div class="dromos-card" id="dromos-codemaster-card">
                   <h3>Desafios CodeMaster</h3>
                   <div class="dromos-select-row">
                     <select id="dromos-codemaster-drome"></select>
@@ -186,9 +201,12 @@
                   <h3>Ranked do Dromo</h3>
                   <div class="dromos-select-row">
                     <select id="dromos-ranked-deck"></select>
-                    <button id="btn-dromos-ranked-create" class="menu-btn primary-btn compact-action-btn">Criar ranked</button>
+                    <button id="btn-dromos-ranked-create" class="menu-btn primary-btn compact-action-btn">Buscar ranked</button>
                   </div>
-                  <div id="dromos-ranked-rooms" class="dromos-list"></div>
+                  <div id="dromos-ranked-queue-state" class="dromos-list"></div>
+                  <div class="dromos-row-actions">
+                    <button id="btn-dromos-ranked-cancel" class="menu-btn ghost-btn compact-action-btn">Cancelar busca</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -346,6 +364,28 @@
       <!-- Painel Multiplayer -->
       <section class="multiplayer-panel" id="multiplayer-panel" style="display: none;">
         <h2 class="panel-title">Lobby Multiplayer</h2>
+
+        <div class="mp-friend-invite-box">
+          <h3>Convidar amigo para batalha casual</h3>
+          <div class="mp-friend-invite-row">
+            <select id="mp-friend-select">
+              <option value="">Carregando amigos online...</option>
+            </select>
+            <select id="mp-friend-deck"></select>
+            <button id="btn-mp-send-friend-invite" class="menu-btn standard-btn compact-action-btn">Convidar</button>
+            <button id="btn-mp-refresh-friend-invites" class="menu-btn ghost-btn compact-action-btn">Atualizar</button>
+          </div>
+          <div class="mp-friend-invite-grid">
+            <div>
+              <h4>Convites recebidos</h4>
+              <div id="mp-incoming-invites" class="trades-invites-list"></div>
+            </div>
+            <div>
+              <h4>Convites enviados</h4>
+              <div id="mp-outgoing-invites" class="trades-invites-list"></div>
+            </div>
+          </div>
+        </div>
 
         <div class="multiplayer-actions">
           <button id="btn-mp-create" class="menu-btn primary-btn compact-action-btn">Criar Partida</button>
@@ -554,6 +594,7 @@
         <div class="profile-metric"><span>Pontuacao</span><strong id="friend-summary-score">0</strong></div>
         <div class="profile-metric"><span>W/L</span><strong id="friend-summary-wl">0 / 0</strong></div>
         <div class="profile-metric"><span>Winrate</span><strong id="friend-summary-winrate">0%</strong></div>
+        <div class="profile-metric"><span>Total de scans</span><strong id="friend-summary-scans-total">0</strong></div>
         <div class="profile-metric"><span>Tribo favorita</span><strong id="friend-summary-tribe">-</strong></div>
         <div class="profile-metric"><span>Dromo atual</span><strong id="friend-summary-drome">-</strong></div>
         <div class="profile-metric"><span>Tag atual</span><strong id="friend-summary-tag">-</strong></div>
@@ -564,6 +605,21 @@
       </section>
     </div>
   </div>
+
+  <aside id="top50-sidebar" class="side-panel side-panel-right collapsed" aria-label="Top 50">
+    <button id="top50-toggle" class="side-panel-toggle" type="button" aria-expanded="false">Top 50</button>
+    <div class="side-panel-body">
+      <div class="side-panel-header">
+        <h3>Ranking Geral</h3>
+        <div class="side-panel-tabs">
+          <button id="top50-tab-score" class="side-panel-tab active" type="button">Pontuacao</button>
+          <button id="top50-tab-scans" class="side-panel-tab" type="button">Scans</button>
+        </div>
+      </div>
+      <div id="top50-state" class="side-panel-state">Carregando top 50...</div>
+      <div id="top50-list" class="side-panel-list"></div>
+    </div>
+  </aside>
 
   <script src="config.js"></script>
   <script type="module" src="js/menu.js?v=14"></script>

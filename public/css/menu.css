@@ -67,6 +67,186 @@ body {
   z-index: 1;
 }
 
+.side-panel {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(320px, 30vw);
+  max-height: 84vh;
+  z-index: 6;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.side-panel-left {
+  left: 0.6rem;
+}
+
+.side-panel-right {
+  right: 0.6rem;
+}
+
+.side-panel.collapsed.side-panel-left {
+  transform: translate(-88%, -50%);
+}
+
+.side-panel.collapsed.side-panel-right {
+  transform: translate(88%, -50%);
+}
+
+.side-panel-toggle {
+  position: absolute;
+  top: 0.75rem;
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  background: rgba(8, 19, 31, 0.92);
+  color: #d6f4ff;
+  border-radius: 10px;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.side-panel-left .side-panel-toggle {
+  right: -0.2rem;
+  transform: translateX(100%);
+}
+
+.side-panel-right .side-panel-toggle {
+  left: -0.2rem;
+  transform: translateX(-100%);
+}
+
+.side-panel-body {
+  background: rgba(8, 13, 23, 0.9);
+  border: 1px solid rgba(0, 210, 255, 0.25);
+  border-radius: 12px;
+  padding: 0.6rem;
+  display: grid;
+  grid-template-rows: auto auto minmax(180px, 1fr) auto;
+  gap: 0.45rem;
+  max-height: 84vh;
+  backdrop-filter: blur(8px);
+}
+
+.side-panel-header {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.side-panel-header h3 {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  color: #9fdcff;
+  text-transform: uppercase;
+}
+
+.side-panel-state {
+  font-size: 0.66rem;
+  color: #8ea8bf;
+}
+
+.side-panel-messages,
+.side-panel-list {
+  border: 1px solid rgba(0, 210, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(4, 10, 16, 0.7);
+  overflow-y: auto;
+  min-height: 180px;
+  max-height: 56vh;
+  padding: 0.42rem;
+  display: grid;
+  gap: 0.36rem;
+}
+
+.side-panel-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem;
+}
+
+.side-panel-input-row input {
+  min-height: 34px;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 210, 255, 0.34);
+  background: rgba(4, 10, 16, 0.8);
+  color: #deeffb;
+}
+
+.side-panel-chat-msg {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  background: rgba(10, 17, 26, 0.78);
+  padding: 0.36rem 0.42rem;
+  display: grid;
+  gap: 0.14rem;
+}
+
+.side-panel-chat-msg strong {
+  font-size: 0.68rem;
+  color: #d8f2ff;
+}
+
+.side-panel-chat-msg span {
+  font-size: 0.66rem;
+  color: #9eb5c9;
+}
+
+.side-panel-chat-msg small {
+  font-size: 0.6rem;
+  color: #7f9ab1;
+}
+
+.side-panel-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+
+.side-panel-tab {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #d7e4f0;
+  border-radius: 8px;
+  font-size: 0.66rem;
+  padding: 0.3rem 0.35rem;
+  cursor: pointer;
+}
+
+.side-panel-tab.active {
+  border-color: rgba(0, 210, 255, 0.6);
+  background: rgba(0, 210, 255, 0.18);
+  color: #dff6ff;
+}
+
+.top50-row {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(11, 19, 29, 0.76);
+  padding: 0.34rem;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 0.4rem;
+}
+
+.top50-row img {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.top50-row strong {
+  font-size: 0.68rem;
+}
+
+.top50-row span {
+  font-size: 0.62rem;
+  color: #9bb4c9;
+}
+
 .menu-wrapper.perim-mode,
 .menu-wrapper.expanded-mode {
   max-width: 1380px;
@@ -1310,6 +1490,10 @@ body {
 .profile-modal-card.tribe-submundo  { border-color: rgba(255, 75, 75, 0.55); }
 .profile-modal-card.tribe-danians   { border-color: rgba(176, 106, 59, 0.55); }
 .profile-modal-card.tribe-mipedians { border-color: rgba(255, 209, 102, 0.55); }
+.friend-summary-card.tribe-outromundo { border-color: rgba(0, 210, 255, 0.55); }
+.friend-summary-card.tribe-submundo  { border-color: rgba(255, 75, 75, 0.55); }
+.friend-summary-card.tribe-danians   { border-color: rgba(176, 106, 59, 0.55); }
+.friend-summary-card.tribe-mipedians { border-color: rgba(255, 209, 102, 0.55); }
 
 .profile-modal-card.tribe-outromundo .profile-modal-section h4 { color: #00d2ff; }
 .profile-modal-card.tribe-submundo  .profile-modal-section h4 { color: #ff6b6b; }
@@ -1585,6 +1769,46 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.28);
+}
+
+.mp-friend-invite-box {
+  border: 1px solid rgba(0, 210, 255, 0.18);
+  border-radius: 10px;
+  padding: 0.55rem;
+  background: rgba(6, 13, 21, 0.7);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.mp-friend-invite-box h3,
+.mp-friend-invite-box h4 {
+  margin: 0;
+  color: #9dd9ff;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mp-friend-invite-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: 0.45rem;
+}
+
+#mp-friend-select,
+#mp-friend-deck {
+  min-height: 40px;
+  padding: 0.5rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  background: rgba(5, 12, 20, 0.82);
+  color: #d9eefc;
+}
+
+.mp-friend-invite-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
 }
 
 .trades-status {
@@ -1925,6 +2149,55 @@ body {
   gap: 0.3rem;
 }
 
+.dromos-live-card {
+  border: 1px solid rgba(0, 210, 255, 0.24);
+  border-radius: 10px;
+  background: rgba(8, 14, 24, 0.78);
+  padding: 0.55rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dromos-live-versus {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.dromos-live-player {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  background: rgba(11, 19, 29, 0.76);
+  padding: 0.42rem;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 0.42rem;
+}
+
+.dromos-live-player img {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.dromos-live-player strong {
+  font-size: 0.68rem;
+}
+
+.dromos-live-player span {
+  display: block;
+  font-size: 0.61rem;
+  color: #9fb4c7;
+}
+
+.dromos-live-x {
+  font-family: var(--font-display);
+  color: #c8ebff;
+  font-size: 0.8rem;
+}
+
 .dromos-duo-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2025,6 +2298,12 @@ body {
   background: rgba(77, 223, 255, 0.12);
 }
 
+@media (max-width: 1300px) {
+  .side-panel {
+    width: min(280px, 34vw);
+  }
+}
+
 @media (max-width: 900px) {
   body {
     overflow-y: auto;
@@ -2056,6 +2335,8 @@ body {
     height: 160px;
   }
   .trades-friend-invite-row,
+  .mp-friend-invite-row,
+  .mp-friend-invite-grid,
   .trades-invites-grid,
   .trades-room-main-layout,
   .trades-inventory-controls,
@@ -2103,6 +2384,9 @@ body {
   }
   .profile-notification-bell {
     margin-top: 0.1rem;
+  }
+  .side-panel {
+    display: none;
   }
 }
 

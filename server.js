@@ -121,6 +121,14 @@ const DROME_RANKED_WIN_SCORE = 24;
 const DROME_RANKED_LOSS_SCORE = -8;
 const CODEMASTER_WIN_BONUS_SCORE = 14;
 const DROME_CHALLENGE_INVITE_TTL_MS = 10 * 60 * 1000;
+const GLOBAL_CHAT_RETENTION_DAYS = Math.max(1, Number(process.env.GLOBAL_CHAT_RETENTION_DAYS || 1));
+const GLOBAL_CHAT_MAX_MESSAGE_LENGTH = 240;
+const CASUAL_INVITE_TTL_MS = 5 * 60 * 1000;
+const RANKED_QUEUE_STALE_MS = 6 * 60 * 1000;
+const RANKED_QUEUE_BASE_RANGE = 40;
+const RANKED_QUEUE_RANGE_STEP = 25;
+const RANKED_QUEUE_RANGE_STEP_MS = 15 * 1000;
+const RANKED_QUEUE_RANGE_MAX = 420;
 const DROME_CATALOG = [
   { id: "crellan", name: "Crellan Drome" },
   { id: "hotekk", name: "Hotekk Drome" },
@@ -715,6 +723,18 @@ function createSqlV2Tables() {
     );
   `);
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_chat_loc_day_created ON perim_location_chat(location_id, day_key, created_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS global_chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_key TEXT NOT NULL,
+      username TEXT NOT NULL,
+      avatar TEXT NOT NULL DEFAULT '',
+      message TEXT NOT NULL,
+      day_key TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_global_chat_day_created ON global_chat_messages(day_key, created_at DESC);");
 
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS seasons (
@@ -1503,6 +1523,11 @@ const TRADE_INVITE_TTL_MS = 10 * 60 * 1000;
 const tradeCardLocks = new Map();
 const tradeInvites = new Map();
 const perimLocationChatClients = new Map();
+const globalChatClients = new Set();
+const casualBattleInvites = new Map();
+const rankedQueueByDrome = new Map();
+const rankedQueueByOwner = new Map();
+const rankedQueueMatches = new Map();
 
 const runtimeMetrics = {
   requestSamplesByRoute: new Map(),
@@ -7240,6 +7265,94 @@ function postPerimLocationChatMessage(locationIdRaw, ownerKeyRaw, usernameRaw, m
   return { ok: true, message: chatMessage };
 }
 
+function cleanupGlobalChatHistory(referenceDate = new Date()) {
+  if (!sqliteDb) {
+    return;
+  }
+  const cutoff = new Date(referenceDate.getTime() - (GLOBAL_CHAT_RETENTION_DAYS * 24 * 60 * 60 * 1000));
+  sqliteDb
+    .prepare("DELETE FROM global_chat_messages WHERE day_key < ?")
+    .run(todayDateKey(cutoff));
+}
+
+function listGlobalChatMessages(limitRaw = 80) {
+  if (!sqliteDb) {
+    return [];
+  }
+  cleanupGlobalChatHistory(new Date());
+  const limit = Math.max(1, Math.min(200, Number.isFinite(Number(limitRaw)) ? Number(limitRaw) : 80));
+  const rows = sqliteDb
+    .prepare(`
+      SELECT id, owner_key, username, avatar, message, created_at
+      FROM global_chat_messages
+      ORDER BY id DESC
+      LIMIT ?
+    `)
+    .all(limit);
+  return rows.reverse().map((row) => ({
+    id: Number(row?.id || 0),
+    ownerKey: String(row?.owner_key || ""),
+    username: String(row?.username || ""),
+    avatar: String(row?.avatar || ""),
+    message: String(row?.message || ""),
+    createdAt: String(row?.created_at || ""),
+  }));
+}
+
+function broadcastGlobalChatEvent(payload) {
+  if (!globalChatClients.size) {
+    return;
+  }
+  const message = `data: ${JSON.stringify(payload)}\n\n`;
+  globalChatClients.forEach((client) => {
+    try {
+      client.res.write(message);
+    } catch {
+      globalChatClients.delete(client);
+    }
+  });
+}
+
+function postGlobalChatMessage(ownerKeyRaw, usernameRaw, avatarRaw, messageRaw) {
+  if (!sqliteDb) {
+    return { ok: false, error: "Chat global indisponivel sem banco SQL." };
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
+  const username = String(usernameRaw || ownerKey || "Jogador").trim() || "Jogador";
+  const avatar = String(avatarRaw || "").trim();
+  const message = String(messageRaw || "").replace(/\s+/g, " ").trim();
+  if (!ownerKey) {
+    return { ok: false, error: "Usuario invalido para enviar mensagem." };
+  }
+  if (!message) {
+    return { ok: false, error: "Digite uma mensagem antes de enviar." };
+  }
+  if (message.length > GLOBAL_CHAT_MAX_MESSAGE_LENGTH) {
+    return { ok: false, error: `Mensagem muito longa (maximo de ${GLOBAL_CHAT_MAX_MESSAGE_LENGTH} caracteres).` };
+  }
+  cleanupGlobalChatHistory(new Date());
+  const createdAt = nowIso();
+  const insert = sqliteDb
+    .prepare(`
+      INSERT INTO global_chat_messages (owner_key, username, avatar, message, day_key, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `)
+    .run(ownerKey, username, avatar, message, todayDateKey(), createdAt);
+  const chatMessage = {
+    id: Number(insert?.lastInsertRowid || 0),
+    ownerKey,
+    username,
+    avatar,
+    message,
+    createdAt,
+  };
+  broadcastGlobalChatEvent({
+    type: "global_chat_message",
+    message: chatMessage,
+  });
+  return { ok: true, message: chatMessage };
+}
+
 function promotePerimFinishedRuns(playerState, timestampMs = Date.now()) {
   const active = playerState?.activeRun;
   if (!active || !active.endAt) {
@@ -8689,6 +8802,92 @@ function dromeNameById(dromeIdRaw) {
   return found ? found.name : "";
 }
 
+function dromeTagPrefixById(dromeIdRaw) {
+  const normalized = normalizeDromeId(dromeIdRaw);
+  const map = {
+    crellan: "Cr",
+    hotekk: "Ho",
+    amzen: "Am",
+    oron: "Or",
+    tirasis: "Ti",
+    imthor: "Im",
+    chirrul: "Ch",
+    beta: "Be",
+  };
+  return map[normalized] || "Dr";
+}
+
+function getDromeRankPosition(seasonKeyRaw, dromeIdRaw, ownerKeyRaw) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const seasonKey = String(seasonKeyRaw || "").trim();
+  const dromeId = normalizeDromeId(dromeIdRaw);
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!seasonKey || !dromeId || !ownerKey) {
+    return null;
+  }
+  const rows = sqliteDb
+    .prepare(`
+      SELECT owner_key
+      FROM ranked_drome_stats
+      WHERE season_key = ? AND drome_id = ?
+      ORDER BY score DESC, wins DESC, losses ASC, owner_key ASC
+    `)
+    .all(seasonKey, dromeId);
+  if (!rows.length) {
+    return null;
+  }
+  const index = rows.findIndex((entry) => normalizeUserKey(entry?.owner_key || "", "") === ownerKey);
+  if (index < 0) {
+    return null;
+  }
+  return index + 1;
+}
+
+function buildFallbackDromeTag(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDate(new Date())) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const seasonKey = String(seasonKeyRaw || "").trim();
+  if (!ownerKey || !seasonKey) {
+    return "";
+  }
+  const selection = getDromeSelectionForSeason(ownerKey, seasonKey);
+  if (!selection?.dromeId) {
+    return "";
+  }
+  ensureDromeBaselineRow(ownerKey, selection.dromeId, seasonKey);
+  const rank = getDromeRankPosition(seasonKey, selection.dromeId, ownerKey);
+  if (!Number.isFinite(Number(rank)) || Number(rank) <= 0) {
+    return "";
+  }
+  return `${dromeTagPrefixById(selection.dromeId)}${Number(rank)}`;
+}
+
+function getCurrentDromeScore(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDate(new Date()), dromeIdRaw = "") {
+  if (!sqliteDb) {
+    return DROME_BASE_SCORE;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const seasonKey = String(seasonKeyRaw || "").trim();
+  if (!ownerKey || !seasonKey) {
+    return DROME_BASE_SCORE;
+  }
+  const dromeId = normalizeDromeId(dromeIdRaw || getDromeSelectionForSeason(ownerKey, seasonKey)?.dromeId || "");
+  if (!dromeId) {
+    return DROME_BASE_SCORE;
+  }
+  ensureDromeBaselineRow(ownerKey, dromeId, seasonKey);
+  const row = sqliteDb
+    .prepare(`
+      SELECT score
+      FROM ranked_drome_stats
+      WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+      LIMIT 1
+    `)
+    .get(seasonKey, dromeId, ownerKey);
+  return Math.max(0, Number(row?.score || DROME_BASE_SCORE));
+}
+
 function getDromeSelectionForSeason(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDate(new Date())) {
   if (!sqliteDb) {
     return null;
@@ -9325,6 +9524,8 @@ function buildProfilePayload(usernameRaw) {
   const currentSeasonKey = seasonKeyFromDate(new Date());
   const currentDromeSelection = getDromeSelectionForSeason(key, currentSeasonKey);
   const currentTag = getCurrentSeasonTagForOwner(key, currentSeasonKey);
+  const fallbackTag = currentTag?.title ? "" : buildFallbackDromeTag(key, currentSeasonKey);
+  const currentTagTitle = String(currentTag?.title || fallbackTag || "");
   return {
     username: key,
     favoriteTribe: profile.favoriteTribe || "",
@@ -9351,7 +9552,7 @@ function buildProfilePayload(usernameRaw) {
           lockedAt: currentDromeSelection.lockedAt || "",
         }
       : null,
-    currentTagTitle: currentTag?.title || "",
+    currentTagTitle,
     currentTag: currentTag || null,
     battleHistory: Array.isArray(profile.battleHistory) ? profile.battleHistory.slice(-PROFILE_HISTORY_LIMIT).reverse() : [],
     updatedAt: profile.updatedAt || nowIso(),
@@ -9684,6 +9885,53 @@ function listFriendSummaries(ownerKeyRaw) {
   return rows
     .map((row) => normalizeFriendProfileSummaryRow(row))
     .filter(Boolean);
+}
+
+function listTopPlayers(metricRaw = "score", limitRaw = 50) {
+  if (!sqliteDb) {
+    return [];
+  }
+  const metric = String(metricRaw || "").trim().toLowerCase() === "scans" ? "scans" : "score";
+  const limit = Math.max(1, Math.min(100, Number.isFinite(Number(limitRaw)) ? Number(limitRaw) : 50));
+  const seasonKey = seasonKeyFromDate(new Date());
+  const rows = sqliteDb
+    .prepare(`
+      SELECT
+        lower(u.username) AS owner_key,
+        u.username AS username,
+        COALESCE(p.avatar, '') AS avatar,
+        COALESCE(p.score, 1200) AS score,
+        COALESCE(scans.total_scans, 0) AS total_scans,
+        sel.drome_id AS drome_id
+      FROM users u
+      LEFT JOIN player_profiles p
+        ON p.owner_key = lower(u.username)
+      LEFT JOIN (
+        SELECT owner_key, COUNT(*) AS total_scans
+        FROM scan_entries
+        GROUP BY owner_key
+      ) scans ON scans.owner_key = lower(u.username)
+      LEFT JOIN ranked_drome_selection sel
+        ON sel.owner_key = lower(u.username) AND sel.season_key = ?
+      WHERE COALESCE(u.verified, 0) = 1
+      ORDER BY
+        CASE WHEN ? = 'scans' THEN COALESCE(scans.total_scans, 0) ELSE COALESCE(p.score, 1200) END DESC,
+        lower(u.username) ASC
+      LIMIT ?
+    `)
+    .all(seasonKey, metric, limit);
+  return rows.map((row, index) => ({
+    rank: index + 1,
+    username: String(row?.username || row?.owner_key || ""),
+    ownerKey: normalizeUserKey(row?.owner_key || "", ""),
+    avatar: String(row?.avatar || ""),
+    score: Math.max(0, Number(row?.score || 0)),
+    totalScans: Math.max(0, Number(row?.total_scans || 0)),
+    currentDrome: {
+      id: normalizeDromeId(row?.drome_id || ""),
+      name: dromeNameById(row?.drome_id || ""),
+    },
+  }));
 }
 
 function listFriendRequests(ownerKeyRaw) {
@@ -10951,6 +11199,237 @@ function buildRoomSummary(room) {
     phase: room.phase || "lobby",
     highlight: matchType === MATCH_TYPE_CODEMASTER_CHALLENGE,
     updatedAt: room.updatedAt || nowIso(),
+  };
+}
+
+function cleanupExpiredCasualInvites(nowMs = Date.now()) {
+  casualBattleInvites.forEach((invite, inviteId) => {
+    const expiresAtMs = Number(invite?.expiresAtMs || 0);
+    const status = String(invite?.status || "pending");
+    const updatedAtMs = Number(invite?.updatedAtMs || invite?.createdAtMs || 0);
+    if ((status === "pending" && expiresAtMs > 0 && expiresAtMs <= nowMs) || (status !== "pending" && (nowMs - updatedAtMs) > (10 * 60 * 1000))) {
+      casualBattleInvites.delete(inviteId);
+    }
+  });
+}
+
+function listCasualInvitesForOwner(ownerKeyRaw, nowMs = Date.now()) {
+  cleanupExpiredCasualInvites(nowMs);
+  const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
+  if (!ownerKey) {
+    return { incoming: [], outgoing: [] };
+  }
+  const incoming = [];
+  const outgoing = [];
+  casualBattleInvites.forEach((invite) => {
+    const hostKey = normalizeUserKey(invite?.hostKey || "", "");
+    const targetKey = normalizeUserKey(invite?.targetKey || "", "");
+    if (!hostKey || !targetKey) {
+      return;
+    }
+    const payload = {
+      inviteId: String(invite.inviteId || ""),
+      status: String(invite.status || "pending"),
+      hostKey,
+      targetKey,
+      hostUsername: String(invite.hostUsername || hostKey),
+      targetUsername: String(invite.targetUsername || targetKey),
+      hostAvatar: String(invite.hostAvatar || ""),
+      rulesMode: String(invite.rulesMode || "competitive"),
+      createdAt: String(invite.createdAt || ""),
+      expiresInMs: Math.max(0, Number(invite.expiresAtMs || 0) - nowMs),
+      room: invite?.room ? { ...invite.room } : null,
+    };
+    if (targetKey === ownerKey) {
+      incoming.push(payload);
+    }
+    if (hostKey === ownerKey) {
+      outgoing.push(payload);
+    }
+  });
+  incoming.sort((a, b) => Number(b.expiresInMs || 0) - Number(a.expiresInMs || 0));
+  outgoing.sort((a, b) => Number(b.expiresInMs || 0) - Number(a.expiresInMs || 0));
+  return { incoming, outgoing };
+}
+
+function hasPendingCasualInvite(hostKeyRaw, targetKeyRaw) {
+  const hostKey = normalizeUserKey(hostKeyRaw || "", "");
+  const targetKey = normalizeUserKey(targetKeyRaw || "", "");
+  if (!hostKey || !targetKey) {
+    return false;
+  }
+  cleanupExpiredCasualInvites(Date.now());
+  for (const invite of casualBattleInvites.values()) {
+    const status = String(invite?.status || "pending");
+    const from = normalizeUserKey(invite?.hostKey || "", "");
+    const to = normalizeUserKey(invite?.targetKey || "", "");
+    if (status !== "pending") {
+      continue;
+    }
+    if ((from === hostKey && to === targetKey) || (from === targetKey && to === hostKey)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function rankedQueueRangeForWait(waitMs = 0) {
+  const safeMs = Math.max(0, Number(waitMs || 0));
+  const steps = Math.floor(safeMs / RANKED_QUEUE_RANGE_STEP_MS);
+  return Math.min(RANKED_QUEUE_RANGE_MAX, RANKED_QUEUE_BASE_RANGE + (steps * RANKED_QUEUE_RANGE_STEP));
+}
+
+function cleanupRankedQueue(nowMs = Date.now()) {
+  rankedQueueByOwner.forEach((entry, ownerKey) => {
+    const enqueuedAtMs = Number(entry?.enqueuedAtMs || 0);
+    if (!enqueuedAtMs || (nowMs - enqueuedAtMs) > RANKED_QUEUE_STALE_MS) {
+      rankedQueueByOwner.delete(ownerKey);
+      const dromeId = normalizeDromeId(entry?.dromeId || "");
+      const queue = rankedQueueByDrome.get(dromeId);
+      if (queue) {
+        rankedQueueByDrome.set(dromeId, queue.filter((item) => normalizeUserKey(item?.ownerKey || "", "") !== ownerKey));
+      }
+    }
+  });
+}
+
+function removeRankedQueueEntry(ownerKeyRaw) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
+  if (!ownerKey) {
+    return;
+  }
+  const existing = rankedQueueByOwner.get(ownerKey);
+  rankedQueueByOwner.delete(ownerKey);
+  if (!existing) {
+    return;
+  }
+  const dromeId = normalizeDromeId(existing?.dromeId || "");
+  if (!dromeId) {
+    return;
+  }
+  const queue = rankedQueueByDrome.get(dromeId);
+  if (!queue) {
+    return;
+  }
+  rankedQueueByDrome.set(dromeId, queue.filter((item) => normalizeUserKey(item?.ownerKey || "", "") !== ownerKey));
+}
+
+function getRankedQueueState(ownerKeyRaw, nowMs = Date.now()) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
+  if (!ownerKey) {
+    return { queued: false, matchedRoom: null, queue: null };
+  }
+  cleanupRankedQueue(nowMs);
+  const matchedRoom = rankedQueueMatches.get(ownerKey) || null;
+  const entry = rankedQueueByOwner.get(ownerKey) || null;
+  if (!entry) {
+    return { queued: false, matchedRoom, queue: null };
+  }
+  const queue = rankedQueueByDrome.get(normalizeDromeId(entry?.dromeId || "")) || [];
+  const position = Math.max(1, queue.findIndex((candidate) => normalizeUserKey(candidate?.ownerKey || "", "") === ownerKey) + 1);
+  return {
+    queued: true,
+    matchedRoom,
+    queue: {
+      dromeId: normalizeDromeId(entry?.dromeId || ""),
+      dromeName: dromeNameById(entry?.dromeId || ""),
+      enqueuedAt: String(entry?.enqueuedAt || ""),
+      waitMs: Math.max(0, nowMs - Number(entry?.enqueuedAtMs || nowMs)),
+      range: rankedQueueRangeForWait(nowMs - Number(entry?.enqueuedAtMs || nowMs)),
+      position,
+    },
+  };
+}
+
+async function tryMatchRankedQueue(dromeIdRaw, seasonKeyRaw, nowDate = new Date()) {
+  const dromeId = normalizeDromeId(dromeIdRaw);
+  const seasonKey = String(seasonKeyRaw || "").trim();
+  if (!dromeId || !seasonKey) {
+    return null;
+  }
+  cleanupRankedQueue(nowDate.getTime());
+  const queue = rankedQueueByDrome.get(dromeId) || [];
+  if (queue.length < 2) {
+    return null;
+  }
+  let bestPair = null;
+  let bestDiff = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < queue.length; i += 1) {
+    const left = queue[i];
+    const leftOwner = normalizeUserKey(left?.ownerKey || "", "");
+    if (!leftOwner) continue;
+    const leftWaitMs = Math.max(0, nowDate.getTime() - Number(left?.enqueuedAtMs || nowDate.getTime()));
+    const leftRange = rankedQueueRangeForWait(leftWaitMs);
+    const leftScore = getCurrentDromeScore(leftOwner, seasonKey, dromeId);
+    for (let j = i + 1; j < queue.length; j += 1) {
+      const right = queue[j];
+      const rightOwner = normalizeUserKey(right?.ownerKey || "", "");
+      if (!rightOwner || rightOwner === leftOwner) continue;
+      const rightWaitMs = Math.max(0, nowDate.getTime() - Number(right?.enqueuedAtMs || nowDate.getTime()));
+      const rightRange = rankedQueueRangeForWait(rightWaitMs);
+      const rightScore = getCurrentDromeScore(rightOwner, seasonKey, dromeId);
+      const diff = Math.abs(leftScore - rightScore);
+      if (diff > leftRange || diff > rightRange) {
+        continue;
+      }
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestPair = { left, right, leftScore, rightScore, diff };
+      }
+    }
+  }
+  if (!bestPair) {
+    return null;
+  }
+  removeRankedQueueEntry(bestPair.left.ownerKey);
+  removeRankedQueueEntry(bestPair.right.ownerKey);
+  const host = bestPair.left;
+  const guest = bestPair.right;
+  const hostAvatar = resolveAvatarForUsername(host.ownerKey);
+  const guestAvatar = resolveAvatarForUsername(guest.ownerKey);
+  const { room, roomId, hostToken } = createMultiplayerRoomRecord({
+    hostUsername: host.ownerKey,
+    hostName: host.playerName || host.ownerKey,
+    hostAvatar,
+    hostDeck: host.deck,
+    hostDeckName: host.deckName,
+    rulesMode: "competitive",
+    matchType: MATCH_TYPE_RANKED_DROME,
+    dromeId,
+  });
+  const guestToken = generateSeatToken();
+  room.players.guest = {
+    name: String(guest.playerName || guest.ownerKey),
+    username: normalizeUserKey(guest.ownerKey),
+    avatar: guestAvatar,
+    deck: guest.deck,
+    deckName: String(guest.deckName || guest.deck?.name || "Deck Guest"),
+    seatToken: guestToken,
+  };
+  room.updatedAt = nowIso();
+  await startRoomBattle(room);
+  sendRoomEvent(room, { type: "player_joined", roomId: room.id });
+  broadcastRoomSnapshot(room, "ranked_queue_match");
+  const hostMatch = {
+    roomId,
+    seat: "host",
+    seatToken: hostToken,
+    matchType: MATCH_TYPE_RANKED_DROME,
+    dromeId,
+  };
+  const guestMatch = {
+    roomId,
+    seat: "guest",
+    seatToken: guestToken,
+    matchType: MATCH_TYPE_RANKED_DROME,
+    dromeId,
+  };
+  rankedQueueMatches.set(normalizeUserKey(host.ownerKey || "", ""), hostMatch);
+  rankedQueueMatches.set(normalizeUserKey(guest.ownerKey || "", ""), guestMatch);
+  return {
+    host: hostMatch,
+    guest: guestMatch,
+    scoreDiff: bestPair.diff,
   };
 }
 
@@ -12338,45 +12817,77 @@ async function handleRequest(request, response) {
       sendJson(response, 500, { error: "Banco de dados indisponivel." });
       return;
     }
-    // Check existing
-    const existingUser = sqliteDb.prepare("SELECT id FROM users WHERE username = ? COLLATE NOCASE").get(username);
-    if (existingUser) {
+    // Check existing and resume pending registrations when possible
+    const existingUser = sqliteDb
+      .prepare("SELECT id, username, email, verified FROM users WHERE username = ? COLLATE NOCASE LIMIT 1")
+      .get(username);
+    const existingEmail = sqliteDb
+      .prepare("SELECT id, username, email, verified FROM users WHERE email = ? COLLATE NOCASE LIMIT 1")
+      .get(email);
+    const userVerified = Number(existingUser?.verified || 0) === 1;
+    const emailVerified = Number(existingEmail?.verified || 0) === 1;
+    if (existingUser && userVerified) {
       sendJson(response, 409, { error: "Nome de acesso ja existe." });
       return;
     }
-    const existingEmail = sqliteDb.prepare("SELECT id FROM users WHERE email = ? COLLATE NOCASE").get(email);
-    if (existingEmail) {
+    if (existingEmail && emailVerified) {
       sendJson(response, 409, { error: "Email ja cadastrado." });
       return;
     }
-    // Insert unverified user
+    let resumedPending = false;
+    let targetUser = null;
+    if (existingEmail && !emailVerified) {
+      targetUser = existingEmail;
+      resumedPending = true;
+    } else if (existingUser && !userVerified) {
+      targetUser = existingUser;
+      resumedPending = true;
+    }
+
     const now = nowIso();
     const verificationCode = String(Math.floor(100000 + Math.random() * 900000));
-    sqliteDb.prepare(`
-      INSERT INTO users (username, email, password_hash, tribe, verified, session_token, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 0, NULL, ?, ?)
-    `).run(username, email, passwordHash, tribe, now, now);
+    let targetUsername = username;
+    let targetEmail = email;
+
+    if (!resumedPending) {
+      sqliteDb.prepare(`
+        INSERT INTO users (username, email, password_hash, tribe, verified, session_token, created_at, updated_at)
+        VALUES (?, ?, ?, ?, 0, NULL, ?, ?)
+      `).run(username, email, passwordHash, tribe, now, now);
+    } else {
+      targetUsername = String(targetUser?.username || username).trim();
+      targetEmail = String(targetUser?.email || email).trim();
+    }
     // Store verification code temporarily in kv_store
-    sqlSet("verification", username.toLowerCase(), {
+    sqlSet("verification", targetUsername.toLowerCase(), {
       code: verificationCode,
       expiresAt: Date.now() + 5 * 60 * 1000,
     });
     try {
-      await sendVerificationCodeEmail({ username, email, code: verificationCode });
+      await sendVerificationCodeEmail({ username: targetUsername, email: targetEmail, code: verificationCode });
     } catch (error) {
-      sqliteDb.prepare("DELETE FROM users WHERE username = ? COLLATE NOCASE").run(username);
-      sqlDelete("verification", username.toLowerCase());
+      if (!resumedPending) {
+        sqliteDb.prepare("DELETE FROM users WHERE username = ? COLLATE NOCASE").run(targetUsername);
+        sqlDelete("verification", targetUsername.toLowerCase());
+      }
       console.error("[AUTH] Falha ao enviar email de verificacao:", error?.message || error);
       sendJson(response, 502, { error: "Nao foi possivel enviar o e-mail de verificacao. Tente novamente." });
       return;
     }
     appendAuditLog("auth_register_success", {
       severity: "info",
-      ownerKey: username,
+      ownerKey: targetUsername,
       ipAddress: requestIp,
-      message: "Cadastro iniciado com envio de codigo.",
+      message: resumedPending
+        ? "Cadastro pendente retomado com reenvio de codigo."
+        : "Cadastro iniciado com envio de codigo.",
     });
-    sendJson(response, 200, { ok: true, username });
+    sendJson(response, 200, {
+      ok: true,
+      username: targetUsername,
+      email: targetEmail,
+      pendingResumed: resumedPending,
+    });
     return;
   }
 
@@ -12550,7 +13061,7 @@ async function handleRequest(request, response) {
     }
     if (!user.verified) {
       registerLoginFailure(requestIp, username);
-      sendJson(response, 403, { error: "Conta nao verificada. Cadastre-se novamente." });
+      sendJson(response, 403, { error: "Conta nao verificada. Valide o codigo enviado por e-mail ou solicite reenvio." });
       return;
     }
     clearLoginFailure(requestIp, username);
@@ -14055,6 +14566,26 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (pathname === "/api/leaderboards/top50" && request.method === "GET") {
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Leaderboard indisponivel sem banco SQL." });
+      return;
+    }
+    ensureDromeSeasonCycle(new Date());
+    const metric = String(parsedUrl.searchParams.get("metric") || "score").trim().toLowerCase() === "scans"
+      ? "scans"
+      : "score";
+    const players = listTopPlayers(metric, 50);
+    sendJson(response, 200, {
+      ok: true,
+      metric,
+      total: players.length,
+      players,
+      generatedAt: nowIso(),
+    });
+    return;
+  }
+
   if (pathname === "/api/dromos/overview" && request.method === "GET") {
     const authUser = requireAuthenticatedUser(request, response);
     if (!authUser) {
@@ -14071,6 +14602,14 @@ async function handleRequest(request, response) {
     const selection = getDromeSelectionForSeason(ownerKey, seasonKey);
     const currentTag = getCurrentSeasonTagForOwner(ownerKey, seasonKey);
     const invites = listDromeChallengeInvitesForOwner(ownerKey);
+    const myCodemasterDromes = DROME_CATALOG
+      .map((entry) => ({ dromeId: entry.id, codemaster: getCurrentCodemasterByDrome(entry.id, seasonKey) }))
+      .filter((entry) => normalizeUserKey(entry?.codemaster?.ownerKey || "", "") === ownerKey)
+      .map((entry) => ({
+        id: entry.dromeId,
+        name: dromeNameById(entry.dromeId),
+        deckLocked: Boolean(entry?.codemaster?.deckLocked),
+      }));
     const dromes = DROME_CATALOG.map((entry) => {
       const codemaster = getCurrentCodemasterByDrome(entry.id, seasonKey);
       const topRow = sqliteDb
@@ -14112,7 +14651,11 @@ async function handleRequest(request, response) {
       seasonKey,
       selection: selection || null,
       locked: Boolean(selection),
+      showSelectDrome: !selection,
+      showCodemasterActions: myCodemasterDromes.length > 0,
+      myCodemasterDromes,
       myTag: currentTag || null,
+      myFallbackTag: currentTag?.title ? "" : buildFallbackDromeTag(ownerKey, seasonKey),
       mySelectedStats: selectedStats
         ? {
             score: Math.max(0, Number(selectedStats?.score || DROME_BASE_SCORE)),
@@ -14158,6 +14701,116 @@ async function handleRequest(request, response) {
       message: `Dromo mensal selecionado: ${result.selection?.dromeId || dromeId}`,
     });
     sendJson(response, 200, { ok: true, selection: result.selection });
+    return;
+  }
+
+  if (pathname === "/api/dromos/ranked/queue" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username || "", "");
+    if (!ownerKey) {
+      sendJson(response, 400, { error: "Usuario invalido para fila ranked." });
+      return;
+    }
+    const deckName = String(payload.deckName || "").trim();
+    const deck = payload.deck && typeof payload.deck === "object" ? payload.deck : null;
+    if (!deckName || !deck) {
+      sendJson(response, 400, { error: "Selecione um deck valido para entrar na fila ranked." });
+      return;
+    }
+    const deckValidation = validateDeckForRulesMode(deck, "competitive");
+    if (!deckValidation.ok) {
+      sendJson(response, 400, { error: `Deck invalido: ${deckValidation.errors.slice(0, 3).join(" | ")}` });
+      return;
+    }
+    ensureDromeSeasonCycle(new Date());
+    const seasonKey = seasonKeyFromDate(new Date());
+    const selection = getDromeSelectionForSeason(ownerKey, seasonKey);
+    if (!selection?.dromeId) {
+      sendJson(response, 400, { error: "Selecione um Dromo antes de buscar ranked." });
+      return;
+    }
+    cleanupRankedQueue(Date.now());
+    rankedQueueMatches.delete(ownerKey);
+    removeRankedQueueEntry(ownerKey);
+    const nowDate = new Date();
+    const nowMs = nowDate.getTime();
+    const entry = {
+      ownerKey,
+      playerName: String(authUser.username || ownerKey),
+      dromeId: selection.dromeId,
+      deck,
+      deckName,
+      enqueuedAt: nowIso(),
+      enqueuedAtMs: nowMs,
+    };
+    rankedQueueByOwner.set(ownerKey, entry);
+    if (!rankedQueueByDrome.has(selection.dromeId)) {
+      rankedQueueByDrome.set(selection.dromeId, []);
+    }
+    rankedQueueByDrome.get(selection.dromeId).push(entry);
+    const match = await tryMatchRankedQueue(selection.dromeId, seasonKey, nowDate);
+    if (match) {
+      const myRoom = rankedQueueMatches.get(ownerKey) || null;
+      sendJson(response, 200, {
+        ok: true,
+        queued: false,
+        matched: true,
+        room: myRoom,
+      });
+      return;
+    }
+    const state = getRankedQueueState(ownerKey, nowMs);
+    sendJson(response, 200, {
+      ok: true,
+      queued: true,
+      matched: false,
+      queue: state.queue,
+    });
+    return;
+  }
+
+  if (pathname === "/api/dromos/ranked/queue/cancel" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username || "", "");
+    removeRankedQueueEntry(ownerKey);
+    rankedQueueMatches.delete(ownerKey);
+    sendJson(response, 200, { ok: true, queued: false });
+    return;
+  }
+
+  if (pathname === "/api/dromos/ranked/queue/state" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username || "", "");
+    const state = getRankedQueueState(ownerKey, Date.now());
+    sendJson(response, 200, {
+      ok: true,
+      queued: Boolean(state.queued),
+      queue: state.queue || null,
+      matched: Boolean(state.matchedRoom),
+      room: state.matchedRoom || null,
+      generatedAt: nowIso(),
+    });
     return;
   }
 
@@ -14217,17 +14870,35 @@ async function handleRequest(request, response) {
       })
       .map((room) => {
         const summary = buildRoomSummary(room);
+        const seasonKey = seasonKeyFromDate(new Date());
+        const hostOwner = normalizeUserKey(room?.players?.host?.username || summary.hostUsername || "", "");
+        const guestOwner = normalizeUserKey(room?.players?.guest?.username || "", "");
+        const dromeId = summary.dromeId || normalizeDromeId(room?.challengeMeta?.dromeId || "");
+        const hostScore = hostOwner ? getCurrentDromeScore(hostOwner, seasonKey, dromeId) : DROME_BASE_SCORE;
+        const guestScore = guestOwner ? getCurrentDromeScore(guestOwner, seasonKey, dromeId) : DROME_BASE_SCORE;
+        const hostDeckName = String(room?.players?.host?.deckName || "Deck Host");
+        const guestDeckName = String(room?.players?.guest?.deckName || "Deck Guest");
+        const hostName = String(room?.players?.host?.name || "Host");
+        const guestName = String(room?.players?.guest?.name || "Guest");
         return {
           roomId: String(room.id || ""),
           phase: String(room.phase || "in_game"),
           matchType: summary.matchType,
-          dromeId: summary.dromeId,
+          dromeId,
           dromeName: summary.dromeName,
           highlight: summary.highlight,
-          hostName: String(room?.players?.host?.name || "Host"),
+          hostName,
           hostUsername: String(room?.players?.host?.username || summary.hostUsername),
-          guestName: String(room?.players?.guest?.name || ""),
+          hostAvatar: String(room?.players?.host?.avatar || ""),
+          hostDeckName,
+          hostScore,
+          hostMessage: `${hostName} esta jogando de ${hostDeckName}`,
+          guestName,
           guestUsername: String(room?.players?.guest?.username || ""),
+          guestAvatar: String(room?.players?.guest?.avatar || ""),
+          guestDeckName,
+          guestScore,
+          guestMessage: `${guestName} esta jogando de ${guestDeckName}`,
           updatedAt: String(room?.updatedAt || nowIso()),
         };
       });
@@ -15258,7 +15929,321 @@ async function handleRequest(request, response) {
     }
   }
 
+  if (pathname === "/api/chat/global" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Chat global indisponivel sem banco SQL." });
+      return;
+    }
+    const limit = Math.max(10, Math.min(200, Number(parsedUrl.searchParams.get("limit") || 80)));
+    const messages = listGlobalChatMessages(limit);
+    sendJson(response, 200, {
+      ok: true,
+      messages,
+      total: messages.length,
+      generatedAt: nowIso(),
+    });
+    return;
+  }
+
+  if (pathname === "/api/chat/global" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    let payloadText;
+    try {
+      payloadText = await readBody(request);
+    } catch (error) {
+      sendJson(response, 413, { error: error.message });
+      return;
+    }
+    const payload = safeJsonParse(payloadText, null);
+    if (!payload || typeof payload !== "object") {
+      sendJson(response, 400, { error: "JSON invalido." });
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username || "", "");
+    if (applyRateLimitWithUser(request, response, "global_chat_post", ownerKey, {
+      windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
+      maxHits: ACTION_RATE_LIMIT_MAX,
+    })) {
+      return;
+    }
+    const result = postGlobalChatMessage(
+      ownerKey,
+      authUser.username || ownerKey,
+      resolveAvatarForUsername(ownerKey),
+      payload.message
+    );
+    if (!result.ok) {
+      sendJson(response, 400, { error: result.error || "Nao foi possivel enviar mensagem." });
+      return;
+    }
+    sendJson(response, 200, { ok: true, message: result.message });
+    return;
+  }
+
+  if (pathname === "/api/chat/global/events" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    response.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    response.write("retry: 3000\n\n");
+    const client = {
+      ownerKey: normalizeUserKey(authUser.username || "", ""),
+      res: response,
+    };
+    globalChatClients.add(client);
+    const snapshot = listGlobalChatMessages(80);
+    response.write(`data: ${JSON.stringify({ type: "global_chat_snapshot", messages: snapshot })}\n\n`);
+    const heartbeat = setInterval(() => {
+      try {
+        response.write(": ping\n\n");
+      } catch {}
+    }, 25000);
+    request.on("close", () => {
+      clearInterval(heartbeat);
+      globalChatClients.delete(client);
+      try {
+        response.end();
+      } catch {}
+    });
+    return;
+  }
+
   if (pathname.startsWith("/api/multiplayer")) {
+    if (request.method === "GET" && pathname === "/api/multiplayer/invites") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      if (!sqliteDb) {
+        sendJson(response, 503, { error: "Convites multiplayer indisponiveis sem banco SQL." });
+        return;
+      }
+      const ownerKey = normalizeUserKey(authUser.username || "", "");
+      const invites = listCasualInvitesForOwner(ownerKey, Date.now());
+      sendJson(response, 200, {
+        ok: true,
+        incoming: invites.incoming,
+        outgoing: invites.outgoing,
+        generatedAt: nowIso(),
+      });
+      return;
+    }
+
+    if (request.method === "POST" && pathname === "/api/multiplayer/invites") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      if (!sqliteDb) {
+        sendJson(response, 503, { error: "Convites multiplayer indisponiveis sem banco SQL." });
+        return;
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        sendJson(response, 413, { error: error.message });
+        return;
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        sendJson(response, 400, { error: "JSON invalido." });
+        return;
+      }
+      const ownerKey = normalizeUserKey(authUser.username || "", "");
+      const targetUsername = String(payload.friendUsername || payload.username || "").trim();
+      const targetUser = sqliteDb
+        .prepare("SELECT username FROM users WHERE username = ? COLLATE NOCASE LIMIT 1")
+        .get(targetUsername);
+      const targetKey = normalizeUserKey(targetUser?.username || "", "");
+      if (!ownerKey || !targetKey || ownerKey === targetKey) {
+        sendJson(response, 400, { error: "Amigo invalido para convite." });
+        return;
+      }
+      const relation = sqliteDb
+        .prepare("SELECT 1 AS ok FROM friends WHERE owner_key = ? AND friend_key = ? LIMIT 1")
+        .get(ownerKey, targetKey);
+      if (!relation?.ok) {
+        sendJson(response, 403, { error: "Convite de batalha exige amizade confirmada." });
+        return;
+      }
+      if (!isUserSessionOnline(targetKey)) {
+        sendJson(response, 400, { error: "Esse amigo esta offline no momento." });
+        return;
+      }
+      if (hasPendingCasualInvite(ownerKey, targetKey)) {
+        sendJson(response, 400, { error: "Ja existe convite pendente entre voces." });
+        return;
+      }
+      const deckName = String(payload.deckName || "").trim();
+      const deck = payload.deck && typeof payload.deck === "object" ? payload.deck : null;
+      if (!deckName || !deck) {
+        sendJson(response, 400, { error: "Selecione um deck valido para enviar o convite." });
+        return;
+      }
+      const validation = validateDeckForRulesMode(deck, "competitive");
+      if (!validation.ok) {
+        sendJson(response, 400, { error: `Deck invalido: ${validation.errors.slice(0, 3).join(" | ")}` });
+        return;
+      }
+      const inviteId = `mpi_${crypto.randomBytes(6).toString("hex")}`;
+      const nowMs = Date.now();
+      casualBattleInvites.set(inviteId, {
+        inviteId,
+        hostKey: ownerKey,
+        hostUsername: String(authUser.username || ownerKey),
+        hostAvatar: resolveAvatarForUsername(ownerKey),
+        targetKey,
+        targetUsername: String(targetUser.username || targetKey),
+        rulesMode: "competitive",
+        hostDeck: deck,
+        hostDeckName: deckName,
+        status: "pending",
+        room: null,
+        createdAt: nowIso(),
+        createdAtMs: nowMs,
+        updatedAt: nowIso(),
+        updatedAtMs: nowMs,
+        expiresAtMs: nowMs + CASUAL_INVITE_TTL_MS,
+      });
+      const invites = listCasualInvitesForOwner(ownerKey, nowMs);
+      sendJson(response, 200, {
+        ok: true,
+        inviteId,
+        outgoing: invites.outgoing,
+      });
+      return;
+    }
+
+    if (request.method === "POST" && pathname === "/api/multiplayer/invites/respond") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (error) {
+        sendJson(response, 413, { error: error.message });
+        return;
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        sendJson(response, 400, { error: "JSON invalido." });
+        return;
+      }
+      const ownerKey = normalizeUserKey(authUser.username || "", "");
+      const inviteId = String(payload.inviteId || "").trim();
+      const decision = String(payload.decision || "").trim().toLowerCase();
+      cleanupExpiredCasualInvites(Date.now());
+      const invite = casualBattleInvites.get(inviteId);
+      if (!invite) {
+        sendJson(response, 404, { error: "Convite nao encontrado ou expirado." });
+        return;
+      }
+      if (String(invite.status || "pending") !== "pending" && decision !== "cancel") {
+        sendJson(response, 400, { error: "Convite ja foi respondido." });
+        return;
+      }
+      const hostKey = normalizeUserKey(invite.hostKey || "", "");
+      const targetKey = normalizeUserKey(invite.targetKey || "", "");
+      if (decision === "cancel") {
+        if (ownerKey !== hostKey) {
+          sendJson(response, 403, { error: "Apenas quem enviou pode cancelar o convite." });
+          return;
+        }
+        invite.status = "cancelled";
+        invite.updatedAt = nowIso();
+        invite.updatedAtMs = Date.now();
+        const invites = listCasualInvitesForOwner(ownerKey, Date.now());
+        sendJson(response, 200, { ok: true, decision: "cancel", outgoing: invites.outgoing });
+        return;
+      }
+      if (ownerKey !== targetKey) {
+        sendJson(response, 403, { error: "Apenas o amigo convidado pode responder." });
+        return;
+      }
+      if (decision === "reject") {
+        invite.status = "rejected";
+        invite.updatedAt = nowIso();
+        invite.updatedAtMs = Date.now();
+        const invites = listCasualInvitesForOwner(ownerKey, Date.now());
+        sendJson(response, 200, { ok: true, decision: "reject", incoming: invites.incoming });
+        return;
+      }
+      if (decision !== "accept") {
+        sendJson(response, 400, { error: "Decisao invalida para convite." });
+        return;
+      }
+      const deckName = String(payload.deckName || "").trim();
+      const deck = payload.deck && typeof payload.deck === "object" ? payload.deck : null;
+      if (!deckName || !deck) {
+        sendJson(response, 400, { error: "Selecione um deck valido para aceitar o convite." });
+        return;
+      }
+      const validation = validateDeckForRulesMode(deck, invite.rulesMode || "competitive");
+      if (!validation.ok) {
+        sendJson(response, 400, { error: `Deck invalido: ${validation.errors.slice(0, 3).join(" | ")}` });
+        return;
+      }
+      const hostAvatar = resolveAvatarForUsername(hostKey);
+      const guestAvatar = resolveAvatarForUsername(targetKey);
+      const { room, roomId, hostToken } = createMultiplayerRoomRecord({
+        hostUsername: hostKey,
+        hostName: String(invite.hostUsername || hostKey),
+        hostAvatar,
+        hostDeck: invite.hostDeck,
+        hostDeckName: String(invite.hostDeckName || "Deck Host"),
+        rulesMode: String(invite.rulesMode || "competitive"),
+        matchType: MATCH_TYPE_CASUAL_MULTIPLAYER,
+      });
+      const guestToken = generateSeatToken();
+      room.players.guest = {
+        name: String(authUser.username || targetKey),
+        username: targetKey,
+        avatar: guestAvatar,
+        deck,
+        deckName: deckName || String(deck?.name || "Deck Guest"),
+        seatToken: guestToken,
+      };
+      room.updatedAt = nowIso();
+      await startRoomBattle(room);
+      sendRoomEvent(room, { type: "player_joined", roomId: room.id });
+      broadcastRoomSnapshot(room, "casual_invite_accept");
+      invite.status = "accepted";
+      invite.room = {
+        roomId,
+        hostSeatToken: hostToken,
+        guestSeatToken: guestToken,
+        matchType: MATCH_TYPE_CASUAL_MULTIPLAYER,
+      };
+      invite.updatedAt = nowIso();
+      invite.updatedAtMs = Date.now();
+      sendJson(response, 200, {
+        ok: true,
+        decision: "accept",
+        room: {
+          roomId,
+          seat: "guest",
+          seatToken: guestToken,
+          matchType: MATCH_TYPE_CASUAL_MULTIPLAYER,
+        },
+      });
+      return;
+    }
+
     if (request.method === "GET" && pathname === "/api/multiplayer/rooms") {
       const activeRooms = Array.from(multiplayerRooms.values()).map((room) => buildRoomSummary(room));
       sendJson(response, 200, { rooms: activeRooms });
