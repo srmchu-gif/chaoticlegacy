@@ -7424,7 +7424,12 @@ function postPerimLocationChatMessage(locationIdRaw, ownerKeyRaw, usernameRaw, m
   return { ok: true, message: chatMessage };
 }
 
-function cleanupGlobalChatHistory(referenceDate = new Date()) {
+function normalizeGlobalChatLimit(limitRaw, fallback = 80) {
+  const limitNumber = Number(limitRaw);
+  return Math.max(1, Math.min(200, Number.isFinite(limitNumber) ? limitNumber : fallback));
+}
+
+function pruneGlobalChatHistory(referenceDate = new Date()) {
   if (!sqliteDb) {
     return;
   }
@@ -7434,12 +7439,23 @@ function cleanupGlobalChatHistory(referenceDate = new Date()) {
     .run(todayDateKey(cutoff));
 }
 
+function toGlobalChatPayload(row) {
+  return {
+    id: Number(row?.id || 0),
+    ownerKey: String(row?.owner_key || ""),
+    username: String(row?.username || ""),
+    avatar: String(row?.avatar || ""),
+    message: String(row?.message || ""),
+    createdAt: String(row?.created_at || ""),
+  };
+}
+
 function listGlobalChatMessages(limitRaw = 80) {
   if (!sqliteDb) {
     return [];
   }
-  cleanupGlobalChatHistory(new Date());
-  const limit = Math.max(1, Math.min(200, Number.isFinite(Number(limitRaw)) ? Number(limitRaw) : 80));
+  pruneGlobalChatHistory(new Date());
+  const limit = normalizeGlobalChatLimit(limitRaw, 80);
   const rows = sqliteDb
     .prepare(`
       SELECT id, owner_key, username, avatar, message, created_at
@@ -7448,28 +7464,56 @@ function listGlobalChatMessages(limitRaw = 80) {
       LIMIT ?
     `)
     .all(limit);
-  return rows.reverse().map((row) => ({
-    id: Number(row?.id || 0),
-    ownerKey: String(row?.owner_key || ""),
-    username: String(row?.username || ""),
-    avatar: String(row?.avatar || ""),
-    message: String(row?.message || ""),
-    createdAt: String(row?.created_at || ""),
-  }));
+  return rows.reverse().map((row) => toGlobalChatPayload(row));
+}
+
+function sanitizeGlobalChatMessage(rawValue) {
+  return String(rawValue || "").replace(/\s+/g, " ").trim();
+}
+
+function writeGlobalChatSsePayload(client, payload) {
+  try {
+    client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function broadcastGlobalChatEvent(payload) {
   if (!globalChatClients.size) {
     return;
   }
-  const message = `data: ${JSON.stringify(payload)}\n\n`;
+  const staleClients = [];
   globalChatClients.forEach((client) => {
-    try {
-      client.res.write(message);
-    } catch {
-      globalChatClients.delete(client);
+    if (!writeGlobalChatSsePayload(client, payload)) {
+      staleClients.push(client);
     }
   });
+  staleClients.forEach((client) => {
+    globalChatClients.delete(client);
+  });
+}
+
+function persistGlobalChatMessage(ownerKey, username, avatar, message) {
+  if (!sqliteDb) {
+    return null;
+  }
+  const createdAt = nowIso();
+  const insert = sqliteDb
+    .prepare(`
+      INSERT INTO global_chat_messages (owner_key, username, avatar, message, day_key, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `)
+    .run(ownerKey, username, avatar, message, todayDateKey(), createdAt);
+  return {
+    id: Number(insert?.lastInsertRowid || 0),
+    ownerKey,
+    username,
+    avatar,
+    message,
+    createdAt,
+  };
 }
 
 function postGlobalChatMessage(ownerKeyRaw, usernameRaw, avatarRaw, messageRaw) {
@@ -7479,7 +7523,7 @@ function postGlobalChatMessage(ownerKeyRaw, usernameRaw, avatarRaw, messageRaw) 
   const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
   const username = String(usernameRaw || ownerKey || "Jogador").trim() || "Jogador";
   const avatar = String(avatarRaw || "").trim();
-  const message = String(messageRaw || "").replace(/\s+/g, " ").trim();
+  const message = sanitizeGlobalChatMessage(messageRaw);
   if (!ownerKey) {
     return { ok: false, error: "Usuario invalido para enviar mensagem." };
   }
@@ -7489,22 +7533,11 @@ function postGlobalChatMessage(ownerKeyRaw, usernameRaw, avatarRaw, messageRaw) 
   if (message.length > GLOBAL_CHAT_MAX_MESSAGE_LENGTH) {
     return { ok: false, error: `Mensagem muito longa (maximo de ${GLOBAL_CHAT_MAX_MESSAGE_LENGTH} caracteres).` };
   }
-  cleanupGlobalChatHistory(new Date());
-  const createdAt = nowIso();
-  const insert = sqliteDb
-    .prepare(`
-      INSERT INTO global_chat_messages (owner_key, username, avatar, message, day_key, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `)
-    .run(ownerKey, username, avatar, message, todayDateKey(), createdAt);
-  const chatMessage = {
-    id: Number(insert?.lastInsertRowid || 0),
-    ownerKey,
-    username,
-    avatar,
-    message,
-    createdAt,
-  };
+  pruneGlobalChatHistory(new Date());
+  const chatMessage = persistGlobalChatMessage(ownerKey, username, avatar, message);
+  if (!chatMessage) {
+    return { ok: false, error: "Falha ao gravar mensagem do chat global." };
+  }
   broadcastGlobalChatEvent({
     type: "global_chat_message",
     message: chatMessage,
@@ -16348,7 +16381,7 @@ async function handleRequest(request, response) {
       sendJson(response, 503, { error: "Chat global indisponivel sem banco SQL." });
       return;
     }
-    const limit = Math.max(10, Math.min(200, Number(parsedUrl.searchParams.get("limit") || 80)));
+    const limit = normalizeGlobalChatLimit(parsedUrl.searchParams.get("limit"), 80);
     const messages = listGlobalChatMessages(limit);
     sendJson(response, 200, {
       ok: true,
@@ -16414,7 +16447,7 @@ async function handleRequest(request, response) {
     };
     globalChatClients.add(client);
     const snapshot = listGlobalChatMessages(80);
-    response.write(`data: ${JSON.stringify({ type: "global_chat_snapshot", messages: snapshot })}\n\n`);
+    writeGlobalChatSsePayload(client, { type: "global_chat_snapshot", messages: snapshot });
     const heartbeat = setInterval(() => {
       try {
         response.write(": ping\n\n");
