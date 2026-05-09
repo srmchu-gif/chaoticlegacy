@@ -2026,7 +2026,7 @@ function unitStat(board, playerIndex, unit, stat, exchange = null) {
   const temp = Number(unit.tempMods?.[stat] || 0);
   const support = resolveSupportBonus(board, playerIndex, unit, stat);
   const exchangeShift = Number(exchange?.statAdjustments?.[playerIndex]?.[stat] || 0);
-  return base + passive + temp + support + exchangeShift;
+  return Math.max(0, base + passive + temp + support + exchangeShift);
 }
 
 function canGainMugicCounter(board, playerIndex, unit, exchange = null) {

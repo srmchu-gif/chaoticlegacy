@@ -90,7 +90,13 @@ body {
 }
 
 body.menu-sidebars-hidden .side-panel {
-  display: none !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body.menu-sidebars-hidden .side-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .side-panel.is-open {
@@ -446,11 +452,6 @@ body.menu-sidebars-hidden .side-panel {
   border-radius: 9px;
   font-size: 0.92rem;
   background: rgba(13, 20, 33, 0.78);
-}
-
-body.menu-sidebars-hidden #profile-global-chat-bubble,
-body.menu-sidebars-hidden #profile-top50-bubble {
-  display: none;
 }
 
 body.menu-global-chat-disabled #global-chat-sidebar,

@@ -33,7 +33,7 @@
         <p id="library-meta">Carregando dados locais...</p>
       </div>
       <div class="topbar-actions">
-        <button class="ghost-btn" onclick="window.location.href='menu.html'">Menu</button>
+        <button id="battle-menu-btn" class="ghost-btn">Menu</button>
         <button id="battle-forfeit" class="ghost-btn">Desistir</button>
       </div>
     </header>
@@ -139,7 +139,7 @@
 
       <section id="battle-arena" class="panel hidden battle-theme">
         <article class="card-panel battle-shell">
-          <div id="battle-setup-view" class="battle-setup-view">
+          <div id="battle-setup-view" class="battle-setup-view hidden">
             <div class="battle-setup-head">
               <h2>Selecao de Decks</h2>
               <p>Escolha os decks e inicie a partida. A tela de combate abre em seguida.</p>
@@ -192,7 +192,7 @@
                 <button id="battle-rematch" type="button" class="battle-rematch-btn hidden">Revanche</button>
               </div>
               <div class="battle-player-tag player-right">
-                <button id="battle-back-setup" type="button">Trocar Decks</button>
+                <button id="battle-back-setup" type="button">Deck Builder</button>
                 <img id="battle-player-b-avatar" class="battle-player-avatar" src="fundo%20cartas.png" alt="Avatar Jogador B" />
                 <strong id="battle-player-b-name">Jogador 2</strong>
                 <small id="opp-alive">-</small>
@@ -489,7 +489,7 @@
     <div id="hover-preview" class="hover-preview"></div>
     <div id="fps-counter" class="fps-counter hidden" aria-live="polite">FPS: --</div>
 
-    <script type="module" src="js/app.js?v=7"></script>
+    <script type="module" src="js/app.js?v=8"></script>
   </body>
 </html>
 

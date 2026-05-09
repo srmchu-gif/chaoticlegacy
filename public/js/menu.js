@@ -1070,7 +1070,7 @@ async function bindProfile(username, sessionData) {
   }
   if (profileTop50Bubble) {
     profileTop50Bubble.addEventListener("click", () => {
-      if (document.body.classList.contains("menu-sidebars-hidden") || menuHomePanelSettings.top50Enabled === false) {
+      if (menuHomePanelSettings.top50Enabled === false) {
         return;
       }
       window.dispatchEvent(new CustomEvent("menu:toggle-top50"));
@@ -1455,8 +1455,13 @@ function bindSidePanels(username) {
     }
   };
 
-  const toggleTop50Panel = () => {
-    if (menuHomePanelSettings.top50Enabled === false || document.body.classList.contains("menu-sidebars-hidden")) {
+  const toggleTop50Panel = (eventOrOptions = null) => {
+    const eventType = String(eventOrOptions?.type || "");
+    const bypassHiddenGuard = eventType === "menu:toggle-top50" || Boolean(eventOrOptions?.bypassHiddenGuard);
+    if (menuHomePanelSettings.top50Enabled === false) {
+      return;
+    }
+    if (!bypassHiddenGuard && document.body.classList.contains("menu-sidebars-hidden")) {
       return;
     }
     const nextOpen = !state.top50Open;

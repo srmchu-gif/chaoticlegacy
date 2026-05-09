@@ -528,6 +528,7 @@ const el = {
   battleStageTitle: document.querySelector("#battle-stage-title"),
   battleRematch: document.querySelector("#battle-rematch"),
   battleForfeit: document.querySelector("#battle-forfeit"),
+  battleMenuBtn: document.querySelector("#battle-menu-btn"),
   reloadLibrary: document.querySelector("#reload-library"),
   cardTypeFilter: document.querySelector("#card-type-filter"),
   elementFilter: document.querySelector("#element-filter"),
@@ -1240,6 +1241,15 @@ function statLine(card) {
     return `Cost ${stats.cost} | ${card.tribe || "Any"}`;
   }
   return card.tribe ? `Tribe ${card.tribe}` : "";
+}
+
+function attackTotalDamage(card) {
+  const stats = card?.stats || {};
+  return Number(stats.base || 0)
+    + Number(stats.fireAttack || 0)
+    + Number(stats.airAttack || 0)
+    + Number(stats.earthAttack || 0)
+    + Number(stats.waterAttack || 0);
 }
 
 function createActionButton(text, onClick, className = "") {
@@ -2433,10 +2443,11 @@ function renderDeckBoard() {
       el.attacksColumn.appendChild(createDeckRow(null, `${index + 1}. ---`));
       continue;
     }
-    const value = Number(card.stats?.base || 0);
+    const totalDamage = attackTotalDamage(card);
+    const bp = Number(card.stats?.bp || 0);
     const row = createDeckRow(
       card,
-      `${index + 1}. ${card.name} | ${value}`,
+      `${index + 1}. ${card.name} | DMG ${totalDamage} | BP ${bp}`,
       () => {
         const removed = clearDeckCardAt("attacks", index);
         if (removed) {
@@ -3618,11 +3629,7 @@ function switchTab(target = "builder") {
     stopAdminMetricsAutoRefresh();
   }
   if (tab === "battle") {
-    if (isMultiplayerActive()) {
-      switchBattleView(true);
-    } else {
-      switchBattleView(false);
-    }
+    switchBattleView(true);
   }
 }
 
@@ -3640,11 +3647,13 @@ function initialViewFromQuery() {
 }
 
 function switchBattleView(showCombat) {
+  const forceCombatView = true;
+  const finalShowCombat = forceCombatView ? true : Boolean(showCombat);
   if (el.battleSetupView) {
-    el.battleSetupView.classList.toggle("hidden", showCombat);
+    el.battleSetupView.classList.toggle("hidden", finalShowCombat);
   }
   if (el.battleCombatView) {
-    el.battleCombatView.classList.toggle("hidden", !showCombat);
+    el.battleCombatView.classList.toggle("hidden", !finalShowCombat);
   }
 }
 
@@ -5727,6 +5736,25 @@ async function startRematchFromCurrentBattle() {
   await startBattleFromConfig({ ...appState.lastBattleConfig });
 }
 
+async function handleBattleMenuExit() {
+  const isRankedMultiplayer = isMultiplayerActive() && String(appState.multiplayer.matchType || "") === "ranked_drome";
+  if (isRankedMultiplayer) {
+    try {
+      await apiJson("/api/dromos/ranked/session/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomId: String(appState.multiplayer.roomId || ""),
+          seatToken: String(appState.multiplayer.seatToken || ""),
+        }),
+      });
+    } catch (_error) {
+      // Keep menu navigation even if ranked cleanup fails.
+    }
+  }
+  window.location.href = toPage("menu.html");
+}
+
 async function startMultiplayerBattle(roomId, seatTokenFromQuery = "", roleFromQuery = "") {
   try {
     closeMultiplayerStream();
@@ -5873,7 +5901,12 @@ function bindEvents() {
   }
   if (el.battleBackSetup) {
     el.battleBackSetup.addEventListener("click", () => {
-      switchBattleView(false);
+      switchTab("builder");
+    });
+  }
+  if (el.battleMenuBtn) {
+    el.battleMenuBtn.addEventListener("click", () => {
+      void handleBattleMenuExit();
     });
   }
   if (el.libraryViewLibrary) {

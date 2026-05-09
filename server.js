@@ -11557,6 +11557,15 @@ function removeRankedQueueEntry(ownerKeyRaw) {
   rankedQueueByDrome.set(dromeId, queue.filter((item) => normalizeUserKey(item?.ownerKey || "", "") !== ownerKey));
 }
 
+function clearRankedQueueSession(ownerKeyRaw) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
+  if (!ownerKey) {
+    return;
+  }
+  removeRankedQueueEntry(ownerKey);
+  rankedQueueMatches.delete(ownerKey);
+}
+
 function getRankedQueueState(ownerKeyRaw, nowMs = Date.now()) {
   const ownerKey = normalizeUserKey(ownerKeyRaw || "", "");
   if (!ownerKey) {
@@ -14990,8 +14999,7 @@ async function handleRequest(request, response) {
       return;
     }
     cleanupRankedQueue(Date.now());
-    rankedQueueMatches.delete(ownerKey);
-    removeRankedQueueEntry(ownerKey);
+    clearRankedQueueSession(ownerKey);
     const nowDate = new Date();
     const nowMs = nowDate.getTime();
     const entry = {
@@ -15035,9 +15043,19 @@ async function handleRequest(request, response) {
       return;
     }
     const ownerKey = normalizeUserKey(authUser.username || "", "");
-    removeRankedQueueEntry(ownerKey);
-    rankedQueueMatches.delete(ownerKey);
+    clearRankedQueueSession(ownerKey);
     sendJson(response, 200, { ok: true, queued: false });
+    return;
+  }
+
+  if (pathname === "/api/dromos/ranked/session/clear" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const ownerKey = normalizeUserKey(authUser.username || "", "");
+    clearRankedQueueSession(ownerKey);
+    sendJson(response, 200, { ok: true, cleared: true });
     return;
   }
 
