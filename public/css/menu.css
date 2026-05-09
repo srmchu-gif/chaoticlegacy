@@ -109,6 +109,10 @@ body.menu-sidebars-hidden .side-panel.is-open {
   transition: none !important;
 }
 
+.side-panel.is-drag-armed {
+  transition: none !important;
+}
+
 .side-panel-body {
   background: rgba(8, 13, 23, 0.9);
   border: 1px solid rgba(0, 210, 255, 0.25);

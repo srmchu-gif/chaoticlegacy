@@ -12,7 +12,6 @@ const GLOBAL_CHAT_OPEN_KEY = "chaotic.global_chat_open";
 const TOP50_OPEN_KEY = "chaotic.top50_open";
 const GLOBAL_CHAT_PIN_KEY = "chaotic.global_chat_pin";
 const TOP50_PIN_KEY = "chaotic.top50_pin";
-const GLOBAL_CHAT_ENABLED_CACHE_KEY = "chaotic.global_chat_enabled";
 let libraryCachePromise = null;
 const MENU_HOME_PANEL_DEFAULTS = Object.freeze({
   globalChatEnabled: true,
@@ -1248,7 +1247,6 @@ function bindSidePanels(username) {
   let chatEventSource = null;
   let top50Metric = "score";
   let globalChatMessages = [];
-  let previousGlobalChatEnabled = menuHomePanelSettings.globalChatEnabled !== false;
   const state = {
     globalOpen: false,
     top50Open: false,
@@ -1289,10 +1287,6 @@ function bindSidePanels(username) {
 
   const isMobileExclusiveSidebarMode = () => window.matchMedia("(max-width: 480px)").matches;
   const isSidebarDragEnabled = () => !isMobileExclusiveSidebarMode();
-  const isDesktopMainMenuSidebarContext = () => (
-    !isMobileExclusiveSidebarMode()
-    && !document.body.classList.contains("menu-sidebars-hidden")
-  );
 
   const readPanelPosition = (key) => {
     const parsed = safeJsonParse(localStorage.getItem(key), null);
@@ -1366,15 +1360,10 @@ function bindSidePanels(username) {
       return;
     }
     const side = options.side === "right" ? "right" : "left";
-    const useCurrentInline = options.useCurrentInline === true;
     const stored = readPanelPosition(key);
-    const inlineLeft = Number.parseFloat(sidebar.style.left || "");
-    const inlineTop = Number.parseFloat(sidebar.style.top || "");
     let clamped = null;
     if (stored && Number.isFinite(stored.left) && Number.isFinite(stored.top)) {
       clamped = clampPanelPosition(sidebar, stored.left, stored.top);
-    } else if (useCurrentInline && Number.isFinite(inlineLeft) && Number.isFinite(inlineTop)) {
-      clamped = clampPanelPosition(sidebar, inlineLeft, inlineTop);
     } else {
       clamped = getDefaultAnchoredPanelPosition(sidebar, side);
     }
@@ -1429,46 +1418,12 @@ function bindSidePanels(username) {
     writeBool(TOP50_PIN_KEY, state.top50Pinned);
   };
 
-  const syncGlobalChatSettingTransition = () => {
-    const nextEnabled = menuHomePanelSettings.globalChatEnabled !== false;
-    const storedRaw = localStorage.getItem(GLOBAL_CHAT_ENABLED_CACHE_KEY);
-    const storedEnabled = storedRaw === "true" ? true : storedRaw === "false" ? false : null;
-    const baselineEnabled = storedEnabled === null ? previousGlobalChatEnabled : storedEnabled;
-    const changed = baselineEnabled !== nextEnabled;
-    if (changed) {
-      localStorage.removeItem(GLOBAL_CHAT_POS_KEY);
-      clearInlineSidebarPosition(globalSidebar);
-      if (nextEnabled && isSidebarDragEnabled()) {
-        applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, { side: "left" });
-      }
-    }
-    localStorage.setItem(GLOBAL_CHAT_ENABLED_CACHE_KEY, nextEnabled ? "true" : "false");
-    previousGlobalChatEnabled = nextEnabled;
-    return changed;
-  };
-
   const applyAllOpenStates = () => {
     applyPanelOpenState(globalSidebar, state.globalOpen && menuHomePanelSettings.globalChatEnabled !== false);
     applyPanelOpenState(top50Sidebar, state.top50Open && menuHomePanelSettings.top50Enabled !== false);
     if (!state.globalOpen) {
       closeGlobalChatStream();
     }
-  };
-
-  const enforceDesktopGlobalChatVisibility = () => {
-    let changed = false;
-    if (menuHomePanelSettings.globalChatEnabled === false) {
-      if (state.globalOpen) {
-        state.globalOpen = false;
-        changed = true;
-      }
-      return changed;
-    }
-    if (isDesktopMainMenuSidebarContext() && !state.globalOpen) {
-      state.globalOpen = true;
-      changed = true;
-    }
-    return changed;
   };
 
   const toggleGlobalPanel = (eventOrOptions = null) => {
@@ -1486,9 +1441,6 @@ function bindSidePanels(username) {
     applyAllOpenStates();
     if (state.globalOpen) {
       void refreshGlobalChat();
-      if (isSidebarDragEnabled()) {
-        applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, { side: "left" });
-      }
     }
   };
 
@@ -1507,13 +1459,10 @@ function bindSidePanels(username) {
     applyAllOpenStates();
     if (state.top50Open) {
       void refreshTop50();
-      if (isSidebarDragEnabled()) {
-        applyPanelPosition(top50Sidebar, TOP50_POS_KEY, { side: "right" });
-      }
     }
   };
 
-  const bindSidebarDrag = (sidebar, key, isPinnedResolver = () => false) => {
+  const bindSidebarDrag = (sidebar, key) => {
     if (!sidebar) return;
     let dragging = false;
     let dragIntent = false;
@@ -1545,6 +1494,7 @@ function bindSidePanels(username) {
     const finishHandler = () => {
       if (!dragIntent) return;
       dragIntent = false;
+      sidebar.classList.remove("is-drag-armed");
       if (pointerId !== null) {
         try {
           sidebar.releasePointerCapture(pointerId);
@@ -1558,9 +1508,9 @@ function bindSidePanels(username) {
         const clamped = clampPanelPosition(sidebar, rect.left, rect.top);
         sidebar.style.left = `${clamped.left}px`;
         sidebar.style.top = `${clamped.top}px`;
-        if (isPinnedResolver()) {
-          writePanelPosition(key, clamped);
-        }
+        sidebar.style.right = "auto";
+        sidebar.style.bottom = "auto";
+        writePanelPosition(key, clamped);
       }
     };
 
@@ -1581,8 +1531,14 @@ function bindSidePanels(username) {
       pointerId = event.pointerId;
       startX = event.clientX;
       startY = event.clientY;
-      offsetX = event.clientX - rect.left;
-      offsetY = event.clientY - rect.top;
+      const clamped = clampPanelPosition(sidebar, rect.left, rect.top);
+      sidebar.style.left = `${clamped.left}px`;
+      sidebar.style.top = `${clamped.top}px`;
+      sidebar.style.right = "auto";
+      sidebar.style.bottom = "auto";
+      sidebar.classList.add("is-drag-armed");
+      offsetX = event.clientX - clamped.left;
+      offsetY = event.clientY - clamped.top;
       try {
         sidebar.setPointerCapture(pointerId);
       } catch (_) {}
@@ -1703,10 +1659,6 @@ function bindSidePanels(username) {
   state.top50Open = readBool(TOP50_OPEN_KEY, readLegacyOpenFromCollapsed(TOP50_UI_KEY, false));
   state.globalPinned = readBool(GLOBAL_CHAT_PIN_KEY, false);
   state.top50Pinned = readBool(TOP50_PIN_KEY, false);
-  syncGlobalChatSettingTransition();
-  if (enforceDesktopGlobalChatVisibility()) {
-    persistOpenState();
-  }
   persistOpenState();
   persistPinState();
 
@@ -1715,8 +1667,8 @@ function bindSidePanels(username) {
   applyAllOpenStates();
   applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, { side: "left" });
   applyPanelPosition(top50Sidebar, TOP50_POS_KEY, { side: "right" });
-  bindSidebarDrag(globalSidebar, GLOBAL_CHAT_POS_KEY, () => state.globalPinned);
-  bindSidebarDrag(top50Sidebar, TOP50_POS_KEY, () => state.top50Pinned);
+  bindSidebarDrag(globalSidebar, GLOBAL_CHAT_POS_KEY);
+  bindSidebarDrag(top50Sidebar, TOP50_POS_KEY);
   if (state.globalOpen) {
     void refreshGlobalChat();
   }
@@ -1780,38 +1732,15 @@ function bindSidePanels(username) {
   const onResize = () => {
     updateMainMenuSidebarVisibility();
     if (state.globalOpen) {
-      applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, {
-        side: "left",
-        useCurrentInline: !state.globalPinned,
-      });
-    } else {
-      clearInlineSidebarPosition(globalSidebar);
+      applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, { side: "left" });
     }
     if (state.top50Open) {
-      applyPanelPosition(top50Sidebar, TOP50_POS_KEY, {
-        side: "right",
-        useCurrentInline: !state.top50Pinned,
-      });
-    } else {
-      clearInlineSidebarPosition(top50Sidebar);
+      applyPanelPosition(top50Sidebar, TOP50_POS_KEY, { side: "right" });
     }
   };
   window.addEventListener("resize", onResize);
   window.addEventListener("menu:toggle-global-chat", toggleGlobalPanel);
   window.addEventListener("menu:toggle-top50", toggleTop50Panel);
-  const sidebarVisibilityHandler = () => {
-    if (enforceDesktopGlobalChatVisibility()) {
-      persistOpenState();
-    }
-    applyAllOpenStates();
-    if (state.globalOpen && isSidebarDragEnabled()) {
-      applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, {
-        side: "left",
-        useCurrentInline: !state.globalPinned,
-      });
-    }
-  };
-  window.addEventListener("menu:sidebar-visibility-updated", sidebarVisibilityHandler);
   const storageHandler = (event) => {
     if (
       event.key !== SETTINGS_KEY
@@ -1828,16 +1757,7 @@ function bindSidePanels(username) {
     if (event.key === GLOBAL_CHAT_OPEN_KEY || event.key === TOP50_OPEN_KEY) {
       state.globalOpen = readBool(GLOBAL_CHAT_OPEN_KEY, state.globalOpen);
       state.top50Open = readBool(TOP50_OPEN_KEY, state.top50Open);
-      if (enforceDesktopGlobalChatVisibility()) {
-        persistOpenState();
-      }
       applyAllOpenStates();
-      if (state.globalOpen) {
-        applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, { side: "left" });
-      }
-      if (state.top50Open) {
-        applyPanelPosition(top50Sidebar, TOP50_POS_KEY, { side: "right" });
-      }
       return;
     }
     if (event.key === GLOBAL_CHAT_PIN_KEY || event.key === TOP50_PIN_KEY) {
@@ -1849,25 +1769,16 @@ function bindSidePanels(username) {
     }
     if (event.key === GLOBAL_CHAT_POS_KEY || event.key === TOP50_POS_KEY) {
       if (state.globalOpen) {
-        applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, {
-          side: "left",
-          useCurrentInline: !state.globalPinned,
-        });
+        applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, { side: "left" });
       }
       if (state.top50Open) {
-        applyPanelPosition(top50Sidebar, TOP50_POS_KEY, {
-          side: "right",
-          useCurrentInline: !state.top50Pinned,
-        });
+        applyPanelPosition(top50Sidebar, TOP50_POS_KEY, { side: "right" });
       }
       return;
     }
     refreshMenuHomePanelSettingsFromStorage();
-    syncGlobalChatSettingTransition();
-    if (enforceDesktopGlobalChatVisibility()) {
-      persistOpenState();
-    }
     updateMainMenuSidebarVisibility();
+    applyAllOpenStates();
     if (menuHomePanelSettings.globalChatEnabled === false && chatEventSource) {
       closeGlobalChatStream();
     }
@@ -1878,7 +1789,6 @@ function bindSidePanels(username) {
     window.removeEventListener("resize", onResize);
     window.removeEventListener("menu:toggle-global-chat", toggleGlobalPanel);
     window.removeEventListener("menu:toggle-top50", toggleTop50Panel);
-    window.removeEventListener("menu:sidebar-visibility-updated", sidebarVisibilityHandler);
     window.removeEventListener("storage", storageHandler);
     closeGlobalChatStream();
   });
