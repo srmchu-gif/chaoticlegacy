@@ -3149,6 +3149,210 @@ function getScansCardsForUser(scansData, username, seedIfMissing = true) {
   return { key, cards: scansData.players[key].cards, changed };
 }
 
+function isOwnerExcludedFromSetPurge(ownerKeyRaw) {
+  return normalizeUserKey(ownerKeyRaw, "") === "admin";
+}
+
+function getPurgeUserStat(statsMap, ownerKeyRaw) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey || isOwnerExcludedFromSetPurge(ownerKey)) {
+    return null;
+  }
+  if (!statsMap.has(ownerKey)) {
+    statsMap.set(ownerKey, {
+      username: ownerKey,
+      scansRemoved: 0,
+      deckCardsRemoved: 0,
+    });
+  }
+  return statsMap.get(ownerKey);
+}
+
+function buildSetPurgeReport(options = {}) {
+  const userStatsMap = options.userStatsMap instanceof Map ? options.userStatsMap : new Map();
+  const users = Array.from(userStatsMap.values())
+    .map((entry) => ({
+      username: entry.username,
+      scansRemoved: Number(entry.scansRemoved || 0),
+      deckCardsRemoved: Number(entry.deckCardsRemoved || 0),
+      totalRemoved: Number(entry.scansRemoved || 0) + Number(entry.deckCardsRemoved || 0),
+    }))
+    .filter((entry) => entry.totalRemoved > 0)
+    .sort((a, b) => b.totalRemoved - a.totalRemoved || a.username.localeCompare(b.username));
+  const totals = users.reduce((acc, entry) => {
+    acc.scans += entry.scansRemoved;
+    acc.deckCards += entry.deckCardsRemoved;
+    return acc;
+  }, { scans: 0, deckCards: 0 });
+  return {
+    ok: true,
+    mode: options.mode || "unknown",
+    allowedSets: ["DOP", "ZOTH", "SS"],
+    removed: {
+      scanEntries: totals.scans,
+      deckCards: totals.deckCards,
+      total: totals.scans + totals.deckCards,
+    },
+    affectedUsersCount: users.length,
+    affectedUsers: users,
+    generatedAt: nowIso(),
+  };
+}
+
+function purgeDisallowedSetsFromSqlV2(userStatsMap) {
+  const statsMap = userStatsMap instanceof Map ? userStatsMap : new Map();
+  const scanRows = sqliteDb
+    .prepare("SELECT scan_entry_id, owner_key, card_type, card_id FROM scan_entries")
+    .all();
+  const deckRows = sqliteDb
+    .prepare(`
+      SELECT dc.deck_key, dc.card_type, dc.slot_index, dc.card_id,
+             COALESCE(NULLIF(dh.owner_key, ''), NULLIF(dc.owner_key_shadow, '')) AS owner_key
+      FROM deck_cards dc
+      LEFT JOIN deck_headers dh ON dh.deck_key = dc.deck_key
+    `)
+    .all();
+
+  const deleteScanEntry = sqliteDb.prepare("DELETE FROM scan_entries WHERE scan_entry_id = ?");
+  const deleteDeckCard = sqliteDb.prepare("DELETE FROM deck_cards WHERE deck_key = ? AND card_type = ? AND slot_index = ?");
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    scanRows.forEach((row) => {
+      const ownerKey = normalizeUserKey(row?.owner_key || "", "");
+      if (!ownerKey || isOwnerExcludedFromSetPurge(ownerKey)) {
+        return;
+      }
+      if (isPlayerCardSetAllowedByCardId(row?.card_id || "")) {
+        return;
+      }
+      deleteScanEntry.run(String(row?.scan_entry_id || ""));
+      const stat = getPurgeUserStat(statsMap, ownerKey);
+      if (stat) {
+        stat.scansRemoved += 1;
+      }
+    });
+    deckRows.forEach((row) => {
+      const ownerKey = normalizeUserKey(row?.owner_key || "", "");
+      if (!ownerKey || isOwnerExcludedFromSetPurge(ownerKey)) {
+        return;
+      }
+      if (isPlayerCardSetAllowedByCardId(row?.card_id || "")) {
+        return;
+      }
+      deleteDeckCard.run(String(row?.deck_key || ""), String(row?.card_type || ""), Number(row?.slot_index || 0));
+      const stat = getPurgeUserStat(statsMap, ownerKey);
+      if (stat) {
+        stat.deckCardsRemoved += 1;
+      }
+    });
+    sqliteDb.exec("COMMIT");
+  } catch (error) {
+    try {
+      sqliteDb.exec("ROLLBACK");
+    } catch {}
+    throw error;
+  }
+}
+
+function purgeDisallowedSetsFromScansState(scansState, userStatsMap) {
+  const statsMap = userStatsMap instanceof Map ? userStatsMap : new Map();
+  let changed = false;
+  Object.entries(scansState?.players || {}).forEach(([ownerRaw, value]) => {
+    const ownerKey = normalizeUserKey(ownerRaw, "");
+    if (!ownerKey || isOwnerExcludedFromSetPurge(ownerKey)) {
+      return;
+    }
+    const cards = value?.cards && typeof value.cards === "object" ? value.cards : createEmptyCardBuckets();
+    const nextCards = createEmptyCardBuckets();
+    DECK_CARD_TYPES.forEach((type) => {
+      const list = Array.isArray(cards[type]) ? cards[type] : [];
+      let removedByType = 0;
+      list.forEach((entry) => {
+        const cardId = scanEntryToCardId(type, entry);
+        if (!cardId || !isPlayerCardSetAllowedByCardId(cardId)) {
+          removedByType += 1;
+          return;
+        }
+        nextCards[type].push(entry);
+      });
+      if (removedByType > 0) {
+        changed = true;
+        const stat = getPurgeUserStat(statsMap, ownerKey);
+        if (stat) {
+          stat.scansRemoved += removedByType;
+        }
+      }
+    });
+    scansState.players[ownerKey] = { cards: nextCards };
+  });
+  return changed;
+}
+
+function purgeDisallowedSetsFromDeckStoreLegacy(userStatsMap) {
+  const statsMap = userStatsMap instanceof Map ? userStatsMap : new Map();
+  let changed = false;
+  const deckRows = sqlList("decks");
+  deckRows.forEach((row) => {
+    const deckKey = String(row?.entity_key || "").trim();
+    if (!deckKey) {
+      return;
+    }
+    const deck = sqlGet("decks", deckKey);
+    if (!deck || typeof deck !== "object") {
+      return;
+    }
+    const ownerKey = deckOwnerKey(deck);
+    if (!ownerKey || isOwnerExcludedFromSetPurge(ownerKey)) {
+      return;
+    }
+    const deckCards = deck?.cards && typeof deck.cards === "object" ? deck.cards : {};
+    const nextCards = createEmptyCardBuckets();
+    let removedFromDeck = 0;
+    DECK_CARD_TYPES.forEach((type) => {
+      const list = Array.isArray(deckCards[type]) ? deckCards[type] : [];
+      list.forEach((entry) => {
+        const cardId = deckCardIdFromEntry(type, entry);
+        if (!cardId || !isPlayerCardSetAllowedByCardId(cardId)) {
+          removedFromDeck += 1;
+          return;
+        }
+        nextCards[type].push(entry);
+      });
+    });
+    if (!removedFromDeck) {
+      return;
+    }
+    deck.cards = nextCards;
+    deck.updatedAt = nowIso();
+    writeDeckStored(deckKey, deck);
+    const stat = getPurgeUserStat(statsMap, ownerKey);
+    if (stat) {
+      stat.deckCardsRemoved += removedFromDeck;
+    }
+    changed = true;
+  });
+  return changed;
+}
+
+function purgeDisallowedPlayerCardSets() {
+  const userStatsMap = new Map();
+  if (isSqlV2Ready()) {
+    purgeDisallowedSetsFromSqlV2(userStatsMap);
+  } else {
+    const scans = loadScansData();
+    const scansChanged = purgeDisallowedSetsFromScansState(scans, userStatsMap);
+    if (scansChanged) {
+      writeScansData(scans, "admin_purge_disallowed_sets");
+    }
+    purgeDisallowedSetsFromDeckStoreLegacy(userStatsMap);
+  }
+  invalidateUserCaches("", { all: true });
+  return buildSetPurgeReport({
+    mode: isSqlV2Ready() ? "sql_v2" : "legacy_json",
+    userStatsMap,
+  });
+}
+
 function listAvailableCreatureCopiesForCard(scansData, username, cardId, editingDeck = "") {
   const normalizedCardId = String(cardId || "").trim();
   if (!normalizedCardId) {
@@ -4004,7 +4208,8 @@ const DEFAULT_LOCATION_RARITY_DROP_CHANCE = {
 const PERIM_ANOMALY_DIRECT_REVEAL_CHANCE = 0.02;
 const PERIM_LOCATION_DROP_COPY_CAP = 3;
 const PERIM_LOCATION_DROP_BASE_CHANCE_MULTIPLIER = 0.82;
-const PERIM_ALLOWED_DROP_SET_KEYS = new Set(["dop", "zoth", "ss"]);
+const PLAYER_ALLOWED_SET_KEYS = new Set(["dop", "zoth", "ss"]);
+const PERIM_ALLOWED_DROP_SET_KEYS = PLAYER_ALLOWED_SET_KEYS;
 
 const DEFAULT_PERIM_CAMP_CREATURE_STACKING = {
   enabled: true,
@@ -4082,6 +4287,46 @@ function normalizePerimDropSetKey(setRaw) {
     return "unknown";
   }
   return normalized;
+}
+
+let librarySetLookupCache = { versionToken: "", byCardId: new Map() };
+
+function resolveLibraryCardSetKey(card) {
+  const setValue = card && typeof card === "object"
+    ? (card.set ?? card.setName ?? card.collection ?? "")
+    : "";
+  return normalizePerimDropSetKey(setValue);
+}
+
+function getLibraryCardSetLookup() {
+  const cards = Array.isArray(library?.cards) ? library.cards : [];
+  const versionToken = String(cards.length);
+  if (librarySetLookupCache.byCardId.size && librarySetLookupCache.versionToken === versionToken) {
+    return librarySetLookupCache.byCardId;
+  }
+  const byCardId = new Map();
+  cards.forEach((card) => {
+    const cardId = String(card?.id || "").trim();
+    if (!cardId) {
+      return;
+    }
+    byCardId.set(cardId, resolveLibraryCardSetKey(card));
+  });
+  librarySetLookupCache = { versionToken, byCardId };
+  return byCardId;
+}
+
+function resolveCardSetKeyById(cardIdRaw) {
+  const cardId = String(cardIdRaw || "").trim();
+  if (!cardId) {
+    return "unknown";
+  }
+  const lookup = getLibraryCardSetLookup();
+  return lookup.get(cardId) || "unknown";
+}
+
+function isPlayerCardSetAllowedByCardId(cardIdRaw) {
+  return PLAYER_ALLOWED_SET_KEYS.has(resolveCardSetKeyById(cardIdRaw));
 }
 
 function isPerimDropSetAllowed(setRaw) {
@@ -9881,7 +10126,14 @@ function starterPackConfigByTribe(tribeKey) {
 
 function isDropEligibleCard(card) {
   const nameLower = String(card?.name || "").toLowerCase();
-  return Boolean(card?.id) && !nameLower.includes("unused") && !nameLower.includes("alpha");
+  const cardId = String(card?.id || "").trim();
+  if (!cardId) {
+    return false;
+  }
+  if (!isPlayerCardSetAllowedByCardId(cardId)) {
+    return false;
+  }
+  return !nameLower.includes("unused") && !nameLower.includes("alpha");
 }
 
 function pickEligibleCardWithCap(cards, currentCounts, maxAttempts = 64) {
@@ -15781,6 +16033,35 @@ async function handleRequest(request, response) {
       decksCleared,
       resetAt: nowIso(),
     });
+    return;
+  }
+
+  if (pathname === "/api/admin/cards/purge-disallowed-sets" && request.method === "POST") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "admin_purge_disallowed_sets", adminUser.username, {
+      windowMs: 60 * 1000,
+      maxHits: 3,
+    })) {
+      return;
+    }
+    let report = null;
+    try {
+      report = purgeDisallowedPlayerCardSets();
+    } catch (error) {
+      console.error(`[ADMIN][PURGE_SETS] Falha ao higienizar sets permitidos: ${error?.message || error}`);
+      return sendJson(response, 500, { error: "Falha ao higienizar cartas fora dos sets permitidos." });
+    }
+    appendAuditLog("admin_purge_disallowed_sets", {
+      severity: "warn",
+      ownerKey: adminUser.username,
+      ipAddress: getClientIp(request),
+      message: "Purge de cartas fora dos sets permitidos executado.",
+      payload: report,
+    });
+    sendJson(response, 200, report);
     return;
   }
 
