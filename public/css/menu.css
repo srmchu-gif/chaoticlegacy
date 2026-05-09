@@ -69,10 +69,10 @@ body {
 
 .side-panel {
   position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
-  width: min(320px, 30vw);
-  max-height: 84vh;
+  top: 1rem;
+  transform: translate(0, 0);
+  width: min(320px, 28vw);
+  max-height: calc(100vh - 2rem);
   z-index: 6;
   transition: transform 0.25s ease, opacity 0.2s ease;
 }
@@ -86,11 +86,11 @@ body {
 }
 
 .side-panel.collapsed.side-panel-left {
-  transform: translate(-88%, -50%);
+  transform: translateX(calc(-100% + 46px));
 }
 
 .side-panel.collapsed.side-panel-right {
-  transform: translate(88%, -50%);
+  transform: translateX(calc(100% - 46px));
 }
 
 .side-panel-toggle {
@@ -126,7 +126,7 @@ body {
   display: grid;
   grid-template-rows: auto auto minmax(180px, 1fr) auto;
   gap: 0.45rem;
-  max-height: 84vh;
+  max-height: calc(100vh - 2rem);
   backdrop-filter: blur(8px);
 }
 
@@ -2300,7 +2300,7 @@ body {
 
 @media (max-width: 1300px) {
   .side-panel {
-    width: min(280px, 34vw);
+    width: min(280px, 30vw);
   }
 }
 
@@ -2386,7 +2386,31 @@ body {
     margin-top: 0.1rem;
   }
   .side-panel {
-    display: none;
+    display: block;
+    top: auto;
+    bottom: 0.65rem;
+    width: min(340px, 44vw);
+    max-height: 68vh;
+    z-index: 14;
+  }
+  .side-panel-left {
+    left: 0.55rem;
+  }
+  .side-panel-right {
+    right: 0.55rem;
+  }
+  .side-panel-body {
+    max-height: 68vh;
+  }
+  .side-panel-messages,
+  .side-panel-list {
+    max-height: 42vh;
+  }
+  .side-panel.collapsed.side-panel-left {
+    transform: translateX(calc(-100% + 48px));
+  }
+  .side-panel.collapsed.side-panel-right {
+    transform: translateX(calc(100% - 48px));
   }
 }
 
@@ -2453,5 +2477,35 @@ body {
   .footer-btn {
     padding: 0.5rem;
     font-size: 0.75rem;
+  }
+  .side-panel {
+    width: auto;
+    left: 0.45rem;
+    right: 0.45rem;
+    bottom: 0.45rem;
+    max-height: 64vh;
+  }
+  .side-panel-left,
+  .side-panel-right {
+    left: 0.45rem;
+    right: 0.45rem;
+  }
+  .side-panel-body {
+    max-height: 64vh;
+  }
+  .side-panel-messages,
+  .side-panel-list {
+    min-height: 150px;
+    max-height: 34vh;
+  }
+  .side-panel-left .side-panel-toggle,
+  .side-panel-right .side-panel-toggle {
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -100%);
+  }
+  .side-panel.collapsed.side-panel-left,
+  .side-panel.collapsed.side-panel-right {
+    transform: translateY(calc(100% - 46px));
   }
 }
