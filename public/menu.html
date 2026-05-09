@@ -16,11 +16,11 @@
   <div class="bg-shape shape-b"></div>
 
   <main class="menu-wrapper">
-    <aside id="global-chat-sidebar" class="side-panel side-panel-left collapsed" aria-label="Chat global">
-      <button id="global-chat-toggle" class="side-panel-toggle" type="button" aria-expanded="false">Chat Global</button>
+    <aside id="global-chat-sidebar" class="side-panel side-panel-left is-closed" aria-label="Chat global" aria-hidden="true">
       <div class="side-panel-body">
-        <div class="side-panel-header">
+        <div class="side-panel-header side-panel-head-row">
           <h3>Chat Global</h3>
+          <button id="global-chat-pin" class="side-panel-pin" type="button" aria-pressed="false" title="Fixar posicao">Pin</button>
         </div>
         <div id="global-chat-state" class="side-panel-state">Conectando chat...</div>
         <div id="global-chat-messages" class="side-panel-messages"></div>
@@ -614,11 +614,13 @@
     </div>
   </div>
 
-  <aside id="top50-sidebar" class="side-panel side-panel-right collapsed" aria-label="Top 50">
-    <button id="top50-toggle" class="side-panel-toggle" type="button" aria-expanded="false">Top 50</button>
+  <aside id="top50-sidebar" class="side-panel side-panel-right is-closed" aria-label="Top 50" aria-hidden="true">
     <div class="side-panel-body">
       <div class="side-panel-header">
-        <h3>Ranking Geral</h3>
+        <div class="side-panel-head-row">
+          <h3>Ranking Geral</h3>
+          <button id="top50-pin" class="side-panel-pin" type="button" aria-pressed="false" title="Fixar posicao">Pin</button>
+        </div>
         <div class="side-panel-tabs">
           <button id="top50-tab-score" class="side-panel-tab active" type="button">Pontuacao</button>
           <button id="top50-tab-scans" class="side-panel-tab" type="button">Scans</button>
@@ -630,6 +632,6 @@
   </aside>
 
   <script src="config.js"></script>
-  <script type="module" src="js/menu.js?v=16"></script>
+  <script type="module" src="js/menu.js?v=17"></script>
 </body>
 </html>
