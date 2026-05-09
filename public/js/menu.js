@@ -1433,9 +1433,6 @@ function bindSidePanels(username) {
     }
     const nextOpen = !state.globalOpen;
     state.globalOpen = nextOpen;
-    if (nextOpen && isMobileExclusiveSidebarMode()) {
-      state.top50Open = false;
-    }
     persistOpenState();
     applyAllOpenStates();
     if (state.globalOpen) {
@@ -1457,10 +1454,6 @@ function bindSidePanels(username) {
     }
     const nextOpen = !state.top50Open;
     state.top50Open = nextOpen;
-    if (nextOpen && isMobileExclusiveSidebarMode()) {
-      state.globalOpen = false;
-      closeGlobalChatStream();
-    }
     persistOpenState();
     applyAllOpenStates();
     if (state.top50Open) {
