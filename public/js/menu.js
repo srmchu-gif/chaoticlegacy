@@ -12,6 +12,7 @@ const GLOBAL_CHAT_OPEN_KEY = "chaotic.global_chat_open";
 const TOP50_OPEN_KEY = "chaotic.top50_open";
 const GLOBAL_CHAT_PIN_KEY = "chaotic.global_chat_pin";
 const TOP50_PIN_KEY = "chaotic.top50_pin";
+const GLOBAL_CHAT_ENABLED_CACHE_KEY = "chaotic.global_chat_enabled";
 let libraryCachePromise = null;
 const MENU_HOME_PANEL_DEFAULTS = Object.freeze({
   globalChatEnabled: true,
@@ -1247,6 +1248,7 @@ function bindSidePanels(username) {
   let chatEventSource = null;
   let top50Metric = "score";
   let globalChatMessages = [];
+  let previousGlobalChatEnabled = menuHomePanelSettings.globalChatEnabled !== false;
   const state = {
     globalOpen: false,
     top50Open: false,
@@ -1425,6 +1427,24 @@ function bindSidePanels(username) {
   const persistPinState = () => {
     writeBool(GLOBAL_CHAT_PIN_KEY, state.globalPinned);
     writeBool(TOP50_PIN_KEY, state.top50Pinned);
+  };
+
+  const syncGlobalChatSettingTransition = () => {
+    const nextEnabled = menuHomePanelSettings.globalChatEnabled !== false;
+    const storedRaw = localStorage.getItem(GLOBAL_CHAT_ENABLED_CACHE_KEY);
+    const storedEnabled = storedRaw === "true" ? true : storedRaw === "false" ? false : null;
+    const baselineEnabled = storedEnabled === null ? previousGlobalChatEnabled : storedEnabled;
+    const changed = baselineEnabled !== nextEnabled;
+    if (changed) {
+      localStorage.removeItem(GLOBAL_CHAT_POS_KEY);
+      clearInlineSidebarPosition(globalSidebar);
+      if (nextEnabled && isSidebarDragEnabled()) {
+        applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, { side: "left" });
+      }
+    }
+    localStorage.setItem(GLOBAL_CHAT_ENABLED_CACHE_KEY, nextEnabled ? "true" : "false");
+    previousGlobalChatEnabled = nextEnabled;
+    return changed;
   };
 
   const applyAllOpenStates = () => {
@@ -1683,6 +1703,7 @@ function bindSidePanels(username) {
   state.top50Open = readBool(TOP50_OPEN_KEY, readLegacyOpenFromCollapsed(TOP50_UI_KEY, false));
   state.globalPinned = readBool(GLOBAL_CHAT_PIN_KEY, false);
   state.top50Pinned = readBool(TOP50_PIN_KEY, false);
+  syncGlobalChatSettingTransition();
   if (enforceDesktopGlobalChatVisibility()) {
     persistOpenState();
   }
@@ -1842,6 +1863,7 @@ function bindSidePanels(username) {
       return;
     }
     refreshMenuHomePanelSettingsFromStorage();
+    syncGlobalChatSettingTransition();
     if (enforceDesktopGlobalChatVisibility()) {
       persistOpenState();
     }
