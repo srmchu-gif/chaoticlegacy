@@ -2729,7 +2729,7 @@ async function deleteDeck(deckName) {
   if (!confirmed) {
     return;
   }
-  await apiJson(`/api/decks/${encodeURIComponent(deckName)}?username=${encodeURIComponent(currentUsername())}`, {
+  const deletion = await apiJson(`/api/decks/${encodeURIComponent(deckName)}?username=${encodeURIComponent(currentUsername())}`, {
     method: "DELETE",
   });
 
@@ -2749,7 +2749,13 @@ async function deleteDeck(deckName) {
   await refreshDeckList();
   await refreshScansData();
   renderLibraryCards();
-  alert("Deck excluido.");
+  const returnedCount = Math.max(0, Number(deletion?.returnedCount || 0));
+  const skippedByCapCount = Math.max(0, Number(deletion?.skippedByCapCount || 0));
+  if (skippedByCapCount > 0) {
+    alert(`Deck excluido. Cartas devolvidas: ${returnedCount}. Ignoradas por limite de 3 copias: ${skippedByCapCount}.`);
+    return;
+  }
+  alert(`Deck excluido. Cartas devolvidas: ${returnedCount}.`);
 }
 
 function toBattleDeck(deck) {

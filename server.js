@@ -3733,6 +3733,52 @@ function applyDeckInventoryTransfer(cards, previousDeck, nextDeck) {
   };
 }
 
+function releaseDeckCardsToInventoryWithCap(cards, deckToRelease, cap = INVENTORY_MAX_COPIES) {
+  const nextCards = cloneCardBuckets(cards);
+  const countMap = buildInventoryCountMap(nextCards);
+  const releaseDeck = deckToRelease && typeof deckToRelease === "object" ? deckToRelease : { cards: {} };
+  const breakdown = {};
+  DECK_CARD_TYPES.forEach((type) => {
+    breakdown[type] = { returned: 0, skippedByCap: 0 };
+  });
+  let returnedCount = 0;
+  let skippedByCapCount = 0;
+
+  DECK_CARD_TYPES.forEach((type) => {
+    const entries = Array.isArray(releaseDeck?.cards?.[type]) ? releaseDeck.cards[type] : [];
+    entries.forEach((entry) => {
+      const cardId = deckCardIdFromEntry(type, entry);
+      if (!cardId) {
+        return;
+      }
+      const key = `${type}:${cardId}`;
+      const currentAmount = countMap.get(key) || 0;
+      if (currentAmount >= cap) {
+        skippedByCapCount += 1;
+        breakdown[type].skippedByCap += 1;
+        return;
+      }
+      const normalized = normalizeScansEntryByType(type, entry);
+      if (type === "creatures") {
+        nextCards[type].push(normalized || cardId);
+      } else {
+        nextCards[type].push(normalized || cardId);
+      }
+      countMap.set(key, currentAmount + 1);
+      returnedCount += 1;
+      breakdown[type].returned += 1;
+    });
+  });
+
+  return {
+    ok: true,
+    cards: trimCardsToInventoryCap(nextCards, cap),
+    returnedCount,
+    skippedByCapCount,
+    breakdown,
+  };
+}
+
 const PERIM_ACTIONS = [
   {
     id: "explore",
@@ -17682,21 +17728,19 @@ async function handleRequest(request, response) {
       const owner = requesterKey || deckOwnerKey(existingDeck || {}) || "local-player";
       const scans = loadScansData();
       const { key: ownerKey, cards: currentInventoryCards } = getScansCardsForUser(scans, owner, true);
-      const emptyDeck = { cards: createEmptyCardBuckets() };
-      const releaseResult = applyDeckInventoryTransfer(currentInventoryCards, existingDeck || emptyDeck, emptyDeck);
-      if (!releaseResult.ok) {
-        sendJson(response, 409, {
-          error: `Inventario cheio para excluir deck: ${releaseResult.errors.slice(0, 4).join(" | ")}`,
-        });
-        return;
-      }
+      const releaseResult = releaseDeckCardsToInventoryWithCap(currentInventoryCards, existingDeck || { cards: {} }, INVENTORY_MAX_COPIES);
       scans.players[ownerKey] = {
         cards: releaseResult.cards,
       };
       writeScansData(scans, "deck_delete_inventory_return");
       deleteDeckStored(normalizeDeckName(rawName));
       invalidateUserCaches(owner);
-      sendJson(response, 200, { ok: true });
+      sendJson(response, 200, {
+        ok: true,
+        returnedCount: Number(releaseResult.returnedCount || 0),
+        skippedByCapCount: Number(releaseResult.skippedByCapCount || 0),
+        breakdown: releaseResult.breakdown || {},
+      });
       return;
     }
   }
