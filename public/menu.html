@@ -207,8 +207,8 @@
               <div class="dromos-col">
                 <div class="dromos-card">
                   <h3>Ranked do Dromo</h3>
+                  <p class="dromos-ranked-note">A selecao de deck agora acontece no pre-combate, depois que o oponente for encontrado.</p>
                   <div class="dromos-select-row">
-                    <select id="dromos-ranked-deck"></select>
                     <button id="btn-dromos-ranked-create" class="menu-btn primary-btn compact-action-btn">Buscar ranked</button>
                   </div>
                   <div id="dromos-ranked-queue-state" class="dromos-list"></div>
@@ -372,59 +372,58 @@
       <!-- Painel Multiplayer -->
       <section class="multiplayer-panel" id="multiplayer-panel" style="display: none;">
         <h2 class="panel-title">Lobby Multiplayer</h2>
+        <div id="mp-status" class="trades-status">Escolha o modo da sala, convide um amigo ou entre em uma sala aberta.</div>
 
-        <div class="mp-friend-invite-box mp-card">
-          <h3>Convidar amigo para batalha casual</h3>
-          <div class="mp-friend-invite-row">
-            <select id="mp-friend-select">
-              <option value="">Carregando amigos online...</option>
-            </select>
-            <select id="mp-friend-deck"></select>
-            <button id="btn-mp-send-friend-invite" class="menu-btn standard-btn compact-action-btn">Convidar</button>
-            <button id="btn-mp-refresh-friend-invites" class="menu-btn ghost-btn compact-action-btn">Atualizar</button>
-          </div>
-          <div class="mp-friend-invite-grid">
-            <div>
-              <h4>Convites recebidos</h4>
-              <div id="mp-incoming-invites" class="trades-invites-list"></div>
+        <div class="mp-layout">
+          <article class="mp-card">
+            <h3>Partida Rapida</h3>
+            <div class="dromos-select-row">
+              <select id="mp-rules-mode" class="deck-select">
+                <option value="competitive">Competitivo</option>
+                <option value="casual">Casual</option>
+                <option value="1v1">1v1</option>
+              </select>
+              <button id="btn-mp-confirm-create" class="menu-btn primary-btn compact-action-btn">Criar Partida</button>
+              <button id="btn-mp-create-open" class="menu-btn ghost-btn compact-action-btn" style="display:none;">Abrir Sala</button>
             </div>
-            <div>
-              <h4>Convites enviados</h4>
-              <div id="mp-outgoing-invites" class="trades-invites-list"></div>
+            <div id="mp-created-room" class="dromos-list" style="display:none;"></div>
+          </article>
+
+          <article class="mp-card mp-friend-invite-box">
+            <h3>Convite de Amigos</h3>
+            <div class="mp-friend-invite-row">
+              <select id="mp-friend-select">
+                <option value="">Carregando amigos online...</option>
+              </select>
+              <select id="mp-friend-rules-mode">
+                <option value="competitive">Competitivo</option>
+                <option value="casual">Casual</option>
+                <option value="1v1">1v1</option>
+              </select>
+              <button id="btn-mp-send-friend-invite" class="menu-btn standard-btn compact-action-btn">Convidar</button>
+              <button id="btn-mp-refresh-friend-invites" class="menu-btn ghost-btn compact-action-btn">Atualizar</button>
             </div>
-          </div>
-        </div>
+            <div class="mp-friend-invite-grid">
+              <div>
+                <h4>Convites recebidos</h4>
+                <div id="mp-incoming-invites" class="trades-invites-list"></div>
+              </div>
+              <div>
+                <h4>Convites enviados</h4>
+                <div id="mp-outgoing-invites" class="trades-invites-list"></div>
+              </div>
+            </div>
+          </article>
 
-        <div class="multiplayer-actions">
-          <button id="btn-mp-create" class="menu-btn primary-btn compact-action-btn">Criar Partida</button>
-          <button id="btn-mp-join" class="menu-btn standard-btn compact-action-btn">Entrar em Partida</button>
-        </div>
-
-        <div id="mp-create-view" class="mp-view mp-card" style="display: none;">
-          <h3>Regra da Sala:</h3>
-          <select id="mp-rules-mode" class="deck-select">
-            <option value="competitive">Competitivo</option>
-            <option value="casual">Casual</option>
-            <option value="1v1">1v1</option>
-          </select>
-          <h3>Selecione seu Deck:</h3>
-          <select id="mp-deck-select-create" class="deck-select"></select>
-          <button id="btn-mp-confirm-create" class="menu-btn primary-btn pulse-btn fullwidth-action-btn">Confirmar e Criar Sala</button>
-          <div id="mp-waiting-message" class="mp-waiting-message" style="display: none;">
-            Aguardando outro jogador entrar...
-          </div>
-        </div>
-
-        <div id="mp-join-view" class="mp-view mp-card" style="display: none;">
-          <h3>Salas Dispon&iacute;veis:</h3>
-          <div id="mp-rooms-list" class="mp-rooms-list">
-            <div class="mp-rooms-loading">Buscando salas...</div>
-          </div>
-          <div id="mp-join-deck-section" style="display: none;">
-            <h3>Selecione seu Deck para entrar:</h3>
-            <select id="mp-deck-select-join" class="deck-select"></select>
-            <button id="btn-mp-confirm-join" class="menu-btn primary-btn pulse-btn fullwidth-action-btn">Conectar &agrave; Sala</button>
-          </div>
+          <article class="mp-card">
+            <h3>Salas Disponiveis / Assistir</h3>
+            <div class="dromos-row-actions">
+              <button id="btn-mp-refresh-rooms" class="menu-btn ghost-btn compact-action-btn">Atualizar Salas</button>
+            </div>
+            <div id="mp-rooms-list" class="mp-rooms-list">
+              <div class="mp-rooms-loading">Buscando salas...</div>
+            </div>
+          </article>
         </div>
 
         <button id="btn-mp-back" class="menu-btn ghost-btn panel-back-btn">Voltar ao Menu Principal</button>

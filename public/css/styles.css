@@ -206,3 +206,50 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
   }
 }
 
+/* Multiplayer pre-combate */
+.battle-setup-view{
+  border:1px solid #2f4b67;
+  border-radius:12px;
+  background:linear-gradient(170deg,#0b182ad6,#0a1423de);
+  padding:.8rem;
+  display:grid;
+  gap:.6rem;
+}
+.battle-setup-head h2{font-size:1rem;color:#c7e7ff}
+.battle-setup-head p{font-size:.8rem;color:#8cb0cb}
+.battle-setup-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.6rem;
+}
+.battle-deck-card{
+  border:1px solid #315678;
+  border-radius:10px;
+  background:#091322cc;
+  padding:.6rem;
+  display:grid;
+  gap:.45rem;
+}
+.battle-deck-card h3{font-size:.84rem;color:#a9ddff}
+.battle-deck-card label{display:grid;gap:.3rem;font-size:.78rem;color:#d6e8f8}
+.battle-deck-info{
+  font-size:.74rem;
+  color:#9cbad1;
+  min-height:1.2rem;
+}
+.battle-setup-bar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem;
+  align-items:center;
+}
+#battle-setup-mp-status{
+  border:1px solid #2f5c7f;
+  border-radius:8px;
+  background:#081120cf;
+  padding:.45rem .55rem;
+}
+@media (max-width:900px){
+  .battle-setup-grid{grid-template-columns:1fr}
+}
+

@@ -483,7 +483,9 @@ const appState = {
   multiplayer: {
     enabled: false,
     roomId: null,
+    phase: "lobby",
     matchType: "",
+    rulesMode: "competitive",
     dromeId: "",
     challengeMeta: null,
     role: "host",
@@ -507,6 +509,10 @@ const appState = {
       host: null,
       guest: null,
     },
+    deckSelect: {
+      host: { ready: false, deckName: "", valid: false, errors: [] },
+      guest: { ready: false, deckName: "", valid: false, errors: [] },
+    },
   },
   adminMetrics: {
     pollTimerId: null,
@@ -524,6 +530,12 @@ const el = {
   settingsPanel: document.querySelector("#settings-panel"),
   battleSetupView: document.querySelector("#battle-setup-view"),
   battleCombatView: document.querySelector("#battle-combat-view"),
+  battleSetupTitle: document.querySelector("#battle-setup-title"),
+  battleSetupDescription: document.querySelector("#battle-setup-description"),
+  battleSetupMpStatus: document.querySelector("#battle-setup-mp-status"),
+  battleSetupPlayerATitle: document.querySelector("#battle-setup-player-a-title"),
+  battleSetupPlayerBTitle: document.querySelector("#battle-setup-player-b-title"),
+  battleMpReady: document.querySelector("#battle-mp-ready"),
   battleBackSetup: document.querySelector("#battle-back-setup"),
   battleStageTitle: document.querySelector("#battle-stage-title"),
   battleRematch: document.querySelector("#battle-rematch"),
@@ -837,6 +849,28 @@ function isMultiplayerActive() {
   return Boolean(appState.multiplayer?.enabled && appState.multiplayer?.roomId);
 }
 
+function isMultiplayerDeckSelectPhase() {
+  return isMultiplayerActive() && String(appState.multiplayer?.phase || "") === "deck_select";
+}
+
+function localSeatName() {
+  const seat = String(appState.multiplayer?.role || "");
+  return seat === "host" || seat === "guest" ? seat : "spectator";
+}
+
+function ensureDeckOption(selectEl, deckName) {
+  if (!selectEl || !deckName) {
+    return;
+  }
+  const hasOption = Array.from(selectEl.options || []).some((entry) => String(entry.value || "") === deckName);
+  if (!hasOption) {
+    const option = document.createElement("option");
+    option.value = deckName;
+    option.textContent = deckName;
+    selectEl.appendChild(option);
+  }
+}
+
 function localPlayerIndex() {
   return Number.isInteger(appState.multiplayer?.localPlayerIndex)
     ? appState.multiplayer.localPlayerIndex
@@ -919,7 +953,9 @@ function applyMultiplayerSnapshot(snapshot) {
   if (typeof snapshot.seat === "string") {
     appState.multiplayer.role = snapshot.seat;
   }
+  appState.multiplayer.phase = String(snapshot.phase || "lobby");
   appState.multiplayer.matchType = String(snapshot.matchType || "");
+  appState.multiplayer.rulesMode = String(snapshot.rulesMode || "competitive");
   appState.multiplayer.dromeId = String(snapshot.dromeId || "");
   appState.multiplayer.challengeMeta = snapshot.challengeMeta && typeof snapshot.challengeMeta === "object"
     ? {
@@ -957,6 +993,24 @@ function applyMultiplayerSnapshot(snapshot) {
       guest: snapshot.players.guest || null,
     };
   }
+  if (snapshot.deckSelect && typeof snapshot.deckSelect === "object") {
+    const host = snapshot.deckSelect.host || {};
+    const guest = snapshot.deckSelect.guest || {};
+    appState.multiplayer.deckSelect = {
+      host: {
+        ready: Boolean(host.ready),
+        deckName: String(host.deckName || ""),
+        valid: Boolean(host.valid),
+        errors: Array.isArray(host.errors) ? host.errors : [],
+      },
+      guest: {
+        ready: Boolean(guest.ready),
+        deckName: String(guest.deckName || ""),
+        valid: Boolean(guest.valid),
+        errors: Array.isArray(guest.errors) ? guest.errors : [],
+      },
+    };
+  }
   syncMultiplayerTimeoutTicker();
 }
 
@@ -979,11 +1033,6 @@ function updateBattlePlayerAvatars(localIndex, opponentIndex) {
   const rightAvatar = opponentIndex === 0 ? hostAvatar : guestAvatar;
   leftAvatarEl.src = leftAvatar;
   rightAvatarEl.src = rightAvatar;
-}
-
-function localSeatName() {
-  const seat = String(appState.multiplayer?.role || "");
-  return seat === "host" || seat === "guest" ? seat : "spectator";
 }
 
 function renderRematchRequestPopup() {
@@ -3629,7 +3678,7 @@ function switchTab(target = "builder") {
     stopAdminMetricsAutoRefresh();
   }
   if (tab === "battle") {
-    switchBattleView(true);
+    updateMultiplayerBattleView();
   }
 }
 
@@ -3647,8 +3696,7 @@ function initialViewFromQuery() {
 }
 
 function switchBattleView(showCombat) {
-  const forceCombatView = true;
-  const finalShowCombat = forceCombatView ? true : Boolean(showCombat);
+  const finalShowCombat = Boolean(showCombat);
   if (el.battleSetupView) {
     el.battleSetupView.classList.toggle("hidden", finalShowCombat);
   }
@@ -5603,7 +5651,9 @@ async function startBattleFromConfig(config) {
     closeMultiplayerStream();
     appState.multiplayer.enabled = false;
     appState.multiplayer.roomId = null;
+    appState.multiplayer.phase = "lobby";
     appState.multiplayer.matchType = "";
+    appState.multiplayer.rulesMode = "competitive";
     appState.multiplayer.dromeId = "";
     appState.multiplayer.challengeMeta = null;
     appState.multiplayer.seatToken = "";
@@ -5620,6 +5670,10 @@ async function startBattleFromConfig(config) {
       pending: false,
       requestedBy: null,
       requestedAt: null,
+    };
+    appState.multiplayer.deckSelect = {
+      host: { ready: false, deckName: "", valid: false, errors: [] },
+      guest: { ready: false, deckName: "", valid: false, errors: [] },
     };
   }
   if (!config.deckAName || !config.deckBName) {
@@ -5736,6 +5790,217 @@ async function startRematchFromCurrentBattle() {
   await startBattleFromConfig({ ...appState.lastBattleConfig });
 }
 
+function updateMultiplayerBattleView() {
+  if (isMultiplayerDeckSelectPhase()) {
+    switchBattleView(false);
+    renderMultiplayerDeckSelectState();
+    return;
+  }
+  if (el.battleSetupMpStatus) {
+    el.battleSetupMpStatus.classList.add("hidden");
+  }
+  if (el.battleMode) {
+    el.battleMode.disabled = false;
+    const modeLabel = el.battleMode.closest("label");
+    if (modeLabel) {
+      modeLabel.classList.remove("hidden");
+    }
+  }
+  if (el.aiPlayerOne) {
+    el.aiPlayerOne.disabled = false;
+    const toggleLabel = el.aiPlayerOne.closest("label");
+    if (toggleLabel) {
+      toggleLabel.classList.remove("hidden");
+    }
+  }
+  if (el.startBattle) {
+    el.startBattle.classList.remove("hidden");
+    el.startBattle.textContent = "Iniciar Batalha";
+  }
+  if (el.runAiMatch) {
+    el.runAiMatch.classList.remove("hidden");
+    el.runAiMatch.textContent = "IA vs IA";
+  }
+  if (el.battleMpReady) {
+    el.battleMpReady.classList.add("hidden");
+  }
+  switchBattleView(true);
+}
+
+function readableRulesMode(modeRaw) {
+  const mode = String(modeRaw || "").toLowerCase();
+  if (mode === "casual") return "Casual";
+  if (mode === "1v1") return "1v1";
+  return "Competitivo";
+}
+
+async function submitMultiplayerDeckSelection(useBuilderSnapshot = false) {
+  if (!isMultiplayerDeckSelectPhase()) {
+    return;
+  }
+  const localSeat = localSeatName();
+  if (localSeat !== "host" && localSeat !== "guest") {
+    alert("Somente os jogadores da sala podem selecionar deck.");
+    return;
+  }
+  const localSelect = localSeat === "host" ? el.battleDeckA : el.battleDeckB;
+  const deckName = String(localSelect?.value || "").trim();
+  const payloadBody = {
+    seatToken: String(appState.multiplayer.seatToken || ""),
+    deckName,
+  };
+  if (useBuilderSnapshot) {
+    payloadBody.deckName = String(appState.deck?.name || deckName || `${currentUsername()} Snapshot`).trim();
+    payloadBody.deckSnapshot = {
+      name: payloadBody.deckName,
+      owner: currentUsername(),
+      mode: String(appState.currentRuleset || "competitive"),
+      createdAt: appState.deck?.createdAt || new Date().toISOString(),
+      cards: {
+        creatures: Array.isArray(appState.deck?.cards?.creatures) ? [...appState.deck.cards.creatures] : [],
+        attacks: Array.isArray(appState.deck?.cards?.attacks) ? [...appState.deck.cards.attacks] : [],
+        battlegear: Array.isArray(appState.deck?.cards?.battlegear) ? [...appState.deck.cards.battlegear] : [],
+        locations: Array.isArray(appState.deck?.cards?.locations) ? [...appState.deck.cards.locations] : [],
+        mugic: Array.isArray(appState.deck?.cards?.mugic) ? [...appState.deck.cards.mugic] : [],
+      },
+    };
+  } else if (!payloadBody.deckName) {
+    alert("Selecione um deck salvo primeiro.");
+    return;
+  }
+  try {
+    const payload = await apiJson(`/api/multiplayer/rooms/${encodeURIComponent(appState.multiplayer.roomId || "")}/deck/select`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payloadBody),
+    });
+    if (payload?.snapshot) {
+      applyMultiplayerSnapshot(payload.snapshot);
+    }
+    renderMultiplayerDeckSelectState();
+  } catch (error) {
+    alert(error?.message || "Nao foi possivel selecionar deck para a sala.");
+  }
+}
+
+async function setMultiplayerReadyState(nextReady) {
+  if (!isMultiplayerDeckSelectPhase()) {
+    return;
+  }
+  try {
+    const payload = await apiJson(`/api/multiplayer/rooms/${encodeURIComponent(appState.multiplayer.roomId || "")}/ready`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        seatToken: String(appState.multiplayer.seatToken || ""),
+        ready: Boolean(nextReady),
+      }),
+    });
+    if (payload?.snapshot) {
+      applyMultiplayerSnapshot(payload.snapshot);
+    }
+    updateMultiplayerBattleView();
+    renderBattle();
+  } catch (error) {
+    alert(error?.message || "Nao foi possivel atualizar estado de pronto.");
+  }
+}
+
+function renderMultiplayerDeckSelectState() {
+  if (!isMultiplayerDeckSelectPhase()) {
+    return;
+  }
+  const roomPlayers = appState.multiplayer.players || {};
+  const localSeat = localSeatName();
+  const localIsHost = localSeat === "host";
+  const hostName = String(roomPlayers.host?.name || "Host");
+  const guestName = String(roomPlayers.guest?.name || "Guest");
+  const rulesLabel = readableRulesMode(appState.multiplayer.rulesMode);
+  const deckSelectState = appState.multiplayer.deckSelect || {};
+  const hostState = deckSelectState.host || {};
+  const guestState = deckSelectState.guest || {};
+
+  if (el.battleSetupTitle) {
+    el.battleSetupTitle.textContent = "Pre-combate Multiplayer";
+  }
+  if (el.battleSetupDescription) {
+    el.battleSetupDescription.textContent = `Defina seu deck de batalha (${rulesLabel}) e marque pronto. A luta so comeca quando os dois jogadores estiverem prontos.`;
+  }
+  if (el.battleSetupMpStatus) {
+    el.battleSetupMpStatus.classList.remove("hidden");
+    el.battleSetupMpStatus.textContent = `Host: ${hostState.ready ? "Pronto" : "Ajustando deck"} | Guest: ${guestState.ready ? "Pronto" : "Ajustando deck"}`;
+  }
+  if (el.battleSetupPlayerATitle) {
+    el.battleSetupPlayerATitle.textContent = hostName;
+  }
+  if (el.battleSetupPlayerBTitle) {
+    el.battleSetupPlayerBTitle.textContent = guestName;
+  }
+
+  if (el.aiPlayerOne) {
+    el.aiPlayerOne.checked = false;
+    el.aiPlayerOne.disabled = true;
+    const toggleLabel = el.aiPlayerOne.closest("label");
+    if (toggleLabel) {
+      toggleLabel.classList.add("hidden");
+    }
+  }
+  if (el.battleMode) {
+    el.battleMode.value = String(appState.multiplayer.rulesMode || "competitive");
+    el.battleMode.disabled = true;
+    const modeLabel = el.battleMode.closest("label");
+    if (modeLabel) {
+      modeLabel.classList.add("hidden");
+    }
+  }
+
+  if (el.startBattle) {
+    el.startBattle.textContent = "Selecionar deck salvo";
+    el.startBattle.classList.toggle("hidden", localSeat === "spectator");
+  }
+  if (el.runAiMatch) {
+    el.runAiMatch.textContent = "Usar deck atual do Builder";
+    el.runAiMatch.classList.toggle("hidden", localSeat === "spectator");
+  }
+
+  if (el.battleDeckA) {
+    el.battleDeckA.disabled = !localIsHost;
+    ensureDeckOption(el.battleDeckA, String(roomPlayers.host?.deckName || hostState.deckName || ""));
+    if (roomPlayers.host?.deckName) {
+      el.battleDeckA.value = String(roomPlayers.host.deckName);
+    }
+  }
+  if (el.battleDeckB) {
+    el.battleDeckB.disabled = localIsHost || localSeat === "spectator";
+    ensureDeckOption(el.battleDeckB, String(roomPlayers.guest?.deckName || guestState.deckName || ""));
+    if (roomPlayers.guest?.deckName) {
+      el.battleDeckB.value = String(roomPlayers.guest.deckName);
+    }
+  }
+
+  if (el.battleDeckAInfo) {
+    const errors = Array.isArray(hostState.errors) && hostState.errors.length ? ` | ${hostState.errors.join(" | ")}` : "";
+    el.battleDeckAInfo.textContent = hostState.deckName
+      ? `${hostState.ready ? "Pronto" : "Deck selecionado"}: ${hostState.deckName}${errors}`
+      : "Host ainda nao selecionou deck.";
+  }
+  if (el.battleDeckBInfo) {
+    const errors = Array.isArray(guestState.errors) && guestState.errors.length ? ` | ${guestState.errors.join(" | ")}` : "";
+    el.battleDeckBInfo.textContent = guestState.deckName
+      ? `${guestState.ready ? "Pronto" : "Deck selecionado"}: ${guestState.deckName}${errors}`
+      : "Guest ainda nao selecionou deck.";
+  }
+
+  if (el.battleMpReady) {
+    const localState = localIsHost ? hostState : guestState;
+    const localReady = Boolean(localState.ready);
+    const canInteract = localSeat === "host" || localSeat === "guest";
+    el.battleMpReady.classList.toggle("hidden", !canInteract);
+    el.battleMpReady.disabled = !canInteract;
+    el.battleMpReady.textContent = localReady ? "Cancelar pronto" : "Marcar pronto";
+  }
+}
+
 async function handleBattleMenuExit() {
   const isRankedMultiplayer = isMultiplayerActive() && String(appState.multiplayer.matchType || "") === "ranked_drome";
   if (isRankedMultiplayer) {
@@ -5771,6 +6036,7 @@ async function startMultiplayerBattle(roomId, seatTokenFromQuery = "", roleFromQ
     const stateUrl = `/api/multiplayer/rooms/${encodeURIComponent(roomId)}/state?seatToken=${encodeURIComponent(appState.multiplayer.seatToken || "")}`;
     const roomState = await apiJson(stateUrl);
     applyMultiplayerSnapshot(roomState);
+    await refreshDeckList().catch(() => {});
     if (typeof roomState.localPlayerIndex === "number") {
       appState.multiplayer.localPlayerIndex = roomState.localPlayerIndex;
     } else if (appState.multiplayer.role === "guest") {
@@ -5790,6 +6056,10 @@ async function startMultiplayerBattle(roomId, seatTokenFromQuery = "", roleFromQ
       }
       if (payload.type === "room_snapshot" && payload.snapshot) {
         applyMultiplayerSnapshot(payload.snapshot);
+        updateMultiplayerBattleView();
+        if (isMultiplayerDeckSelectPhase()) {
+          renderMultiplayerDeckSelectState();
+        }
         renderBattle();
         return;
       }
@@ -5817,7 +6087,10 @@ async function startMultiplayerBattle(roomId, seatTokenFromQuery = "", roleFromQ
     appState.multiplayer.eventSource = evtSource;
 
     switchTab("battle");
-    switchBattleView(true);
+    updateMultiplayerBattleView();
+    if (isMultiplayerDeckSelectPhase()) {
+      renderMultiplayerDeckSelectState();
+    }
     renderBattle();
   } catch (err) {
     alert("Erro na partida online: " + err.message);
@@ -6152,6 +6425,9 @@ function bindEvents() {
 
   if (el.battleMode) {
     el.battleMode.addEventListener("change", () => {
+      if (isMultiplayerDeckSelectPhase()) {
+        return;
+      }
       syncModeSelectors(el.battleMode.value);
       renderDeckValidation();
       void updateBattleSetupDeckInfo();
@@ -6160,11 +6436,19 @@ function bindEvents() {
 
   if (el.battleDeckA) {
     el.battleDeckA.addEventListener("change", () => {
+      if (isMultiplayerDeckSelectPhase()) {
+        renderMultiplayerDeckSelectState();
+        return;
+      }
       void updateBattleSetupDeckInfo();
     });
   }
   if (el.battleDeckB) {
     el.battleDeckB.addEventListener("change", () => {
+      if (isMultiplayerDeckSelectPhase()) {
+        renderMultiplayerDeckSelectState();
+        return;
+      }
       void updateBattleSetupDeckInfo();
     });
   }
@@ -6229,10 +6513,32 @@ function bindEvents() {
   });
 
   if (el.startBattle) {
-    el.startBattle.addEventListener("click", startBattleFromUI);
+    el.startBattle.addEventListener("click", () => {
+      if (isMultiplayerDeckSelectPhase()) {
+        void submitMultiplayerDeckSelection(false);
+        return;
+      }
+      void startBattleFromUI();
+    });
   }
   if (el.runAiMatch) {
-    el.runAiMatch.addEventListener("click", () => startBattleFromUI({ forceAiVsAi: true }));
+    el.runAiMatch.addEventListener("click", () => {
+      if (isMultiplayerDeckSelectPhase()) {
+        void submitMultiplayerDeckSelection(true);
+        return;
+      }
+      void startBattleFromUI({ forceAiVsAi: true });
+    });
+  }
+  if (el.battleMpReady) {
+    el.battleMpReady.addEventListener("click", () => {
+      const seat = localSeatName();
+      if (seat !== "host" && seat !== "guest") {
+        return;
+      }
+      const localState = appState.multiplayer.deckSelect?.[seat] || {};
+      void setMultiplayerReadyState(!Boolean(localState.ready));
+    });
   }
   if (el.battleRematch) {
     el.battleRematch.addEventListener("click", async () => {
@@ -6397,7 +6703,9 @@ async function init() {
   } else {
     appState.multiplayer.enabled = false;
     appState.multiplayer.roomId = null;
+    appState.multiplayer.phase = "lobby";
     appState.multiplayer.matchType = "";
+    appState.multiplayer.rulesMode = "competitive";
     appState.multiplayer.dromeId = "";
     appState.multiplayer.challengeMeta = null;
     appState.multiplayer.seatToken = "";
@@ -6407,6 +6715,10 @@ async function init() {
       pending: false,
       requestedBy: null,
       requestedAt: null,
+    };
+    appState.multiplayer.deckSelect = {
+      host: { ready: false, deckName: "", valid: false, errors: [] },
+      guest: { ready: false, deckName: "", valid: false, errors: [] },
     };
     closeMultiplayerStream();
   }

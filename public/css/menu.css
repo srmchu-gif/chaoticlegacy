@@ -1775,6 +1775,16 @@ body.menu-top50-disabled #profile-top50-bubble {
   margin-bottom: 0.8rem !important;
 }
 
+.mp-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.mp-layout > .mp-card:last-child {
+  grid-column: 1 / -1;
+}
+
 .mp-view {
   display: grid;
   gap: 0.5rem;
@@ -1817,8 +1827,7 @@ body.menu-top50-disabled #profile-top50-bubble {
 }
 
 #mp-rules-mode,
-#mp-deck-select-create,
-#mp-deck-select-join {
+#mp-friend-rules-mode {
   width: 100% !important;
   min-height: 42px;
   margin-bottom: 0.75rem !important;
@@ -1886,7 +1895,7 @@ body.menu-top50-disabled #profile-top50-bubble {
 }
 
 #mp-friend-select,
-#mp-friend-deck {
+#mp-friend-rules-mode {
   min-height: 40px;
   padding: 0.5rem 0.6rem;
   border-radius: 8px;
@@ -1919,6 +1928,16 @@ body.menu-top50-disabled #profile-top50-bubble {
 #multiplayer-panel #mp-join-view {
   margin-top: 0.28rem;
   border-color: rgba(0, 210, 255, 0.24);
+}
+
+#mp-created-room {
+  margin-top: 0.52rem;
+}
+
+.dromos-ranked-note {
+  margin: 0 0 0.6rem;
+  color: #8db4d3;
+  font-size: 0.74rem;
 }
 
 .trades-status {
@@ -2446,6 +2465,7 @@ body.menu-top50-disabled #profile-top50-bubble {
   }
   .trades-friend-invite-row,
   .mp-friend-invite-row,
+  .mp-layout,
   .mp-friend-invite-grid,
   .trades-invites-grid,
   .trades-room-main-layout,

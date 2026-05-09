@@ -11643,8 +11643,6 @@ async function tryMatchRankedQueue(dromeIdRaw, seasonKeyRaw, nowDate = new Date(
     hostUsername: host.ownerKey,
     hostName: host.playerName || host.ownerKey,
     hostAvatar,
-    hostDeck: host.deck,
-    hostDeckName: host.deckName,
     rulesMode: "competitive",
     matchType: MATCH_TYPE_RANKED_DROME,
     dromeId,
@@ -11654,12 +11652,13 @@ async function tryMatchRankedQueue(dromeIdRaw, seasonKeyRaw, nowDate = new Date(
     name: String(guest.playerName || guest.ownerKey),
     username: normalizeUserKey(guest.ownerKey),
     avatar: guestAvatar,
-    deck: guest.deck,
-    deckName: String(guest.deckName || guest.deck?.name || "Deck Guest"),
+    deck: null,
+    deckName: "",
     seatToken: guestToken,
   };
+  room.phase = "deck_select";
+  resetRoomDeckSelectState(room);
   room.updatedAt = nowIso();
-  await startRoomBattle(room);
   sendRoomEvent(room, { type: "player_joined", roomId: room.id });
   broadcastRoomSnapshot(room, "ranked_queue_match");
   const hostMatch = {
@@ -11689,7 +11688,7 @@ function createMultiplayerRoomRecord({
   hostUsername,
   hostName,
   hostAvatar,
-  hostDeck,
+  hostDeck = null,
   hostDeckName,
   rulesMode,
   matchType,
@@ -11722,10 +11721,14 @@ function createMultiplayerRoomRecord({
         username: normalizeUserKey(hostUsername || "host"),
         avatar: String(hostAvatar || ""),
         deck: hostDeck,
-        deckName: String(hostDeckName || hostDeck?.name || "Deck Host"),
+        deckName: String(hostDeckName || hostDeck?.name || ""),
         seatToken: hostToken,
       },
       guest: null,
+    },
+    deckSelect: {
+      host: { ready: false, deckName: String(hostDeckName || hostDeck?.name || ""), valid: false, errors: [] },
+      guest: { ready: false, deckName: "", valid: false, errors: [] },
     },
     battleState: null,
     clients: new Set(),
@@ -11745,6 +11748,111 @@ function createMultiplayerRoomRecord({
     roomId,
     hostToken,
   };
+}
+
+function resetRoomDeckSelectState(room) {
+  if (!room || typeof room !== "object") {
+    return;
+  }
+  if (!room.deckSelect || typeof room.deckSelect !== "object") {
+    room.deckSelect = {};
+  }
+  const hostDeck = room.players?.host?.deck || null;
+  const guestDeck = room.players?.guest?.deck || null;
+  room.deckSelect.host = {
+    ready: false,
+    deckName: String(room.players?.host?.deckName || hostDeck?.name || ""),
+    valid: Boolean(hostDeck),
+    errors: [],
+  };
+  room.deckSelect.guest = {
+    ready: false,
+    deckName: String(room.players?.guest?.deckName || guestDeck?.name || ""),
+    valid: Boolean(guestDeck),
+    errors: [],
+  };
+}
+
+function cloneDeckSnapshot(deckRaw) {
+  if (!deckRaw || typeof deckRaw !== "object") {
+    return null;
+  }
+  return safeJsonParse(JSON.stringify(deckRaw), null);
+}
+
+function setRoomDeckForSeat(room, seat, deckName, deckSnapshot, rulesModeRaw) {
+  if (!room || (seat !== "host" && seat !== "guest")) {
+    return { ok: false, error: "Assento invalido para deck." };
+  }
+  const mode = isValidRulesMode(rulesModeRaw) ? rulesModeRaw : (room.rulesMode || "competitive");
+  const snapshot = cloneDeckSnapshot(deckSnapshot);
+  if (!snapshot) {
+    return { ok: false, error: "Deck invalido." };
+  }
+  const validation = validateDeckForRulesMode(snapshot, mode);
+  const errors = Array.isArray(validation?.errors) ? validation.errors : [];
+  const isValid = Boolean(validation?.ok);
+  if (!room.deckSelect || typeof room.deckSelect !== "object") {
+    room.deckSelect = {};
+  }
+  if (!room.deckSelect.host || typeof room.deckSelect.host !== "object") {
+    room.deckSelect.host = { ready: false, deckName: "", valid: false, errors: [] };
+  }
+  if (!room.deckSelect.guest || typeof room.deckSelect.guest !== "object") {
+    room.deckSelect.guest = { ready: false, deckName: "", valid: false, errors: [] };
+  }
+  room.players[seat].deck = snapshot;
+  room.players[seat].deckName = String(deckName || snapshot?.name || room.players?.[seat]?.deckName || "").trim();
+  room.deckSelect[seat] = {
+    ready: false,
+    deckName: String(room.players[seat].deckName || ""),
+    valid: isValid,
+    errors: errors.slice(0, 3),
+  };
+  return {
+    ok: isValid,
+    validation,
+    error: isValid ? "" : `Deck invalido para modo ${mode}: ${errors.slice(0, 3).join(" | ")}`,
+  };
+}
+
+async function tryStartRoomBattleFromDeckSelect(room) {
+  if (!room || room.phase !== "deck_select") {
+    return { started: false };
+  }
+  const hasGuest = Boolean(room.players?.guest);
+  if (!hasGuest) {
+    return { started: false };
+  }
+  const hostReady = Boolean(room.deckSelect?.host?.ready);
+  const guestReady = Boolean(room.deckSelect?.guest?.ready);
+  if (!hostReady || !guestReady) {
+    return { started: false };
+  }
+  const hostDeck = room.players?.host?.deck;
+  const guestDeck = room.players?.guest?.deck;
+  if (!hostDeck || !guestDeck) {
+    return { started: false, error: "Ambos os jogadores precisam selecionar um deck." };
+  }
+  const hostValidation = validateDeckForRulesMode(hostDeck, room.rulesMode || "competitive");
+  const guestValidation = validateDeckForRulesMode(guestDeck, room.rulesMode || "competitive");
+  if (!hostValidation.ok || !guestValidation.ok) {
+    room.deckSelect.host = {
+      ...(room.deckSelect?.host || {}),
+      ready: false,
+      valid: Boolean(hostValidation.ok),
+      errors: hostValidation.errors.slice(0, 3),
+    };
+    room.deckSelect.guest = {
+      ...(room.deckSelect?.guest || {}),
+      ready: false,
+      valid: Boolean(guestValidation.ok),
+      errors: guestValidation.errors.slice(0, 3),
+    };
+    return { started: false, error: "Deck invalido para iniciar combate." };
+  }
+  await startRoomBattle(room);
+  return { started: true };
 }
 
 function buildSpectatorSafeBattleState(battleState) {
@@ -11783,17 +11891,18 @@ function buildSpectatorSafeBattleState(battleState) {
 
 function buildRoomStatePayload(room, seatToken = "") {
   const seatInfo = getRoomSeatByToken(room, seatToken);
+  const phase = String(room.phase || "lobby");
   const battleState =
     seatInfo.seat === "spectator"
       ? buildSpectatorSafeBattleState(room.battleState)
       : room.battleState;
-  const showDeckLists = seatInfo.seat !== "spectator";
+  const showDeckLists = seatInfo.seat !== "spectator" && (phase === "in_game" || phase === "finished");
   return {
     roomId: room.id,
     rulesMode: room.rulesMode || "competitive",
     matchType: normalizeMatchType(room?.matchType || ""),
     dromeId: normalizeDromeId(room?.dromeId || room?.challengeMeta?.dromeId || ""),
-    phase: room.phase || "lobby",
+    phase,
     status: buildRoomSummary(room).status,
     occupancy: buildRoomSummary(room).occupancy,
     players: {
@@ -11814,6 +11923,20 @@ function buildRoomStatePayload(room, seatToken = "") {
     },
     player1: room.players?.host && showDeckLists ? { deck: room.players.host.deck } : null,
     player2: room.players?.guest && showDeckLists ? { deck: room.players.guest.deck } : null,
+    deckSelect: {
+      host: {
+        ready: Boolean(room?.deckSelect?.host?.ready),
+        deckName: String(room?.deckSelect?.host?.deckName || room?.players?.host?.deckName || ""),
+        valid: Boolean(room?.deckSelect?.host?.valid),
+        errors: Array.isArray(room?.deckSelect?.host?.errors) ? room.deckSelect.host.errors.slice(0, 3) : [],
+      },
+      guest: {
+        ready: Boolean(room?.deckSelect?.guest?.ready),
+        deckName: String(room?.deckSelect?.guest?.deckName || room?.players?.guest?.deckName || ""),
+        valid: Boolean(room?.deckSelect?.guest?.valid),
+        errors: Array.isArray(room?.deckSelect?.guest?.errors) ? room.deckSelect.guest.errors.slice(0, 3) : [],
+      },
+    },
     seat: seatInfo.seat,
     localPlayerIndex: seatInfo.playerIndex,
     connection: buildConnectionState(room),
@@ -11983,6 +12106,17 @@ async function startRoomBattle(room) {
     room.battleState.board.players[1].label = room.players?.guest?.name || "Guest";
   }
   room.phase = "in_game";
+  if (!room.deckSelect || typeof room.deckSelect !== "object") {
+    room.deckSelect = {};
+  }
+  room.deckSelect.host = {
+    ...(room.deckSelect.host || {}),
+    ready: false,
+  };
+  room.deckSelect.guest = {
+    ...(room.deckSelect.guest || {}),
+    ready: false,
+  };
   room.rematch = { pending: false, requestedBy: null, requestedAt: null };
   room.startedAt = nowIso();
   room.lastActionSeq = Number(room.lastActionSeq || 0);
@@ -14980,17 +15114,6 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "Usuario invalido para fila ranked." });
       return;
     }
-    const deckName = String(payload.deckName || "").trim();
-    const deck = payload.deck && typeof payload.deck === "object" ? payload.deck : null;
-    if (!deckName || !deck) {
-      sendJson(response, 400, { error: "Selecione um deck valido para entrar na fila ranked." });
-      return;
-    }
-    const deckValidation = validateDeckForRulesMode(deck, "competitive");
-    if (!deckValidation.ok) {
-      sendJson(response, 400, { error: `Deck invalido: ${deckValidation.errors.slice(0, 3).join(" | ")}` });
-      return;
-    }
     ensureDromeSeasonCycle(new Date());
     const seasonKey = seasonKeyFromDate(new Date());
     const selection = getDromeSelectionForSeason(ownerKey, seasonKey);
@@ -15006,8 +15129,6 @@ async function handleRequest(request, response) {
       ownerKey,
       playerName: String(authUser.username || ownerKey),
       dromeId: selection.dromeId,
-      deck,
-      deckName,
       enqueuedAt: nowIso(),
       enqueuedAtMs: nowMs,
     };
@@ -16350,17 +16471,7 @@ async function handleRequest(request, response) {
         sendJson(response, 400, { error: "Ja existe convite pendente entre voces." });
         return;
       }
-      const deckName = String(payload.deckName || "").trim();
-      const deck = payload.deck && typeof payload.deck === "object" ? payload.deck : null;
-      if (!deckName || !deck) {
-        sendJson(response, 400, { error: "Selecione um deck valido para enviar o convite." });
-        return;
-      }
-      const validation = validateDeckForRulesMode(deck, "competitive");
-      if (!validation.ok) {
-        sendJson(response, 400, { error: `Deck invalido: ${validation.errors.slice(0, 3).join(" | ")}` });
-        return;
-      }
+      const rulesMode = isValidRulesMode(payload.rulesMode) ? payload.rulesMode : "competitive";
       const inviteId = `mpi_${crypto.randomBytes(6).toString("hex")}`;
       const nowMs = Date.now();
       casualBattleInvites.set(inviteId, {
@@ -16370,9 +16481,9 @@ async function handleRequest(request, response) {
         hostAvatar: resolveAvatarForUsername(ownerKey),
         targetKey,
         targetUsername: String(targetUser.username || targetKey),
-        rulesMode: "competitive",
-        hostDeck: deck,
-        hostDeckName: deckName,
+        rulesMode,
+        hostDeck: null,
+        hostDeckName: "",
         status: "pending",
         room: null,
         createdAt: nowIso(),
@@ -16450,25 +16561,14 @@ async function handleRequest(request, response) {
         sendJson(response, 400, { error: "Decisao invalida para convite." });
         return;
       }
-      const deckName = String(payload.deckName || "").trim();
-      const deck = payload.deck && typeof payload.deck === "object" ? payload.deck : null;
-      if (!deckName || !deck) {
-        sendJson(response, 400, { error: "Selecione um deck valido para aceitar o convite." });
-        return;
-      }
-      const validation = validateDeckForRulesMode(deck, invite.rulesMode || "competitive");
-      if (!validation.ok) {
-        sendJson(response, 400, { error: `Deck invalido: ${validation.errors.slice(0, 3).join(" | ")}` });
-        return;
-      }
       const hostAvatar = resolveAvatarForUsername(hostKey);
       const guestAvatar = resolveAvatarForUsername(targetKey);
       const { room, roomId, hostToken } = createMultiplayerRoomRecord({
         hostUsername: hostKey,
         hostName: String(invite.hostUsername || hostKey),
         hostAvatar,
-        hostDeck: invite.hostDeck,
-        hostDeckName: String(invite.hostDeckName || "Deck Host"),
+        hostDeck: null,
+        hostDeckName: "",
         rulesMode: String(invite.rulesMode || "competitive"),
         matchType: MATCH_TYPE_CASUAL_MULTIPLAYER,
       });
@@ -16477,12 +16577,13 @@ async function handleRequest(request, response) {
         name: String(authUser.username || targetKey),
         username: targetKey,
         avatar: guestAvatar,
-        deck,
-        deckName: deckName || String(deck?.name || "Deck Guest"),
+        deck: null,
+        deckName: "",
         seatToken: guestToken,
       };
+      room.phase = "deck_select";
+      resetRoomDeckSelectState(room);
       room.updatedAt = nowIso();
-      await startRoomBattle(room);
       sendRoomEvent(room, { type: "player_joined", roomId: room.id });
       broadcastRoomSnapshot(room, "casual_invite_accept");
       invite.status = "accepted";
@@ -16541,9 +16642,6 @@ async function handleRequest(request, response) {
         }
       }
 
-      if (!payload.deck) {
-        return sendJson(response, 400, { error: "Deck is required" });
-      }
       const rulesMode = isValidRulesMode(payload.rulesMode) ? payload.rulesMode : "competitive";
       const hostUsername = normalizeUserKey(
         payload.username
@@ -16574,19 +16672,13 @@ async function handleRequest(request, response) {
           return sendJson(response, 400, { error: "Partida ranked deve usar o Dromo selecionado para esta temporada." });
         }
       }
-      const hostDeckValidation = validateDeckForRulesMode(payload.deck, rulesMode);
-      if (!hostDeckValidation.ok) {
-        return sendJson(response, 400, {
-          error: `Deck invalido para modo ${rulesMode}: ${hostDeckValidation.errors.slice(0, 3).join(" | ")}`,
-        });
-      }
       const hostAvatar = resolveAvatarForUsername(hostUsername);
       const { room, roomId, hostToken } = createMultiplayerRoomRecord({
         hostUsername,
         hostName: String(payload.playerName || rankedAuthUser?.username || "Host"),
         hostAvatar,
-        hostDeck: payload.deck,
-        hostDeckName: String(payload.deckName || payload.deck?.name || "Deck Host"),
+        hostDeck: null,
+        hostDeckName: "",
         rulesMode,
         matchType,
         dromeId,
@@ -16634,17 +16726,8 @@ async function handleRequest(request, response) {
         });
       }
 
-      if (!payload.deck) {
-        return sendJson(response, 400, { error: "Deck is required" });
-      }
       const roomMatchType = normalizeMatchType(room?.matchType || "");
       const roomDromeId = normalizeDromeId(room?.dromeId || room?.challengeMeta?.dromeId || "");
-      const guestDeckValidation = validateDeckForRulesMode(payload.deck, room.rulesMode || "competitive");
-      if (!guestDeckValidation.ok) {
-        return sendJson(response, 400, {
-          error: `Deck invalido para modo ${room.rulesMode}: ${guestDeckValidation.errors.slice(0, 3).join(" | ")}`,
-        });
-      }
 
       let guestUsername = normalizeUserKey(payload.username || payload.playerName || "guest");
       if (roomMatchType === MATCH_TYPE_RANKED_DROME) {
@@ -16684,12 +16767,13 @@ async function handleRequest(request, response) {
         name: String(payload.playerName || "Guest"),
         username: guestUsername,
         avatar: guestAvatar,
-        deck: payload.deck,
-        deckName: String(payload.deckName || payload.deck?.name || "Deck Guest"),
+        deck: null,
+        deckName: "",
         seatToken: guestToken,
       };
+      room.phase = "deck_select";
+      resetRoomDeckSelectState(room);
       room.updatedAt = nowIso();
-      await startRoomBattle(room);
       sendRoomEvent(room, { type: "player_joined", roomId: room.id });
       broadcastRoomSnapshot(room, "player_joined");
       sendJson(response, 200, {
@@ -16713,6 +16797,128 @@ async function handleRequest(request, response) {
       const seatToken = parsedUrl.searchParams.get("seatToken") || "";
       sendJson(response, 200, buildRoomStatePayload(room, seatToken));
       return;
+    }
+
+    if (request.method === "POST" && pathname.startsWith("/api/multiplayer/rooms/") && pathname.endsWith("/deck/select")) {
+      const roomId = pathname.split("/")[4];
+      const room = requireRoomOr404(response, roomId);
+      if (!room) {
+        return;
+      }
+      if (room.phase !== "deck_select") {
+        return sendJson(response, 400, { error: "A selecao de deck nao esta ativa para esta sala." });
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (e) {
+        return sendJson(response, 413, { error: e.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido" });
+      }
+      const seatToken = String(payload.seatToken || "");
+      const seatInfo = getRoomSeatByToken(room, seatToken);
+      if (seatInfo.seat !== "host" && seatInfo.seat !== "guest") {
+        return sendJson(response, 403, { error: "Seat token invalido." });
+      }
+      const ownerKey = normalizeUserKey(room.players?.[seatInfo.seat]?.username || "", "");
+      const deckName = String(payload.deckName || "").trim();
+      let deckSnapshot = payload.deckSnapshot && typeof payload.deckSnapshot === "object"
+        ? payload.deckSnapshot
+        : (payload.deck && typeof payload.deck === "object" ? payload.deck : null);
+      if (!deckSnapshot && deckName) {
+        const normalizedDeckName = normalizeDeckName(deckName);
+        const loadedDeck = normalizedDeckName ? readDeckFileByName(`${normalizedDeckName}.json`) : null;
+        if (!loadedDeck) {
+          return sendJson(response, 404, { error: "Deck nao encontrado." });
+        }
+        const loadedOwner = normalizeUserKey(deckOwnerKey(loadedDeck || {}), "");
+        if (loadedOwner && ownerKey && loadedOwner !== ownerKey) {
+          return sendJson(response, 403, { error: "O deck selecionado pertence a outro jogador." });
+        }
+        deckSnapshot = loadedDeck;
+      }
+      if (!deckSnapshot) {
+        return sendJson(response, 400, { error: "Deck da partida obrigatorio." });
+      }
+      const result = setRoomDeckForSeat(
+        room,
+        seatInfo.seat,
+        deckName || String(deckSnapshot?.name || ""),
+        deckSnapshot,
+        room.rulesMode || "competitive"
+      );
+      room.updatedAt = nowIso();
+      if (!result.ok) {
+        broadcastRoomSnapshot(room, "deck_select_update");
+        return sendJson(response, 400, { error: result.error || "Deck invalido.", snapshot: buildRoomStatePayload(room, seatToken) });
+      }
+      broadcastRoomSnapshot(room, "deck_select_update");
+      return sendJson(response, 200, { ok: true, snapshot: buildRoomStatePayload(room, seatToken) });
+    }
+
+    if (request.method === "POST" && pathname.startsWith("/api/multiplayer/rooms/") && pathname.endsWith("/ready")) {
+      const roomId = pathname.split("/")[4];
+      const room = requireRoomOr404(response, roomId);
+      if (!room) {
+        return;
+      }
+      if (room.phase !== "deck_select") {
+        return sendJson(response, 400, { error: "Esta sala nao esta em fase de pre-combate." });
+      }
+      let payloadText;
+      try {
+        payloadText = await readBody(request);
+      } catch (e) {
+        return sendJson(response, 413, { error: e.message });
+      }
+      const payload = safeJsonParse(payloadText, null);
+      if (!payload || typeof payload !== "object") {
+        return sendJson(response, 400, { error: "JSON invalido" });
+      }
+      const seatToken = String(payload.seatToken || "");
+      const seatInfo = getRoomSeatByToken(room, seatToken);
+      if (seatInfo.seat !== "host" && seatInfo.seat !== "guest") {
+        return sendJson(response, 403, { error: "Seat token invalido." });
+      }
+      const ready = Boolean(payload.ready);
+      if (!room.deckSelect || typeof room.deckSelect !== "object") {
+        resetRoomDeckSelectState(room);
+      }
+      if (ready) {
+        const ownDeck = room.players?.[seatInfo.seat]?.deck || null;
+        if (!ownDeck) {
+          return sendJson(response, 400, { error: "Selecione seu deck antes de marcar pronto." });
+        }
+        const validation = validateDeckForRulesMode(ownDeck, room.rulesMode || "competitive");
+        room.deckSelect[seatInfo.seat] = {
+          ...(room.deckSelect[seatInfo.seat] || {}),
+          deckName: String(room.players?.[seatInfo.seat]?.deckName || ""),
+          valid: Boolean(validation.ok),
+          errors: Array.isArray(validation.errors) ? validation.errors.slice(0, 3) : [],
+          ready: Boolean(validation.ok),
+        };
+        if (!validation.ok) {
+          room.updatedAt = nowIso();
+          broadcastRoomSnapshot(room, "deck_select_update");
+          return sendJson(response, 400, { error: `Deck invalido para modo ${room.rulesMode}: ${validation.errors.slice(0, 3).join(" | ")}` });
+        }
+      } else {
+        room.deckSelect[seatInfo.seat] = {
+          ...(room.deckSelect[seatInfo.seat] || {}),
+          ready: false,
+        };
+      }
+      room.updatedAt = nowIso();
+      const startResult = await tryStartRoomBattleFromDeckSelect(room);
+      if (startResult?.error) {
+        broadcastRoomSnapshot(room, "deck_select_update");
+        return sendJson(response, 400, { error: startResult.error, snapshot: buildRoomStatePayload(room, seatToken) });
+      }
+      broadcastRoomSnapshot(room, startResult?.started ? "deck_select_start" : "deck_select_update");
+      return sendJson(response, 200, { ok: true, started: Boolean(startResult?.started), snapshot: buildRoomStatePayload(room, seatToken) });
     }
 
     if (request.method === "POST" && pathname.startsWith("/api/multiplayer/rooms/") && pathname.endsWith("/action")) {

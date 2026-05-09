@@ -251,15 +251,6 @@ function buildMultiplayerBattleUrl({ roomId, seat, seatToken }) {
   return toPage(`index.html?${params.toString()}`);
 }
 
-async function fetchDeckByName(deckName, username) {
-  const query = `?username=${encodeURIComponent(normalizeUsername(username))}`;
-  const res = await fetch(`/api/decks/${encodeURIComponent(deckName)}${query}`);
-  if (!res.ok) {
-    throw new Error("Falha ao carregar deck selecionado.");
-  }
-  return res.json();
-}
-
 async function populateDecks(selectEl, username) {
   if (!selectEl) {
     return;
@@ -1880,30 +1871,27 @@ function bindMultiplayer(username) {
   const menuNav = qs("menu-nav");
   const mpPanel = qs("multiplayer-panel");
   const dromosPanel = qs("dromos-panel");
-  const mpCreateView = qs("mp-create-view");
-  const mpJoinView = qs("mp-join-view");
-  const mpJoinDeckSection = qs("mp-join-deck-section");
+  const perimPanel = qs("perim-panel");
+  const tradesPanel = qs("trades-panel");
   const mpRoomsList = qs("mp-rooms-list");
-  const mpWaitingMessage = qs("mp-waiting-message");
-  const selMpDeckCreate = qs("mp-deck-select-create");
-  const selMpDeckJoin = qs("mp-deck-select-join");
   const selMpRulesMode = qs("mp-rules-mode");
+  const statusEl = qs("mp-status");
+  const createdRoomEl = qs("mp-created-room");
+  const btnMpCreateOpen = qs("btn-mp-create-open");
   const selMpFriend = qs("mp-friend-select");
-  const selMpFriendDeck = qs("mp-friend-deck");
+  const selMpFriendRulesMode = qs("mp-friend-rules-mode");
   const incomingInvitesEl = qs("mp-incoming-invites");
   const outgoingInvitesEl = qs("mp-outgoing-invites");
 
   const btnMultiplayer = qs("btn-multiplayer");
   const btnMpBack = qs("btn-mp-back");
-  const btnMpCreate = qs("btn-mp-create");
-  const btnMpJoin = qs("btn-mp-join");
   const btnMpConfirmCreate = qs("btn-mp-confirm-create");
-  const btnMpConfirmJoin = qs("btn-mp-confirm-join");
+  const btnMpRefreshRooms = qs("btn-mp-refresh-rooms");
   const btnMpSendFriendInvite = qs("btn-mp-send-friend-invite");
   const btnMpRefreshFriendInvites = qs("btn-mp-refresh-friend-invites");
 
-  let selectedRoomIdToJoin = null;
   let invitePollTimer = null;
+  let activeRoomSession = null;
 
   function stopInvitePolling() {
     if (invitePollTimer) {
@@ -1917,7 +1905,61 @@ function bindMultiplayer(username) {
     invitePollTimer = setInterval(() => {
       void refreshFriendOptions(true);
       void refreshCasualInvites(true);
+      void renderRoomList(true);
     }, 15000);
+  }
+
+  function setStatus(text, isError = false) {
+    if (!statusEl) {
+      return;
+    }
+    statusEl.textContent = String(text || "");
+    statusEl.style.color = isError ? "#ff8e8e" : "#88b5d5";
+  }
+
+  function selectedRulesMode(selectEl) {
+    const value = String(selectEl?.value || "").trim().toLowerCase();
+    return ["casual", "competitive", "1v1"].includes(value) ? value : "competitive";
+  }
+
+  function renderCreatedRoomSession() {
+    if (!createdRoomEl) {
+      return;
+    }
+    if (!activeRoomSession?.roomId) {
+      createdRoomEl.style.display = "none";
+      createdRoomEl.innerHTML = "";
+      if (btnMpCreateOpen) {
+        btnMpCreateOpen.style.display = "none";
+      }
+      return;
+    }
+    createdRoomEl.style.display = "grid";
+    const modeLabel = activeRoomSession.rulesMode === "casual"
+      ? "Casual"
+      : activeRoomSession.rulesMode === "1v1"
+        ? "1v1"
+        : "Competitivo";
+    createdRoomEl.innerHTML = `
+      <div class="dromos-row">
+        <strong>Sala criada: ${escapeHtml(activeRoomSession.roomId)}</strong>
+        <span>Modo ${modeLabel} • Aguardando oponente para abrir pre-combate.</span>
+      </div>
+    `;
+    if (btnMpCreateOpen) {
+      btnMpCreateOpen.style.display = "inline-flex";
+    }
+  }
+
+  function openActiveRoom() {
+    if (!activeRoomSession?.roomId) {
+      return;
+    }
+    window.location.href = buildMultiplayerBattleUrl({
+      roomId: activeRoomSession.roomId,
+      seat: activeRoomSession.seat || "host",
+      seatToken: activeRoomSession.seatToken || "",
+    });
   }
 
   async function refreshFriendOptions(silent = false) {
@@ -2047,30 +2089,24 @@ function bindMultiplayer(username) {
 
   async function sendCasualInvite() {
     const friendUsername = String(selMpFriend?.value || "").trim();
-    const deckName = String(selMpFriendDeck?.value || "").trim();
+    const rulesMode = selectedRulesMode(selMpFriendRulesMode);
     if (!friendUsername) {
       alert("Selecione um amigo online.");
       return;
     }
-    if (!deckName) {
-      alert("Selecione um deck para convite.");
-      return;
-    }
     try {
-      const deckData = await fetchDeckByName(deckName, username);
       await fetchJsonWithTimeout("/api/multiplayer/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           friendUsername,
-          deckName,
-          deck: deckData,
+          rulesMode,
         }),
       });
       await refreshCasualInvites(true);
-      alert("Convite enviado para batalha casual.");
+      setStatus("Convite enviado com sucesso.");
     } catch (error) {
-      alert(error?.message || "Falha ao enviar convite.");
+      setStatus(error?.message || "Falha ao enviar convite.", true);
     }
   }
 
@@ -2080,16 +2116,6 @@ function bindMultiplayer(username) {
         inviteId,
         decision,
       };
-      if (decision === "accept") {
-        const deckName = String(selMpFriendDeck?.value || selMpDeckJoin?.value || "").trim();
-        if (!deckName) {
-          alert("Selecione um deck para aceitar o convite.");
-          return;
-        }
-        const deckData = await fetchDeckByName(deckName, username);
-        payloadBody.deckName = deckName;
-        payloadBody.deck = deckData;
-      }
       const payload = await fetchJsonWithTimeout("/api/multiplayer/invites/respond", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2104,11 +2130,11 @@ function bindMultiplayer(username) {
         });
       }
     } catch (error) {
-      alert(error?.message || "Falha ao responder convite.");
+      setStatus(error?.message || "Falha ao responder convite.", true);
     }
   }
 
-  async function renderRoomList() {
+  async function renderRoomList(silent = false) {
     if (!mpRoomsList) {
       return;
     }
@@ -2135,20 +2161,49 @@ function bindMultiplayer(username) {
           : room.rulesMode === "1v1"
             ? "1v1"
             : "Competitivo";
+        const isOwnRoom = normalizeUsername(room.hostUsername || room.hostName || "") === normalizeUsername(username);
         const statusLabel = room.status || `${room.occupancy || "1/2"} jogadores`;
-        const phaseLabel = room.phase === "in_game" ? "Em jogo" : room.phase === "finished" ? "Finalizada" : "Aguardando";
-        textDiv.innerHTML = `<strong>ID: ${room.id}</strong><br><small>Host: ${room.hostName} | Regra: ${modeLabel} | ${statusLabel} | ${phaseLabel}</small>`;
+        const phaseLabel = room.phase === "in_game"
+          ? "Em jogo"
+          : room.phase === "finished"
+            ? "Finalizada"
+            : room.phase === "deck_select"
+              ? "Pre-combate"
+              : "Aguardando";
+        textDiv.innerHTML = `<strong>ID: ${room.id}${isOwnRoom ? " (Sua sala)" : ""}</strong><br><small>Host: ${room.hostName} | Regra: ${modeLabel} | ${statusLabel} | ${phaseLabel}</small>`;
         roomDiv.appendChild(textDiv);
 
         const actionBtn = document.createElement("button");
         actionBtn.style.padding = "0.3rem 0.6rem";
-        if ((room.phase || "lobby") === "lobby" && (room.occupancy || "1/2") !== "2/2") {
+        const occupancy = String(room.occupancy || "1/2");
+        const roomPhase = String(room.phase || "lobby");
+        if (isOwnRoom && activeRoomSession?.roomId === room.id) {
+          actionBtn.className = "menu-btn standard-btn";
+          actionBtn.textContent = "Abrir";
+          actionBtn.addEventListener("click", () => {
+            openActiveRoom();
+          });
+        } else if (occupancy !== "2/2" && roomPhase === "lobby" && !isOwnRoom) {
           actionBtn.className = "menu-btn primary-btn";
           actionBtn.textContent = "Entrar";
-          actionBtn.addEventListener("click", () => {
-            selectedRoomIdToJoin = room.id;
-            if (mpJoinDeckSection) {
-              mpJoinDeckSection.style.display = "block";
+          actionBtn.addEventListener("click", async () => {
+            try {
+              const joinPayload = await fetchJsonWithTimeout(`/api/multiplayer/rooms/${encodeURIComponent(room.id)}/join`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  spectator: false,
+                  username: normalizeUsername(username),
+                  playerName: username,
+                }),
+              });
+              window.location.href = buildMultiplayerBattleUrl({
+                roomId: room.id,
+                seat: joinPayload.seat || "guest",
+                seatToken: joinPayload.seatToken || "",
+              });
+            } catch (error) {
+              setStatus(error?.message || "Falha ao entrar na sala.", true);
             }
           });
         } else {
@@ -2161,27 +2216,64 @@ function bindMultiplayer(username) {
         roomDiv.appendChild(actionBtn);
         mpRoomsList.appendChild(roomDiv);
       });
-    } catch (_) {
+    } catch (error) {
       mpRoomsList.innerHTML = '<div style="text-align:center; color:#ff6a5c;">Erro ao buscar salas.</div>';
+      if (!silent) {
+        setStatus(error?.message || "Falha ao carregar salas multiplayer.", true);
+      }
+    }
+  }
+
+  async function createRoom() {
+    if (!btnMpConfirmCreate) {
+      return;
+    }
+    const mode = selectedRulesMode(selMpRulesMode);
+    btnMpConfirmCreate.disabled = true;
+    setStatus("Criando sala...", false);
+    try {
+      const payload = await fetchJsonWithTimeout("/api/multiplayer/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: normalizeUsername(username),
+          playerName: username,
+          rulesMode: mode,
+        }),
+      });
+      activeRoomSession = {
+        roomId: String(payload.roomId || ""),
+        seat: String(payload.seat || "host"),
+        seatToken: String(payload.seatToken || ""),
+        rulesMode: mode,
+      };
+      renderCreatedRoomSession();
+      await renderRoomList(true);
+      setStatus("Sala criada. Compartilhe o ID e abra a sala quando quiser.", false);
+    } catch (error) {
+      setStatus(error?.message || "Falha ao criar partida multiplayer.", true);
+    } finally {
+      btnMpConfirmCreate.disabled = false;
     }
   }
 
   if (btnMultiplayer) {
     btnMultiplayer.addEventListener("click", async () => {
+      setExpandedMode(true);
       if (menuNav) menuNav.style.display = "none";
       if (dromosPanel) dromosPanel.style.display = "none";
+      if (perimPanel) perimPanel.style.display = "none";
+      if (tradesPanel) tradesPanel.style.display = "none";
       if (mpPanel) mpPanel.style.display = "block";
       updateMainMenuSidebarVisibility();
-      if (mpCreateView) mpCreateView.style.display = "none";
-      if (mpJoinView) mpJoinView.style.display = "none";
-      if (mpJoinDeckSection) mpJoinDeckSection.style.display = "none";
-      await populateDecks(selMpDeckCreate, username);
-      await populateDecks(selMpDeckJoin, username);
-      await populateDecks(selMpFriendDeck, username);
+      setStatus("Carregando multiplayer...");
+      renderCreatedRoomSession();
       await Promise.all([
         refreshFriendOptions(true),
         refreshCasualInvites(true),
+        renderRoomList(true),
       ]);
+      setStatus("Escolha um modo, crie sua sala ou entre em uma sala aberta.");
       startInvitePolling();
     });
   }
@@ -2189,118 +2281,28 @@ function bindMultiplayer(username) {
   if (btnMpBack) {
     btnMpBack.addEventListener("click", () => {
       stopInvitePolling();
+      setExpandedMode(false);
       if (mpPanel) mpPanel.style.display = "none";
       if (menuNav) menuNav.style.display = "flex";
       updateMainMenuSidebarVisibility();
     });
   }
 
-  if (btnMpCreate) {
-    btnMpCreate.addEventListener("click", () => {
-      if (mpCreateView) mpCreateView.style.display = "block";
-      if (mpJoinView) mpJoinView.style.display = "none";
-      if (mpWaitingMessage) mpWaitingMessage.style.display = "none";
-      if (btnMpConfirmCreate) btnMpConfirmCreate.style.display = "block";
-    });
-  }
-
-  if (btnMpJoin) {
-    btnMpJoin.addEventListener("click", async () => {
-      if (mpJoinView) mpJoinView.style.display = "block";
-      if (mpCreateView) mpCreateView.style.display = "none";
-      if (mpJoinDeckSection) mpJoinDeckSection.style.display = "none";
-      selectedRoomIdToJoin = null;
-      await renderRoomList();
-    });
-  }
-
   if (btnMpConfirmCreate) {
-    btnMpConfirmCreate.addEventListener("click", async () => {
-      const deckName = selMpDeckCreate?.value;
-      if (!deckName) {
-        alert("Selecione um deck!");
-        return;
-      }
-      try {
-        const deckData = await fetchDeckByName(deckName, username);
-        btnMpConfirmCreate.style.display = "none";
-        if (mpWaitingMessage) mpWaitingMessage.style.display = "block";
-        const selectedRulesMode = ["casual", "competitive", "1v1"].includes(selMpRulesMode?.value)
-          ? selMpRulesMode.value
-          : "competitive";
-        const res = await fetch("/api/multiplayer/rooms", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: normalizeUsername(username),
-            playerName: username,
-            deckName,
-            deck: deckData,
-            rulesMode: selectedRulesMode,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data?.roomId) {
-          throw new Error(data?.error || "Falha ao criar sala.");
-        }
-        const evtSource = new EventSource(
-          apiUrl(`/api/multiplayer/events/${data.roomId}?seatToken=${encodeURIComponent(String(data.seatToken || ""))}`)
-        );
-        evtSource.onmessage = (event) => {
-          const msg = safeJsonParse(event.data, null);
-          if (msg?.type === "room_snapshot" && msg.snapshot?.phase === "in_game") {
-            evtSource.close();
-            window.location.href = buildMultiplayerBattleUrl({
-              roomId: data.roomId,
-              seat: data.seat || "host",
-              seatToken: data.seatToken || "",
-            });
-          }
-        };
-      } catch (err) {
-        alert(err?.message || "Erro ao criar sala");
-        btnMpConfirmCreate.style.display = "block";
-        if (mpWaitingMessage) mpWaitingMessage.style.display = "none";
-      }
+    btnMpConfirmCreate.addEventListener("click", () => {
+      void createRoom();
     });
   }
 
-  if (btnMpConfirmJoin) {
-    btnMpConfirmJoin.addEventListener("click", async () => {
-      if (!selectedRoomIdToJoin) {
-        alert("Selecione uma sala para entrar.");
-        return;
-      }
-      const deckName = selMpDeckJoin?.value;
-      if (!deckName) {
-        alert("Selecione um deck!");
-        return;
-      }
-      try {
-        const deckData = await fetchDeckByName(deckName, username);
-        const res = await fetch(`/api/multiplayer/rooms/${selectedRoomIdToJoin}/join`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            spectator: false,
-            username: normalizeUsername(username),
-            playerName: username,
-            deckName,
-            deck: deckData,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data?.error || "Falha ao entrar na sala.");
-        }
-        window.location.href = buildMultiplayerBattleUrl({
-          roomId: selectedRoomIdToJoin,
-          seat: data.seat || "guest",
-          seatToken: data.seatToken || "",
-        });
-      } catch (err) {
-        alert(err?.message || "Erro ao entrar na sala");
-      }
+  if (btnMpCreateOpen) {
+    btnMpCreateOpen.addEventListener("click", () => {
+      openActiveRoom();
+    });
+  }
+
+  if (btnMpRefreshRooms) {
+    btnMpRefreshRooms.addEventListener("click", () => {
+      void renderRoomList();
     });
   }
 
@@ -2314,6 +2316,7 @@ function bindMultiplayer(username) {
     btnMpRefreshFriendInvites.addEventListener("click", () => {
       void refreshFriendOptions();
       void refreshCasualInvites();
+      void renderRoomList();
     });
   }
 
@@ -2334,7 +2337,6 @@ function bindDromos(username) {
   const selectDromeEl = qs("dromos-select-drome");
   const leaderboardDromeEl = qs("dromos-leaderboard-drome");
   const codemasterDromeEl = qs("dromos-codemaster-drome");
-  const rankedDeckEl = qs("dromos-ranked-deck");
   const codemasterDeckEl = qs("dromos-codemaster-deck");
   const challengeUsernameEl = qs("dromos-challenge-username");
   const leaderboardListEl = qs("dromos-leaderboard-list");
@@ -2648,7 +2650,7 @@ function bindDromos(username) {
     }
     const queue = state.rankedQueue;
     if (!queue) {
-      rankedQueueStateEl.innerHTML = '<div class="trades-empty">Selecione deck e clique em "Buscar ranked".</div>';
+      rankedQueueStateEl.innerHTML = '<div class="trades-empty">Clique em "Buscar ranked". O deck sera escolhido no pre-combate apos encontrar oponente.</div>';
       return;
     }
     rankedQueueStateEl.innerHTML = `
@@ -2731,20 +2733,11 @@ function bindDromos(username) {
       setStatus("Selecione seu Dromo da temporada antes de buscar ranked.", true);
       return;
     }
-    const deckName = String(rankedDeckEl?.value || "").trim();
-    if (!deckName) {
-      setStatus("Selecione um deck para o ranked.", true);
-      return;
-    }
     try {
-      const deckData = await fetchDeckByName(deckName, username);
       const payload = await fetchJsonWithTimeout("/api/dromos/ranked/queue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          deckName,
-          deck: deckData,
-        }),
+        body: JSON.stringify({}),
       });
       state.rankedQueue = payload?.queue || null;
       state.rankedMatchedRoom = payload?.room || null;
@@ -2833,7 +2826,7 @@ function bindDromos(username) {
   }
 
   async function acceptChallengeInvite(inviteId) {
-    const deckName = String(codemasterDeckEl?.value || rankedDeckEl?.value || "").trim();
+    const deckName = String(codemasterDeckEl?.value || "").trim();
     if (!deckName) {
       setStatus("Selecione um deck para aceitar o desafio.", true);
       return;
@@ -2869,7 +2862,6 @@ function bindDromos(username) {
     dromosPanel.style.display = "block";
     updateMainMenuSidebarVisibility();
     await Promise.all([
-      populateDecks(rankedDeckEl, username),
       populateDecks(codemasterDeckEl, username),
     ]);
     await refreshOverview();

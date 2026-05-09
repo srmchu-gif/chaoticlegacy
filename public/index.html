@@ -141,12 +141,13 @@
         <article class="card-panel battle-shell">
           <div id="battle-setup-view" class="battle-setup-view hidden">
             <div class="battle-setup-head">
-              <h2>Selecao de Decks</h2>
-              <p>Escolha os decks e inicie a partida. A tela de combate abre em seguida.</p>
+              <h2 id="battle-setup-title">Pre-combate</h2>
+              <p id="battle-setup-description">Selecione os decks para iniciar a batalha.</p>
             </div>
+            <div id="battle-setup-mp-status" class="battle-deck-info hidden">Aguardando jogadores...</div>
             <div class="battle-setup-grid">
               <article class="battle-deck-card">
-                <h3>Jogador 1</h3>
+                <h3 id="battle-setup-player-a-title">Jogador 1</h3>
                 <label>
                   Deck
                   <select id="battle-deck-a"></select>
@@ -154,7 +155,7 @@
                 <div id="battle-deck-a-info" class="battle-deck-info">Selecione um deck para ver detalhes.</div>
               </article>
               <article class="battle-deck-card">
-                <h3>Jogador 2</h3>
+                <h3 id="battle-setup-player-b-title">Jogador 2</h3>
                 <label>
                   Deck
                   <select id="battle-deck-b"></select>
@@ -176,6 +177,7 @@
               </label>
               <button id="start-battle" class="primary-btn">Iniciar Batalha</button>
               <button id="run-ai-match">IA vs IA</button>
+              <button id="battle-mp-ready" class="primary-btn hidden" type="button">Marcar Pronto</button>
             </div>
           </div>
 
