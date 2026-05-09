@@ -1062,7 +1062,7 @@ async function bindProfile(username, sessionData) {
   }
   if (profileGlobalChatBubble) {
     profileGlobalChatBubble.addEventListener("click", () => {
-      if (document.body.classList.contains("menu-sidebars-hidden") || menuHomePanelSettings.globalChatEnabled === false) {
+      if (menuHomePanelSettings.globalChatEnabled === false) {
         return;
       }
       window.dispatchEvent(new CustomEvent("menu:toggle-global-chat"));
