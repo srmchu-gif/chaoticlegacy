@@ -4004,6 +4004,7 @@ const DEFAULT_LOCATION_RARITY_DROP_CHANCE = {
 const PERIM_ANOMALY_DIRECT_REVEAL_CHANCE = 0.02;
 const PERIM_LOCATION_DROP_COPY_CAP = 3;
 const PERIM_LOCATION_DROP_BASE_CHANCE_MULTIPLIER = 0.82;
+const PERIM_ALLOWED_DROP_SET_KEYS = new Set(["dop", "zoth", "ss"]);
 
 const DEFAULT_PERIM_CAMP_CREATURE_STACKING = {
   enabled: true,
@@ -4070,6 +4071,22 @@ function clampUnitInterval(value, fallback) {
     return Number(fallback || 0);
   }
   return Math.max(0, Math.min(1, numeric));
+}
+
+function normalizePerimDropSetKey(setRaw) {
+  const normalized = String(setRaw || "").trim().toLowerCase();
+  if (!normalized) {
+    return "unknown";
+  }
+  if (normalized === "unknownset") {
+    return "unknown";
+  }
+  return normalized;
+}
+
+function isPerimDropSetAllowed(setRaw) {
+  const key = normalizePerimDropSetKey(setRaw);
+  return PERIM_ALLOWED_DROP_SET_KEYS.has(key);
 }
 
 function normalizePerimDropTables(payload) {
@@ -5339,6 +5356,9 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
     if (nameLower.includes("unused") || nameLower.includes("alpha")) {
       return false;
     }
+    if (!isPerimDropSetAllowed(card?.set || "")) {
+      return false;
+    }
     const stockKey = `${type}:${String(card?.id || "")}`;
     const currentAmount = inventoryCounts.get(stockKey) || 0;
     return ignoreInventoryCap || currentAmount < INVENTORY_MAX_COPIES;
@@ -5453,6 +5473,9 @@ function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}
         card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
       }
       if (!card || !card.id) {
+        return null;
+      }
+      if (!isPerimDropSetAllowed(card?.set || "")) {
         return null;
       }
       const cardNameLower = String(card.name || "").toLowerCase();
@@ -5887,6 +5910,9 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       .map((card) => {
         const id = String(card?.id || "").trim();
         if (!id) {
+          return null;
+        }
+        if (!isPerimDropSetAllowed(card?.set || "")) {
           return null;
         }
         const lowerName = String(card?.name || "").toLowerCase();
