@@ -77,6 +77,10 @@ const DEFAULT_SETTINGS = {
     animations: true,
     hints: true,
   },
+  menuHomePanels: {
+    globalChatEnabled: true,
+    top50Enabled: true,
+  },
   controls: {
     mouseSensitivity: 100,
     keybinds: {
@@ -319,6 +323,14 @@ function sanitizeSettings(rawSettings) {
 
   settings.gameplay.animations = coerceBoolean(source.gameplay?.animations, settings.gameplay.animations);
   settings.gameplay.hints = coerceBoolean(source.gameplay?.hints, settings.gameplay.hints);
+  settings.menuHomePanels.globalChatEnabled = coerceBoolean(
+    source.menuHomePanels?.globalChatEnabled,
+    settings.menuHomePanels.globalChatEnabled
+  );
+  settings.menuHomePanels.top50Enabled = coerceBoolean(
+    source.menuHomePanels?.top50Enabled,
+    settings.menuHomePanels.top50Enabled
+  );
 
   settings.controls.mouseSensitivity = clampNumber(
     source.controls?.mouseSensitivity,
@@ -624,6 +636,8 @@ const el = {
   settingUiLanguage: document.querySelector("#setting-ui-language"),
   settingGameplayAnimations: document.querySelector("#setting-gameplay-animations"),
   settingGameplayHints: document.querySelector("#setting-gameplay-hints"),
+  settingMenuGlobalChat: document.querySelector("#setting-menu-global-chat"),
+  settingMenuTop50: document.querySelector("#setting-menu-top50"),
   settingMouseSensitivity: document.querySelector("#setting-mouse-sensitivity"),
   settingTheme: document.querySelector("#setting-theme"),
   settingFpsCounter: document.querySelector("#setting-fps-counter"),
@@ -2746,6 +2760,12 @@ function syncSettingsControlsFromState() {
   if (el.settingGameplayHints) {
     el.settingGameplayHints.checked = Boolean(settings.gameplay.hints);
   }
+  if (el.settingMenuGlobalChat) {
+    el.settingMenuGlobalChat.checked = Boolean(settings.menuHomePanels?.globalChatEnabled);
+  }
+  if (el.settingMenuTop50) {
+    el.settingMenuTop50.checked = Boolean(settings.menuHomePanels?.top50Enabled);
+  }
   if (el.settingMouseSensitivity) {
     el.settingMouseSensitivity.value = String(settings.controls.mouseSensitivity);
   }
@@ -2773,6 +2793,8 @@ function settingsFromControls() {
   draft.language.ui = normalizeLanguage(el.settingUiLanguage?.value);
   draft.gameplay.animations = Boolean(el.settingGameplayAnimations?.checked);
   draft.gameplay.hints = Boolean(el.settingGameplayHints?.checked);
+  draft.menuHomePanels.globalChatEnabled = Boolean(el.settingMenuGlobalChat?.checked);
+  draft.menuHomePanels.top50Enabled = Boolean(el.settingMenuTop50?.checked);
   draft.controls.mouseSensitivity = clampNumber(
     el.settingMouseSensitivity?.value,
     1,
@@ -5932,6 +5954,8 @@ function bindEvents() {
     el.settingUiLanguage,
     el.settingGameplayAnimations,
     el.settingGameplayHints,
+    el.settingMenuGlobalChat,
+    el.settingMenuTop50,
     el.settingMouseSensitivity,
     el.settingTheme,
     el.settingFpsCounter,

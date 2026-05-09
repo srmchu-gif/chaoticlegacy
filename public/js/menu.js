@@ -6,7 +6,14 @@ const SETTINGS_KEY = "chaotic.settings.v1";
 const LEGACY_SETTINGS_KEY = "chaotic_settings";
 const GLOBAL_CHAT_UI_KEY = "chaotic.global_chat_ui";
 const TOP50_UI_KEY = "chaotic.top50_ui";
+const GLOBAL_CHAT_POS_KEY = "chaotic.global_chat_pos";
+const TOP50_POS_KEY = "chaotic.top50_pos";
 let libraryCachePromise = null;
+const MENU_HOME_PANEL_DEFAULTS = Object.freeze({
+  globalChatEnabled: true,
+  top50Enabled: true,
+});
+let menuHomePanelSettings = { ...MENU_HOME_PANEL_DEFAULTS };
 const NETWORK_TIMEOUT_MS = {
   session: 10000,
   profile: 12000,
@@ -21,11 +28,65 @@ function qs(id) {
   return document.getElementById(id);
 }
 
+function normalizeMenuHomePanelSettings(source) {
+  const raw = source && typeof source === "object" ? source : {};
+  return {
+    globalChatEnabled: raw.globalChatEnabled !== false,
+    top50Enabled: raw.top50Enabled !== false,
+  };
+}
+
+function parseStoredSettings() {
+  return safeJsonParse(localStorage.getItem(SETTINGS_KEY), null)
+    || safeJsonParse(localStorage.getItem(LEGACY_SETTINGS_KEY), null)
+    || {};
+}
+
+async function loadMenuHomePanelSettings() {
+  let serverSettings = {};
+  try {
+    const payload = await fetchJsonWithTimeout("/api/settings", { method: "GET" });
+    serverSettings = payload?.settings && typeof payload.settings === "object" ? payload.settings : {};
+  } catch (_) {
+    serverSettings = {};
+  }
+  const localSettings = parseStoredSettings();
+  const merged = normalizeMenuHomePanelSettings(
+    serverSettings?.menuHomePanels && typeof serverSettings.menuHomePanels === "object"
+      ? serverSettings.menuHomePanels
+      : localSettings?.menuHomePanels
+  );
+  const patchedLocal = localSettings && typeof localSettings === "object" ? localSettings : {};
+  patchedLocal.menuHomePanels = merged;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(patchedLocal));
+  localStorage.removeItem(LEGACY_SETTINGS_KEY);
+  menuHomePanelSettings = merged;
+  return merged;
+}
+
+function refreshMenuHomePanelSettingsFromStorage() {
+  const settings = parseStoredSettings();
+  menuHomePanelSettings = normalizeMenuHomePanelSettings(settings?.menuHomePanels);
+  return menuHomePanelSettings;
+}
+
 function updateMainMenuSidebarVisibility() {
   const globalSidebar = qs("global-chat-sidebar");
   const top50Sidebar = qs("top50-sidebar");
-  if (!globalSidebar && !top50Sidebar) {
+  const profileGlobalChatBubble = qs("profile-global-chat-bubble");
+  const profileTop50Bubble = qs("profile-top50-bubble");
+  if (!globalSidebar && !top50Sidebar && !profileGlobalChatBubble && !profileTop50Bubble) {
     return;
+  }
+  const globalEnabled = menuHomePanelSettings.globalChatEnabled !== false;
+  const top50Enabled = menuHomePanelSettings.top50Enabled !== false;
+  document.body.classList.toggle("menu-global-chat-disabled", !globalEnabled);
+  document.body.classList.toggle("menu-top50-disabled", !top50Enabled);
+  if (profileGlobalChatBubble) {
+    profileGlobalChatBubble.hidden = !globalEnabled;
+  }
+  if (profileTop50Bubble) {
+    profileTop50Bubble.hidden = !top50Enabled;
   }
   const menuNav = qs("menu-nav");
   const dromosPanel = qs("dromos-panel");
@@ -36,8 +97,14 @@ function updateMainMenuSidebarVisibility() {
   const anyPanelVisible = [dromosPanel, perimPanel, tradesPanel, multiplayerPanel]
     .filter(Boolean)
     .some((panel) => getComputedStyle(panel).display !== "none");
-  const showSidebars = navVisible && !anyPanelVisible;
+  const showSidebars = navVisible && !anyPanelVisible && (globalEnabled || top50Enabled);
   document.body.classList.toggle("menu-sidebars-hidden", !showSidebars);
+  if (globalSidebar) {
+    globalSidebar.hidden = !globalEnabled;
+  }
+  if (top50Sidebar) {
+    top50Sidebar.hidden = !top50Enabled;
+  }
 }
 
 function normalizeUsername(value) {
@@ -234,6 +301,7 @@ async function bindProfile(username, sessionData) {
   const avatarUpload = qs("avatar-upload");
   const profileNotificationBell = qs("profile-notification-bell");
   const profileGlobalChatBubble = qs("profile-global-chat-bubble");
+  const profileTop50Bubble = qs("profile-top50-bubble");
   const profileNotificationBadge = qs("profile-notification-badge");
 
   const profileModal = qs("profile-modal");
@@ -990,10 +1058,18 @@ async function bindProfile(username, sessionData) {
   }
   if (profileGlobalChatBubble) {
     profileGlobalChatBubble.addEventListener("click", () => {
-      if (document.body.classList.contains("menu-sidebars-hidden")) {
+      if (document.body.classList.contains("menu-sidebars-hidden") || menuHomePanelSettings.globalChatEnabled === false) {
         return;
       }
       window.dispatchEvent(new CustomEvent("menu:open-global-chat"));
+    });
+  }
+  if (profileTop50Bubble) {
+    profileTop50Bubble.addEventListener("click", () => {
+      if (document.body.classList.contains("menu-sidebars-hidden") || menuHomePanelSettings.top50Enabled === false) {
+        return;
+      }
+      window.dispatchEvent(new CustomEvent("menu:open-top50"));
     });
   }
   if (profileTabGeneralBtn) {
@@ -1185,8 +1261,136 @@ function bindSidePanels(username) {
     toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
   };
 
+  const isMobileExclusiveSidebarMode = () => window.matchMedia("(max-width: 480px)").matches;
+  const isSidebarDragEnabled = () => !isMobileExclusiveSidebarMode();
+
+  const readPanelPosition = (key) => {
+    const parsed = safeJsonParse(localStorage.getItem(key), null);
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    const left = Number(parsed.left);
+    const top = Number(parsed.top);
+    if (!Number.isFinite(left) || !Number.isFinite(top)) {
+      return null;
+    }
+    return { left, top };
+  };
+
+  const writePanelPosition = (key, position) => {
+    if (!position || !Number.isFinite(Number(position.left)) || !Number.isFinite(Number(position.top))) {
+      return;
+    }
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        left: Math.round(Number(position.left)),
+        top: Math.round(Number(position.top)),
+        updatedAt: Date.now(),
+      })
+    );
+  };
+
+  const clearInlineSidebarPosition = (sidebar) => {
+    if (!sidebar) return;
+    sidebar.style.left = "";
+    sidebar.style.top = "";
+    sidebar.style.right = "";
+    sidebar.style.bottom = "";
+  };
+
+  const clampPanelPosition = (sidebar, rawLeft, rawTop) => {
+    const margin = 8;
+    const rect = sidebar.getBoundingClientRect();
+    const width = Math.max(120, Number(rect.width || sidebar.offsetWidth || 0));
+    const height = Math.max(120, Number(rect.height || sidebar.offsetHeight || 0));
+    const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+    const maxTop = Math.max(margin, window.innerHeight - height - margin);
+    return {
+      left: Math.min(maxLeft, Math.max(margin, Number(rawLeft || 0))),
+      top: Math.min(maxTop, Math.max(margin, Number(rawTop || 0))),
+    };
+  };
+
+  const applyPanelPosition = (sidebar, key) => {
+    if (!sidebar) return;
+    if (!isSidebarDragEnabled()) {
+      clearInlineSidebarPosition(sidebar);
+      return;
+    }
+    const stored = readPanelPosition(key);
+    if (!stored) return;
+    const clamped = clampPanelPosition(sidebar, stored.left, stored.top);
+    sidebar.style.left = `${clamped.left}px`;
+    sidebar.style.top = `${clamped.top}px`;
+    sidebar.style.right = "auto";
+    sidebar.style.bottom = "auto";
+  };
+
+  const bindSidebarDrag = (sidebar, key) => {
+    if (!sidebar) return;
+    let dragging = false;
+    let offsetX = 0;
+    let offsetY = 0;
+    let pointerId = null;
+
+    const moveHandler = (event) => {
+      if (!dragging) return;
+      const clamped = clampPanelPosition(sidebar, event.clientX - offsetX, event.clientY - offsetY);
+      sidebar.style.left = `${clamped.left}px`;
+      sidebar.style.top = `${clamped.top}px`;
+      sidebar.style.right = "auto";
+      sidebar.style.bottom = "auto";
+    };
+
+    const finishHandler = (event) => {
+      if (!dragging) return;
+      dragging = false;
+      if (pointerId !== null) {
+        try {
+          sidebar.releasePointerCapture(pointerId);
+        } catch (_) {}
+      }
+      pointerId = null;
+      const rect = sidebar.getBoundingClientRect();
+      const clamped = clampPanelPosition(sidebar, rect.left, rect.top);
+      sidebar.style.left = `${clamped.left}px`;
+      sidebar.style.top = `${clamped.top}px`;
+      writePanelPosition(key, clamped);
+    };
+
+    sidebar.addEventListener("pointerdown", (event) => {
+      if (!isSidebarDragEnabled() || event.button !== 0) {
+        return;
+      }
+      const target = event.target instanceof Element ? event.target : null;
+      if (target && target.closest("button, input, textarea, select, a, label, [contenteditable='true']")) {
+        return;
+      }
+      const rect = sidebar.getBoundingClientRect();
+      dragging = true;
+      pointerId = event.pointerId;
+      offsetX = event.clientX - rect.left;
+      offsetY = event.clientY - rect.top;
+      sidebar.style.left = `${rect.left}px`;
+      sidebar.style.top = `${rect.top}px`;
+      sidebar.style.right = "auto";
+      sidebar.style.bottom = "auto";
+      try {
+        sidebar.setPointerCapture(pointerId);
+      } catch (_) {}
+      event.preventDefault();
+    });
+
+    sidebar.addEventListener("pointermove", moveHandler);
+    sidebar.addEventListener("pointerup", finishHandler);
+    sidebar.addEventListener("pointercancel", finishHandler);
+    window.addEventListener("pointerup", finishHandler);
+  };
+
   const openGlobalChatPanel = () => {
-    if (!globalSidebar || !globalToggle) return;
+    if (!globalSidebar || !globalToggle || menuHomePanelSettings.globalChatEnabled === false) return;
+    if (document.body.classList.contains("menu-sidebars-hidden")) return;
     if (globalSidebar.classList.contains("collapsed")) {
       if (isMobileExclusiveSidebarMode() && top50Sidebar && top50Toggle) {
         applyCollapsedState(top50Sidebar, top50Toggle, true);
@@ -1202,7 +1406,19 @@ function bindSidePanels(username) {
     }
   };
 
-  const isMobileExclusiveSidebarMode = () => window.matchMedia("(max-width: 480px)").matches;
+  const openTop50Panel = () => {
+    if (!top50Sidebar || !top50Toggle || menuHomePanelSettings.top50Enabled === false) return;
+    if (document.body.classList.contains("menu-sidebars-hidden")) return;
+    if (top50Sidebar.classList.contains("collapsed")) {
+      if (isMobileExclusiveSidebarMode() && globalSidebar && globalToggle) {
+        applyCollapsedState(globalSidebar, globalToggle, true);
+        writeUiState(GLOBAL_CHAT_UI_KEY, true);
+      }
+      applyCollapsedState(top50Sidebar, top50Toggle, false);
+      writeUiState(TOP50_UI_KEY, false);
+    }
+    void refreshTop50();
+  };
 
   const readUiState = (key, fallback = true) => {
     const parsed = safeJsonParse(localStorage.getItem(key), null);
@@ -1324,7 +1540,12 @@ function bindSidePanels(username) {
   if (globalSidebar && globalToggle) {
     const collapsed = readUiState(GLOBAL_CHAT_UI_KEY, true);
     applyCollapsedState(globalSidebar, globalToggle, collapsed);
+    applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY);
+    bindSidebarDrag(globalSidebar, GLOBAL_CHAT_POS_KEY);
     globalToggle.addEventListener("click", () => {
+      if (menuHomePanelSettings.globalChatEnabled === false) {
+        return;
+      }
       const nextCollapsed = !globalSidebar.classList.contains("collapsed");
       if (!nextCollapsed && isMobileExclusiveSidebarMode() && top50Sidebar && top50Toggle) {
         applyCollapsedState(top50Sidebar, top50Toggle, true);
@@ -1347,7 +1568,12 @@ function bindSidePanels(username) {
   if (top50Sidebar && top50Toggle) {
     const collapsed = readUiState(TOP50_UI_KEY, true);
     applyCollapsedState(top50Sidebar, top50Toggle, collapsed);
+    applyPanelPosition(top50Sidebar, TOP50_POS_KEY);
+    bindSidebarDrag(top50Sidebar, TOP50_POS_KEY);
     top50Toggle.addEventListener("click", () => {
+      if (menuHomePanelSettings.top50Enabled === false) {
+        return;
+      }
       const nextCollapsed = !top50Sidebar.classList.contains("collapsed");
       if (!nextCollapsed && isMobileExclusiveSidebarMode() && globalSidebar && globalToggle) {
         applyCollapsedState(globalSidebar, globalToggle, true);
@@ -1396,11 +1622,32 @@ function bindSidePanels(username) {
   }
 
   updateMainMenuSidebarVisibility();
-  window.addEventListener("resize", updateMainMenuSidebarVisibility);
+  const onResize = () => {
+    updateMainMenuSidebarVisibility();
+    applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY);
+    applyPanelPosition(top50Sidebar, TOP50_POS_KEY);
+  };
+  window.addEventListener("resize", onResize);
   window.addEventListener("menu:open-global-chat", openGlobalChatPanel);
+  window.addEventListener("menu:open-top50", openTop50Panel);
+  const storageHandler = (event) => {
+    if (event.key !== SETTINGS_KEY && event.key !== LEGACY_SETTINGS_KEY) {
+      return;
+    }
+    refreshMenuHomePanelSettingsFromStorage();
+    updateMainMenuSidebarVisibility();
+    if (menuHomePanelSettings.globalChatEnabled === false && chatEventSource) {
+      try { chatEventSource.close(); } catch (_) {}
+      chatEventSource = null;
+    }
+  };
+  window.addEventListener("storage", storageHandler);
 
   window.addEventListener("beforeunload", () => {
+    window.removeEventListener("resize", onResize);
     window.removeEventListener("menu:open-global-chat", openGlobalChatPanel);
+    window.removeEventListener("menu:open-top50", openTop50Panel);
+    window.removeEventListener("storage", storageHandler);
     if (chatEventSource) {
       try { chatEventSource.close(); } catch (_) {}
       chatEventSource = null;
@@ -4594,6 +4841,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     })
   );
   const username = sessionData.username || "Jogador";
+  refreshMenuHomePanelSettingsFromStorage();
+  try {
+    await loadMenuHomePanelSettings();
+  } catch (_) {
+    refreshMenuHomePanelSettingsFromStorage();
+  }
+  updateMainMenuSidebarVisibility();
 
   await bindProfile(username, sessionData);
   bindSidePanels(username);

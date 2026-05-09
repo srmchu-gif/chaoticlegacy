@@ -433,7 +433,23 @@ body.menu-sidebars-hidden .side-panel {
   background: rgba(7, 18, 30, 0.72);
 }
 
-body.menu-sidebars-hidden #profile-global-chat-bubble {
+ .profile-ranking-bubble {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  font-size: 0.92rem;
+  background: rgba(13, 20, 33, 0.78);
+}
+
+body.menu-sidebars-hidden #profile-global-chat-bubble,
+body.menu-sidebars-hidden #profile-top50-bubble {
+  display: none;
+}
+
+body.menu-global-chat-disabled #global-chat-sidebar,
+body.menu-global-chat-disabled #profile-global-chat-bubble,
+body.menu-top50-disabled #top50-sidebar,
+body.menu-top50-disabled #profile-top50-bubble {
   display: none;
 }
 
@@ -2500,6 +2516,10 @@ body.menu-sidebars-hidden #profile-global-chat-bubble {
     gap: 0.24rem;
   }
   .profile-chat-bubble {
+    width: 28px;
+    height: 28px;
+  }
+  .profile-ranking-bubble {
     width: 28px;
     height: 28px;
   }
