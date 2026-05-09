@@ -49,10 +49,15 @@
         <div class="profile-info">
           <div class="profile-title-row">
             <h2 id="player-name">Carregando...</h2>
-            <button id="profile-notification-bell" class="profile-notification-bell" type="button" title="Notificacoes">
-              <span class="profile-notification-bell-icon">&#128276;</span>
-              <span id="profile-notification-badge" class="profile-notification-badge hidden">0</span>
-            </button>
+            <div id="profile-title-actions" class="profile-title-actions" aria-label="Acoes rapidas">
+              <button id="profile-notification-bell" class="profile-notification-bell" type="button" title="Notificacoes">
+                <span class="profile-notification-bell-icon">&#128276;</span>
+                <span id="profile-notification-badge" class="profile-notification-badge hidden">0</span>
+              </button>
+              <button id="profile-global-chat-bubble" class="profile-notification-bell profile-chat-bubble" type="button" title="Abrir chat global">
+                <span class="profile-notification-bell-icon">&#128172;</span>
+              </button>
+            </div>
           </div>
           <div class="profile-tag-row">
             <span id="player-drome-tag" class="profile-tag-chip">Dromo: -</span>
@@ -365,7 +370,7 @@
       <section class="multiplayer-panel" id="multiplayer-panel" style="display: none;">
         <h2 class="panel-title">Lobby Multiplayer</h2>
 
-        <div class="mp-friend-invite-box">
+        <div class="mp-friend-invite-box mp-card">
           <h3>Convidar amigo para batalha casual</h3>
           <div class="mp-friend-invite-row">
             <select id="mp-friend-select">
@@ -392,7 +397,7 @@
           <button id="btn-mp-join" class="menu-btn standard-btn compact-action-btn">Entrar em Partida</button>
         </div>
 
-        <div id="mp-create-view" class="mp-view" style="display: none;">
+        <div id="mp-create-view" class="mp-view mp-card" style="display: none;">
           <h3>Regra da Sala:</h3>
           <select id="mp-rules-mode" class="deck-select">
             <option value="competitive">Competitivo</option>
@@ -407,7 +412,7 @@
           </div>
         </div>
 
-        <div id="mp-join-view" class="mp-view" style="display: none;">
+        <div id="mp-join-view" class="mp-view mp-card" style="display: none;">
           <h3>Salas Dispon&iacute;veis:</h3>
           <div id="mp-rooms-list" class="mp-rooms-list">
             <div class="mp-rooms-loading">Buscando salas...</div>
@@ -622,6 +627,6 @@
   </aside>
 
   <script src="config.js"></script>
-  <script type="module" src="js/menu.js?v=14"></script>
+  <script type="module" src="js/menu.js?v=15"></script>
 </body>
 </html>

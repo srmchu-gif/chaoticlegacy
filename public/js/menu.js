@@ -233,6 +233,7 @@ async function bindProfile(username, sessionData) {
   const avatarContainer = qs("avatar-container");
   const avatarUpload = qs("avatar-upload");
   const profileNotificationBell = qs("profile-notification-bell");
+  const profileGlobalChatBubble = qs("profile-global-chat-bubble");
   const profileNotificationBadge = qs("profile-notification-badge");
 
   const profileModal = qs("profile-modal");
@@ -987,6 +988,14 @@ async function bindProfile(username, sessionData) {
       }
     });
   }
+  if (profileGlobalChatBubble) {
+    profileGlobalChatBubble.addEventListener("click", () => {
+      if (document.body.classList.contains("menu-sidebars-hidden")) {
+        return;
+      }
+      window.dispatchEvent(new CustomEvent("menu:open-global-chat"));
+    });
+  }
   if (profileTabGeneralBtn) {
     profileTabGeneralBtn.addEventListener("click", () => setProfileTab("general"));
   }
@@ -1174,6 +1183,23 @@ function bindSidePanels(username) {
     if (!sidebar || !toggle) return;
     sidebar.classList.toggle("collapsed", Boolean(collapsed));
     toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  };
+
+  const openGlobalChatPanel = () => {
+    if (!globalSidebar || !globalToggle) return;
+    if (globalSidebar.classList.contains("collapsed")) {
+      if (isMobileExclusiveSidebarMode() && top50Sidebar && top50Toggle) {
+        applyCollapsedState(top50Sidebar, top50Toggle, true);
+        writeUiState(TOP50_UI_KEY, true);
+      }
+      applyCollapsedState(globalSidebar, globalToggle, false);
+      writeUiState(GLOBAL_CHAT_UI_KEY, false);
+    }
+    void refreshGlobalChat();
+    const inputEl = qs("global-chat-input");
+    if (inputEl) {
+      setTimeout(() => inputEl.focus(), 40);
+    }
   };
 
   const isMobileExclusiveSidebarMode = () => window.matchMedia("(max-width: 480px)").matches;
@@ -1371,8 +1397,10 @@ function bindSidePanels(username) {
 
   updateMainMenuSidebarVisibility();
   window.addEventListener("resize", updateMainMenuSidebarVisibility);
+  window.addEventListener("menu:open-global-chat", openGlobalChatPanel);
 
   window.addEventListener("beforeunload", () => {
+    window.removeEventListener("menu:open-global-chat", openGlobalChatPanel);
     if (chatEventSource) {
       try { chatEventSource.close(); } catch (_) {}
       chatEventSource = null;

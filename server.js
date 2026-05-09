@@ -9529,6 +9529,70 @@ function resolveFavoriteTribeFromUserRecord(usernameRaw) {
   }
 }
 
+function createEmptyScansByType() {
+  return {
+    creatures: 0,
+    attacks: 0,
+    battlegear: 0,
+    locations: 0,
+    mugic: 0,
+  };
+}
+
+function aggregateProfileScans(ownerKeyRaw, fallbackCards = null) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const fallbackStats = countBucketCards(fallbackCards || createEmptyCardBuckets());
+  if (!ownerKey || !sqliteDb) {
+    return {
+      total: Math.max(0, Number(fallbackStats.total || 0)),
+      byType: { ...createEmptyScansByType(), ...(fallbackStats.counts || {}) },
+    };
+  }
+  const byType = createEmptyScansByType();
+  let total = 0;
+
+  const addRowCount = (rawType, rawTotal) => {
+    const type = String(rawType || "").trim().toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(byType, type)) {
+      return;
+    }
+    const amount = Math.max(0, Number(rawTotal || 0));
+    byType[type] += amount;
+  };
+
+  const inventoryRows = sqliteDb
+    .prepare(`
+      SELECT lower(card_type) AS card_type, COUNT(*) AS total
+      FROM scan_entries
+      WHERE owner_key = ?
+      GROUP BY lower(card_type)
+    `)
+    .all(ownerKey);
+  inventoryRows.forEach((row) => addRowCount(row?.card_type, row?.total));
+
+  const deckRows = sqliteDb
+    .prepare(`
+      SELECT
+        lower(dc.card_type) AS card_type,
+        COUNT(*) AS total
+      FROM deck_cards dc
+      LEFT JOIN deck_headers dh
+        ON dh.deck_key = dc.deck_key
+      WHERE lower(COALESCE(NULLIF(dh.owner_key, ''), NULLIF(dc.owner_key_shadow, ''))) = ?
+      GROUP BY lower(dc.card_type)
+    `)
+    .all(ownerKey);
+  deckRows.forEach((row) => addRowCount(row?.card_type, row?.total));
+
+  Object.values(byType).forEach((value) => {
+    total += Math.max(0, Number(value || 0));
+  });
+  return {
+    total,
+    byType,
+  };
+}
+
 function buildProfilePayload(usernameRaw) {
   ensureDromeSeasonCycle(new Date());
   const profilesState = loadProfilesData();
@@ -9554,7 +9618,7 @@ function buildProfilePayload(usernameRaw) {
   if (!starterResult.profileChanged) {
     writeProfilesData(profilesState, "profile_bootstrap");
   }
-  const scansStats = countBucketCards(cards);
+  const scansStats = aggregateProfileScans(key, cards);
   const currentSeasonKey = seasonKeyFromDate(new Date());
   const currentDromeSelection = getDromeSelectionForSeason(key, currentSeasonKey);
   const currentTag = getCurrentSeasonTagForOwner(key, currentSeasonKey);
@@ -9571,7 +9635,7 @@ function buildProfilePayload(usernameRaw) {
     totalBattles: Number(profile.wins || 0) + Number(profile.losses || 0),
     scans: {
       total: scansStats.total,
-      byType: scansStats.counts,
+      byType: scansStats.byType,
     },
     scanners: SCANNER_KEYS.reduce((acc, key) => {
       acc[key] = scannerProgressPayload(profile?.scanners?.[key]);
@@ -9941,8 +10005,21 @@ function listTopPlayers(metricRaw = "score", limitRaw = 50) {
       LEFT JOIN player_profiles p
         ON p.owner_key = lower(u.username)
       LEFT JOIN (
-        SELECT owner_key, COUNT(*) AS total_scans
-        FROM scan_entries
+        SELECT owner_key, SUM(total_cards) AS total_scans
+        FROM (
+          SELECT lower(owner_key) AS owner_key, COUNT(*) AS total_cards
+          FROM scan_entries
+          GROUP BY lower(owner_key)
+          UNION ALL
+          SELECT
+            lower(COALESCE(NULLIF(dh.owner_key, ''), NULLIF(dc.owner_key_shadow, ''))) AS owner_key,
+            COUNT(*) AS total_cards
+          FROM deck_cards dc
+          LEFT JOIN deck_headers dh
+            ON dh.deck_key = dc.deck_key
+          GROUP BY lower(COALESCE(NULLIF(dh.owner_key, ''), NULLIF(dc.owner_key_shadow, '')))
+        ) scan_totals
+        WHERE owner_key IS NOT NULL AND owner_key != ''
         GROUP BY owner_key
       ) scans ON scans.owner_key = lower(u.username)
       LEFT JOIN ranked_drome_selection sel
