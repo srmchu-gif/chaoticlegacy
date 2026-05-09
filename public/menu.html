@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/menu.css?v=19" />
+  <link rel="stylesheet" href="css/menu.css?v=20" />
   <link rel="stylesheet" href="css/music.css?v=2" />
 </head>
 <body>
@@ -16,21 +16,6 @@
   <div class="bg-shape shape-b"></div>
 
   <main class="menu-wrapper">
-    <aside id="global-chat-sidebar" class="side-panel side-panel-left is-closed" aria-label="Chat global" aria-hidden="true">
-      <div class="side-panel-body">
-        <div class="side-panel-header side-panel-head-row">
-          <h3>Chat Global</h3>
-          <button id="global-chat-pin" class="side-panel-pin" type="button" aria-pressed="false" title="Fixar posicao">Pin</button>
-        </div>
-        <div id="global-chat-state" class="side-panel-state">Conectando chat...</div>
-        <div id="global-chat-messages" class="side-panel-messages"></div>
-        <div class="side-panel-input-row">
-          <input id="global-chat-input" type="text" maxlength="240" placeholder="Digite uma mensagem..." />
-          <button id="global-chat-send" class="menu-btn standard-btn compact-action-btn" type="button">Enviar</button>
-        </div>
-      </div>
-    </aside>
-
     <div class="menu-panel">
       <img id="menu-main-logo" src="logo.png" alt="Chaotic Legacy Logo" class="menu-main-logo" />
       
@@ -53,9 +38,6 @@
               <button id="profile-notification-bell" class="profile-notification-bell" type="button" title="Notificacoes">
                 <span class="profile-notification-bell-icon">&#128276;</span>
                 <span id="profile-notification-badge" class="profile-notification-badge hidden">0</span>
-              </button>
-              <button id="profile-global-chat-bubble" class="profile-notification-bell profile-chat-bubble" type="button" title="Abrir chat global">
-                <span class="profile-notification-bell-icon">&#128172;</span>
               </button>
               <button id="profile-top50-bubble" class="profile-notification-bell profile-ranking-bubble" type="button" title="Abrir ranking geral">
                 <span class="profile-notification-bell-icon">&#127942;</span>
@@ -623,14 +605,29 @@
         <div class="side-panel-tabs">
           <button id="top50-tab-score" class="side-panel-tab active" type="button">Pontuacao</button>
           <button id="top50-tab-scans" class="side-panel-tab" type="button">Scans</button>
+          <button id="top50-tab-chat" class="side-panel-tab" type="button">Chat</button>
         </div>
       </div>
-      <div id="top50-state" class="side-panel-state">Carregando top 50...</div>
-      <div id="top50-list" class="side-panel-list"></div>
+      <div id="top50-panel-score" class="top50-tab-panel active">
+        <div id="top50-state" class="side-panel-state">Carregando top 50...</div>
+        <div id="top50-list" class="side-panel-list"></div>
+      </div>
+      <div id="top50-panel-scans" class="top50-tab-panel">
+        <div id="top50-scans-state" class="side-panel-state">Carregando top 50...</div>
+        <div id="top50-scans-list" class="side-panel-list"></div>
+      </div>
+      <div id="top50-panel-chat" class="top50-tab-panel">
+        <div id="global-chat-state" class="side-panel-state">Conectando chat...</div>
+        <div id="global-chat-messages" class="side-panel-messages"></div>
+        <div class="side-panel-input-row">
+          <input id="global-chat-input" type="text" maxlength="240" placeholder="Digite uma mensagem..." />
+          <button id="global-chat-send" class="menu-btn standard-btn compact-action-btn" type="button">Enviar</button>
+        </div>
+      </div>
     </div>
   </aside>
 
   <script src="config.js"></script>
-  <script type="module" src="js/menu.js?v=21"></script>
+  <script type="module" src="js/menu.js?v=22"></script>
 </body>
 </html>

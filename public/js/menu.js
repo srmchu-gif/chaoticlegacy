@@ -12,6 +12,7 @@ const GLOBAL_CHAT_OPEN_KEY = "chaotic.global_chat_open";
 const TOP50_OPEN_KEY = "chaotic.top50_open";
 const GLOBAL_CHAT_PIN_KEY = "chaotic.global_chat_pin";
 const TOP50_PIN_KEY = "chaotic.top50_pin";
+const TOP50_ACTIVE_TAB_KEY = "chaotic.top50_active_tab";
 let libraryCachePromise = null;
 const MENU_HOME_PANEL_DEFAULTS = Object.freeze({
   globalChatEnabled: true,
@@ -75,20 +76,15 @@ function refreshMenuHomePanelSettingsFromStorage() {
 }
 
 function updateMainMenuSidebarVisibility() {
-  const globalSidebar = qs("global-chat-sidebar");
   const top50Sidebar = qs("top50-sidebar");
-  const profileGlobalChatBubble = qs("profile-global-chat-bubble");
   const profileTop50Bubble = qs("profile-top50-bubble");
-  if (!globalSidebar && !top50Sidebar && !profileGlobalChatBubble && !profileTop50Bubble) {
+  if (!top50Sidebar && !profileTop50Bubble) {
     return;
   }
   const globalEnabled = menuHomePanelSettings.globalChatEnabled !== false;
   const top50Enabled = menuHomePanelSettings.top50Enabled !== false;
   document.body.classList.toggle("menu-global-chat-disabled", !globalEnabled);
   document.body.classList.toggle("menu-top50-disabled", !top50Enabled);
-  if (profileGlobalChatBubble) {
-    profileGlobalChatBubble.hidden = !globalEnabled;
-  }
   if (profileTop50Bubble) {
     profileTop50Bubble.hidden = !top50Enabled;
   }
@@ -101,11 +97,8 @@ function updateMainMenuSidebarVisibility() {
   const anyPanelVisible = [dromosPanel, perimPanel, tradesPanel, multiplayerPanel]
     .filter(Boolean)
     .some((panel) => getComputedStyle(panel).display !== "none");
-  const showSidebars = navVisible && !anyPanelVisible && (globalEnabled || top50Enabled);
+  const showSidebars = navVisible && !anyPanelVisible && top50Enabled;
   document.body.classList.toggle("menu-sidebars-hidden", !showSidebars);
-  if (globalSidebar) {
-    globalSidebar.hidden = !globalEnabled;
-  }
   if (top50Sidebar) {
     top50Sidebar.hidden = !top50Enabled;
   }
@@ -304,7 +297,6 @@ async function bindProfile(username, sessionData) {
   const avatarContainer = qs("avatar-container");
   const avatarUpload = qs("avatar-upload");
   const profileNotificationBell = qs("profile-notification-bell");
-  const profileGlobalChatBubble = qs("profile-global-chat-bubble");
   const profileTop50Bubble = qs("profile-top50-bubble");
   const profileNotificationBadge = qs("profile-notification-badge");
 
@@ -1060,14 +1052,6 @@ async function bindProfile(username, sessionData) {
       }
     });
   }
-  if (profileGlobalChatBubble) {
-    profileGlobalChatBubble.addEventListener("click", () => {
-      if (menuHomePanelSettings.globalChatEnabled === false) {
-        return;
-      }
-      window.dispatchEvent(new CustomEvent("menu:toggle-global-chat"));
-    });
-  }
   if (profileTop50Bubble) {
     profileTop50Bubble.addEventListener("click", () => {
       if (menuHomePanelSettings.top50Enabled === false) {
@@ -1230,38 +1214,33 @@ async function bindProfile(username, sessionData) {
 }
 
 function bindSidePanels(username) {
-  const globalSidebar = qs("global-chat-sidebar");
-  const globalPinBtn = qs("global-chat-pin");
-  const globalStateEl = qs("global-chat-state");
-  const globalMessagesEl = qs("global-chat-messages");
-  const globalInputEl = qs("global-chat-input");
-  const globalSendBtn = qs("global-chat-send");
-
   const top50Sidebar = qs("top50-sidebar");
   const top50PinBtn = qs("top50-pin");
-  const top50StateEl = qs("top50-state");
-  const top50ListEl = qs("top50-list");
+  const top50ScoreStateEl = qs("top50-state");
+  const top50ScoreListEl = qs("top50-list");
+  const top50ScansStateEl = qs("top50-scans-state");
+  const top50ScansListEl = qs("top50-scans-list");
   const top50TabScore = qs("top50-tab-score");
   const top50TabScans = qs("top50-tab-scans");
+  const top50TabChat = qs("top50-tab-chat");
+  const top50ScorePanel = qs("top50-panel-score");
+  const top50ScansPanel = qs("top50-panel-scans");
+  const top50ChatPanel = qs("top50-panel-chat");
+  const globalChatStateEl = qs("global-chat-state");
+  const globalChatMessagesEl = qs("global-chat-messages");
+  const globalChatInputEl = qs("global-chat-input");
+  const globalChatSendBtn = qs("global-chat-send");
 
   let chatEventSource = null;
-  const chatState = {
-    isEnabled: menuHomePanelSettings.globalChatEnabled !== false,
-    isHomeVisible: !document.body.classList.contains("menu-sidebars-hidden"),
-    isOpen: false,
-    isPinned: false,
-    position: null,
-    isDragging: false,
-    streamConnected: false,
-    messages: [],
-  };
-  const rankingState = {
+  let globalChatMessages = [];
+  const state = {
     isEnabled: menuHomePanelSettings.top50Enabled !== false,
+    chatEnabled: menuHomePanelSettings.globalChatEnabled !== false,
     isHomeVisible: !document.body.classList.contains("menu-sidebars-hidden"),
     isOpen: false,
     isPinned: false,
-    position: null,
-    metric: "score",
+    activeTab: "score",
+    streamConnected: false,
   };
 
   const formatMessageTime = (value) => {
@@ -1424,188 +1403,189 @@ function bindSidePanels(username) {
       } catch (_) {}
       chatEventSource = null;
     }
-    chatState.streamConnected = false;
-  };
-
-  const applyChatOpenState = () => {
-    const shouldOpen = chatState.isEnabled && chatState.isHomeVisible && chatState.isOpen;
-    applyPanelOpenState(globalSidebar, shouldOpen);
-    if (!shouldOpen) {
-      closeGlobalChatStream();
-    }
-  };
-
-  const applyTop50OpenState = () => {
-    const shouldOpen = rankingState.isEnabled && rankingState.isHomeVisible && rankingState.isOpen;
-    applyPanelOpenState(top50Sidebar, shouldOpen);
+    state.streamConnected = false;
   };
 
   const renderGlobalMessages = (messages) => {
-    if (!globalMessagesEl) return;
+    if (!globalChatMessagesEl) return;
     const list = Array.isArray(messages) ? messages.slice(-120) : [];
-    chatState.messages = list;
+    globalChatMessages = list;
     if (!list.length) {
-      globalMessagesEl.innerHTML = '<div class="trades-empty">Sem mensagens no chat global.</div>';
+      globalChatMessagesEl.innerHTML = '<div class="trades-empty">Sem mensagens no chat global.</div>';
       return;
     }
-    globalMessagesEl.innerHTML = list.map((entry) => `
+    globalChatMessagesEl.innerHTML = list.map((entry) => `
       <article class="side-panel-chat-msg">
         <strong>${escapeHtml(entry?.username || "Jogador")}</strong>
         <span>${escapeHtml(entry?.message || "")}</span>
         <small>${escapeHtml(formatMessageTime(entry?.createdAt || Date.now()))}</small>
       </article>
     `).join("");
-    globalMessagesEl.scrollTop = globalMessagesEl.scrollHeight;
+    globalChatMessagesEl.scrollTop = globalChatMessagesEl.scrollHeight;
   };
 
   const connectGlobalEvents = () => {
-    if (!globalStateEl) return;
+    if (!globalChatStateEl) return;
     closeGlobalChatStream();
     chatEventSource = new EventSource(apiUrl("/api/chat/global/events"));
-    chatState.streamConnected = true;
+    state.streamConnected = true;
     chatEventSource.onmessage = (event) => {
       const payload = safeJsonParse(event.data, null);
       if (!payload) return;
       if (payload.type === "global_chat_snapshot") {
         renderGlobalMessages(payload.messages || []);
-        globalStateEl.textContent = "Chat global online.";
+        globalChatStateEl.textContent = "Chat global online.";
         return;
       }
       if (payload.type === "global_chat_message" && payload.message) {
-        renderGlobalMessages(chatState.messages.concat([payload.message]).slice(-120));
+        renderGlobalMessages(globalChatMessages.concat([payload.message]).slice(-120));
       }
     };
     chatEventSource.onerror = () => {
-      chatState.streamConnected = false;
-      if (globalStateEl) {
-        globalStateEl.textContent = "Conexao instavel no chat global.";
+      state.streamConnected = false;
+      if (globalChatStateEl) {
+        globalChatStateEl.textContent = "Conexao instavel no chat global.";
       }
     };
   };
 
   const refreshGlobalChat = async (connectStream = true) => {
-    if (!globalStateEl) return;
+    if (!globalChatStateEl) return;
     try {
       const payload = await fetchJsonWithTimeout("/api/chat/global?limit=120", { method: "GET" });
       renderGlobalMessages(payload?.messages || []);
-      globalStateEl.textContent = "Chat global online.";
+      globalChatStateEl.textContent = "Chat global online.";
       if (connectStream) {
         connectGlobalEvents();
       }
     } catch (error) {
-      if (globalStateEl) {
-        globalStateEl.textContent = error?.message || "Falha ao carregar chat global.";
+      if (globalChatStateEl) {
+        globalChatStateEl.textContent = error?.message || "Falha ao carregar chat global.";
       }
     }
   };
 
   const sendGlobalChatMessage = async () => {
-    const message = String(globalInputEl?.value || "").trim();
+    const message = String(globalChatInputEl?.value || "").trim();
     if (!message) return;
     try {
-      if (globalSendBtn) globalSendBtn.disabled = true;
+      if (globalChatSendBtn) globalChatSendBtn.disabled = true;
       await fetchJsonWithTimeout("/api/chat/global", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
       });
-      if (globalInputEl) globalInputEl.value = "";
+      if (globalChatInputEl) globalChatInputEl.value = "";
     } catch (error) {
-      if (globalStateEl) {
-        globalStateEl.textContent = error?.message || "Falha ao enviar mensagem.";
+      if (globalChatStateEl) {
+        globalChatStateEl.textContent = error?.message || "Falha ao enviar mensagem.";
       }
     } finally {
-      if (globalSendBtn) globalSendBtn.disabled = false;
+      if (globalChatSendBtn) globalChatSendBtn.disabled = false;
     }
   };
 
-  const renderTop50 = (players) => {
-    if (!top50ListEl) return;
+  const renderTop50 = (players, metric) => {
+    const targetList = metric === "scans" ? top50ScansListEl : top50ScoreListEl;
+    if (!targetList) return;
     const list = Array.isArray(players) ? players : [];
     if (!list.length) {
-      top50ListEl.innerHTML = '<div class="trades-empty">Sem dados de ranking.</div>';
+      targetList.innerHTML = '<div class="trades-empty">Sem dados de ranking.</div>';
       return;
     }
-    const valueLabel = rankingState.metric === "scans" ? "Scans" : "Score";
-    top50ListEl.innerHTML = list.map((entry) => `
+    const valueLabel = metric === "scans" ? "Scans" : "Score";
+    targetList.innerHTML = list.map((entry) => `
       <article class="top50-row">
         <img src="${escapeAttr(entry?.avatar || "/fundo%20cartas.png")}" alt="${escapeAttr(entry?.username || "Jogador")}" />
         <div>
           <strong>#${Number(entry?.rank || 0)} ${escapeHtml(entry?.username || "-")}</strong>
-          <span>${valueLabel}: ${rankingState.metric === "scans" ? Number(entry?.totalScans || 0) : Number(entry?.score || 0)}</span>
+          <span>${valueLabel}: ${metric === "scans" ? Number(entry?.totalScans || 0) : Number(entry?.score || 0)}</span>
           <span>Dromo: ${escapeHtml(entry?.currentDrome?.name || "-")}</span>
         </div>
       </article>
     `).join("");
   };
 
-  const refreshTop50 = async () => {
-    if (!top50StateEl) return;
+  const refreshTop50 = async (metric) => {
+    const targetState = metric === "scans" ? top50ScansStateEl : top50ScoreStateEl;
+    if (!targetState) return;
     try {
-      const payload = await fetchJsonWithTimeout(`/api/leaderboards/top50?metric=${encodeURIComponent(rankingState.metric)}`, { method: "GET" });
-      renderTop50(payload?.players || []);
-      top50StateEl.textContent = rankingState.metric === "scans" ? "Top 50 por scans." : "Top 50 por pontuacao.";
+      const payload = await fetchJsonWithTimeout(`/api/leaderboards/top50?metric=${encodeURIComponent(metric)}`, { method: "GET" });
+      renderTop50(payload?.players || [], metric);
+      targetState.textContent = metric === "scans" ? "Top 50 por scans." : "Top 50 por pontuacao.";
     } catch (error) {
-      top50StateEl.textContent = error?.message || "Falha ao carregar top 50.";
-      if (top50ListEl) top50ListEl.innerHTML = "";
+      targetState.textContent = error?.message || "Falha ao carregar top 50.";
+      const targetList = metric === "scans" ? top50ScansListEl : top50ScoreListEl;
+      if (targetList) targetList.innerHTML = "";
     }
   };
 
-  const setChatOpen = (nextOpen, persist = true) => {
-    chatState.isOpen = Boolean(nextOpen);
-    if (persist) {
-      writeBool(GLOBAL_CHAT_OPEN_KEY, chatState.isOpen);
+  const isSidebarEffectivelyOpen = () => (
+    state.isEnabled && state.isHomeVisible && state.isOpen
+  );
+
+  const applySidebarOpenState = () => {
+    const shouldOpen = isSidebarEffectivelyOpen();
+    applyPanelOpenState(top50Sidebar, shouldOpen);
+    if (!shouldOpen) {
+      closeGlobalChatStream();
     }
-    applyChatOpenState();
-    if (chatState.isOpen && chatState.isEnabled && chatState.isHomeVisible) {
+  };
+
+  const setActiveTab = (nextTabRaw, persist = true) => {
+    const requested = String(nextTabRaw || "score").toLowerCase();
+    const valid = requested === "scans" || requested === "chat" ? requested : "score";
+    const nextTab = (valid === "chat" && !state.chatEnabled) ? "score" : valid;
+    state.activeTab = nextTab;
+    if (persist) {
+      localStorage.setItem(TOP50_ACTIVE_TAB_KEY, nextTab);
+    }
+    if (top50TabScore) top50TabScore.classList.toggle("active", nextTab === "score");
+    if (top50TabScans) top50TabScans.classList.toggle("active", nextTab === "scans");
+    if (top50TabChat) top50TabChat.classList.toggle("active", nextTab === "chat");
+    if (top50ScorePanel) top50ScorePanel.classList.toggle("active", nextTab === "score");
+    if (top50ScansPanel) top50ScansPanel.classList.toggle("active", nextTab === "scans");
+    if (top50ChatPanel) top50ChatPanel.classList.toggle("active", nextTab === "chat");
+    if (!isSidebarEffectivelyOpen()) {
+      return;
+    }
+    if (nextTab === "chat") {
       void refreshGlobalChat(true);
+      return;
     }
+    closeGlobalChatStream();
+    void refreshTop50(nextTab);
   };
 
-  const setTop50Open = (nextOpen, persist = true) => {
-    rankingState.isOpen = Boolean(nextOpen);
+  const setSidebarOpen = (nextOpen, persist = true) => {
+    state.isOpen = Boolean(nextOpen);
     if (persist) {
-      writeBool(TOP50_OPEN_KEY, rankingState.isOpen);
+      writeBool(TOP50_OPEN_KEY, state.isOpen);
     }
-    applyTop50OpenState();
-    if (rankingState.isOpen && rankingState.isEnabled && rankingState.isHomeVisible) {
-      void refreshTop50();
+    applySidebarOpenState();
+    if (isSidebarEffectivelyOpen()) {
+      if (state.activeTab === "chat") {
+        void refreshGlobalChat(true);
+      } else {
+        void refreshTop50(state.activeTab);
+      }
     }
-  };
-
-  const toggleGlobalPanel = (eventOrOptions = null) => {
-    const eventType = String(eventOrOptions?.type || "");
-    const bypassHiddenGuard = eventType === "menu:toggle-global-chat" || Boolean(eventOrOptions?.bypassHiddenGuard);
-    if (!chatState.isEnabled) {
-      return;
-    }
-    if (!bypassHiddenGuard && !chatState.isHomeVisible) {
-      return;
-    }
-    const nextOpen = !chatState.isOpen;
-    if (nextOpen && isMobileExclusiveSidebarMode() && rankingState.isOpen) {
-      setTop50Open(false, true);
-    }
-    setChatOpen(nextOpen, true);
   };
 
   const toggleTop50Panel = (eventOrOptions = null) => {
     const eventType = String(eventOrOptions?.type || "");
     const bypassHiddenGuard = eventType === "menu:toggle-top50" || Boolean(eventOrOptions?.bypassHiddenGuard);
-    if (!rankingState.isEnabled) {
+    if (!state.isEnabled) {
       return;
     }
-    if (!bypassHiddenGuard && !rankingState.isHomeVisible) {
+    if (!bypassHiddenGuard && !state.isHomeVisible) {
       return;
     }
-    const nextOpen = !rankingState.isOpen;
-    if (nextOpen && isMobileExclusiveSidebarMode() && chatState.isOpen) {
-      setChatOpen(false, true);
-    }
-    setTop50Open(nextOpen, true);
+    const nextOpen = !state.isOpen;
+    setSidebarOpen(nextOpen, true);
   };
 
-  const bindSidebarDrag = (sidebar, key, side, canDrag) => {
+  const bindSidebarDrag = (sidebar, key, canDrag) => {
     if (!sidebar) return;
     let dragging = false;
     let dragIntent = false;
@@ -1654,12 +1634,6 @@ function bindSidePanels(username) {
         sidebar.style.right = "auto";
         sidebar.style.bottom = "auto";
         writePanelPosition(key, clamped);
-        if (side === "left") {
-          chatState.position = clamped;
-          chatState.isDragging = false;
-        } else {
-          rankingState.position = clamped;
-        }
       }
     };
 
@@ -1687,9 +1661,6 @@ function bindSidePanels(username) {
       sidebar.style.right = "auto";
       sidebar.style.bottom = "auto";
       sidebar.classList.add("is-drag-armed");
-      if (side === "left") {
-        chatState.isDragging = true;
-      }
       offsetX = event.clientX - clamped.left;
       offsetY = event.clientY - clamped.top;
       try {
@@ -1707,77 +1678,68 @@ function bindSidePanels(username) {
     const nextHomeVisible = typeof homeVisibleOverride === "boolean"
       ? homeVisibleOverride
       : isMainMenuHomeVisible();
-    const wasChatVisible = chatState.isHomeVisible;
-    const wasTopVisible = rankingState.isHomeVisible;
-    chatState.isEnabled = menuHomePanelSettings.globalChatEnabled !== false;
-    rankingState.isEnabled = menuHomePanelSettings.top50Enabled !== false;
-    chatState.isHomeVisible = nextHomeVisible;
-    rankingState.isHomeVisible = nextHomeVisible;
-    applyChatOpenState();
-    applyTop50OpenState();
-    if (chatState.isOpen && chatState.isEnabled && chatState.isHomeVisible && (!wasChatVisible || !chatState.streamConnected)) {
-      void refreshGlobalChat(true);
+    const wasVisible = state.isHomeVisible;
+    state.isEnabled = menuHomePanelSettings.top50Enabled !== false;
+    state.chatEnabled = menuHomePanelSettings.globalChatEnabled !== false;
+    state.isHomeVisible = nextHomeVisible;
+    if (!state.chatEnabled && state.activeTab === "chat") {
+      setActiveTab("score", true);
     }
-    if (rankingState.isOpen && rankingState.isEnabled && rankingState.isHomeVisible && !wasTopVisible) {
-      void refreshTop50();
+    applySidebarOpenState();
+    if (isSidebarEffectivelyOpen() && !wasVisible) {
+      if (state.activeTab === "chat") {
+        void refreshGlobalChat(true);
+      } else {
+        void refreshTop50(state.activeTab);
+      }
     }
   };
 
-  chatState.isOpen = readBool(GLOBAL_CHAT_OPEN_KEY, readLegacyOpenFromCollapsed(GLOBAL_CHAT_UI_KEY, false));
-  chatState.isPinned = readBool(GLOBAL_CHAT_PIN_KEY, false);
-  chatState.position = readPanelPosition(GLOBAL_CHAT_POS_KEY);
-  rankingState.isOpen = readBool(TOP50_OPEN_KEY, readLegacyOpenFromCollapsed(TOP50_UI_KEY, false));
-  rankingState.isPinned = readBool(TOP50_PIN_KEY, false);
-  rankingState.position = readPanelPosition(TOP50_POS_KEY);
-  writeBool(GLOBAL_CHAT_OPEN_KEY, chatState.isOpen);
-  writeBool(TOP50_OPEN_KEY, rankingState.isOpen);
-  writeBool(GLOBAL_CHAT_PIN_KEY, chatState.isPinned);
-  writeBool(TOP50_PIN_KEY, rankingState.isPinned);
+  state.isOpen = readBool(TOP50_OPEN_KEY, readLegacyOpenFromCollapsed(TOP50_UI_KEY, false));
+  state.isPinned = readBool(TOP50_PIN_KEY, false);
+  state.activeTab = String(localStorage.getItem(TOP50_ACTIVE_TAB_KEY) || "score").toLowerCase();
+  if (!["score", "scans", "chat"].includes(state.activeTab)) {
+    state.activeTab = "score";
+  }
+  if (!state.chatEnabled && state.activeTab === "chat") {
+    state.activeTab = "score";
+  }
+  writeBool(TOP50_OPEN_KEY, state.isOpen);
+  writeBool(TOP50_PIN_KEY, state.isPinned);
+  localStorage.setItem(TOP50_ACTIVE_TAB_KEY, state.activeTab);
 
-  applyPinButtonState(globalPinBtn, chatState.isPinned);
-  applyPinButtonState(top50PinBtn, rankingState.isPinned);
-  bindPanelInteractionGuard(globalSidebar);
   bindPanelInteractionGuard(top50Sidebar);
-  applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, "left");
+  applyPinButtonState(top50PinBtn, state.isPinned);
   applyPanelPosition(top50Sidebar, TOP50_POS_KEY, "right");
+  setActiveTab(state.activeTab, false);
   syncPanelVisibilityFromContext();
-  bindSidebarDrag(globalSidebar, GLOBAL_CHAT_POS_KEY, "left", () => chatState.isOpen && !chatState.isPinned);
-  bindSidebarDrag(top50Sidebar, TOP50_POS_KEY, "right", () => rankingState.isOpen && !rankingState.isPinned);
-  if (chatState.isOpen && chatState.isEnabled && chatState.isHomeVisible) {
-    void refreshGlobalChat(true);
-  }
-  if (rankingState.isOpen && rankingState.isEnabled && rankingState.isHomeVisible) {
-    void refreshTop50();
+  bindSidebarDrag(top50Sidebar, TOP50_POS_KEY, () => state.isOpen && !state.isPinned);
+  if (isSidebarEffectivelyOpen()) {
+    if (state.activeTab === "chat") {
+      void refreshGlobalChat(true);
+    } else {
+      void refreshTop50(state.activeTab);
+    }
   }
 
-  if (globalPinBtn) {
-    globalPinBtn.addEventListener("click", () => {
-      chatState.isPinned = !chatState.isPinned;
-      writeBool(GLOBAL_CHAT_PIN_KEY, chatState.isPinned);
-      applyPinButtonState(globalPinBtn, chatState.isPinned);
-      if (chatState.isPinned) {
-        persistCurrentPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY);
-      }
-    });
-  }
   if (top50PinBtn) {
     top50PinBtn.addEventListener("click", () => {
-      rankingState.isPinned = !rankingState.isPinned;
-      writeBool(TOP50_PIN_KEY, rankingState.isPinned);
-      applyPinButtonState(top50PinBtn, rankingState.isPinned);
-      if (rankingState.isPinned) {
+      state.isPinned = !state.isPinned;
+      writeBool(TOP50_PIN_KEY, state.isPinned);
+      applyPinButtonState(top50PinBtn, state.isPinned);
+      if (state.isPinned) {
         persistCurrentPanelPosition(top50Sidebar, TOP50_POS_KEY);
       }
     });
   }
 
-  if (globalSendBtn) {
-    globalSendBtn.addEventListener("click", () => {
+  if (globalChatSendBtn) {
+    globalChatSendBtn.addEventListener("click", () => {
       void sendGlobalChatMessage();
     });
   }
-  if (globalInputEl) {
-    globalInputEl.addEventListener("keydown", (event) => {
+  if (globalChatInputEl) {
+    globalChatInputEl.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
         void sendGlobalChatMessage();
@@ -1787,28 +1749,24 @@ function bindSidePanels(username) {
 
   if (top50TabScore) {
     top50TabScore.addEventListener("click", () => {
-      rankingState.metric = "score";
-      top50TabScore.classList.add("active");
-      if (top50TabScans) top50TabScans.classList.remove("active");
-      void refreshTop50();
+      setActiveTab("score", true);
     });
   }
   if (top50TabScans) {
     top50TabScans.addEventListener("click", () => {
-      rankingState.metric = "scans";
-      top50TabScans.classList.add("active");
-      if (top50TabScore) top50TabScore.classList.remove("active");
-      void refreshTop50();
+      setActiveTab("scans", true);
+    });
+  }
+  if (top50TabChat) {
+    top50TabChat.addEventListener("click", () => {
+      setActiveTab("chat", true);
     });
   }
 
   updateMainMenuSidebarVisibility();
   const onResize = () => {
     updateMainMenuSidebarVisibility();
-    if (chatState.isOpen) {
-      applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, "left");
-    }
-    if (rankingState.isOpen) {
+    if (state.isOpen) {
       applyPanelPosition(top50Sidebar, TOP50_POS_KEY, "right");
     }
   };
@@ -1825,45 +1783,38 @@ function bindSidePanels(username) {
     if (
       event.key !== SETTINGS_KEY
       && event.key !== LEGACY_SETTINGS_KEY
-      && event.key !== GLOBAL_CHAT_OPEN_KEY
       && event.key !== TOP50_OPEN_KEY
-      && event.key !== GLOBAL_CHAT_PIN_KEY
       && event.key !== TOP50_PIN_KEY
-      && event.key !== GLOBAL_CHAT_POS_KEY
       && event.key !== TOP50_POS_KEY
+      && event.key !== TOP50_ACTIVE_TAB_KEY
     ) {
       return;
     }
-    if (event.key === GLOBAL_CHAT_OPEN_KEY) {
-      chatState.isOpen = readBool(GLOBAL_CHAT_OPEN_KEY, chatState.isOpen);
-      syncPanelVisibilityFromContext();
-      return;
-    }
     if (event.key === TOP50_OPEN_KEY) {
-      rankingState.isOpen = readBool(TOP50_OPEN_KEY, rankingState.isOpen);
-      syncPanelVisibilityFromContext();
-      return;
-    }
-    if (event.key === GLOBAL_CHAT_PIN_KEY) {
-      chatState.isPinned = readBool(GLOBAL_CHAT_PIN_KEY, chatState.isPinned);
-      applyPinButtonState(globalPinBtn, chatState.isPinned);
+      state.isOpen = readBool(TOP50_OPEN_KEY, state.isOpen);
+      applySidebarOpenState();
+      if (isSidebarEffectivelyOpen()) {
+        if (state.activeTab === "chat") {
+          void refreshGlobalChat(true);
+        } else {
+          void refreshTop50(state.activeTab);
+        }
+      }
       return;
     }
     if (event.key === TOP50_PIN_KEY) {
-      rankingState.isPinned = readBool(TOP50_PIN_KEY, rankingState.isPinned);
-      applyPinButtonState(top50PinBtn, rankingState.isPinned);
-      return;
-    }
-    if (event.key === GLOBAL_CHAT_POS_KEY) {
-      if (chatState.isOpen) {
-        applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, "left");
-      }
+      state.isPinned = readBool(TOP50_PIN_KEY, state.isPinned);
+      applyPinButtonState(top50PinBtn, state.isPinned);
       return;
     }
     if (event.key === TOP50_POS_KEY) {
-      if (rankingState.isOpen) {
+      if (state.isOpen) {
         applyPanelPosition(top50Sidebar, TOP50_POS_KEY, "right");
       }
+      return;
+    }
+    if (event.key === TOP50_ACTIVE_TAB_KEY) {
+      setActiveTab(localStorage.getItem(TOP50_ACTIVE_TAB_KEY) || "score", false);
       return;
     }
     refreshMenuHomePanelSettingsFromStorage();
@@ -1872,14 +1823,12 @@ function bindSidePanels(username) {
   };
 
   window.addEventListener("resize", onResize);
-  window.addEventListener("menu:toggle-global-chat", toggleGlobalPanel);
   window.addEventListener("menu:toggle-top50", toggleTop50Panel);
   window.addEventListener("menu:sidebar-visibility-updated", sidebarVisibilityHandler);
   window.addEventListener("storage", storageHandler);
 
   window.addEventListener("beforeunload", () => {
     window.removeEventListener("resize", onResize);
-    window.removeEventListener("menu:toggle-global-chat", toggleGlobalPanel);
     window.removeEventListener("menu:toggle-top50", toggleTop50Panel);
     window.removeEventListener("menu:sidebar-visibility-updated", sidebarVisibilityHandler);
     window.removeEventListener("storage", storageHandler);

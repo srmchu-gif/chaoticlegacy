@@ -222,7 +222,7 @@ body.menu-sidebars-hidden .side-panel.is-open {
 
 .side-panel-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.35rem;
 }
 
@@ -240,6 +240,21 @@ body.menu-sidebars-hidden .side-panel.is-open {
   border-color: rgba(0, 210, 255, 0.6);
   background: rgba(0, 210, 255, 0.18);
   color: #dff6ff;
+}
+
+.top50-tab-panel {
+  display: none;
+  min-height: 0;
+}
+
+.top50-tab-panel.active {
+  display: block;
+}
+
+#top50-panel-chat.active {
+  display: grid;
+  grid-template-rows: auto minmax(180px, 1fr) auto;
+  gap: 0.45rem;
 }
 
 .top50-row {
@@ -458,8 +473,8 @@ body.menu-sidebars-hidden .side-panel.is-open {
   background: rgba(13, 20, 33, 0.78);
 }
 
-body.menu-global-chat-disabled #global-chat-sidebar,
-body.menu-global-chat-disabled #profile-global-chat-bubble,
+body.menu-global-chat-disabled #top50-tab-chat,
+body.menu-global-chat-disabled #top50-panel-chat,
 body.menu-top50-disabled #top50-sidebar,
 body.menu-top50-disabled #profile-top50-bubble {
   display: none;
