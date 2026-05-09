@@ -2502,9 +2502,13 @@ body.menu-sidebars-hidden .side-panel {
     min-height: 150px;
     max-height: 34vh;
   }
-  .side-panel-left .side-panel-toggle,
+  .side-panel-left .side-panel-toggle {
+    left: 32%;
+    right: auto;
+    transform: translate(-50%, -100%);
+  }
   .side-panel-right .side-panel-toggle {
-    left: 50%;
+    left: 68%;
     right: auto;
     transform: translate(-50%, -100%);
   }

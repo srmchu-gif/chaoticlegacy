@@ -1176,6 +1176,8 @@ function bindSidePanels(username) {
     toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
   };
 
+  const isMobileExclusiveSidebarMode = () => window.matchMedia("(max-width: 480px)").matches;
+
   const readUiState = (key, fallback = true) => {
     const parsed = safeJsonParse(localStorage.getItem(key), null);
     if (parsed && typeof parsed === "object" && typeof parsed.collapsed === "boolean") {
@@ -1298,6 +1300,10 @@ function bindSidePanels(username) {
     applyCollapsedState(globalSidebar, globalToggle, collapsed);
     globalToggle.addEventListener("click", () => {
       const nextCollapsed = !globalSidebar.classList.contains("collapsed");
+      if (!nextCollapsed && isMobileExclusiveSidebarMode() && top50Sidebar && top50Toggle) {
+        applyCollapsedState(top50Sidebar, top50Toggle, true);
+        writeUiState(TOP50_UI_KEY, true);
+      }
       applyCollapsedState(globalSidebar, globalToggle, nextCollapsed);
       writeUiState(GLOBAL_CHAT_UI_KEY, nextCollapsed);
       if (!nextCollapsed) {
@@ -1317,6 +1323,10 @@ function bindSidePanels(username) {
     applyCollapsedState(top50Sidebar, top50Toggle, collapsed);
     top50Toggle.addEventListener("click", () => {
       const nextCollapsed = !top50Sidebar.classList.contains("collapsed");
+      if (!nextCollapsed && isMobileExclusiveSidebarMode() && globalSidebar && globalToggle) {
+        applyCollapsedState(globalSidebar, globalToggle, true);
+        writeUiState(GLOBAL_CHAT_UI_KEY, true);
+      }
       applyCollapsedState(top50Sidebar, top50Toggle, nextCollapsed);
       writeUiState(TOP50_UI_KEY, nextCollapsed);
       if (!nextCollapsed) {
@@ -2662,8 +2672,28 @@ function pickPresencePhrase(locationEntry, count) {
     const chatMeta = state.payload?.chat || {};
     const canChat = Boolean(chatMeta?.canChat && chatMeta?.locationId);
     const locationId = String(chatMeta?.locationId || "");
+    const locationNameRaw = String(chatMeta?.locationName || "").trim();
+    const selectedLocationName = (() => {
+      const locations = Array.isArray(state.payload?.locations) ? state.payload.locations : [];
+      const bySelectedCard = locations.find((entry) => String(entry?.cardId || "") === String(state.selectedLocationCardId || ""));
+      if (bySelectedCard?.name) {
+        return String(bySelectedCard.name).trim();
+      }
+      const byLocationId = locations.find((entry) => String(entry?.cardId || "") === locationId);
+      if (byLocationId?.name) {
+        return String(byLocationId.name).trim();
+      }
+      const activeRunName = String(state.payload?.activeRun?.locationName || "").trim();
+      if (activeRunName) {
+        return activeRunName;
+      }
+      return "";
+    })();
+    const displayLocationName = locationNameRaw || selectedLocationName || "local atual";
+    const activeChatterCount = Math.max(0, Number(chatMeta?.activeChatterCount || 0));
+    const chatterLabel = activeChatterCount === 1 ? "jogador" : "jogadores";
     chatStateEl.textContent = canChat
-      ? `Conversa ativa no local ${locationId}. Mensagens visiveis ate o fim do dia.`
+      ? `Conversa ativa no local ${displayLocationName}. ${activeChatterCount} ${chatterLabel} no chat deste local. Mensagens visiveis ate o fim do dia.`
       : "Somente jogadores em acao ativa no local podem conversar.";
     if (!canChat) {
       chatMessagesEl.innerHTML = '<div class="trades-empty">Inicie uma acao para liberar o chat deste local.</div>';

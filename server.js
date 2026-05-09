@@ -7162,6 +7162,29 @@ function canAccessPerimLocationChat(playerKeyRaw, locationIdRaw, nowMsValue = Da
   return true;
 }
 
+function countActivePerimChattersAtLocation(rootState, locationIdRaw, nowMsValue = Date.now()) {
+  const locationId = String(locationIdRaw || "").trim();
+  if (!locationId) {
+    return 0;
+  }
+  const players = rootState?.players && typeof rootState.players === "object"
+    ? rootState.players
+    : {};
+  let count = 0;
+  Object.values(players).forEach((playerState) => {
+    const activeRun = playerState?.activeRun;
+    if (!activeRun || String(activeRun.locationId || "") !== locationId) {
+      return;
+    }
+    const endMs = Date.parse(String(activeRun.endAt || ""));
+    if (Number.isFinite(endMs) && endMs <= nowMsValue) {
+      return;
+    }
+    count += 1;
+  });
+  return count;
+}
+
 function cleanupPerimLocationChatHistory(dayKey = todayDateKey()) {
   if (!sqliteDb) {
     return;
@@ -7547,11 +7570,20 @@ function buildPerimStatePayload(playerKeyRaw) {
     };
   });
   const activeRunLocationId = String(playerState?.activeRun?.locationId || "").trim();
+  const activeRunLocationNameRaw = String(playerState?.activeRun?.locationName || "").trim();
   const activeRunEndMs = Date.parse(String(playerState?.activeRun?.endAt || ""));
   const canUseLocationChat = Boolean(
     activeRunLocationId
     && (!Number.isFinite(activeRunEndMs) || activeRunEndMs > Date.now())
   );
+  const fallbackActiveLocation = activeRunLocationId
+    ? locations.find((entry) => String(entry?.cardId || "") === activeRunLocationId)
+    : null;
+  const activeRunLocationName = activeRunLocationNameRaw
+    || String(fallbackActiveLocation?.name || "").trim();
+  const activeChatterCount = canUseLocationChat
+    ? countActivePerimChattersAtLocation(rootState, activeRunLocationId, Date.now())
+    : 0;
   const payload = {
     playerKey,
     locations,
@@ -7567,6 +7599,8 @@ function buildPerimStatePayload(playerKeyRaw) {
     history: playerState.history,
     chat: {
       locationId: canUseLocationChat ? activeRunLocationId : "",
+      locationName: canUseLocationChat ? activeRunLocationName : "",
+      activeChatterCount,
       canChat: canUseLocationChat,
     },
     updatedAt: playerState.updatedAt,
