@@ -1401,6 +1401,15 @@ function bindSidePanels(username) {
     button.title = pinned ? "Desfixar posicao" : "Fixar posicao";
   };
 
+  const bindPanelInteractionGuard = (sidebar) => {
+    if (!sidebar) return;
+    const stop = (event) => {
+      event.stopPropagation();
+    };
+    sidebar.addEventListener("click", stop);
+    sidebar.addEventListener("pointerdown", stop);
+  };
+
   const closeGlobalChatStream = () => {
     if (chatEventSource) {
       try { chatEventSource.close(); } catch (_) {}
@@ -1522,6 +1531,10 @@ function bindSidePanels(username) {
         return;
       }
       const target = event.target instanceof Element ? event.target : null;
+      const dragHandle = target?.closest(".side-panel-header, .side-panel-head-row");
+      if (!dragHandle || !sidebar.contains(dragHandle)) {
+        return;
+      }
       if (target && target.closest("button, input, textarea, select, a, label, [contenteditable='true']")) {
         return;
       }
@@ -1664,6 +1677,8 @@ function bindSidePanels(username) {
 
   applyPinButtonState(globalPinBtn, state.globalPinned);
   applyPinButtonState(top50PinBtn, state.top50Pinned);
+  bindPanelInteractionGuard(globalSidebar);
+  bindPanelInteractionGuard(top50Sidebar);
   applyAllOpenStates();
   applyPanelPosition(globalSidebar, GLOBAL_CHAT_POS_KEY, { side: "left" });
   applyPanelPosition(top50Sidebar, TOP50_POS_KEY, { side: "right" });
