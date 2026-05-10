@@ -757,10 +757,8 @@
     "effectKinds": [
       "beginCombatGainLowestScannedEnergyFromAllies"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "beginCombatGainLowestScannedEnergyFromAllies"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -2151,10 +2149,8 @@
     "effectKinds": [
       "attackDamageBonusIfSameNameInDiscard"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "attackDamageBonusIfSameNameInDiscard"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -5400,10 +5396,8 @@
       "returnFromDiscard",
       "countsAsMugicBurst"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "countsAsMugicBurst"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -8818,10 +8812,8 @@
     "effectKinds": [
       "discardAttackReturnByBuildPointsOrDraw"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "discardAttackReturnByBuildPointsOrDraw"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -9095,10 +9087,8 @@
     "effectKinds": [
       "onNextAttackDamageReduceOpposingDisciplinesByDamage"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "onNextAttackDamageReduceOpposingDisciplinesByDamage"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -9250,10 +9240,8 @@
     "effectKinds": [
       "targetDanianGainsExpendedElement"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "targetDanianGainsExpendedElement"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -11527,10 +11515,8 @@
     "effectKinds": [
       "firstAttackZeroIfHigherCourageAndWisdom"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "firstAttackZeroIfHigherCourageAndWisdom"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -16301,10 +16287,8 @@
     "effectKinds": [
       "retargetSingleTargetMugic"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "retargetSingleTargetMugic"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -22487,10 +22471,8 @@
     "effectKinds": [
       "gainElementWhenAllyLosesElement"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "gainElementWhenAllyLosesElement"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -23531,10 +23513,8 @@
     "effectKinds": [
       "sacrificeFriendlyTribeForHeal"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "sacrificeFriendlyTribeForHeal"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -23601,10 +23581,8 @@
     "effectKinds": [
       "keywordIfControlTribe"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "keywordIfControlTribe"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -24324,10 +24302,8 @@
     "effectKinds": [
       "redirectNonAttackDamageToSelf"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "redirectNonAttackDamageToSelf"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -24384,10 +24360,8 @@
     "effectKinds": [
       "targetCreatureCountsAsChosenTribe"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "targetCreatureCountsAsChosenTribe"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {
@@ -26095,10 +26069,8 @@
     "effectKinds": [
       "targetAttackLoseAllAbilities"
     ],
-    "implementationStatus": "parser_only",
-    "pendingKinds": [
-      "targetAttackLoseAllAbilities"
-    ],
+    "implementationStatus": "implemented",
+    "pendingKinds": [],
     "divergence": false
   },
   {

@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-05-10T00:54:13.054Z",
+  "bySet": {
+    "DOP": {
+      "cardsWithAbility": 218,
+      "semParse": 0,
+      "pendingKinds": []
+    },
+    "ZOTH": {
+      "cardsWithAbility": 100,
+      "semParse": 0,
+      "pendingKinds": []
+    },
+    "SS": {
+      "cardsWithAbility": 100,
+      "semParse": 0,
+      "pendingKinds": []
+    }
+  }
+}

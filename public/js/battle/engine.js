@@ -35,6 +35,13 @@ const LETTER_TO_PLAYER_SLOT = {
   1: Object.fromEntries(PLAYER_SLOT_LETTERS[1].map((letter, slot) => [letter, slot])),
 };
 const ACTIVATABLE_EFFECT_KINDS = new Set([
+  "keyword",
+  "invisibilityStrike",
+  "invisibilitySurprise",
+  "invisibilityDisarm",
+  "intimidate",
+  "incomingDamageReduction",
+  "hiveGranted",
   "dealDamage",
   "healDamage",
   "statModifier",
@@ -115,6 +122,28 @@ const ACTIVATABLE_EFFECT_KINDS = new Set([
   "targetCreatureCountsAsChosenTribe",
   "targetAttackLoseAllAbilities",
   "retargetSingleTargetMugic",
+  "deactivateHive",
+  "realityFieldMirageControl",
+  "targetCreatureGainChosenElement",
+  "removeChosenElementFromCreature",
+  "exileGeneralDiscardCards",
+  "discardMugicFromEachPlayer",
+  "globalNoInvisibility",
+  "onMugicCounterRemovedDealDamageToEngaged",
+  "setEngagedEnergyToScannedAtBeginCombat",
+  "airCreaturesGainEarth",
+  "tribeGainElementIfHiveActive",
+  "tribeGainElement",
+  "uninfectAllCreatures",
+  "engagedTypeGainChosenElement",
+  "redirectNextAttackDamageToTargetCreature",
+  "shuffleTargetPlayerDeckChoice",
+  "incomingDamageCapIfLowScannedEnergy",
+  "suppressActiveLocationAbilities",
+  "grantCreatureTypeToControlledCreatures",
+  "statPerTribeCreatureCount",
+  "cannotMove",
+  "suppressTargetCreatureAbilities",
 ]);
 const BATTLEGEAR_PHASE_EFFECT_KINDS = new Set([
   "dealDamage",
@@ -236,6 +265,36 @@ const PASSIVE_EFFECT_KINDS = new Set([
   "beginCombatGainLowestScannedEnergyFromAllies",
   "firstAttackZeroIfHigherCourageAndWisdom",
   "beginCombatStealOpposingEngagedBattlegearIfUnequipped",
+  "keyword",
+  "invisibilityStrike",
+  "invisibilitySurprise",
+  "invisibilityDisarm",
+  "intimidate",
+  "incomingDamageReduction",
+  "hiveGranted",
+  "deactivateHive",
+  "realityFieldMirageControl",
+  "targetCreatureGainChosenElement",
+  "removeChosenElementFromCreature",
+  "exileGeneralDiscardCards",
+  "locationEnterRemoveAllElements",
+  "discardMugicFromEachPlayer",
+  "globalNoInvisibility",
+  "onMugicCounterRemovedDealDamageToEngaged",
+  "setEngagedEnergyToScannedAtBeginCombat",
+  "airCreaturesGainEarth",
+  "tribeGainElementIfHiveActive",
+  "tribeGainElement",
+  "uninfectAllCreatures",
+  "engagedTypeGainChosenElement",
+  "redirectNextAttackDamageToTargetCreature",
+  "shuffleTargetPlayerDeckChoice",
+  "incomingDamageCapIfLowScannedEnergy",
+  "suppressActiveLocationAbilities",
+  "grantCreatureTypeToControlledCreatures",
+  "statPerTribeCreatureCount",
+  "cannotMove",
+  "suppressTargetCreatureAbilities",
 ]);
 
 const SIMPLE_STATS = ["courage", "power", "wisdom", "speed", "energy", "mugicability"];
@@ -441,6 +500,36 @@ const CORE_EFFECT_KINDS = new Set([
   "firstAttackZeroIfHigherCourageAndWisdom",
   "beginCombatStealOpposingEngagedBattlegearIfUnequipped",
   "retargetSingleTargetMugic",
+  "keyword",
+  "invisibilityStrike",
+  "invisibilitySurprise",
+  "invisibilityDisarm",
+  "intimidate",
+  "incomingDamageReduction",
+  "hiveGranted",
+  "deactivateHive",
+  "realityFieldMirageControl",
+  "targetCreatureGainChosenElement",
+  "removeChosenElementFromCreature",
+  "exileGeneralDiscardCards",
+  "locationEnterRemoveAllElements",
+  "discardMugicFromEachPlayer",
+  "globalNoInvisibility",
+  "onMugicCounterRemovedDealDamageToEngaged",
+  "setEngagedEnergyToScannedAtBeginCombat",
+  "airCreaturesGainEarth",
+  "tribeGainElementIfHiveActive",
+  "tribeGainElement",
+  "uninfectAllCreatures",
+  "engagedTypeGainChosenElement",
+  "redirectNextAttackDamageToTargetCreature",
+  "shuffleTargetPlayerDeckChoice",
+  "incomingDamageCapIfLowScannedEnergy",
+  "suppressActiveLocationAbilities",
+  "grantCreatureTypeToControlledCreatures",
+  "statPerTribeCreatureCount",
+  "cannotMove",
+  "suppressTargetCreatureAbilities",
 ]);
 const ATTACK_DAMAGE_FORMULA_EFFECT_KINDS = new Set([
   "conditionalDamage",
@@ -1507,6 +1596,9 @@ function unitHasMoveCapacity(battle, unit) {
   if (!unit || unit.defeated) {
     return false;
   }
+  if (unit?.statuses?.cannotMove) {
+    return false;
+  }
   return movesUsedByUnitThisTurn(battle, unit.unitId) < moveLimitForUnit(unit);
 }
 
@@ -1729,6 +1821,9 @@ function activeCreatureEffects(unit) {
 }
 
 function combinedParsedEffects(unit) {
+  if (unit?.statuses?.abilitiesSuppressed) {
+    return [];
+  }
   return [...activeCreatureEffects(unit), ...(activeGearCard(unit)?.parsedEffects || [])];
 }
 
@@ -2897,6 +2992,10 @@ function makeExchangeContext(board) {
     },
     mugicCounterDelta: zeroAttackMap(),
     mugicCostIncrease: zeroAttackMap(),
+    mugicCostIncreaseByTribe: {
+      0: Object.create(null),
+      1: Object.create(null),
+    },
     activatedAbilityUsed: { 0: false, 1: false },
     disableMugic: false,
     disableBattlegear: false,
@@ -3082,9 +3181,29 @@ function markSpentMugicSlot(board, playerIndex, slotIndex) {
 
 function mugicCostForUnit(board, playerIndex, unit, mugicCard, exchange) {
   const baseCost = Math.max(0, Number(mugicCard?.stats?.cost || 0));
-  const addedCost = Math.max(0, Number(exchange?.mugicCostIncrease?.[playerIndex] || 0));
+  const mugicTribe = normalizeTribeKey(mugicCard?.tribe);
+  const addedCostGlobal = Math.max(0, Number(exchange?.mugicCostIncrease?.[playerIndex] || 0));
+  const addedCostByTribe = Math.max(
+    0,
+    Number(exchange?.mugicCostIncreaseByTribe?.[playerIndex]?.[mugicTribe || ""] || 0)
+  );
+  const addedCost = addedCostGlobal + addedCostByTribe;
   const parsedReductionEntries = combinedParsedEffects(unit).filter(
-    (effect) => effect?.kind === "mugicCostReduction" && effectCreatureNameMatchesUnit(effect, unit)
+    (effect) => {
+      if (effect?.kind !== "mugicCostReduction" || !effectCreatureNameMatchesUnit(effect, unit)) {
+        return false;
+      }
+      const requiredTribes = Array.isArray(effect.requiredTribes)
+        ? effect.requiredTribes.map((entry) => normalizeTribeKey(entry)).filter(Boolean)
+        : [];
+      if (requiredTribes.length) {
+        const creatureTribe = normalizeTribeKey(activeCreatureCard(unit)?.tribe);
+        if (!creatureTribe || !requiredTribes.includes(creatureTribe)) {
+          return false;
+        }
+      }
+      return true;
+    }
   );
   const parsedReductionAmount = parsedReductionEntries.reduce(
     (sum, effect) => sum + Math.max(0, Number(effect.amount || 0)),
@@ -4042,7 +4161,18 @@ function applyParsedEffectsToExchange(board, sourcePlayerIndex, effects, exchang
     }
     if (effect.kind === "mugicCostIncrease" && Number.isFinite(effect.amount)) {
       const targetIndex = effect.target === "self" ? sourcePlayerIndex : targetPlayer(sourcePlayerIndex);
-      exchange.mugicCostIncrease[targetIndex] += Number(effect.amount || 0);
+      const amount = Number(effect.amount || 0);
+      const tribes = Array.isArray(effect.mugicTribes)
+        ? effect.mugicTribes.map((entry) => normalizeTribeKey(entry)).filter(Boolean)
+        : [];
+      if (!tribes.length) {
+        exchange.mugicCostIncrease[targetIndex] += amount;
+      } else {
+        tribes.forEach((tribe) => {
+          exchange.mugicCostIncreaseByTribe[targetIndex][tribe] =
+            Number(exchange.mugicCostIncreaseByTribe[targetIndex][tribe] || 0) + amount;
+        });
+      }
       return;
     }
     if (effect.kind === "forceOpponentRandomAttack") {
@@ -4749,7 +4879,8 @@ function applyParsedEffectsToExchange(board, sourcePlayerIndex, effects, exchang
       if (!sourceUnit || !opposingUnit || sourceUnit.defeated || opposingUnit.defeated) {
         return;
       }
-      if (!unitHasCreatureType(sourceUnit, "scout")) {
+      const requireScout = effect.requireScout !== false;
+      if (requireScout && !unitHasCreatureType(sourceUnit, "scout")) {
         return;
       }
       opposingUnit.statuses.invisibility = false;
@@ -4921,6 +5052,96 @@ function applyParsedEffectsToExchange(board, sourcePlayerIndex, effects, exchang
           effect.sourceText || "removeChosenElementFromCreatureWithZeroDiscipline"
         );
       }
+      return;
+    }
+    if (effect.kind === "removeChosenElementFromCreature") {
+      const selectedUnit = resolveEffectTargetUnit(board, sourcePlayerIndex, effect, runtimeContext);
+      if (isInvalidTargetUnitSelection(selectedUnit) || !selectedUnit || selectedUnit.defeated) {
+        battle.log.push("[noop_filtered_context] removeChosenElementFromCreature: alvo invalido.");
+        return;
+      }
+      const owner = findUnitById(board, selectedUnit.unitId);
+      if (!owner) {
+        return;
+      }
+      const selectedElement = String(effect.chosenElement || effect.element || "").toLowerCase();
+      const pickElement =
+        ELEMENT_KEYS.includes(selectedElement)
+          ? selectedElement
+          : ELEMENT_KEYS.find((element) => Number(unitStat(board, owner.playerIndex, selectedUnit, element, exchange)) > 0);
+      if (!pickElement) {
+        if (effect.cannotMoveIfNoElements) {
+          if (!selectedUnit.statuses || typeof selectedUnit.statuses !== "object") {
+            selectedUnit.statuses = {};
+          }
+          selectedUnit.statuses.cannotMove = true;
+        }
+        return;
+      }
+      const current = Number(unitStat(board, owner.playerIndex, selectedUnit, pickElement, exchange) || 0);
+      exchange.statAdjustments[owner.playerIndex][pickElement] -= Math.max(0, current);
+      if (current > 0) {
+        triggerAllyElementLossHooks(
+          board,
+          battle,
+          owner.playerIndex,
+          selectedUnit,
+          [pickElement],
+          effect.sourceText || "removeChosenElementFromCreature"
+        );
+      }
+      if (effect.cannotMoveIfNoElements) {
+        const remaining = ELEMENT_KEYS.reduce((sum, element) => {
+          return sum + Math.max(0, Number(unitStat(board, owner.playerIndex, selectedUnit, element, exchange) || 0));
+        }, 0);
+        if (remaining <= 0) {
+          if (!selectedUnit.statuses || typeof selectedUnit.statuses !== "object") {
+            selectedUnit.statuses = {};
+          }
+          selectedUnit.statuses.cannotMove = true;
+        }
+      }
+      return;
+    }
+    if (effect.kind === "targetCreatureGainChosenElement") {
+      const selectedUnit = resolveEffectTargetUnit(board, sourcePlayerIndex, effect, runtimeContext);
+      if (isInvalidTargetUnitSelection(selectedUnit) || !selectedUnit || selectedUnit.defeated) {
+        battle.log.push("[noop_filtered_context] targetCreatureGainChosenElement: alvo invalido.");
+        return;
+      }
+      const owner = findUnitById(board, selectedUnit.unitId);
+      if (!owner) {
+        return;
+      }
+      const element = String(effect.chosenElement || effect.element || "fire").toLowerCase();
+      if (!ELEMENT_KEYS.includes(element) || exchange.preventElementGain[owner.playerIndex]) {
+        return;
+      }
+      if (unitStat(board, owner.playerIndex, selectedUnit, element, exchange) <= 0) {
+        selectedUnit.tempMods[element] = Number(selectedUnit.tempMods?.[element] || 0) + 1;
+      }
+      return;
+    }
+    if (effect.kind === "cannotMove") {
+      const selectedUnit = resolveEffectTargetUnit(board, sourcePlayerIndex, effect, runtimeContext);
+      if (isInvalidTargetUnitSelection(selectedUnit) || !selectedUnit || selectedUnit.defeated) {
+        return;
+      }
+      if (!selectedUnit.statuses || typeof selectedUnit.statuses !== "object") {
+        selectedUnit.statuses = {};
+      }
+      selectedUnit.statuses.cannotMove = true;
+      return;
+    }
+    if (effect.kind === "suppressTargetCreatureAbilities") {
+      const selectedUnit = resolveEffectTargetUnit(board, sourcePlayerIndex, effect, runtimeContext);
+      if (isInvalidTargetUnitSelection(selectedUnit) || !selectedUnit || selectedUnit.defeated) {
+        return;
+      }
+      if (!selectedUnit.statuses || typeof selectedUnit.statuses !== "object") {
+        selectedUnit.statuses = {};
+      }
+      selectedUnit.statuses.abilitiesSuppressed = true;
       return;
     }
     if (effect.kind === "returnCreatureFromDiscardToBoard") {
@@ -5182,6 +5403,68 @@ function applyParsedEffectsToExchange(board, sourcePlayerIndex, effects, exchang
       selectedUnit.statuses.pendingNextAttackDisciplineLoss = true;
       return;
     }
+    if (effect.kind === "statPerTribeCreatureCount") {
+      const selectedUnit = resolveEffectTargetUnit(board, sourcePlayerIndex, effect, runtimeContext);
+      if (isInvalidTargetUnitSelection(selectedUnit) || !selectedUnit || selectedUnit.defeated) {
+        return;
+      }
+      const owner = findUnitById(board, selectedUnit.unitId);
+      if (!owner) {
+        return;
+      }
+      const requiredTribes = Array.isArray(effect.tribes) ? effect.tribes.map((entry) => normalizeTribeKey(entry)).filter(Boolean) : [];
+      if (!requiredTribes.length) {
+        return;
+      }
+      const stats = Array.isArray(effect.stats) ? effect.stats.filter((entry) => SIMPLE_STATS.includes(entry)) : [];
+      if (!stats.length) {
+        return;
+      }
+      const count = aliveUnitsForPlayer(board, 0)
+        .concat(aliveUnitsForPlayer(board, 1))
+        .filter((unit) => requiredTribes.includes(normalizeTribeKey(activeCreatureCard(unit)?.tribe)))
+        .length;
+      const addValue = Number(effect.amountPerCreature || 0) * count;
+      stats.forEach((stat) => {
+        exchange.statAdjustments[owner.playerIndex][stat] += addValue;
+      });
+      return;
+    }
+    if (effect.kind === "incomingDamageCapIfLowScannedEnergy") {
+      const selectedUnit = resolveEffectTargetUnit(board, sourcePlayerIndex, effect, runtimeContext);
+      if (isInvalidTargetUnitSelection(selectedUnit) || !selectedUnit || selectedUnit.defeated) {
+        return;
+      }
+      if (!selectedUnit.statuses || typeof selectedUnit.statuses !== "object") {
+        selectedUnit.statuses = {};
+      }
+      selectedUnit.statuses.incomingDamageCapIfLowScannedEnergy = {
+        threshold: Math.max(0, Number(effect.threshold || 0)),
+        triggerAbove: Math.max(0, Number(effect.triggerAbove || effect.cap || 0)),
+        cap: Math.max(0, Number(effect.cap || 0)),
+      };
+      return;
+    }
+    if (effect.kind === "redirectNextAttackDamageToTargetCreature") {
+      const selectedUnit = resolveEffectTargetUnit(board, sourcePlayerIndex, effect, runtimeContext);
+      if (isInvalidTargetUnitSelection(selectedUnit) || !selectedUnit || selectedUnit.defeated) {
+        return;
+      }
+      const owner = findUnitById(board, selectedUnit.unitId);
+      if (!owner) {
+        return;
+      }
+      exchange.redirectNextAttackDamageTo = {
+        playerIndex: owner.playerIndex,
+        unitId: selectedUnit.unitId,
+      };
+      return;
+    }
+    if (effect.kind === "realityFieldMirageControl") {
+      // Placeholder: Mirage handling is location-driven; this flag keeps deterministic no-op semantics.
+      exchange.realityFieldMirageControl = true;
+      return;
+    }
     if (effect.kind === "beginCombatGainLowestScannedEnergyFromAllies") {
       if (Number(board?.combat?.exchangeCount || 0) > 0) {
         return;
@@ -5258,6 +5541,179 @@ function applyParsedEffectsToExchange(board, sourcePlayerIndex, effects, exchang
     }
     if (effect.kind === "activateHive") {
       board.combat.hiveActive = true;
+      return;
+    }
+    if (effect.kind === "deactivateHive") {
+      board.combat.hiveActive = false;
+      return;
+    }
+    if (effect.kind === "suppressActiveLocationAbilities") {
+      exchange.suppressActiveLocationAbilities = true;
+      return;
+    }
+    if (effect.kind === "globalNoInvisibility") {
+      [0, 1].forEach((playerIndex) => {
+        const unit = unitForPlayer(board, playerIndex);
+        if (!unit || unit.defeated) {
+          return;
+        }
+        unit.statuses.invisibility = false;
+        unit.statuses.invisibilityStrike = 0;
+        unit.statuses.invisibilitySurprise = false;
+      });
+      return;
+    }
+    if (effect.kind === "uninfectAllCreatures") {
+      [0, 1].forEach((playerIndex) => {
+        aliveUnitsForPlayer(board, playerIndex).forEach((unit) => {
+          uninfectUnit(board, playerIndex, unit, effect.sourceText || "Uninfect", battle);
+        });
+      });
+      return;
+    }
+    if (effect.kind === "exileGeneralDiscardCards") {
+      const selected = effectSelectionFromRuntime(effect, runtimeContext);
+      if (selected && selected.type === "player" && Number.isInteger(selected.playerIndex)) {
+        const player = board.players[selected.playerIndex];
+        if (player) {
+          player.creatureDiscard = [];
+          player.attackDiscard = [];
+          player.battlegearDiscard = [];
+          player.mugicDiscard = [];
+        }
+        return;
+      }
+      const targetIndex = effect.target === "self" ? sourcePlayerIndex : targetPlayer(sourcePlayerIndex);
+      const player = board.players[targetIndex];
+      if (!player) {
+        return;
+      }
+      player.creatureDiscard = [];
+      player.attackDiscard = [];
+      player.battlegearDiscard = [];
+      player.mugicDiscard = [];
+      return;
+    }
+    if (effect.kind === "shuffleTargetPlayerDeckChoice") {
+      const selected = effectSelectionFromRuntime(effect, runtimeContext);
+      const targetIndex = selected && Number.isInteger(selected.playerIndex)
+        ? Number(selected.playerIndex)
+        : (effect.target === "self" ? sourcePlayerIndex : targetPlayer(sourcePlayerIndex));
+      const player = board.players[targetIndex];
+      if (!player) {
+        return;
+      }
+      if (Math.random() >= 0.5) {
+        player.attackDeck = shuffleArrayInPlace([...(player.attackDeck || [])]);
+      } else {
+        player.locationDeck = shuffleArrayInPlace([...(player.locationDeck || [])]);
+      }
+      return;
+    }
+    if (effect.kind === "grantCreatureTypeToControlledCreatures") {
+      aliveUnitsForPlayer(board, sourcePlayerIndex).forEach((unit) => {
+        addTemporaryCreatureType(unit, effect.creatureType || "");
+      });
+      return;
+    }
+    if (effect.kind === "airCreaturesGainEarth") {
+      aliveUnitsForPlayer(board, sourcePlayerIndex)
+        .concat(aliveUnitsForPlayer(board, targetPlayer(sourcePlayerIndex)))
+        .forEach((unit) => {
+          const owner = findUnitById(board, unit.unitId);
+          if (!owner) {
+            return;
+          }
+          const hasAir = Number(unitStat(board, owner.playerIndex, unit, "air", exchange) || 0) > 0;
+          if (!hasAir) {
+            return;
+          }
+          if (unitStat(board, owner.playerIndex, unit, "earth", exchange) <= 0) {
+            unit.tempMods.earth = Number(unit.tempMods?.earth || 0) + 1;
+          }
+        });
+      return;
+    }
+    if (effect.kind === "tribeGainElement" || effect.kind === "tribeGainElementIfHiveActive") {
+      if (effect.kind === "tribeGainElementIfHiveActive" && !board?.combat?.hiveActive) {
+        return;
+      }
+      const requiredTribes = Array.isArray(effect.tribes) ? effect.tribes.map((entry) => normalizeTribeKey(entry)).filter(Boolean) : [];
+      const addElements = Array.isArray(effect.elements) ? effect.elements.map((entry) => String(entry || "").toLowerCase()).filter((entry) => ELEMENT_KEYS.includes(entry)) : [];
+      if (!requiredTribes.length || !addElements.length) {
+        return;
+      }
+      [0, 1].forEach((playerIndex) => {
+        aliveUnitsForPlayer(board, playerIndex).forEach((unit) => {
+          const tribe = normalizeTribeKey(activeCreatureCard(unit)?.tribe);
+          if (!requiredTribes.includes(tribe)) {
+            return;
+          }
+          addElements.forEach((element) => {
+            if (exchange.preventElementGain[playerIndex]) {
+              return;
+            }
+            if (unitStat(board, playerIndex, unit, element, exchange) <= 0) {
+              unit.tempMods[element] = Number(unit.tempMods?.[element] || 0) + 1;
+            }
+          });
+        });
+      });
+      return;
+    }
+    if (effect.kind === "engagedTypeGainChosenElement") {
+      const engagedSelf = unitForPlayer(board, sourcePlayerIndex);
+      const engagedOpposing = unitForPlayer(board, targetPlayer(sourcePlayerIndex));
+      const chosenElement = String(effect.chosenElement || effect.element || "fire").toLowerCase();
+      if (!ELEMENT_KEYS.includes(chosenElement)) {
+        return;
+      }
+      [engagedSelf, engagedOpposing].forEach((unit, index) => {
+        if (!unit || unit.defeated) {
+          return;
+        }
+        const ownerIndex = index === 0 ? sourcePlayerIndex : targetPlayer(sourcePlayerIndex);
+        const requiredTypes = Array.isArray(effect.requiredCreatureTypes)
+          ? effect.requiredCreatureTypes.map((entry) => normalizeCreatureTypeKey(entry)).filter(Boolean)
+          : [];
+        if (requiredTypes.length && !requiredTypes.some((type) => unitHasCreatureType(unit, type))) {
+          return;
+        }
+        if (exchange.preventElementGain[ownerIndex]) {
+          return;
+        }
+        if (unitStat(board, ownerIndex, unit, chosenElement, exchange) <= 0) {
+          unit.tempMods[chosenElement] = Number(unit.tempMods?.[chosenElement] || 0) + 1;
+        }
+      });
+      return;
+    }
+    if (effect.kind === "setEngagedEnergyToScannedAtBeginCombat") {
+      const selfUnit = unitForPlayer(board, sourcePlayerIndex);
+      const opposingUnit = unitForPlayer(board, targetPlayer(sourcePlayerIndex));
+      [selfUnit, opposingUnit].forEach((unit) => {
+        if (!unit || unit.defeated) {
+          return;
+        }
+        const scanned = Number(activeCreatureCard(unit)?.stats?.energy || 0);
+        unit.currentEnergy = clamp(scanned, 0, unitMaxEnergy(unit));
+      });
+      return;
+    }
+    if (effect.kind === "onMugicCounterRemovedDealDamageToEngaged") {
+      [0, 1].forEach((playerIndex) => {
+        const unit = unitForPlayer(board, playerIndex);
+        if (!unit || unit.defeated) {
+          return;
+        }
+        if (Number(unit.mugicCounters || 0) < Number(activeCreatureCard(unit)?.stats?.mugicability || 0)) {
+          const amount = Math.max(0, Number(effect.amount || 0));
+          if (amount > 0) {
+            exchange.damageToCreature[playerIndex] += amount;
+            queueDamageEvent(exchange, playerIndex, amount, "ability", sourcePlayerIndex, runtimeSourceUnit?.unitId || null);
+          }
+        }
+      });
       return;
     }
     if (effect.kind === "conditionalDealDamageIfStatus" && effect.status) {
@@ -6036,6 +6492,8 @@ function resetTurnUnits(board) {
         unit.statuses.temporaryCreatureTypes = [];
         unit.statuses.nonAttackDamageRedirectToUnitId = null;
         unit.statuses.pendingNextAttackDisciplineLoss = false;
+        unit.statuses.cannotMove = false;
+        unit.statuses.abilitiesSuppressed = false;
       }
       recalculateUnitDerivedState(unit);
     });
@@ -6132,23 +6590,51 @@ function applyLocationEnterEffects(battle) {
   }
   const effects = location.parsedEffects || [];
   effects.forEach((effect) => {
-    if (effect.kind !== "locationEnterRemoveAllElements") {
-      return;
-    }
-    board.players.forEach((player) => {
-      player.creatures.forEach((unit) => {
-        if (unit.defeated) {
-          return;
-        }
-        ELEMENT_KEYS.forEach((element) => {
-          const current = Number(activeCreatureCard(unit)?.stats?.[element] || 0) + Number(unit.passiveMods?.[element] || 0);
-          if (current > 0) {
-            unit.tempMods[element] -= current;
+    if (effect.kind === "locationEnterRemoveAllElements") {
+      board.players.forEach((player) => {
+        player.creatures.forEach((unit) => {
+          if (unit.defeated) {
+            return;
           }
+          ELEMENT_KEYS.forEach((element) => {
+            const current = Number(activeCreatureCard(unit)?.stats?.[element] || 0) + Number(unit.passiveMods?.[element] || 0);
+            if (current > 0) {
+              unit.tempMods[element] -= current;
+            }
+          });
         });
       });
-    });
-    battle.log.push(`Location ${location.name}: criaturas perderam todos os elementos.`);
+      battle.log.push(`Location ${location.name}: criaturas perderam todos os elementos.`);
+      return;
+    }
+    if (effect.kind === "discardMugicFromEachPlayer") {
+      board.players.forEach((player) => {
+        const slot = (player.mugicSlots || []).find((entry) => entry && entry.available && entry.card);
+        if (!slot) {
+          return;
+        }
+        const card = slot.card;
+        setMugicSlotState(slot, {
+          available: false,
+          queued: false,
+          spent: false,
+          disabledByEffect: true,
+        });
+        if (card) {
+          player.mugicDiscard = Array.isArray(player.mugicDiscard) ? player.mugicDiscard : [];
+          player.mugicDiscard.push(card);
+        }
+      });
+      battle.log.push(`Location ${location.name}: cada jogador descartou uma Mugic.`);
+      return;
+    }
+    if (effect.kind === "uninfectAllCreatures") {
+      [0, 1].forEach((playerIndex) => {
+        aliveUnitsForPlayer(board, playerIndex).forEach((unit) => {
+          uninfectUnit(board, playerIndex, unit, effect.sourceText || "Uninfect", battle);
+        });
+      });
+    }
   });
 }
 
@@ -6243,12 +6729,19 @@ function applyLocationEffects(battle) {
     return;
   }
   const effects = location.parsedEffects || [];
+  if (board.exchange?.suppressActiveLocationAbilities) {
+    revealNewLocationDuringCombat(battle);
+    board.combat.startResolved = true;
+    return;
+  }
   const beginCombatKinds = new Set([
     "beginCombatEnergy",
     "beginCombatDamage",
     "beginCombatMugicCounterHigherStat",
     "firstAttackZeroIfLower",
     "beginCombatGainLowestDiscipline",
+    "setEngagedEnergyToScannedAtBeginCombat",
+    "engagedTypeGainChosenElement",
   ]);
   const beginEffects = effects.filter((effect) => beginCombatKinds.has(effect.kind));
   const ongoingEffects = effects.filter(
@@ -6713,6 +7206,9 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
     const requiredCreatureTypes = (spec.requiredCreatureTypes || [])
       .map((entry) => normalizeCreatureTypeKey(entry))
       .filter(Boolean);
+    const requiredTribes = (spec.requiredTribes || [])
+      .map((entry) => normalizeTribeKey(entry))
+      .filter(Boolean);
     players.forEach((playerIndex) => {
       (board.players[playerIndex]?.creatureDiscard || []).forEach((card, discardIndex) => {
         if (!card) {
@@ -6725,6 +7221,12 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
           )
         ) {
           return;
+        }
+        if (requiredTribes.length) {
+          const tribe = normalizeTribeKey(card?.tribe);
+          if (!tribe || !requiredTribes.includes(tribe)) {
+            return;
+          }
         }
         candidates.push({
           id: `creature_discard:${playerIndex}:${discardIndex}`,
@@ -6841,7 +7343,13 @@ function effectChoiceSpec(effect) {
     };
   }
   if (
-    (effect.kind === "grantChosenElementValueToRecentDamager" || effect.kind === "removeChosenElementFromCreatureWithZeroDiscipline")
+    (
+      effect.kind === "grantChosenElementValueToRecentDamager"
+      || effect.kind === "removeChosenElementFromCreatureWithZeroDiscipline"
+      || effect.kind === "removeChosenElementFromCreature"
+      || effect.kind === "targetCreatureGainChosenElement"
+      || effect.kind === "engagedTypeGainChosenElement"
+    )
     && sourceText.includes("of your choice")
   ) {
     return {
@@ -6987,6 +7495,24 @@ function applyChoiceSelectionsToEffects(effects, selectedChoices = null) {
       };
     }
     if (effect.kind === "removeChosenElementFromCreatureWithZeroDiscipline") {
+      return {
+        ...effect,
+        chosenElement: String(selected.value || selected.id || "fire").toLowerCase(),
+      };
+    }
+    if (effect.kind === "removeChosenElementFromCreature") {
+      return {
+        ...effect,
+        chosenElement: String(selected.value || selected.id || "fire").toLowerCase(),
+      };
+    }
+    if (effect.kind === "targetCreatureGainChosenElement") {
+      return {
+        ...effect,
+        chosenElement: String(selected.value || selected.id || "fire").toLowerCase(),
+      };
+    }
+    if (effect.kind === "engagedTypeGainChosenElement") {
       return {
         ...effect,
         chosenElement: String(selected.value || selected.id || "fire").toLowerCase(),
@@ -7835,10 +8361,28 @@ function calculateDamage(battle) {
       damage = 0;
     }
 
-    board.exchange.damageToCreature[defenderIndex] += damage;
+    if (defenderUnit?.statuses?.incomingDamageCapIfLowScannedEnergy) {
+      const capRule = defenderUnit.statuses.incomingDamageCapIfLowScannedEnergy;
+      const scannedEnergy = Number(activeCreatureCard(defenderUnit)?.stats?.energy || 0);
+      if (scannedEnergy <= Number(capRule.threshold || 0) && damage > Number(capRule.triggerAbove || 0)) {
+        damage = Math.min(damage, Number(capRule.cap || damage));
+      }
+    }
+
+    let damageTargetIndex = defenderIndex;
+    const redirect = board.exchange.redirectNextAttackDamageTo || null;
+    if (redirect && Number.isInteger(redirect.playerIndex) && redirect.unitId) {
+      const targetUnit = findUnitById(board, redirect.unitId);
+      if (targetUnit && !targetUnit.unit.defeated) {
+        damageTargetIndex = Number(redirect.playerIndex);
+      }
+      board.exchange.redirectNextAttackDamageTo = null;
+    }
+
+    board.exchange.damageToCreature[damageTargetIndex] += damage;
     queueDamageEvent(
       board.exchange,
-      defenderIndex,
+      damageTargetIndex,
       damage,
       "attack",
       attackerIndex,

@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-04-29T00:27:17.575Z",
+  "generatedAt": "2026-05-10T00:34:00.836Z",
   "totals": {
     "habilidadesJson": 1177,
     "withCardMatch": 867,
     "withoutCardMatch": 310
   },
   "byStatus": {
-    "implemented": 578,
+    "implemented": 592,
     "pending": 454,
-    "parser_only": 145
+    "parser_only": 131
   },
   "byActivationType": {
     "activated": 98,

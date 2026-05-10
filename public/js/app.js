@@ -2725,6 +2725,10 @@ async function deleteDeck(deckName) {
   if (!deckName) {
     return;
   }
+  const deckNamesBeforeDelete = Array.isArray(appState.savedDecks)
+    ? appState.savedDecks.map((deck) => String(deck?.name || "").trim()).filter(Boolean)
+    : [];
+  const selectedDeckIndexBeforeDelete = Math.max(0, deckNamesBeforeDelete.indexOf(String(deckName || "").trim()));
   const confirmed = window.confirm(`Excluir o deck "${deckName}"?`);
   if (!confirmed) {
     return;
@@ -2747,6 +2751,15 @@ async function deleteDeck(deckName) {
   }
 
   await refreshDeckList();
+  const deckNamesAfterDelete = Array.isArray(appState.savedDecks)
+    ? appState.savedDecks.map((deck) => String(deck?.name || "").trim()).filter(Boolean)
+    : [];
+  if (deckNamesAfterDelete.length && el.deckList) {
+    const nextDeckName = selectedDeckIndexBeforeDelete < deckNamesAfterDelete.length
+      ? deckNamesAfterDelete[selectedDeckIndexBeforeDelete]
+      : deckNamesAfterDelete[deckNamesAfterDelete.length - 1];
+    el.deckList.value = nextDeckName;
+  }
   await refreshScansData();
   renderLibraryCards();
   const returnedCount = Math.max(0, Number(deletion?.returnedCount || 0));

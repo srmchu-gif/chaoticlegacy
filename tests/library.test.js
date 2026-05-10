@@ -50,3 +50,16 @@ test("buildLibrary infere creature types quando campo types estiver vazio", () =
   assert.ok(loreAlpha.creatureTypes.some((entry) => /muge/i.test(entry)));
   assert.ok(library.stats.inferredCreatureTypes > 0);
 });
+
+test("buildLibrary cobre habilidades dos sets DOP/ZOTH/SS sem semParse", () => {
+  const library = buildLibrary(ROOT);
+  const targetSets = new Set(["DOP", "ZOTH", "SS"]);
+  const semParse = library.cards.filter(
+    (card) =>
+      targetSets.has(String(card.set || "").toUpperCase())
+      && String(card.ability || "").trim()
+      && Array.isArray(card.parsedEffects)
+      && card.parsedEffects.length === 0
+  );
+  assert.equal(semParse.length, 0);
+});

@@ -1610,3 +1610,14 @@ test("replaceMoveIntoOpposingWithRelocate troca posicoes sem iniciar combate", a
   assert.equal(battle.board.engagement.attackerSlot, null);
   assert.equal(battle.phase, "move_action");
 });
+
+test("cannotMove bloqueia movimentacao da criatura", async () => {
+  const { engine, battle } = await setupMovePhase("CM1", "CM2");
+  const mover = battle.board.players[0].creatures[5];
+  mover.statuses = mover.statuses || {};
+  mover.statuses.cannotMove = true;
+
+  const legalMoves = engine.getLegalMoves(battle, 0);
+  assert.ok(!legalMoves.some((move) => move.from === 5));
+  assert.equal(engine.declareMove(battle, 5, "H"), false);
+});

@@ -450,3 +450,18 @@ test("parseAbilityEffects reconhece contadores de leadership e bonus por contado
     )
   );
 });
+
+test("parseAbilityEffects cobre padroes novos dos sets DOP/ZOTH/SS", () => {
+  const text =
+    "Deactivate Hive. " +
+    "Target Creature gains an Elemental Type of your choice. " +
+    "Target Creature loses an Elemental Type of your choice. If that Creature has no Elemental Types, it cannot move instead. " +
+    "The active Location loses all abilities. " +
+    "When this becomes the active Location, each player discards a Mugic Card.";
+  const effects = parseAbilityEffects(text);
+  assert.ok(effects.some((effect) => effect.kind === "deactivateHive"));
+  assert.ok(effects.some((effect) => effect.kind === "targetCreatureGainChosenElement"));
+  assert.ok(effects.some((effect) => effect.kind === "removeChosenElementFromCreature"));
+  assert.ok(effects.some((effect) => effect.kind === "suppressActiveLocationAbilities"));
+  assert.ok(effects.some((effect) => effect.kind === "discardMugicFromEachPlayer"));
+});
