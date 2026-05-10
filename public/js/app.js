@@ -490,6 +490,7 @@ const appState = {
     role: "host",
     seatToken: "",
     localPlayerIndex: 0,
+    battleSnapshotHydrated: false,
     eventSource: null,
     connection: {
       hostConnected: false,
@@ -904,10 +905,75 @@ function closeMultiplayerStream() {
     }
   }
   appState.multiplayer.eventSource = null;
+  appState.multiplayer.battleSnapshotHydrated = false;
   if (appState.multiplayer.timeoutTickerId) {
     window.clearInterval(appState.multiplayer.timeoutTickerId);
     appState.multiplayer.timeoutTickerId = null;
   }
+}
+
+function triggerDefeatCodeExplosion(unitId, options = {}) {
+  const targetId = String(unitId || "").trim();
+  const fallbackRenderDelay = Number.isFinite(Number(options.fallbackRenderDelay))
+    ? Number(options.fallbackRenderDelay)
+    : 100;
+  if (!targetId) {
+    if (!options.skipFallbackRender) {
+      window.setTimeout(() => renderBattle(), fallbackRenderDelay);
+    }
+    return false;
+  }
+  const slotEl = document.querySelector(`[data-unit-id="${targetId}"]`);
+  if (!slotEl) {
+    if (!options.skipFallbackRender) {
+      window.setTimeout(() => renderBattle(), fallbackRenderDelay);
+    }
+    return false;
+  }
+  slotEl.style.opacity = "0";
+  const rect = slotEl.getBoundingClientRect();
+  explodeIntoCode(rect.left, rect.top, rect.width, rect.height, document.body);
+  appState.animationBlocks = (appState.animationBlocks || 0) + 1;
+  appState.battleAnimationBlock = true;
+  window.setTimeout(() => {
+    appState.animationBlocks = Math.max(0, (appState.animationBlocks || 0) - 1);
+    if (appState.animationBlocks <= 0) {
+      appState.battleAnimationBlock = false;
+      renderBattle();
+    }
+  }, 2800);
+  return true;
+}
+
+function collectDefeatedUnitIdsById(battle) {
+  const defeatedById = new Map();
+  if (!battle?.board?.players) {
+    return defeatedById;
+  }
+  battle.board.players.forEach((player) => {
+    (player?.creatures || []).forEach((unit) => {
+      if (!unit?.unitId) {
+        return;
+      }
+      defeatedById.set(String(unit.unitId), Boolean(unit.defeated));
+    });
+  });
+  return defeatedById;
+}
+
+function findNewlyDefeatedUnitIds(previousBattle, nextBattle) {
+  const previousById = collectDefeatedUnitIdsById(previousBattle);
+  const nextById = collectDefeatedUnitIdsById(nextBattle);
+  const newlyDefeated = [];
+  previousById.forEach((wasDefeated, unitId) => {
+    if (wasDefeated) {
+      return;
+    }
+    if (nextById.get(unitId) === true) {
+      newlyDefeated.push(unitId);
+    }
+  });
+  return newlyDefeated;
 }
 
 function syncMultiplayerTimeoutTicker() {
@@ -941,10 +1007,19 @@ function applyMultiplayerSnapshot(snapshot) {
   if (!snapshot || typeof snapshot !== "object") {
     return;
   }
-  if (snapshot.battleState) {
-    appState.battle = decodeRichValue(snapshot.battleState);
-  } else {
-    appState.battle = null;
+  const previousBattle = appState.battle;
+  const hadHydratedBattleSnapshot = Boolean(appState.multiplayer.battleSnapshotHydrated);
+  const nextBattle = snapshot.battleState ? decodeRichValue(snapshot.battleState) : null;
+  const newlyDefeatedUnitIds =
+    hadHydratedBattleSnapshot && previousBattle && nextBattle
+      ? findNewlyDefeatedUnitIds(previousBattle, nextBattle)
+      : [];
+  appState.battle = nextBattle;
+  appState.multiplayer.battleSnapshotHydrated = true;
+  if (newlyDefeatedUnitIds.length) {
+    newlyDefeatedUnitIds.forEach((unitId) => {
+      triggerDefeatCodeExplosion(unitId, { skipFallbackRender: true });
+    });
   }
   if (typeof snapshot.localPlayerIndex === "number") {
     appState.multiplayer.localPlayerIndex = snapshot.localPlayerIndex;
@@ -5572,6 +5647,7 @@ async function startBattleFromConfig(config) {
     appState.multiplayer.seatToken = "";
     appState.multiplayer.role = "host";
     appState.multiplayer.localPlayerIndex = 0;
+    appState.multiplayer.battleSnapshotHydrated = false;
     appState.multiplayer.connection = {
       hostConnected: false,
       guestConnected: false,
@@ -5638,30 +5714,7 @@ async function startBattleFromConfig(config) {
     onBattleEvent("defeat", (data) => {
       debugLog("battle_event", "defeat", data);
       const { unitId } = data || {};
-      let hasAnimation = false;
-      if (unitId) {
-        const slotEl = document.querySelector(`[data-unit-id="${unitId}"]`);
-        if (slotEl) {
-          hasAnimation = true;
-          slotEl.style.opacity = '0';
-          const rect = slotEl.getBoundingClientRect();
-          explodeIntoCode(rect.left, rect.top, rect.width, rect.height, document.body);
-        }
-      }
-      
-      if (hasAnimation) {
-        appState.animationBlocks = (appState.animationBlocks || 0) + 1;
-        appState.battleAnimationBlock = true;
-        setTimeout(() => {
-          appState.animationBlocks--;
-          if (appState.animationBlocks <= 0) {
-            appState.battleAnimationBlock = false;
-            renderBattle();
-          }
-        }, 2800);
-      } else {
-        setTimeout(() => renderBattle(), 100);
-      }
+      triggerDefeatCodeExplosion(unitId);
     });
     onBattleEvent("reveal", () => {
       debugLog("battle_event", "reveal");
@@ -5945,6 +5998,7 @@ async function startMultiplayerBattle(roomId, seatTokenFromQuery = "", roleFromQ
     appState.multiplayer.challengeMeta = null;
     appState.multiplayer.seatToken = String(seatTokenFromQuery || "");
     appState.multiplayer.role = roleFromQuery || "spectator";
+    appState.multiplayer.battleSnapshotHydrated = false;
 
     const stateUrl = `/api/multiplayer/rooms/${encodeURIComponent(roomId)}/state?seatToken=${encodeURIComponent(appState.multiplayer.seatToken || "")}`;
     const roomState = await apiJson(stateUrl);
@@ -6624,6 +6678,7 @@ async function init() {
     appState.multiplayer.seatToken = "";
     appState.multiplayer.role = "host";
     appState.multiplayer.localPlayerIndex = 0;
+    appState.multiplayer.battleSnapshotHydrated = false;
     appState.multiplayer.rematch = {
       pending: false,
       requestedBy: null,
