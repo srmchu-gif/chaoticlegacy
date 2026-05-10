@@ -3488,7 +3488,7 @@ function normalizeRuleText(text) {
     .trim();
 }
 
-function extractActivationBodies(text) {
+function extractActivationSegments(text) {
   const raw = String(text || "");
   if (!raw) {
     return [];
@@ -3499,21 +3499,37 @@ function extractActivationBodies(text) {
   if (!matches.length) {
     return [];
   }
-  const bodies = [];
+  const segments = [];
   matches.forEach((match, index) => {
-    const start = Number(match.index || 0) + String(match[0] || "").length;
+    const prefix = String(match[0] || "");
+    const start = Number(match.index || 0) + prefix.length;
     const end = index + 1 < matches.length ? Number(matches[index + 1].index || raw.length) : raw.length;
-    const body = normalizeRuleText(raw.slice(start, end));
+    const rawBody = raw.slice(start, end);
+    const body = normalizeRuleText(rawBody);
+    const oncePerTurn =
+      /\bthis ability can only be used once per turn\b/i.test(rawBody)
+      || /\buse this ability only once per turn\b/i.test(rawBody);
     if (body) {
-      bodies.push(body);
+      segments.push({
+        index,
+        prefix,
+        body,
+        rawBody,
+        oncePerTurn,
+      });
     }
   });
-  return bodies;
+  return segments;
+}
+
+function extractActivationBodies(text) {
+  return extractActivationSegments(text).map((segment) => segment.body);
 }
 
 function splitCardEffectsByActivation(card) {
   const effects = Array.isArray(card?.parsedEffects) ? card.parsedEffects : [];
-  const activationBodies = extractActivationBodies(card?.ability);
+  const activationSegments = extractActivationSegments(card?.ability);
+  const activationBodies = activationSegments.map((segment) => segment.body);
   
   const activated = [];
   const triggered = [];
@@ -3582,11 +3598,46 @@ function splitCardEffectsByActivation(card) {
         triggered,
         passive_continuous: remainingPassive,
         passive: remainingPassive.concat(triggered),
+        activationSegments,
       };
     }
   }
 
-  return { activated, triggered, passive_continuous, passive };
+  return { activated, triggered, passive_continuous, passive, activationSegments };
+}
+
+function activationUsageKey(playerIndex, unitId, sourceKey, segmentIndex = 0) {
+  return `${Number(playerIndex)}:${String(unitId || "unknown")}:${String(sourceKey || "source")}:${Number(segmentIndex || 0)}`;
+}
+
+function getAbilityUsageCountForTurn(battle, board, usageKey) {
+  if (!battle || !board || !usageKey) {
+    return 0;
+  }
+  if (!battle.abilityUsageByTurn || typeof battle.abilityUsageByTurn !== "object") {
+    battle.abilityUsageByTurn = Object.create(null);
+  }
+  const currentTurn = Number(board.turn || 0);
+  const entry = battle.abilityUsageByTurn[usageKey];
+  if (!entry || Number(entry.turn) !== currentTurn) {
+    return 0;
+  }
+  return Math.max(0, Number(entry.count || 0));
+}
+
+function incrementAbilityUsageForTurn(battle, board, usageKey) {
+  if (!battle || !board || !usageKey) {
+    return;
+  }
+  if (!battle.abilityUsageByTurn || typeof battle.abilityUsageByTurn !== "object") {
+    battle.abilityUsageByTurn = Object.create(null);
+  }
+  const currentTurn = Number(board.turn || 0);
+  const current = getAbilityUsageCountForTurn(battle, board, usageKey);
+  battle.abilityUsageByTurn[usageKey] = {
+    turn: currentTurn,
+    count: current + 1,
+  };
 }
 
 function canPayActivationCost(board, playerIndex, unit, player, exchange, cost) {
@@ -3689,7 +3740,7 @@ function payActivationCost(board, playerIndex, unit, player, exchange, cost, bat
   return false;
 }
 
-function buildActivatedOptions(board, playerIndex, exchange) {
+function buildActivatedOptions(board, playerIndex, exchange, battle = null) {
   const runtimeExchange = exchange || makeExchangeContext(board);
   const player = board.players[playerIndex];
   if (!player || runtimeExchange.activatedAbilityUsed?.[playerIndex]) {
@@ -3716,27 +3767,61 @@ function buildActivatedOptions(board, playerIndex, exchange) {
       if (source.key === "creature" && runtimeExchange.disableActivatedAbilitiesForPlayer?.[playerIndex]) {
         return;
       }
-      const cost = parseActivationCost(source.card?.ability);
-      if (!cost) {
-        return;
-      }
-      if (!canPayActivationCost(board, playerIndex, unit, player, runtimeExchange, cost)) {
-        return;
-      }
       const effectBuckets = splitCardEffectsByActivation(source.card);
-      const effects = (effectBuckets.activated || []).filter((effect) => ACTIVATABLE_EFFECT_KINDS.has(effect.kind));
-      if (!effects.length) {
+      const activatedEffects = (effectBuckets.activated || []).filter((effect) => ACTIVATABLE_EFFECT_KINDS.has(effect.kind));
+      const activationSegments = Array.isArray(effectBuckets.activationSegments) ? effectBuckets.activationSegments : [];
+
+      const pushOption = (effects, segmentMeta = null) => {
+        if (!effects.length) {
+          return;
+        }
+        const segmentPrefix = String(segmentMeta?.prefix || "");
+        const cost = parseActivationCost(segmentPrefix || source.card?.ability);
+        if (!cost) {
+          return;
+        }
+        if (!canPayActivationCost(board, playerIndex, unit, player, runtimeExchange, cost)) {
+          return;
+        }
+        const segmentIndex = Number(segmentMeta?.index || 0);
+        const usageKey = activationUsageKey(playerIndex, unit.unitId, source.key, segmentIndex);
+        const oncePerTurn = Boolean(segmentMeta?.oncePerTurn);
+        if (oncePerTurn && getAbilityUsageCountForTurn(battle, board, usageKey) >= 1) {
+          return;
+        }
+        options.push({
+          id: `${source.key}:${source.label}:${unit.unitId}:${segmentIndex}`,
+          sourceKey: source.key,
+          sourceLabel: source.label,
+          sourceUnitId: unit.unitId,
+          sourceSlot: unit.slot,
+          activationSegmentIndex: segmentIndex,
+          activationUsageKey: usageKey,
+          oncePerTurn,
+          cost,
+          effects,
+        });
+      };
+
+      if (activationSegments.length) {
+        const unmatched = new Set(activatedEffects);
+        activationSegments.forEach((segment) => {
+          const matched = activatedEffects.filter((effect) => {
+            const sourceText = normalizeRuleText(effect?.sourceText || "");
+            if (!sourceText) {
+              return false;
+            }
+            return segment.body.includes(sourceText) || sourceText.includes(segment.body);
+          });
+          matched.forEach((effect) => unmatched.delete(effect));
+          pushOption(matched, segment);
+        });
+        if (unmatched.size) {
+          pushOption([...unmatched], activationSegments[0]);
+        }
         return;
       }
-      options.push({
-        id: `${source.key}:${source.label}:${unit.unitId}`,
-        sourceKey: source.key,
-        sourceLabel: source.label,
-        sourceUnitId: unit.unitId,
-        sourceSlot: unit.slot,
-        cost,
-        effects,
-      });
+      pushOption(activatedEffects, null);
     });
   });
   return options;
@@ -8109,6 +8194,13 @@ function resolveAbilityForPlayer(battle, playerIndex, option, selectedTargets = 
   if (!resolvedOption || !player || !unit || !board.exchange) {
     return false;
   }
+  if (
+    resolvedOption.oncePerTurn
+    && getAbilityUsageCountForTurn(battle, board, resolvedOption.activationUsageKey) >= 1
+  ) {
+    battle.log.push(`${resolvedOption.sourceLabel}: habilidade ja usada neste turno.`);
+    return false;
+  }
   if (!prepaid && !canPayActivationCost(board, playerIndex, unit, player, board.exchange, resolvedOption.cost)) {
     return false;
   }
@@ -8232,6 +8324,9 @@ function resolveAbilityForPlayer(battle, playerIndex, option, selectedTargets = 
     effectRef: resolvedOption.id || resolvedOption.sourceLabel,
     timing: battle.phase,
   });
+  if (resolvedOption.oncePerTurn) {
+    incrementAbilityUsageForTurn(battle, board, resolvedOption.activationUsageKey);
+  }
   return true;
 }
 
@@ -8265,7 +8360,7 @@ function pickPriorityActionForAi(options) {
   return { kind: "ability", optionIndex: best.optionIndex };
 }
 
-function buildPriorityOptionsForPlayer(board, playerIndex, windowType) {
+function buildPriorityOptionsForPlayer(board, playerIndex, windowType, battle = null) {
   const options = [];
   (board.players[playerIndex]?.mugicSlots || []).forEach((slotEntry) => {
     if (slotEntry && slotEntry.card) {
@@ -8289,7 +8384,7 @@ function buildPriorityOptionsForPlayer(board, playerIndex, windowType) {
     });
   }
   if (!board.exchange?.disableMugic) {
-    const abilityOptions = buildActivatedOptions(board, playerIndex, board.exchange);
+    const abilityOptions = buildActivatedOptions(board, playerIndex, board.exchange, battle);
     abilityOptions.forEach((option, optionIndex) => {
       options.push({
         id: `ability:${playerIndex}:${optionIndex}`,
@@ -8387,7 +8482,7 @@ function runPriorityWindow(battle, windowType, forceAutoHuman = false, priorityS
   while (battle.burstState.passesInRow < 2 && guard < 24) {
     guard += 1;
     const playerIndex = battle.burstState.activePlayer;
-    const options = buildPriorityOptionsForPlayer(board, playerIndex, windowType);
+    const options = buildPriorityOptionsForPlayer(board, playerIndex, windowType, battle);
     const isHuman = isHumanControlledPlayer(battle, playerIndex, forceAutoHuman);
 
     if (isHuman) {
@@ -9388,6 +9483,7 @@ export function createBattleState(deckAByType, deckBByType, mode = "casual") {
     burstStack: [],
     effectStack: [],
     stackNeedsPriorityReopen: false,
+    abilityUsageByTurn: Object.create(null),
     copyRuntimeByUnit: {},
     combatState: {
       active: false,
@@ -10084,7 +10180,7 @@ export function getPriorityActions(battle, playerIndex = battle?.burstState?.act
   if (!battle?.board) {
     return [];
   }
-  return buildPriorityOptionsForPlayer(battle.board, playerIndex, battle.burstState?.windowType || battle.phase);
+  return buildPriorityOptionsForPlayer(battle.board, playerIndex, battle.burstState?.windowType || battle.phase, battle);
 }
 
 export function isShowdownRequired(battle) {

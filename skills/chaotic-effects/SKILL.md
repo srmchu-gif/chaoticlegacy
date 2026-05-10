@@ -1,6 +1,6 @@
 ---
 name: chaotic-effects
-description: Use this skill whenever card effects are discussed, defined, or implemented in combat. This skill is the canonical source for effect behavior and mapping to parser/engine.
+description: Canonical workflow for auditing and implementing Chaotic card effects (DOP/ZOTH/SS first), including source baseline, parser/engine mapping, and acceptance gates.
 ---
 
 # Chaotic Effects Skill
@@ -16,26 +16,50 @@ Use this skill when:
 
 ## Source of truth
 
-Primary source:
-- `references/effects-registry.json`
+Primary rules source order:
+1. PDF glossary + card text
+2. Fandom rules/rulings (`List_of_Abilities`)
+3. Video explanation (support only)
 
-Human-readable mirror:
-- `references/effects-glossary.md`
+Project contracts:
+- `references/effects-registry.json` (machine contract)
+- `references/effects-glossary.md` (human mirror)
 
-If there is a conflict, the registry JSON wins.
+If there is a conflict inside the project files, the registry JSON wins.
 
 ## Workflow (required)
 
-For each new effect definition:
-1. Validate the input against the required fields in the registry schema.
-2. Add or update the effect object in `effects-registry.json`.
-3. Update `effects-glossary.md` with a readable summary.
-4. Set status using this progression:
+1. **Freeze sources**  
+Run source snapshot first:
+- `npm run analyze:sources`
+- `npm run analyze:matrix:dop-zoth-ss`
+
+2. **Audit gaps by set/type**  
+Classify each gap as:
+- `sem_parse`
+- `parser_only`
+- `timing_incorrect`
+- `target_incorrect`
+- `resolution_incomplete`
+
+3. **Implement in this order**
+- timing/trigger
+- target/scope
+- stacking/duration/replacement
+
+4. **Update registry and glossary**
+- Add or update effect object in `effects-registry.json`.
+- Mirror summary in `effects-glossary.md`.
+- Set status:
    - `draft`
    - `reviewed`
    - `ready_to_implement`
-5. If possible, map to current parser/engine kinds.
-6. If mapping is incomplete, record explicit gap notes in `implementation_notes`.
+
+5. **Ship gates**
+- `npm test` green
+- DOP/ZOTH/SS matrix with no `sem_parse`
+- no unresolved parser kinds for in-scope cards
+- explicit note for any deferred rule with reason
 
 ## Required effect fields
 
@@ -64,6 +88,6 @@ Example: `elemento_x` with params:
 
 ## Implementation policy
 
-- Do not modify gameplay code from this skill update alone.
-- Keep this skill focused on effect specification and implementation guidance.
-- Use the registry during later parser/engine coding as the contract.
+- Keep parser/engine changes minimal and tied to audited gaps.
+- Prefer adding tests before/with each behavior fix.
+- Keep fallback safety: unknown effect never crashes combat flow.

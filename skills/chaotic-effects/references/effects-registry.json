@@ -1,6 +1,12 @@
 {
-  "registry_version": "1.0.0",
+  "registry_version": "1.1.0",
   "updated_at": "2026-05-10",
+  "scope": [
+    "DOP",
+    "ZOTH",
+    "SS"
+  ],
+  "source_precedence": "PDF+Fandom>Video",
   "schema": {
     "required_fields": [
       "effect_name",
@@ -23,85 +29,299 @@
   },
   "effects": [
     {
-      "effect_name": "ELEMENTO_X",
-      "kind": "elemento_x",
-      "status": "reviewed",
+      "effect_name": "ACTIVATED_ABILITY",
+      "kind": "activatedAbility",
+      "status": "ready_to_implement",
       "timing": {
-        "summary": "Always active according to source context",
+        "summary": "Priority window only",
         "rules": [
-          "Creature source: always active while creature is active in battle.",
-          "Battlegear source: active only while gear is face-up on equipped creature.",
-          "Mugic source: active until end of turn.",
-          "Location source: active while location is active; target resolution must follow location text."
+          "Requires explicit cost line.",
+          "Can be placed on burst during legal priority windows."
         ]
       },
       "target_rule": {
-        "summary": "Target depends on source",
+        "summary": "Follows card text target spec",
         "rules": [
-          "Creature source: self target.",
-          "Battlegear source: equipped creature target.",
-          "Mugic source: targeted creature target.",
-          "Location source: target defined by location effect text."
+          "If text says target, legal target must exist.",
+          "If no target text, effect resolves without target selection."
         ]
       },
       "condition_rule": {
-        "summary": "No extra gate besides source validity and target validity",
+        "summary": "Cost payment and legality checks",
         "rules": [
-          "Effect applies only if source is currently active.",
-          "Effect applies only if target is currently valid."
+          "Cost must be payable at activation time.",
+          "If ability line says once per turn, it cannot be used again in same turn."
         ]
       },
       "exact_rule": {
-        "summary": "Adds elemental attack damage",
+        "summary": "Resolve activated payload",
         "rules": [
-          "Target gets +5 damage for the configured element whenever it executes an attack that has that same element."
+          "Activation cost is paid first.",
+          "Then chosen effects are queued/resolved according to stack windows."
+        ]
+      },
+      "stacking_rule": {
+        "enabled": false,
+        "rules": [
+          "No additive stacking semantics by default; resolved as independent stack items."
+        ]
+      },
+      "duration_rule": {
+        "summary": "Defined by child effects",
+        "rules": [
+          "Duration comes from each resolved effect.",
+          "Usage lock for once-per-turn resets at next turn."
+        ]
+      },
+      "exceptions": [
+        "Cards with multiple activation lines are tracked per line."
+      ],
+      "examples": [
+        "MC: Heal 5 damage to target Creature.",
+        "Deal 10 damage to a Creature you control: that Creature gains Swift 2. This ability can only be used once per turn."
+      ]
+    },
+    {
+      "effect_name": "CHALLENGE_X",
+      "kind": "conditionalDamage",
+      "status": "ready_to_implement",
+      "timing": {
+        "summary": "Attack resolution",
+        "rules": [
+          "Evaluated when linked attack effect resolves."
+        ]
+      },
+      "target_rule": {
+        "summary": "Engaged opposing creature or target from effect",
+        "rules": [
+          "Default challenge compares engaged attacker and defender."
+        ]
+      },
+      "condition_rule": {
+        "summary": "Difference threshold",
+        "rules": [
+          "Controller stat must be >= opposing stat + X."
+        ]
+      },
+      "exact_rule": {
+        "summary": "Apply linked bonus on success",
+        "rules": [
+          "If challenge succeeds, linked amount/effect applies.",
+          "If challenge fails, linked amount/effect does not apply."
         ]
       },
       "stacking_rule": {
         "enabled": true,
         "rules": [
-          "Multiple active ELEMENTO_X sources stack additively."
+          "Independent challenge clauses on same attack resolve independently."
         ]
       },
       "duration_rule": {
-        "summary": "Bound to source scope",
+        "summary": "Instant resolution",
         "rules": [
-          "Creature and battlegear duration persist while source remains active.",
-          "Mugic duration ends at end of turn.",
-          "Location duration persists while location remains active."
+          "No persistent state unless explicitly granted by a linked effect."
         ]
       },
       "exceptions": [
-        "None explicitly defined yet."
+        "Auto-success rules can override challenge check where card text says so."
       ],
       "examples": [
-        "If target has ELEMENTO_X configured as water, each water attack from that target gains +5 water damage.",
-        "If two separate active sources grant ELEMENTO_X water, total bonus is +10 water damage."
-      ],
-      "params": {
-        "element": "fire|air|earth|water",
-        "amount": 5,
-        "source_scope": "creature|battlegear|mugic|location",
-        "duration_mode": "while_active|until_end_of_turn",
-        "target_mode": "self|equipped|targeted|location_defined"
-      },
-      "implementation_notes": {
-        "preferred_mapping": [
-          {
-            "layer": "parser",
-            "kind": "elementModifier",
-            "notes": "Use existing element modifier model when source text is direct and static."
-          },
-          {
-            "layer": "engine",
-            "kind": "elementModifier",
-            "notes": "Apply on attack resolution for matching element only."
-          }
-        ],
-        "gaps": [
-          "Need explicit location-target resolution path for all location templates."
+        "Challenge Courage 15: Deal 10 damage.",
+        "Challenge Mugic counters 2: Deal 20 damage."
+      ]
+    },
+    {
+      "effect_name": "DEFENDER",
+      "kind": "keyword:defender",
+      "status": "reviewed",
+      "timing": {
+        "summary": "Defender response window",
+        "rules": [
+          "Triggered when adjacent ally is chosen to be attacked."
         ]
-      }
+      },
+      "target_rule": {
+        "summary": "Adjacent eligible ally slot",
+        "rules": [
+          "Redirect unit must be adjacent and satisfy defender criteria."
+        ]
+      },
+      "condition_rule": {
+        "summary": "Eligibility gate",
+        "rules": [
+          "Criteria variants (e.g. tribe/element) restrict legal redirects."
+        ]
+      },
+      "exact_rule": {
+        "summary": "Swap and redirect engagement",
+        "rules": [
+          "Defender swaps in and becomes engaged defender for current combat."
+        ]
+      },
+      "stacking_rule": {
+        "enabled": false,
+        "rules": [
+          "Multiple defender instances remain redundant except criteria union."
+        ]
+      },
+      "duration_rule": {
+        "summary": "Window-only action",
+        "rules": [
+          "Applied to current defender selection event."
+        ]
+      },
+      "exceptions": [
+        "No redirect if no legal adjacent defender exists."
+      ],
+      "examples": [
+        "Defender.",
+        "Defender: Danian."
+      ]
+    },
+    {
+      "effect_name": "ELEMENT_X",
+      "kind": "elementModifier",
+      "status": "reviewed",
+      "timing": {
+        "summary": "Continuous while source is active",
+        "rules": [
+          "Applies to matching elemental attack damage only."
+        ]
+      },
+      "target_rule": {
+        "summary": "Source-defined",
+        "rules": [
+          "Creature source usually self.",
+          "Gear source usually equipped creature."
+        ]
+      },
+      "condition_rule": {
+        "summary": "Matching element check",
+        "rules": [
+          "Bonus applies only when attack has same element."
+        ]
+      },
+      "exact_rule": {
+        "summary": "Increase elemental attack damage by X",
+        "rules": [
+          "Adds X for each applicable instance."
+        ]
+      },
+      "stacking_rule": {
+        "enabled": true,
+        "rules": [
+          "Multiple element modifiers stack additively."
+        ]
+      },
+      "duration_rule": {
+        "summary": "Bound to source duration",
+        "rules": [
+          "Ends when source effect expires."
+        ]
+      },
+      "exceptions": [
+        "Suppressed elements prevent bonus from applying."
+      ],
+      "examples": [
+        "Fire 5.",
+        "Air attacks deal an additional 5 damage."
+      ]
+    },
+    {
+      "effect_name": "ELEMENTPROOF_X",
+      "kind": "elementproof",
+      "status": "reviewed",
+      "timing": {
+        "summary": "Begin combat trigger",
+        "rules": [
+          "Checks opposing engaged creature elements when combat starts."
+        ]
+      },
+      "target_rule": {
+        "summary": "Creature with elementproof",
+        "rules": [
+          "Energy gain is applied to elementproof holder."
+        ]
+      },
+      "condition_rule": {
+        "summary": "Element match with opposing engaged creature",
+        "rules": [
+          "At least one matching listed element required."
+        ]
+      },
+      "exact_rule": {
+        "summary": "Gain temporary energy amount",
+        "rules": [
+          "Adds configured energy amount on successful trigger."
+        ]
+      },
+      "stacking_rule": {
+        "enabled": true,
+        "rules": [
+          "Different elementproof clauses may stack."
+        ]
+      },
+      "duration_rule": {
+        "summary": "By current implementation profile",
+        "rules": [
+          "Energy bonus lasts per current combat/turn rules of effect source."
+        ]
+      },
+      "exceptions": [
+        "No trigger if creature never becomes engaged."
+      ],
+      "examples": [
+        "Fireproof 10.",
+        "Waterproof 10."
+      ]
+    },
+    {
+      "effect_name": "INFECT",
+      "kind": "infectTargetCreature",
+      "status": "ready_to_implement",
+      "timing": {
+        "summary": "Triggered or direct resolution depending on source",
+        "rules": [
+          "Can resolve from mugic, attacks, or triggered abilities."
+        ]
+      },
+      "target_rule": {
+        "summary": "Creature targets only",
+        "rules": [
+          "Can require uninfected or infected target according to source text."
+        ]
+      },
+      "condition_rule": {
+        "summary": "Status legality",
+        "rules": [
+          "Existing infection blocks duplicate application unless removed first."
+        ]
+      },
+      "exact_rule": {
+        "summary": "Apply infected status/token",
+        "rules": [
+          "Marks target as infected for downstream synergies."
+        ]
+      },
+      "stacking_rule": {
+        "enabled": false,
+        "rules": [
+          "Infection is binary in current implementation."
+        ]
+      },
+      "duration_rule": {
+        "summary": "Persistent until cleared",
+        "rules": [
+          "Removed on explicit uninfect effect or discard/reset."
+        ]
+      },
+      "exceptions": [
+        "Outdated parasite-as-mandiblor rule is not used."
+      ],
+      "examples": [
+        "Infect target Uninfected Creature.",
+        "Infect up to two target Uninfected Creatures."
+      ]
     }
   ]
 }

@@ -1621,3 +1621,108 @@ test("cannotMove bloqueia movimentacao da criatura", async () => {
   assert.ok(!legalMoves.some((move) => move.from === 5));
   assert.equal(engine.declareMove(battle, 5, "H"), false);
 });
+
+test("habilidades ativadas com multiplos custos geram opcoes separadas", async () => {
+  const { engine, battle } = await setupMovePhase("ACT1", "ACT2");
+  const caster = battle.board.players[0].creatures[4];
+  caster.card.ability = "MC: Deal 5 damage to target Creature. MC: Heal 5 damage to target Creature.";
+  caster.card.parsedEffects = [
+    {
+      kind: "dealDamage",
+      amount: 5,
+      target: "opponent",
+      targetSpec: { type: "creature", required: true, scope: "all" },
+      sourceText: "Deal 5 damage to target Creature.",
+    },
+    {
+      kind: "healDamage",
+      amount: 5,
+      target: "self",
+      targetSpec: { type: "creature", required: true, scope: "all" },
+      sourceText: "Heal 5 damage to target Creature.",
+    },
+  ];
+  caster.mugicCounters = 2;
+
+  const actions = engine.getPriorityActions(battle, 0).filter((entry) => entry.kind === "ability");
+  const casterOptions = actions.filter((entry) => entry.option?.sourceUnitId === caster.unitId);
+  assert.equal(casterOptions.length, 2);
+  assert.ok(casterOptions.every((entry) => Number(entry.option?.cost?.amount || 0) === 1));
+});
+
+test("habilidade once per turn nao reaparece em nova janela do mesmo turno", async () => {
+  const { engine, battle } = await setupMovePhase("OPT1", "OPT2");
+  const attacker = battle.board.players[0].creatures[4];
+  const defender = battle.board.players[1].creatures[3];
+  attacker.card.stats.speed = 120;
+  defender.card.stats.speed = 1;
+  attacker.currentEnergy = 40;
+  attacker.card.ability = "MC: Heal 5 damage to target Creature. This ability can only be used once per turn.";
+  attacker.card.parsedEffects = [
+    {
+      kind: "healDamage",
+      amount: 5,
+      target: "self",
+      targetSpec: { type: "creature", required: true, scope: "all" },
+      sourceText: "Heal 5 damage to target Creature.",
+    },
+  ];
+  attacker.mugicCounters = 3;
+
+  battle.board.players[0].attackHand = [{ ...attackCard("Low Ping", 0), parsedEffects: [] }];
+  battle.board.players[0].attackDeck = [];
+  battle.board.players[1].attackHand = [{ ...attackCard("Low Pong", 0), parsedEffects: [] }];
+  battle.board.players[1].attackDeck = [];
+  battle.board.locationCard = locationCard("Speed Lane", "speed");
+  battle.board.locationOwnerIndex = 0;
+
+  assert.equal(engine.declareMove(battle, 4, "G"), true);
+
+  let abilityUsed = false;
+  let checkedSecondWindow = false;
+  let guard = 0;
+  while (!battle.finished && guard < 320) {
+    engine.advanceBattle(battle, false);
+    if (battle.pendingAction?.type === "priority" && Number(battle.pendingAction.playerIndex) === 0) {
+      const actions = engine.getPriorityActions(battle, 0);
+      const abilityAction = actions.find(
+        (entry) => entry.kind === "ability" && entry.option?.sourceUnitId === attacker.unitId
+      );
+      if (!abilityUsed && abilityAction) {
+        engine.chooseActivatedAbility(battle, abilityAction.optionIndex);
+      } else if (abilityUsed) {
+        checkedSecondWindow = true;
+        assert.equal(Boolean(abilityAction), false);
+      } else {
+        engine.passPriority(battle);
+      }
+    }
+    if (battle.pendingAction?.type === "target_select") {
+      const step = battle.pendingAction.targetSteps?.[battle.pendingAction.currentStep];
+      const candidate = step?.candidates?.[0] || null;
+      engine.chooseEffectTarget(battle, candidate?.id || null);
+    } else if (battle.pendingAction?.type === "choice_select") {
+      const step = battle.pendingAction.choiceSteps?.[battle.pendingAction.currentChoiceStep];
+      const option = step?.options?.[0] || null;
+      engine.chooseEffectChoice(battle, option?.id ?? option?.value ?? null);
+    } else if (battle.pendingAction?.type === "priority") {
+      if (abilityUsed) {
+        engine.passPriority(battle);
+      }
+    } else if (battle.pendingAction?.type === "strike_attack") {
+      const actor = Number(battle.pendingAction.playerIndex || 0);
+      const handLength = battle.board.players[actor]?.attackHand?.length || 0;
+      engine.chooseAttack(battle, actor, handLength ? 0 : -1);
+    }
+    if (battle.effectLog.some((entry) => entry?.effectKind === "abilityActivated" && entry?.source === attacker.card.name)) {
+      abilityUsed = true;
+    }
+    if (abilityUsed && checkedSecondWindow) {
+      break;
+    }
+    guard += 1;
+  }
+
+  assert.equal(abilityUsed, true);
+  assert.equal(checkedSecondWindow, true);
+});

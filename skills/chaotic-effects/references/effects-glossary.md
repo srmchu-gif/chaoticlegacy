@@ -1,28 +1,40 @@
 # Effects Glossary
 
-This file mirrors `effects-registry.json` in human-readable form.
+Human-readable mirror of `effects-registry.json`.
 
-## ELEMENTO_X
+## ACTIVATED_ABILITY
+- Abilities with explicit cost (`MC`, `Expend`, `Discard`, `Sacrifice`).
+- Triggered only by controller action in priority window.
+- If text says `once per turn`, usage lock is per ability line and per turn.
 
-- **Kind**: `elemento_x`
-- **Status**: `reviewed`
-- **What it does**: adds `+5` damage for a configured element (`fire|air|earth|water`) when the target executes an attack that has that same element.
+## CHALLENGE_X
+- Controller wins challenge only if own stat is at least `X` above opposing stat.
+- If challenge is won, linked conditional effect resolves.
 
-### Timing
-- Creature source: always active while creature is active in battle.
-- Battlegear source: active only while gear is face-up.
-- Mugic source: active until end of turn.
-- Location source: active while location is active.
+## DEFENDER
+- During defender response window, eligible adjacent creature can intercept.
+- Criteria variants (tribe/type/element) restrict legal intercept targets.
 
-### Targeting
-- Creature source -> self.
-- Battlegear source -> equipped creature.
-- Mugic source -> targeted creature.
-- Location source -> target defined by location text.
-
-### Stacking
+## ELEMENT_X
+- Adds elemental attack damage of matching element.
 - Stacks additively across active sources.
 
-### Notes for implementation
-- Prefer mapping to existing `elementModifier` where possible.
-- Keep location-target resolution explicit when source is location-based.
+## ELEMENTPROOF_X
+- Triggered when creature becomes engaged with creature of matching element type.
+- Grants temporary Energy as defined by effect.
+
+## HEAL_X
+- Removes damage without exceeding current energy cap.
+- Blocked by explicit heal-prevention effects.
+
+## HIVE_STATE
+- Hive acts as state machine (`off` -> `on` -> `off` on expiration/rule end).
+- `Hive:` prefixed effects are active only while Hive is on.
+
+## INFECT
+- Applies infected status to legal targets only.
+- Cannot stack duplicate infection unless first removed by effect.
+
+## INVISIBILITY_FAMILY
+- Includes Strike/Surprise/Disarm conditional behavior versus non-invisible opposing creature.
+- Global/engaged anti-invisibility effects strip and block invisibility.

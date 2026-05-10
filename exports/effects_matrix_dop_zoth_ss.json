@@ -1,0 +1,5173 @@
+{
+  "summary": {
+    "generatedAt": "2026-05-10T18:43:24.633Z",
+    "scope": [
+      "DOP",
+      "ZOTH",
+      "SS"
+    ],
+    "totals": {
+      "cardsWithAbility": 418,
+      "sem_parse": 0,
+      "parser_only": 0,
+      "timing_incorrect": 10,
+      "target_incorrect": 5,
+      "implemented": 403,
+      "tested": 346
+    },
+    "bySet": {
+      "DOP": {
+        "cardsWithAbility": 218,
+        "sem_parse": 0,
+        "parser_only": 0,
+        "timing_incorrect": 6,
+        "target_incorrect": 1,
+        "implemented": 211
+      },
+      "ZOTH": {
+        "cardsWithAbility": 100,
+        "sem_parse": 0,
+        "parser_only": 0,
+        "timing_incorrect": 2,
+        "target_incorrect": 1,
+        "implemented": 97
+      },
+      "SS": {
+        "cardsWithAbility": 100,
+        "sem_parse": 0,
+        "parser_only": 0,
+        "timing_incorrect": 2,
+        "target_incorrect": 3,
+        "implemented": 95
+      }
+    }
+  },
+  "rows": [
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Aggroar",
+      "status": "implemented",
+      "ability": "Strategist Creatures you control have Defender.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Arbeid",
+      "status": "implemented",
+      "ability": "MC: Target attack deals 5 damage. This ability can only be used once per turn.",
+      "parsedKinds": [
+        "targetAttackDamageSet"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Arias",
+      "status": "implemented",
+      "ability": "Support: Power 5.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Ario",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 15.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Ario, (Misprint)",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 10.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Arkanin",
+      "status": "implemented",
+      "ability": "MC: Deal 5 damage to target Creature. MC: Heal 10 damage to target Creature. Arkanin can pay Mugic counters from other Muge Creatures you control to activate its abilities.",
+      "parsedKinds": [
+        "dealDamage",
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Atrapol",
+      "status": "implemented",
+      "ability": "When Atrapol wins a Power Challenge on an attack it plays, destroy target Battlegear equipped to the opposing engaged Creature.",
+      "parsedKinds": [
+        "destroyBattlegear"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Attacat",
+      "status": "implemented",
+      "ability": "Swift 1.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Balaan",
+      "status": "implemented",
+      "ability": "Sacrifice Balaan: Activate Hive. When Balaan is put into your general discard pile, Infect target Uninfected Creature.",
+      "parsedKinds": [
+        "activateHive",
+        "infectTargetCreature"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Barath Beyond",
+      "status": "implemented",
+      "ability": "Fire 5. Intimidate: Power 10. Recklessness 5.",
+      "parsedKinds": [
+        "keyword",
+        "intimidate",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Bierk",
+      "status": "timing_incorrect",
+      "ability": "At the beginning of each turn, if your opponent controls an UnderWorld Creature, Activate Hive. Hive: Fireproof 10.",
+      "parsedKinds": [
+        "activateHive",
+        "hiveGranted"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Biondu",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 15.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Blazier",
+      "status": "implemented",
+      "ability": "MC: Look at the top two cards of target player's Location Deck. Put one of them on top of that deck and the other on the bottom.",
+      "parsedKinds": [
+        "scryDeck"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Blazvatan, The Epic Warbeast",
+      "status": "implemented",
+      "ability": "Air 5. Earth 5. Recklessness 25.",
+      "parsedKinds": [
+        "keyword",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Blügon",
+      "status": "implemented",
+      "ability": "Water 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Bodal",
+      "status": "implemented",
+      "ability": "Support: Wisdom 5.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Borth-Majar",
+      "status": "implemented",
+      "ability": "Intimidate: Power 10. Intimidate: Wisdom 10.",
+      "parsedKinds": [
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Brathe",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 15.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Bylkian",
+      "status": "implemented",
+      "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10. MC: Damage dealt to Warbeast Creatures you control by Recklessness is reduced by an additional 10.",
+      "parsedKinds": [
+        "incomingDamageReduction"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Chaor",
+      "status": "implemented",
+      "ability": "MCMCMC: Negate target OverWorld Mugic or ability that targets Chaor.",
+      "parsedKinds": [
+        "negateMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Clodor",
+      "status": "implemented",
+      "ability": "When Clodor wins a Wisdom Challenge on an attack it plays, put a Mugic counter on it.",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Crawsectus",
+      "status": "implemented",
+      "ability": "Earth 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Daj Huun",
+      "status": "implemented",
+      "ability": "Swift 2. Hive: Daj Huun cannot move and has an additional 10 Energy.",
+      "parsedKinds": [
+        "keyword",
+        "hiveGranted",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Dardemus",
+      "status": "implemented",
+      "ability": "Intimidate: Courage 10.",
+      "parsedKinds": [
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Dasalin",
+      "status": "implemented",
+      "ability": "Water 5. Hive: Dasalin does not have Water 5 and has MC: Heal 10 damage to target Mandiblor Creature .",
+      "parsedKinds": [
+        "hiveGranted",
+        "healDamage",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Dibanni",
+      "status": "implemented",
+      "ability": "MC: Put a Mugic counter on target adjacent Creature.",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Donmar",
+      "status": "implemented",
+      "ability": "MC: Heal 10 damage to target Creature.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Dractyl",
+      "status": "implemented",
+      "ability": "Range. Swift 1.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Drakness",
+      "status": "implemented",
+      "ability": "Mugic played by Creatures you control that deal damage deal an additional 5 damage.",
+      "parsedKinds": [
+        "mugicDamageModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Drimesse",
+      "status": "implemented",
+      "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10. If Drimesse has no Mugic counters on it, sacrifice it.",
+      "parsedKinds": [
+        "incomingDamageReduction"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Dubin",
+      "status": "implemented",
+      "ability": "MC: Infect target Uninfected Creature. If an opponent controls an Infected Creature, Dubin has an additional 5 Energy.",
+      "parsedKinds": [
+        "infectTargetCreature",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Ekuud",
+      "status": "implemented",
+      "ability": "Hive: Ekuud has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play.",
+      "parsedKinds": [
+        "hiveEnergyPerControlledCreatureType"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Enre-hep",
+      "status": "implemented",
+      "ability": "When a Creature you control is put into your general discard pile, put a Mugic counter on Enre-hep for each Mugic counter on that Creature. MC: Target Creature gains Recklessness 5.",
+      "parsedKinds": [
+        "keyword",
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Ere",
+      "status": "implemented",
+      "ability": "Range. Swift 4. Recklessness 10.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Faash",
+      "status": "implemented",
+      "ability": "Deactivate Hive: Faash gains Fire 5. Hive cannot be Activated again this turn. (Hive must be active to Deactivate it.)",
+      "parsedKinds": [
+        "deactivateHive",
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Fivarth",
+      "status": "implemented",
+      "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 5. Untargetable.",
+      "parsedKinds": [
+        "keyword",
+        "incomingDamageReduction"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Formicidor",
+      "status": "implemented",
+      "ability": "Hive: Formicidor has an additional 10 Courage for each Mandiblor you control and each Infected Creature in play.",
+      "parsedKinds": [
+        "hiveGranted",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Frafdo",
+      "status": "implemented",
+      "ability": "Support: Courage 5.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Galin",
+      "status": "implemented",
+      "ability": "Hive: Galin has an additional 10 Speed for each Mandiblor you control and each Infected Creature in play.",
+      "parsedKinds": [
+        "hiveGranted",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Garv",
+      "status": "implemented",
+      "ability": "MC: Flip target Battlegear face-up or face-down.",
+      "parsedKinds": [
+        "flipBattlegear"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Geltod",
+      "status": "implemented",
+      "ability": "Discard an UnderWorld Mugic Card: Deal 5 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Gespedan",
+      "status": "implemented",
+      "ability": "Support: Speed 5. Swift 1.",
+      "parsedKinds": [
+        "keyword",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Ghuul",
+      "status": "implemented",
+      "ability": "Range. Swift 1.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Gnarlus",
+      "status": "implemented",
+      "ability": "Damage dealt to Gnarlus by Mugic is reduced to 0. MCMC: Damage dealt to target Creature by Mugic is reduced to 0.",
+      "parsedKinds": [
+        "incomingDamageReduction"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Grook",
+      "status": "implemented",
+      "ability": "Intimidate: Power 10.",
+      "parsedKinds": [
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "H'earring",
+      "status": "implemented",
+      "ability": "MC: Look at the top three cards of target player's Location Deck and put them back in any order.",
+      "parsedKinds": [
+        "scryDeck"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Hammerdoom Chantcaller",
+      "status": "implemented",
+      "ability": "Attacks played by Hammerdoom Chantcaller deal an additional 5 damage to Danian Creatures. If Hive is active, attacks played by Hammerdoom Chantcaller deal an additional 5 damage to UnderWorld Creatures instead.",
+      "parsedKinds": [
+        "attackDamageVsTribe"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Hammerdoom Chantcaller, Assimilated",
+      "status": "implemented",
+      "ability": "Hive: Fireproof 10. Attacks played by Hammerdoom Chantcaller deal an additional 5 damage to UnderWorld Creatures.",
+      "parsedKinds": [
+        "hiveGranted",
+        "attackDamageVsTribe"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Heptadd",
+      "status": "implemented",
+      "ability": "Heptadd can play Mugic of any tribe.",
+      "parsedKinds": [
+        "canPlayAnyTribeMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Heptadd, (Tin Misprint)",
+      "status": "implemented",
+      "ability": "Heptadd can play Mugic of any tribe.",
+      "parsedKinds": [
+        "canPlayAnyTribeMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Hifdan",
+      "status": "implemented",
+      "ability": "When a Creature you control has Mugic counter put on it, Hifdan gains Range and Swift 2.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Hune Marquard",
+      "status": "implemented",
+      "ability": "When a Danian Mugic is played by an opposing Creature, put a Mugic counter on Hune Marquard.",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Ibiaan",
+      "status": "implemented",
+      "ability": "Hive: Ibiaan has an additional 5 Wisdom for each Mandiblor you control and each Infected Creature in play.",
+      "parsedKinds": [
+        "hiveGranted",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Illazar",
+      "status": "implemented",
+      "ability": "When a Creature you control is put into your general discard pile, if that Creature had one or more Mugic counters on it, remove a Mugic counter from target Creature.",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Illexia, The Danian Queen",
+      "status": "implemented",
+      "ability": "Your adjacent Creatures have Defender. When a Mandiblor Creature or an Infected Creature is put into a general discard pile, put a Mugic counter on Illexia. MC: Activate Hive. Hive: Mugic counters on Illexia count as Mandiblors you control when counting Mandiblors.",
+      "parsedKinds": [
+        "keyword",
+        "activateHive",
+        "hiveGranted",
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Intress",
+      "status": "implemented",
+      "ability": "Water 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Iparu",
+      "status": "implemented",
+      "ability": "At the beginning of combat, Iparu gains or loses Courage, Power, Wisdom and Speed so those values become equal to the opposing engaged Creature's Scanned Courage, Power, Wisdom and Speed.",
+      "parsedKinds": [
+        "setDisciplinesToOpposingScanned"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Jaal",
+      "status": "implemented",
+      "ability": "When Jaal deals Earth damage to an Uninfected Creature, Infect that Creature. If engaged with an Infected Creature, Jaal has Earth 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Junda",
+      "status": "implemented",
+      "ability": "MC: Activate Hive.",
+      "parsedKinds": [
+        "activateHive"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Kalt",
+      "status": "implemented",
+      "ability": "MC: Another target Creature gains an Elemental Type of your choice. If the target is an Elementalist Creature, put a Mugic counter on it. This ability can only be used once per turn.",
+      "parsedKinds": [
+        "mugicCounterModifier",
+        "targetCreatureGainChosenElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Kamangareth",
+      "status": "implemented",
+      "ability": "Deal 15 damage to Kamangareth while engaged: Deactivate Hive.",
+      "parsedKinds": [
+        "deactivateHive",
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Kannen",
+      "status": "implemented",
+      "ability": "MC: Activate Hive. Sacrifice Kannen: Return a Mandiblor Creature Card from your general discard pile to play to any unoccupied space.",
+      "parsedKinds": [
+        "activateHive",
+        "returnFromDiscard"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Karraba",
+      "status": "implemented",
+      "ability": "MC: Heal 10 damage to target Creature for each Mugic counter on Karraba. This ability can only be used once per turn.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Kebna",
+      "status": "implemented",
+      "ability": "Hive: Kebna has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play.",
+      "parsedKinds": [
+        "hiveEnergyPerControlledCreatureType"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Kelvedran",
+      "status": "implemented",
+      "ability": "Fireproof 10. Earthproof 10.",
+      "parsedKinds": [
+        "elementproof"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Kerric",
+      "status": "implemented",
+      "ability": "Range Swift 1",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Khavakk",
+      "status": "implemented",
+      "ability": "MC: Deal 5 damage to target Creature. MC, Deactivate Hive: Deal 15 damage to target Creature.",
+      "parsedKinds": [
+        "deactivateHive",
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Khritlaan",
+      "status": "implemented",
+      "ability": "If Khritlaan is in your general discard pile, Mandiblor Creature Cards in your general discard pile count as Mandiblors you control when counting Mandiblors.",
+      "parsedKinds": [
+        "countDiscardCreaturesAsControlledType"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Khybon",
+      "status": "implemented",
+      "ability": "Intimidate: Courage 10. Intimidate: Wisdom 10.",
+      "parsedKinds": [
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Kinnianne, Ambassador to the Mipedians",
+      "status": "implemented",
+      "ability": "Mipedian Creatures you control are healed an additional 5 damage. Kinnianne can play Mipedian Mugic.",
+      "parsedKinds": [
+        "canPlaySpecificTribeMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Klasp",
+      "status": "implemented",
+      "ability": "Recklessness 5 Sacrifice Klasp: Deal 10 damage to target Creature.",
+      "parsedKinds": [
+        "keyword",
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Kolmo",
+      "status": "implemented",
+      "ability": "Invisibility: Disarm. If engaged with a Danian Noble Creature, Kolmo has Invisibility: Strike 20. Range. Swift 1.",
+      "parsedKinds": [
+        "keyword",
+        "invisibilityStrike",
+        "invisibilityDisarm"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Kolmo, Assimilated",
+      "status": "implemented",
+      "ability": "Invisibility: Surprise. If engaged with a Mipedian Royal Creature, Kolmo has Invisibility: Strike 20. MC: If Kolmo is not engaged, relocate it to any unoccupied space.",
+      "parsedKinds": [
+        "invisibilityStrike",
+        "invisibilitySurprise",
+        "relocateEffect"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Kopond",
+      "status": "implemented",
+      "ability": "MC: Deal 5 damage to target Creature for each Mugic counter on Kopond. This ability can only be used once per turn.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Krekk",
+      "status": "implemented",
+      "ability": "Intimidate: Power 10 Range",
+      "parsedKinds": [
+        "keyword",
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Kughar",
+      "status": "implemented",
+      "ability": "Intimidate: Power 10.",
+      "parsedKinds": [
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Lanker",
+      "status": "implemented",
+      "ability": "Lanker loses 5 Energy: Choose Courage, Power, Wisdom, or Speed. Target Creature gains 15 in the chosen Discipline.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Lobanne",
+      "status": "implemented",
+      "ability": "MC: For each Mugic counter on Lobanne, choose Fireproof 10, Airproof 10, Earthproof 10 or Waterproof 10. Target Creature gains the chosen abilities. This ability can only be used once per turn.",
+      "parsedKinds": [
+        "elementproof"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Lomma",
+      "status": "implemented",
+      "ability": "Defender. Water 5. The first attack against Lomma each combat deals 10 less damage.",
+      "parsedKinds": [
+        "keyword",
+        "incomingFirstAttackDamageReduction",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Lord Van Bloot",
+      "status": "implemented",
+      "ability": "If any Creature engaged with Lord Van Bloot has less than 65 Courage, that Creature has 10 less Energy.",
+      "parsedKinds": [
+        "beginCombatLoseEnergyIfLower"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Lore",
+      "status": "implemented",
+      "ability": "MC: Deal 10 damage to target Creature and heal 10 damage to Lore.",
+      "parsedKinds": [
+        "dealDamage",
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Maglax",
+      "status": "implemented",
+      "ability": "Earth 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Magmon",
+      "status": "implemented",
+      "ability": "Fire 5. Recklessness 5.",
+      "parsedKinds": [
+        "keyword",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Mahrrant",
+      "status": "implemented",
+      "ability": "When an Infected Creature is put into a general discard pile, put a Mugic counter on Mahrrant. MC: Activate Hive.",
+      "parsedKinds": [
+        "activateHive",
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Makrabon",
+      "status": "implemented",
+      "ability": "When Makrabon has a Mugic counter put on it, Infect target Uninfected Creature. MC: Activate or Deactivate Hive",
+      "parsedKinds": [
+        "deactivateHive",
+        "infectTargetCreature"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Mallash",
+      "status": "implemented",
+      "ability": "Hive: Mallash has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play.",
+      "parsedKinds": [
+        "hiveEnergyPerControlledCreatureType"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Malvadine",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 10. Invisibility: Surprise.",
+      "parsedKinds": [
+        "invisibilityStrike",
+        "invisibilitySurprise"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Marquis Darini",
+      "status": "implemented",
+      "ability": "Creatures you control with Invisibility deal an additional 5 damage with their first attack each combat.",
+      "parsedKinds": [
+        "attackDamageModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Maxxor",
+      "status": "implemented",
+      "ability": "MC: Heal 10 damage to target Creature.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Melke",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 10. If a Mirage Location is on the Battleboard, Melke has an additional Invisibility: Strike 10.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Munnari",
+      "status": "implemented",
+      "ability": "Invisibility: Disarm.",
+      "parsedKinds": [
+        "invisibilityDisarm"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Na-inna",
+      "status": "implemented",
+      "ability": "0MC: Remove a Mugic counter from target Creature. If you do, put a Mugic counter on another Creature controlled by the same player. This ability can only be used once per turn. (You must choose a Creature that can have Mugic counters put on it.)",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Najarin",
+      "status": "implemented",
+      "ability": "MCMC: Return target Mugic Card from your general discard pile to your hand.",
+      "parsedKinds": [
+        "returnFromDiscard"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Narfall",
+      "status": "implemented",
+      "ability": "When Narfall becomes engaged, deal 5 damage to opposing engaged Creature for each Elemental Type that Creature has.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Nauthilax",
+      "status": "implemented",
+      "ability": "Recklessness 5.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Odu-Bathax",
+      "status": "implemented",
+      "ability": "Odu-Bathax has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Olkiex",
+      "status": "implemented",
+      "ability": "When a Creature you control has a Mugic counter put on it, flip target face-up Battlegear face-down.",
+      "parsedKinds": [
+        "flipTargetBattlegearOnMugicCounterGain"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Ornathor",
+      "status": "implemented",
+      "ability": "Waterproof 10.",
+      "parsedKinds": [
+        "elementproof"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Owis",
+      "status": "implemented",
+      "ability": "MC: Heal 5 damage to target Creature. MC: Heal 10 damage to Owis.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Phelphor",
+      "status": "implemented",
+      "ability": "At the beginning of your turn, you can relocate target Creature to any unoccupied space adjacent to it.",
+      "parsedKinds": [
+        "relocateEffect"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Prince Mudeenu",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 20.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Psimion",
+      "status": "implemented",
+      "ability": "Support: Wisdom 5.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Pyrithion",
+      "status": "implemented",
+      "ability": "Intimidate: Courage 10. Intimidate: Wisdom 10.",
+      "parsedKinds": [
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Qwun",
+      "status": "implemented",
+      "ability": "Invisibility: Surprise.",
+      "parsedKinds": [
+        "invisibilitySurprise"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Ramarhvir, The Danian Hivebringer",
+      "status": "implemented",
+      "ability": "When Hive is activated, you can remove a Mugic counter from a Danian Creature you control, if you do put a Mugic counter on Ramarhvir, the Danian Hivebringer. MCMC: Return target Mandiblor Creature Card in your general discard pile to play to any unoccupied space .",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Ranun",
+      "status": "implemented",
+      "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10. MC: Heal 10 damage to target Creature.",
+      "parsedKinds": [
+        "incomingDamageReduction",
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Rarran",
+      "status": "implemented",
+      "ability": "Range.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Raznus, Ambassador to the Danians",
+      "status": "implemented",
+      "ability": "Danian Creatures you control can play OverWorld Mugic. Fireproof 10.",
+      "parsedKinds": [
+        "canPlaySpecificTribeMugic",
+        "elementproof"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Raznus, Assimilated",
+      "status": "target_incorrect",
+      "ability": "MC: Danian Creatures you control cannot be targeted by Mugic or abilities. This ability can only be used once per turn.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Rellim",
+      "status": "implemented",
+      "ability": "Support: Courage 5.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Ribbian",
+      "status": "implemented",
+      "ability": "Invisibility: Disarm. Air 5. Damage dealt to a Creature by itself is increased by 5.",
+      "parsedKinds": [
+        "invisibilityDisarm",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Rothar",
+      "status": "implemented",
+      "ability": "Intimidate: Power 10 Recklessness 5",
+      "parsedKinds": [
+        "keyword",
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Saand",
+      "status": "timing_incorrect",
+      "ability": "Invisibility: Surprise. Air 5. At the beginning of your turn, you can sacrifice Saand. If you do, each player removes a total of 3 Mugic counters from among any Creatures they control. If Saand has any Mugic counters on it, sacrifice it.",
+      "parsedKinds": [
+        "invisibilitySurprise",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Shimmark",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 10.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Siado",
+      "status": "implemented",
+      "ability": "Invisibility: Surprise.",
+      "parsedKinds": [
+        "invisibilitySurprise"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Skartalas",
+      "status": "implemented",
+      "ability": "Sacrifice Skartalas: Activate Hive.",
+      "parsedKinds": [
+        "activateHive"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Skithia",
+      "status": "implemented",
+      "ability": "Fire 5",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Skreeth",
+      "status": "implemented",
+      "ability": "Range Swift 1",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Slufurah",
+      "status": "implemented",
+      "ability": "Muges have Sacrifice this Creature: Deal 10 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Sobtjek",
+      "status": "implemented",
+      "ability": "MC, Sacrifice Sobtjek: Deal 25 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Solvis",
+      "status": "implemented",
+      "ability": "MCMC: Deal 10 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Staluk",
+      "status": "implemented",
+      "ability": "Earth 5. Swift 1.",
+      "parsedKinds": [
+        "keyword",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Strikto",
+      "status": "implemented",
+      "ability": "When Strikto has a Mugic counter put on it, it loses 10 Energy. When a Creature deals damage to Strikto, that Creature loses 5 Energy.",
+      "parsedKinds": [
+        "onMugicCounterAddedLoseEnergy",
+        "onTakeDamageSourceLosesEnergy"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Swassa",
+      "status": "implemented",
+      "ability": "Deal 10 damage to a Creature you control: That Creature gains Swift 2. This ability can only be used once per turn.",
+      "parsedKinds": [
+        "keyword",
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Takinom",
+      "status": "implemented",
+      "ability": "Sacrifice an UnderWorld Creature: Heal 25 damage to Takinom Swift 1",
+      "parsedKinds": [
+        "keyword",
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Tangath Toborn",
+      "status": "implemented",
+      "ability": "MC: Heal 10 damage to Tangath Toborn.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Tartarek",
+      "status": "implemented",
+      "ability": "MC: Target Creature gains Swift 1.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Tassanil",
+      "status": "implemented",
+      "ability": "Water 5. Hive: Tassanil has an additional 5 Energy for each Elemental Type opposing Creatures have. Tassanil counts as a Mandiblor.",
+      "parsedKinds": [
+        "hiveGranted",
+        "statModifier",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Tiaane",
+      "status": "implemented",
+      "ability": "MC, Sacrifice Tiaane: Deal 25 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Titanix",
+      "status": "implemented",
+      "ability": "Intimidate: Courage 50. Intimidate: Speed 50. Recklessness 20.",
+      "parsedKinds": [
+        "keyword",
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Toxis",
+      "status": "implemented",
+      "ability": "Recklessness 5.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Ubliqun",
+      "status": "implemented",
+      "ability": "MC: Ubliqun can move to any space as if it were adjacent.",
+      "parsedKinds": [
+        "moveAsIfAdjacent"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Uboraan",
+      "status": "implemented",
+      "ability": "Fireproof 10. Waterproof 10. Recklessness 15.",
+      "parsedKinds": [
+        "keyword",
+        "elementproof"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Ulmar",
+      "status": "implemented",
+      "ability": "MC: Deal 10 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Ultadur",
+      "status": "implemented",
+      "ability": "Commander Creatures you control have Fire and Recklessness 5. Ultadur cannot have Mugic counters put on it.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Uro",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 5. Invisibility: Surprise.",
+      "parsedKinds": [
+        "invisibilityStrike",
+        "invisibilitySurprise"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Valanii Levaan",
+      "status": "implemented",
+      "ability": "Hive: Valanii Levaan has an additional 10 Power for each Mandiblor you control and each Infected Creature in play.",
+      "parsedKinds": [
+        "hiveGranted",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Velreth",
+      "status": "implemented",
+      "ability": "Swift 1.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Vidav",
+      "status": "implemented",
+      "ability": "MC: Heal 15 damage to target Creature.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Vinta",
+      "status": "implemented",
+      "ability": "Invisibility: Strike 10",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Viqtarr",
+      "status": "implemented",
+      "ability": "If Viqtarr has both higher Courage and Wisdom than the opposing engaged Creature, the first attack against it each combat deals 0 damage.",
+      "parsedKinds": [
+        "firstAttackZeroIfHigherCourageAndWisdom"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Vyll",
+      "status": "implemented",
+      "ability": "MCMC: Remove a Mugic counter from target Creature.",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Wamma",
+      "status": "implemented",
+      "ability": "Hive: Wamma has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play.",
+      "parsedKinds": [
+        "hiveEnergyPerControlledCreatureType"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Wytod",
+      "status": "implemented",
+      "ability": "Sacrifice Wytod: Choose a new target for target Mugic which only targets a single Creature.",
+      "parsedKinds": [
+        "retargetSingleTargetMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Xaerv",
+      "status": "implemented",
+      "ability": "Air 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Xelfe",
+      "status": "implemented",
+      "ability": "MC: Target Creature gains Range and Swift X, where X is the number of Mugic counters on Xelfe.",
+      "parsedKinds": [
+        "grantRangeAndSwiftFromSourceMugicCounters"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Xield",
+      "status": "implemented",
+      "ability": "Deal 10 damage to Xield: Target Creature gains 10 Energy. This ability can only be used once per turn.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Yokkis",
+      "status": "implemented",
+      "ability": "Support: all Disciplines 5.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "creatures",
+      "name": "Yondaf",
+      "status": "implemented",
+      "ability": "When an opposing Uninfected Creature is targeted by a Mugic you control, Infect that Creature.",
+      "parsedKinds": [
+        "infectTargetedOpposingUninfectedCreature"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Zalic",
+      "status": "implemented",
+      "ability": "MC: Heal 15 damage to Zalic.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "creatures",
+      "name": "Zapetur",
+      "status": "implemented",
+      "ability": "Sacrifice a Battlegear: Deal 5 damage to target Creature. This ability can only be used once per turn. Sacrifice Zapetur: Destroy target Battlegear.",
+      "parsedKinds": [
+        "destroyBattlegear",
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "creatures",
+      "name": "Zhade",
+      "status": "implemented",
+      "ability": "Invisibility: Surprise.",
+      "parsedKinds": [
+        "invisibilitySurprise"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Accelerated Unity",
+      "status": "implemented",
+      "ability": "Deal 5 damage for each Tribe you control beyond the first.",
+      "parsedKinds": [
+        "attackDamagePerControlledTribe"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Acid Wash",
+      "status": "implemented",
+      "ability": "Challenge Wisdom 15: Deal 10 damage. Water: Uninfect all engaged Creatures. Those Creatures cannot be Infected.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Apoc-eclipse",
+      "status": "implemented",
+      "ability": "Fire, Air, Earth, Water: Flip opposing engaged Creature's Battlegear face-down, draw an Attack Card, discard an Attack Card, deal 5 damage and gain 5 Energy.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Arborsmash",
+      "status": "implemented",
+      "ability": "Stat Check Courage 50: Your engaged Creature gains Earth.",
+      "parsedKinds": [
+        "gainElement",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Ash Torrent",
+      "status": "implemented",
+      "ability": "Challenge Power 15: Deal 10 damage. (Compare the Discipline of the Creature that played this Attack with the opposing engaged Creature. If yours has that amount or more higher, deal the damage.)",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Blaze Barrage",
+      "status": "implemented",
+      "ability": "Fire, Air: Draw an Attack Card and discard an Attack Card.",
+      "parsedKinds": [
+        "drawDiscardAttack"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Blind Fury",
+      "status": "implemented",
+      "ability": "If your engaged Creature has Recklessness, deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Coil Crush",
+      "status": "implemented",
+      "ability": "Stat Check Power 75: Choose a Battlegear equipped to an opposing Creature and destroy it.",
+      "parsedKinds": [
+        "destroyBattlegearIfAttackerStatGte"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Cyclone Slam",
+      "status": "implemented",
+      "ability": "If your engaged Creature is a Warbeast Creature, deal 20 damage.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Danihilation",
+      "status": "implemented",
+      "ability": "If the opposing engaged Creature is a Danian Creature, deal 10 damage.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Degenervate",
+      "status": "implemented",
+      "ability": "Water: Opposing Creature loses 25 to all Disciplines. Your engaged Creature loses Water.",
+      "parsedKinds": [
+        "conditionalStatModifier",
+        "removeElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Delerium",
+      "status": "implemented",
+      "ability": "Stat Check Wisdom 50: Deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Desiccate the Land",
+      "status": "implemented",
+      "ability": "Earth: If an Attack Card named Desiccate the Land is in your attack discard pile, heal 10 damage.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Dexterous Storm",
+      "status": "implemented",
+      "ability": "Stat Check Speed 50: Your engaged Creature gains Air.",
+      "parsedKinds": [
+        "gainElement",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Ektospasm",
+      "status": "implemented",
+      "ability": "Stat Check Power 50: Deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Elemental Oxidation",
+      "status": "implemented",
+      "ability": "Fire, Earth: Flip all Battlegear equipped to the opposing engaged Creature face-down.",
+      "parsedKinds": [
+        "suppressOpposingBattlegear"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Elementalist's Psy-Blast",
+      "status": "implemented",
+      "ability": "Stat Check Wisdom 50: Deal 5 damage for each Elemental Type your engaged Creature has.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Ember Swarm",
+      "status": "implemented",
+      "ability": "Fire: Opposing engaged Creature loses 25 Wisdom.",
+      "parsedKinds": [
+        "conditionalStatModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Enlightened Tenacity",
+      "status": "implemented",
+      "ability": "Stat Check Courage 30: Deal 5 damage. Stat Check Courage 50: Deal 5 damage. Stat Check Courage 70: Deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Evaporize",
+      "status": "implemented",
+      "ability": "Challenge Courage 15: Heal 10 damage.",
+      "parsedKinds": [
+        "healDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Fear Fight",
+      "status": "implemented",
+      "ability": "Stat Fail Courage 50: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Fearocity",
+      "status": "implemented",
+      "ability": "Stat Check Courage 75: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Flame Orb",
+      "status": "implemented",
+      "ability": "Stat Check Power 75: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Flash Kick",
+      "status": "implemented",
+      "ability": "Look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom.",
+      "parsedKinds": [
+        "scryDeck"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Flash Mend",
+      "status": "implemented",
+      "ability": "Stat Check Wisdom 50: Heal 5 damage.",
+      "parsedKinds": [
+        "healDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Flashwarp",
+      "status": "implemented",
+      "ability": "Challenge Power 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Force Strike",
+      "status": "implemented",
+      "ability": "Stat Check Power 30: Deal 5 damage. Stat Check Power 50: Deal 5 damage. Stat Check Power 70: Deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Freeze Flash",
+      "status": "implemented",
+      "ability": "Water: Opposing engaged Creature loses 25 Speed.",
+      "parsedKinds": [
+        "conditionalStatModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Frost Blight",
+      "status": "implemented",
+      "ability": "Stat Check Speed 75: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Gear Grind",
+      "status": "implemented",
+      "ability": "Flip all face-up Battlegear face-down.",
+      "parsedKinds": [
+        "flipBattlegear"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Granite Balls",
+      "status": "implemented",
+      "ability": "If your engaged Creature is a Warrior, deal 10 damage unless your opponent removes a Mugic counter from their engaged Creature.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Hampering Winds",
+      "status": "implemented",
+      "ability": "Stat Fail Speed 50: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Harnessed Rage",
+      "status": "implemented",
+      "ability": "If your engaged Creature has Recklessness, deal damage equal to its Recklessness value.",
+      "parsedKinds": [
+        "conditionalDealDamageByStatusValue"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Heptagon Hail",
+      "status": "implemented",
+      "ability": "Put a Mugic counter on each Creature controlled by an opponent.",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Hive Call",
+      "status": "implemented",
+      "ability": "You can remove a Mugic counter from a Creature you control. If you do, activate Hive.",
+      "parsedKinds": [
+        "activateHive"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Hive-phoon",
+      "status": "implemented",
+      "ability": "If your engaged Creature is a Danian Creature, it gains Earth.",
+      "parsedKinds": [
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Hurlicane",
+      "status": "implemented",
+      "ability": "Air: Your engaged Creature loses Air.",
+      "parsedKinds": [
+        "removeElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Hydro Balls",
+      "status": "implemented",
+      "ability": "Stat Check Wisdom 50: Your engaged Creature gains Water.",
+      "parsedKinds": [
+        "gainElement",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Incinerase",
+      "status": "implemented",
+      "ability": "Fire: Your engaged Creature loses Fire.",
+      "parsedKinds": [
+        "removeElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Inferno Gust",
+      "status": "implemented",
+      "ability": "Challenge Speed 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Infight",
+      "status": "implemented",
+      "ability": "If the opposing engaged Creature is a Danian Creature, Activate Hive. Hive cannot be Deactivated.",
+      "parsedKinds": [
+        "activateHive"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Iron Balls",
+      "status": "implemented",
+      "ability": "Tribal Mugic cannot be played.",
+      "parsedKinds": [
+        "disableTribalMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Lightning Burst",
+      "status": "implemented",
+      "ability": "Air: Opposing engaged Creature loses 25 Power.",
+      "parsedKinds": [
+        "conditionalStatModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Liquescent Swirl",
+      "status": "implemented",
+      "ability": "Water: Your engaged Creature loses Water.",
+      "parsedKinds": [
+        "removeElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Lucky Shot",
+      "status": "implemented",
+      "ability": "If your engaged Creature has lower Courage, Power, Wisdom, Speed and Current Energy than the opposing engaged Creature, deal 40 damage.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Malevolent Blast",
+      "status": "implemented",
+      "ability": "Air: Your engaged Creature loses Air. Discard an Attack Card, then draw an Attack Card.",
+      "parsedKinds": [
+        "removeElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Mandiblor Might",
+      "status": "implemented",
+      "ability": "Deal 5 damage for each Mandiblor Creature you control adjacent to your engaged Creature.",
+      "parsedKinds": [
+        "attackDamagePerControlledCreatureType"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Matagore",
+      "status": "implemented",
+      "ability": "If your engaged Creature is Mipedian Creature, it gains Air.",
+      "parsedKinds": [
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Megaroar",
+      "status": "implemented",
+      "ability": "Stat Check Courage 70: Deal 10 damage. Stat Check Power 70: Deal 10 damage. Stat Check Wisdom 70: Deal 10 damage. Stat Check Speed 70: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Mind Strike",
+      "status": "implemented",
+      "ability": "Stat Check Wisdom 30: Deal 5 damage. Stat Check Wisdom 50: Deal 5 damage. Stat Check Wisdom 70: Deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Mirthquake",
+      "status": "implemented",
+      "ability": "Earth: Reveal a new active Location. Your engaged Creature loses Earth.",
+      "parsedKinds": [
+        "removeElement",
+        "revealNewLocation"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Muge's Edge",
+      "status": "implemented",
+      "ability": "Your engaged Creature gains 10 Courage, Power, Wisdom and Speed. If your engaged Creature is a Muge, deal 10 damage.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Mugician Steal",
+      "status": "implemented",
+      "ability": "Water: Your engaged Creature loses Water. Remove a Mugic counter from the opposing engaged Creature. If you do, put a Mugic counter on your engaged Creature.",
+      "parsedKinds": [
+        "removeElement",
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Paral-Eyes",
+      "status": "implemented",
+      "ability": "Challenge Speed 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Pillar Quake",
+      "status": "implemented",
+      "ability": "If the opposing engaged Creature is a Danian Creature, damage dealt by Pillar Quake is reduced to 0.",
+      "parsedKinds": [
+        "attackDamageConditionalModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Power Pulse",
+      "status": "implemented",
+      "ability": "Challenge Power 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Progressive Speed",
+      "status": "implemented",
+      "ability": "Stat Check Speed 30: Deal 5 damage. Stat Check Speed 50: Deal 5 damage. Stat Check Speed 70: Deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Purifying Mud",
+      "status": "implemented",
+      "ability": "Earth, Water: Deal 5 damage, then gain 5 Energy.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Quick Exit",
+      "status": "implemented",
+      "ability": "Challenge Wisdom 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Reactive Resolution",
+      "status": "implemented",
+      "ability": "Challenge Courage 15: Deal 5 damage. Challenge Speed 15: Deal 5 damage. If you win both challenges, deal 15 damage.",
+      "parsedKinds": [
+        "conditionalDamage",
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Reckless Defeat",
+      "status": "implemented",
+      "ability": "If the opposing engaged Creature has Recklessness, deal damage equal to that Creature's Recklessness value.",
+      "parsedKinds": [
+        "conditionalDealDamageByStatusValue"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Reckless Reproach",
+      "status": "implemented",
+      "ability": "If the opposing engaged Creature has Recklessness, deal damage equal to that Creature's Recklessness value.",
+      "parsedKinds": [
+        "conditionalDealDamageByStatusValue"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Reverberate",
+      "status": "implemented",
+      "ability": "If an Attack Card named Reverberate is in your Attack Discard pile, deal 10 damage.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Rip Tide",
+      "status": "implemented",
+      "ability": "Water: Opposing engaged Creature loses 25 Courage.",
+      "parsedKinds": [
+        "conditionalStatModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Rock Wave",
+      "status": "implemented",
+      "ability": "Stat Check Wisdom 75: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Rot Cloud",
+      "status": "implemented",
+      "ability": "If the opposing engaged Creature has Air, deal 5 damage. If the opposing engaged Creature has Earth, deal 5 damage.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Rustoxic",
+      "status": "implemented",
+      "ability": "Challenge Courage 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Scout's Strike",
+      "status": "implemented",
+      "ability": "Stat Check Speed 50: Deal 10 damage. If your engaged Creature is a Scout, look at opposing player's Attack and Mugic hands.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Shadow Strike",
+      "status": "implemented",
+      "ability": "Challenge Courage 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Shriek Shock",
+      "status": "implemented",
+      "ability": "Stat Check Speed 50: Deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Skeletal Strike",
+      "status": "implemented",
+      "ability": "Challenge Courage 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Slashclaw",
+      "status": "implemented",
+      "ability": "If your engaged Creature has Recklessness, deal damage equal to twice its Recklessness value.",
+      "parsedKinds": [
+        "conditionalDealDamageByStatusValue"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Sleep Sting",
+      "status": "implemented",
+      "ability": "Challenge Wisdom 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Spirit Gust",
+      "status": "implemented",
+      "ability": "Stat Check Courage 50: Deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Squeeze Play",
+      "status": "implemented",
+      "ability": "Look at the top two cards of your Attack Deck. Put one of them on top of that deck and the other on the bottom.",
+      "parsedKinds": [
+        "scryDeck"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Strike of the Meek",
+      "status": "implemented",
+      "ability": "If your engaged Creature has 30 or less Scanned Energy, deal 50 damage.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Stupefying Tide",
+      "status": "implemented",
+      "ability": "Stat Fail Wisdom 50: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Sunder Ground",
+      "status": "implemented",
+      "ability": "Earth: Your engaged Creature loses Earth.",
+      "parsedKinds": [
+        "removeElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Symmetry Slam",
+      "status": "implemented",
+      "ability": "Deal 5 damage for each Elemental Type shared by both engaged Creatures.",
+      "parsedKinds": [
+        "attackDamagePerSharedElementType"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Telekinetic Bolt",
+      "status": "implemented",
+      "ability": "Challenge Courage 15, Challenge Wisdom 15: Deal 10 damage and heal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage",
+        "healDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "attacks",
+      "name": "Terraport",
+      "status": "timing_incorrect",
+      "ability": "Earth: Your engaged Creature loses Earth. Look at the top two cards of your Location Deck and choose one. It becomes the active Location. Put the other on the bottom of your deck.",
+      "parsedKinds": [
+        "scryDeck",
+        "removeElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Tornado Tackle",
+      "status": "implemented",
+      "ability": "Air: Both players shuffle their Attack Decks and Attack Discard piles together.",
+      "parsedKinds": [
+        "shuffleAttackDeckWithDiscard"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Trampling Tackle",
+      "status": "implemented",
+      "ability": "If your engaged Creature has Recklessness, deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Twister of Elements",
+      "status": "implemented",
+      "ability": "Air, Water: Search your Attack Deck for up to three Attack Cards and put them in your Attack Discard pile, then shuffle your Attack Deck.",
+      "parsedKinds": [
+        "searchDeckToDiscard"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Unsanity",
+      "status": "implemented",
+      "ability": "Challenge Wisdom 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Velocitrap",
+      "status": "implemented",
+      "ability": "Challenge Speed 15: Deal 10 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Vine Snare",
+      "status": "implemented",
+      "ability": "Earth: Opposing engaged Creature loses 25 Speed.",
+      "parsedKinds": [
+        "conditionalStatModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "attacks",
+      "name": "Web Cocoon",
+      "status": "implemented",
+      "ability": "Stat Check Power 50: Your engaged Creature gains Fire.",
+      "parsedKinds": [
+        "gainElement",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "attacks",
+      "name": "Windslash",
+      "status": "implemented",
+      "ability": "Your opponent turns all face-down Battlegear Cards they control face-up.",
+      "parsedKinds": [
+        "flipBattlegear"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Aqua Shield",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 5 Energy. Sacrifice Aqua Shield: Heal 15 damage to target Creature.",
+      "parsedKinds": [
+        "healDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "Challor",
+      "status": "target_incorrect",
+      "ability": "Equipped Creature cannot be targeted by abilities. This Battlegear begins the game face-up.",
+      "parsedKinds": [
+        "keyword",
+        "startsFaceUp"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Cyclance",
+      "status": "implemented",
+      "ability": "Sacrifice Cyclance: equipped Creature gains Air until the end of combat.",
+      "parsedKinds": [
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Danian Carapace",
+      "status": "implemented",
+      "ability": "When equipped Creature deals damage to an Uninfected Creature, Infect that Creature. When the equipped Creature is destroyed while engaged, destroy all Battlegear equipped to the opposing engaged Creature. Then, if that Creature is Unequipped, equip Danian carapace to it. (Players control any Battlegear equipped to Creatures they control.)",
+      "parsedKinds": [
+        "destroyBattlegear"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Diamond of Vlaric",
+      "status": "implemented",
+      "ability": "Sacrifice Diamond of Vlaric: equipped Creature gains Earth until the end of combat.",
+      "parsedKinds": [
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Dragon Pulse",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 25 Courage.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Elementalist Pauldrons",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 5 Energy and 15 Power. Equipped Elementalist Creature has all Elemental Types your Creatures have.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Elixir of Tenacity",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 10 Courage and an additional 10 Speed. If equipped Creature has at least 50 Power, it has an additional 10 Energy.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "Entropy Modulator",
+      "status": "implemented",
+      "ability": "Sacrifice Entropy Modulator: Target attack deals 15 damage.",
+      "parsedKinds": [
+        "targetAttackDamageSet"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Flux Bauble",
+      "status": "timing_incorrect",
+      "ability": "At the beginning of combat, look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom.",
+      "parsedKinds": [
+        "scryDeck"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Gauntlets of Might",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 25 Power.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "Heptadd's Crown",
+      "status": "implemented",
+      "ability": "Equipped Creature can play Mugic of any tribe. When a Mugic or ability is played by equipped Creature, deal 10 damage to it. This Battlegear begins the game face-up.",
+      "parsedKinds": [
+        "canPlayAnyTribeMugic",
+        "startsFaceUp",
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "Hunter's Lure",
+      "status": "implemented",
+      "ability": "Sacrifice Hunter's Lure: Relocate both engaged Creatures to any unoccupied space .",
+      "parsedKinds": [
+        "relocateEffect"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Ice Cloak",
+      "status": "implemented",
+      "ability": "When Ice Cloak is flipped face-up, if equipped Creature is engaged with a Creature with Fire, equipped Creature gains 10 Energy. Equipped Creature has Fireproof 10.",
+      "parsedKinds": [
+        "elementproof"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "Lightning Canister",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 5 Energy. When Lightning Canister is put into your general discard pile from face-up, deal 5 damage to target engaged Creature.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Liquilizer",
+      "status": "implemented",
+      "ability": "Sacrifice Liquilizer: equipped Creature gains Water until the end of combat.",
+      "parsedKinds": [
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Mandiblor Crown",
+      "status": "implemented",
+      "ability": "Equipped Creature has Creature Type Mandiblor in addition to its other types. Equipped Creature has Hive: equipped Creature has an additional 5 Energy.",
+      "parsedKinds": [
+        "hiveGranted",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Mipedian Cactus",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 15 Wisdom. Equipped Mipedian Creature has MC: equipped Creature can move to any space on the board as if it were adjacent.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Mowercycle",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 25 Speed.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Mugician's Lyre",
+      "status": "implemented",
+      "ability": "Sacrifice Mugician's Lyre: Put a Mugic counter on the equipped Creature",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Nexus Fuse",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 5 Energy. Sacrifice Nexus Fuse: Deal 15 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Orb of Foresight",
+      "status": "timing_incorrect",
+      "ability": "At the beginning of combat, look at the top three cards of your Attack Deck. Put one of them on top of that deck and the other two on the bottom in any order.",
+      "parsedKinds": [
+        "scryDeck"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Phobia Mask",
+      "status": "implemented",
+      "ability": "Equipped Creature has Intimidate: Courage 10 and Intimidate: Power 10.",
+      "parsedKinds": [
+        "intimidate"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Prism of Vacuity",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 5 Energy. Sacrifice Prism of Vacuity: Target Creature loses 20 Power.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Pyroblaster",
+      "status": "implemented",
+      "ability": "Sacrifice Pyroblaster: equipped Creature gains Fire until the end of combat.",
+      "parsedKinds": [
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "Ravita Flower",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 5 Energy. Sacrifice Ravita Flower: Put 2 Mugic counters on target Conjuror Creature.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "Reality Field Generator",
+      "status": "implemented",
+      "ability": "When equipped Creature enters a space with a Mirage Location, shuffle that Mirage Location into its controller's Location Deck. Mirage Locations cannot be placed in equipped Creature's space.",
+      "parsedKinds": [
+        "realityFieldMirageControl"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Ring of Na'arin",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 10 Power and an additional 10 Wisdom. If equipped Creature has at least 50 Courage, it has an additional 10 Energy.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Riverland Star",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 15 Courage. Equipped OverWorld Creature has When equipped Creature deals Water damage, heal 5 damage to it.",
+      "parsedKinds": [
+        "healDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Scout's Monocular",
+      "status": "target_incorrect",
+      "ability": "Equipped Creature has an additional 5 Energy and 15 Wisdom. Equipped Scout Creature has MC: Turn target face-down Battlegear face-up.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Skeletal Steed",
+      "status": "implemented",
+      "ability": "Equipped Creature has Range and Swift 1. This Battlegear begins the game face-up.",
+      "parsedKinds": [
+        "keyword",
+        "startsFaceUp"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Spectral Viewer",
+      "status": "implemented",
+      "ability": "When equipped Creature becomes engaged, Creatures engaged with it lose and cannot gain Invisibility.",
+      "parsedKinds": [
+        "engagedVsScoutNoInvisibility"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Staff of Wisdom",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 25 Wisdom.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Stingblade Prototype",
+      "status": "implemented",
+      "ability": "When Hive is activated, the next time an Attack would deal damage this turn, it deals 10 damage instead.",
+      "parsedKinds": [
+        "nextAttackThisCombatSetDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Stone Mail",
+      "status": "implemented",
+      "ability": "Equipped Creature cannot move. Equipped Creature has an additional 50 Energy. All damage dealt to equipped Creature is increased by 5. Equipped Creature has no abilities and cannot gain abilities.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Supercharged Alterant",
+      "status": "implemented",
+      "ability": "When Supercharged Alterant is flipped face-up, choose a Discipline. Equipped Creature gains 100 in the chosen Discipline.",
+      "parsedKinds": [
+        "disciplineChoiceModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Sword of Khy'at",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 5 Energy and 15 Speed. Equipped Warrior Creature has When equipped Creature deals 20 or more attack damage, deal 5 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Talisman of the Mandiblor",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 15 Speed. Equipped Danian Creature has Sacrifice equipped Creature: Return a Mandiblor Creature Card in your general discard pile to play to any unoccupied space .",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Telebracers",
+      "status": "implemented",
+      "ability": "When Telebracers is flipped face-up, reveal a new active Location.",
+      "parsedKinds": [
+        "revealNewLocation"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "The Doomhammer",
+      "status": "implemented",
+      "ability": "Equipped Creature deals an additional 5 Attack damage to UnderWorld and Danian Creatures. Equipped Danian Creature has Earth 5. Equipped UnderWorld Creature has an additional 50 Power.",
+      "parsedKinds": [
+        "statModifier",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Torrent Krinth",
+      "status": "implemented",
+      "ability": "Equipped Creature has Water 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Torwegg",
+      "status": "implemented",
+      "ability": "Equipped Creature has Air 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "battlegear",
+      "name": "Ur-Shard",
+      "status": "implemented",
+      "ability": "Equipped Creature has Earth 5 and Recklessness 5. If equipped Creature is destroyed while engaged, destroy all Battlegear equipped to the opposing engaged Creature. Then, if that Creature is Unequipped, equip Ur-Shard to it. (Players control any Battlegear equipped to Creatures they control.)",
+      "parsedKinds": [
+        "keyword",
+        "destroyBattlegear",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Viledriver",
+      "status": "implemented",
+      "ability": "Equipped Creature has Fire 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Vlaric Shard",
+      "status": "implemented",
+      "ability": "Equipped Creature has Earth 5.",
+      "parsedKinds": [
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "Warbeast Power Leash",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 5 Energy. Equipped Warbeast Creature has Recklessness 5, has an additional 5 Energy for each Conjuror Creature you control and deals an additional 5 damage with attacks.",
+      "parsedKinds": [
+        "keyword",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Whepcrack",
+      "status": "implemented",
+      "ability": "Equipped Creature has an additional 15 Power. Equipped UnderWorld Creature has Fire 5.",
+      "parsedKinds": [
+        "statModifier",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "battlegear",
+      "name": "Wind Whip",
+      "status": "implemented",
+      "ability": "Equipped Mipedian Creature has Air. If equipped Creature is a Conjuror Creature, Warbeast Creatures you control have Recklessness 5.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "battlegear",
+      "name": "Windstrider",
+      "status": "implemented",
+      "ability": "Equipped Creature has Swift 2. This Battlegear begins the game face-up.",
+      "parsedKinds": [
+        "keyword",
+        "startsFaceUp"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "Carnival of Confusion",
+      "status": "implemented",
+      "ability": "When this becomes the active Location, Creatures lose all Elemental Types. If a Creature lost Fire, it gains Water. If a Creature lost Water, it gains Air. If a Creature lost Air, it gains Earth. If a Creature lost Earth, it gains Fire. Elemental Attacks deal an additional 5 damage.",
+      "parsedKinds": [
+        "attackDamageModifier",
+        "locationEnterRemoveAllElements",
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Castle Bodhran",
+      "status": "implemented",
+      "ability": "At the beginning of combat, each player can return a Mugic Card from their general discard pile to their hand.",
+      "parsedKinds": [
+        "returnFromDiscard"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Castle Pillar",
+      "status": "implemented",
+      "ability": "At the beginning of combat, if an engaged Creature has higher Wisdom than the opposing engaged Creature, put a Mugic counter on it.",
+      "parsedKinds": [
+        "beginCombatMugicCounterHigherStat"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "Catacombs of the Conjurors",
+      "status": "implemented",
+      "ability": "Damage dealt to Warbeast Creatures by Recklessness is reduced by 5. Conjuror Creatures have Recklessness 5.",
+      "parsedKinds": [
+        "keyword",
+        "incomingDamageReduction"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Cordac Falls",
+      "status": "implemented",
+      "ability": "At the beginning of combat, engaged Creatures gains 5 Energy.",
+      "parsedKinds": [
+        "beginCombatEnergy"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Cordac Falls Plungepool",
+      "status": "implemented",
+      "ability": "At the beginning of combat, deal 5 damage to engaged Creatures.",
+      "parsedKinds": [
+        "beginCombatDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Crystal Cave",
+      "status": "implemented",
+      "ability": "If an engaged Creature has lower Speed than the opposing engaged Creature, it deals 0 damage on its first attack each combat.",
+      "parsedKinds": [
+        "firstAttackZeroIfLower"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Doors of the Deepmines",
+      "status": "implemented",
+      "ability": "At the beginning of combat, Creatures with Water gain 10 Energy.",
+      "parsedKinds": [
+        "beginCombatEnergy"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Dranakis Threshold",
+      "status": "implemented",
+      "ability": "Mugic and activated abilities cannot be played.",
+      "parsedKinds": [
+        "disableMugicAndActivated"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Everrain",
+      "status": "implemented",
+      "ability": "Water attacks deal an additional 5 damage. Damage dealt by Earth attacks is reduced by 5.",
+      "parsedKinds": [
+        "attackDamageModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Eye of the Maelstrom",
+      "status": "implemented",
+      "ability": "When this becomes the active Location, each player discards a Mugic Card.",
+      "parsedKinds": [
+        "discardMugicFromEachPlayer"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Fear Valley",
+      "status": "implemented",
+      "ability": "At the beginning of combat, if an engaged Creature has lower Courage than the opposing engaged Creature, it loses 10 Energy.",
+      "parsedKinds": [
+        "beginCombatLoseEnergyIfLower"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Forest of Life",
+      "status": "implemented",
+      "ability": "At the beginning of combat, if an engaged Creature has higher Power than the opposing engaged Creature, it gains 5 Energy.",
+      "parsedKinds": [
+        "beginCombatEnergy"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "Forest of Life, During Aichlyys",
+      "status": "implemented",
+      "ability": "Creatures do not have and cannot gain Invisibility.",
+      "parsedKinds": [
+        "globalNoInvisibility"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Gigantempopolis",
+      "status": "timing_incorrect",
+      "ability": "At the beginning of combat, put a Mugic counter on any engaged OverWorld Creatures.",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Glacier Plains",
+      "status": "implemented",
+      "ability": "Creatures must pay an additional Mugic counter to play UnderWorld Mugic Cards.",
+      "parsedKinds": [
+        "mugicCostIncrease"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Gloomuck Swamp",
+      "status": "implemented",
+      "ability": "Earth attacks deal an additional 5 damage. Damage dealt by Fire attacks is reduced by 5.",
+      "parsedKinds": [
+        "attackDamageModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Gothos Tower",
+      "status": "implemented",
+      "ability": "Creatures not named Lord Van Bloot have 10 less Courage. Lord Van Bloot has Invisibility: Strike 15.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "Grand Hall of Muge's Summit",
+      "status": "implemented",
+      "ability": "When a Mugic counter is removed from a Creature, Grand Hall of Muge's Summit deals 10 damage to the engaged Creature controlled by the same player.",
+      "parsedKinds": [
+        "onMugicCounterRemovedDealDamageToEngaged"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "Indigo Grove",
+      "status": "implemented",
+      "ability": "When this becomes the active Location, you can sacrifice a non-Conjuror Creature you control. If you do, return a Conjuror Creature Card in your general discard pile to play to any unoccupied space .",
+      "parsedKinds": [
+        "sacrificeCreature",
+        "returnCreatureFromDiscardToBoard"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "Iparu Jungle",
+      "status": "implemented",
+      "ability": "When this becomes the active Location, flip a coin. If tails, shuffle Iparu Jungle into its controller's Location Deck and that player reveals a new active Location. Mirage: At the beginning of combat, each engaged Creature in this space gains or loses Energy so its Energy is equal to its Scanned Energy.",
+      "parsedKinds": [
+        "revealNewLocation",
+        "setEngagedEnergyToScannedAtBeginCombat"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Iron Pillar",
+      "status": "implemented",
+      "ability": "Battlegear have no abilities.",
+      "parsedKinds": [
+        "battlegearNoAbilities"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Kiru City",
+      "status": "implemented",
+      "ability": "OverWorld Creatures have an additional 10 Energy.",
+      "parsedKinds": [
+        "tribeStatModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Lake Ken-I-Po",
+      "status": "target_incorrect",
+      "ability": "Each Mugic has Untargetable.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Lava Pond",
+      "status": "implemented",
+      "ability": "Fire attacks deal an additional 5 damage. Damage dealt by Air attacks is reduced by 5. Creatures named Magmon have Fire 5.",
+      "parsedKinds": [
+        "attackDamageModifier",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "Mipedian Dew Farm",
+      "status": "implemented",
+      "ability": "Scouts have Water. Engaged Creatures with Water have MC: Heal 10 damage to target Creature.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "Mipedim Lounge",
+      "status": "implemented",
+      "ability": "Mirage: When an Attack Card is played by a Creature in this space, its controller can flip a coin. If tails, that player sacrifices his engaged Creature. If heads, the attack deals an additional 10 damage, and that player can flip again.",
+      "parsedKinds": [
+        "attackDamageModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "Mipedim Mirage",
+      "status": "implemented",
+      "ability": "Creatures have Swift 1. Mirage: If an adjacent Creature can move into this space, it must do so.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Mipedim Oasis",
+      "status": "implemented",
+      "ability": "Mipedian Creatures deal an additional 10 damage with their first attack each combat.",
+      "parsedKinds": [
+        "attackDamageModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Mount Pillar",
+      "status": "timing_incorrect",
+      "ability": "When this becomes the active Location, activate Hive.",
+      "parsedKinds": [
+        "activateHive"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "Mount Pillar Reservoir",
+      "status": "implemented",
+      "ability": "Creatures have Fireproof 10. Danian Creatures have Water 5.",
+      "parsedKinds": [
+        "elementproof",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "Oipont's Lookout",
+      "status": "implemented",
+      "ability": "Creatures with Air have Earth. If Hive is Active, Danian Creatures have Air and Earth.",
+      "parsedKinds": [
+        "airCreaturesGainEarth",
+        "tribeGainElementIfHiveActive"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "OverWorld Embassy at Mipedim Oasis",
+      "status": "implemented",
+      "ability": "When this becomes the active Location, shuffle any Mirage Locations into their controllers' Location Decks. Mipedian Creatures have Water.",
+      "parsedKinds": [
+        "realityFieldMirageControl",
+        "tribeGainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "OverWorld Embassy at Mount Pillar",
+      "status": "implemented",
+      "ability": "When this becomes the active Location, Uninfect all Creatures.",
+      "parsedKinds": [
+        "uninfectAllCreatures"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "Queen's Gate",
+      "status": "implemented",
+      "ability": "Creatures engaged with Scouts do not have and cannot gain Invisibility.",
+      "parsedKinds": [
+        "engagedVsScoutNoInvisibility"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "Rao'Pa Sahkk, The Ocean with No Water",
+      "status": "implemented",
+      "ability": "Attacks that are either Air or Earth deal an additional 5 damage. (Attacks which are both Air and Earth deal only 5 additional damage.) When a Water attack is played, that attack's controller reveals a new active Location. Mirage: When combat ends, put a Mugic counter on Creatures in this space who were engaged.",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Ravanaugh Ridge",
+      "status": "timing_incorrect",
+      "ability": "At the beginning of combat, if a player controls an engaged Creature with Air, that player can look at the top three cards of their Attack Deck, put one of them on top of that deck and the others on the bottom in any order.",
+      "parsedKinds": [
+        "scryDeck"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Riverlands",
+      "status": "implemented",
+      "ability": "When a Creature deals Water damage, heal 5 damage to it.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Runic Grove",
+      "status": "implemented",
+      "ability": "Tribal Mugic cannot be played.",
+      "parsedKinds": [
+        "disableTribalMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "Sands of the Unseen",
+      "status": "implemented",
+      "ability": "Creatures with Air have Invisibility: Strike 10.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "Sha-Kree Flats",
+      "status": "implemented",
+      "ability": "At the beginning of combat, engaged Elementalist Creatures gain an Elemental type of their controller's choice.",
+      "parsedKinds": [
+        "engagedTypeGainChosenElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Stone Pillar",
+      "status": "implemented",
+      "ability": "Engaged UnderWorld Creatures pay 1 less Mugic counter to play their first Mugic this turn.",
+      "parsedKinds": [
+        "mugicCostReduction"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Stronghold Morn",
+      "status": "timing_incorrect",
+      "ability": "At the beginning of combat, engaged Creatures gain Fire, Water, Air, and Earth.",
+      "parsedKinds": [
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "The Barracks",
+      "status": "implemented",
+      "ability": "At the end of combat, if a Warrior you control was engaged that combat, you can relocate it to any unoccupied space adjacent to it.",
+      "parsedKinds": [
+        "relocateEffect"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "locations",
+      "name": "The Darkened Dunes",
+      "status": "implemented",
+      "ability": "Creatures with Earth have Range and Swift 1.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "locations",
+      "name": "The Hunter's Perimeter",
+      "status": "timing_incorrect",
+      "ability": "When this becomes the active Location, Mipedian Creatures gain Invisibility: Surprise. At the beginning of combat, reveal a new active Location. Mirage: Creatures in this space cannot lose Invisibility from Mugic or abilities. Invisibility abilities of Creatures in this space work against Creatures with Invisibility.",
+      "parsedKinds": [
+        "invisibilitySurprise",
+        "revealNewLocation"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "The Storm Tunnel",
+      "status": "implemented",
+      "ability": "Air attacks deal an additional 5 damage. Damage dealt by Water attacks is reduced by 5.",
+      "parsedKinds": [
+        "attackDamageModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "UnderWorld City",
+      "status": "implemented",
+      "ability": "Attacks played by UnderWorld Creatures have Challenge Power 15: Deal 5 damage.",
+      "parsedKinds": [
+        "conditionalDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "UnderWorld Colosseum",
+      "status": "implemented",
+      "ability": "Creatures with Fire deal an additional 10 damage on their first attack each combat.",
+      "parsedKinds": [
+        "attackDamageModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "locations",
+      "name": "Wooden Pillar",
+      "status": "implemented",
+      "ability": "Creatures must pay an additional Mugic counter to play OverWorld Mugic Cards.",
+      "parsedKinds": [
+        "mugicCostIncrease"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Armament Adagio",
+      "status": "implemented",
+      "ability": "Swap any Battlegear on two target Creatures controlled by the same player.",
+      "parsedKinds": [
+        "swapBattlegearBetweenControlledCreatures"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Canon of Casualty",
+      "status": "implemented",
+      "ability": "Deal 20 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Cascade Symphony",
+      "status": "implemented",
+      "ability": "Damage dealt to target Creature by Fire or Air attacks is reduced by 5. (An attack which is both Fire and Air is still reduced by 5.)",
+      "parsedKinds": [
+        "incomingDamageReduction"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Cascading Rondo",
+      "status": "implemented",
+      "ability": "Swap your attack discard pile with your Attack Deck, then shuffle your Attack Deck.",
+      "parsedKinds": [
+        "shuffleAttackDeckWithDiscard"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Casters' Warsong",
+      "status": "implemented",
+      "ability": "Deal 5 damage to target Creature. If the caster of this Mugic is a Muge, deal an additional 10 damage.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Chorus of Cothica",
+      "status": "implemented",
+      "ability": "Target Creature can play Mugic of any tribe.",
+      "parsedKinds": [
+        "canPlayAnyTribeMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Chorus of the Hive",
+      "status": "implemented",
+      "ability": "Activate Hive.",
+      "parsedKinds": [
+        "activateHive"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Composition of Concentration",
+      "status": "implemented",
+      "ability": "Target Creature gains 30 in the Discipline of your choice.",
+      "parsedKinds": [
+        "disciplineChoiceModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Danian Element Choral",
+      "status": "implemented",
+      "ability": "Target Creature gains all Elemental Types your Creatures have.",
+      "parsedKinds": [
+        "beginCombatGainElementsFromAllies"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Decrescendo",
+      "status": "implemented",
+      "ability": "Deal 5 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Defender's Song",
+      "status": "implemented",
+      "ability": "Creatures you control gain Defender.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Discord of Disarming",
+      "status": "implemented",
+      "ability": "Destroy target Battlegear.",
+      "parsedKinds": [
+        "destroyBattlegear"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Dissonance of Distraction",
+      "status": "implemented",
+      "ability": "Target Creature loses 30 in the Discipline of your choice.",
+      "parsedKinds": [
+        "disciplineChoiceModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Echoes of Empty Hands",
+      "status": "implemented",
+      "ability": "Destroy all Battlegear equipped to target engaged Creature. That Creature gains 10 Energy.",
+      "parsedKinds": [
+        "destroyBattlegear",
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Elemental Denial",
+      "status": "implemented",
+      "ability": "Target Creature loses X Elemental Types of your choice.",
+      "parsedKinds": [
+        "removeChosenElementFromCreature"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Elemental Elegy",
+      "status": "implemented",
+      "ability": "Target Creature loses an Elemental Type of your choice. If that Creature has no Elemental Types, it cannot move instead.",
+      "parsedKinds": [
+        "removeChosenElementFromCreature"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Ember Flourish",
+      "status": "implemented",
+      "ability": "Heal 15 damage to target Creature with Air or Fire.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Fanfare of the Vanishing",
+      "status": "implemented",
+      "ability": "Target Creature gains Invisibility: Strike 15.",
+      "parsedKinds": [
+        "invisibilityStrike"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Fighters' Fanfare",
+      "status": "implemented",
+      "ability": "Damage dealt by the next attack that resolves this turn is dealt to target engaged Creature instead. (Damage is calculated with target as the recipient.)",
+      "parsedKinds": [
+        "redirectNextAttackDamageToTargetCreature"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Forgotten Origins",
+      "status": "implemented",
+      "ability": "Target player removes all cards in their general discard pile from the game.",
+      "parsedKinds": [
+        "exileGeneralDiscardCards"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Fortissimo",
+      "status": "implemented",
+      "ability": "Target Creature gains 5 Courage, Power, Wisdom, Speed, and Energy.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Gear Glissando",
+      "status": "implemented",
+      "ability": "Flip target Battlegear face-up or face-down.",
+      "parsedKinds": [
+        "flipBattlegear"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Geo Flourish",
+      "status": "implemented",
+      "ability": "Heal 15 damage to target Creature with Earth or Water.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Hive Destruction",
+      "status": "implemented",
+      "ability": "Deactivate Hive.",
+      "parsedKinds": [
+        "deactivateHive"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Hive Unsung",
+      "status": "implemented",
+      "ability": "Deactivate Hive. As Hive Unsung is played, its caster can pay a Mugic counter. If the caster does, return Hive Unsung to your hand when it resolves.",
+      "parsedKinds": [
+        "deactivateHive"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Hymn of Teleportation",
+      "status": "target_incorrect",
+      "ability": "Choose one: If the Active Location is a Mirage, put it into play on any space and reveal a new active Location. Move target Mirage Location in play to any place .",
+      "parsedKinds": [
+        "revealNewLocation"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Hymn of the Elements",
+      "status": "implemented",
+      "ability": "Target Creature gains an Elemental Type of your choice.",
+      "parsedKinds": [
+        "targetCreatureGainChosenElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Infectious Melody",
+      "status": "implemented",
+      "ability": "Infect up to two target Uninfected Creatures.",
+      "parsedKinds": [
+        "infectTargetCreature"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Interlude of Consequence",
+      "status": "implemented",
+      "ability": "Shuffle target player's Attack Deck or Location Deck.",
+      "parsedKinds": [
+        "shuffleTargetPlayerDeckChoice"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Melodic Might",
+      "status": "implemented",
+      "ability": "Draw two Attack Cards, then discard two Attack Cards.",
+      "parsedKinds": [
+        "drawDiscardAttack"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Melody of Malady",
+      "status": "implemented",
+      "ability": "Target engaged Creature gains 10 Energy. Deal 5 damage to another target engaged Creature.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Melody of Mirage",
+      "status": "implemented",
+      "ability": "Target attack deals 0 damage.",
+      "parsedKinds": [
+        "targetAttackDamageSet"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Melody of Parasitic Mayhem",
+      "status": "implemented",
+      "ability": "Infect target Uninfected engaged Creature. If Hive is Active, Uninfect all Creatures controlled by an opponent and deal 5 damage to target engaged Creature for each Creature Uninfected this way instead.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Melody of the Meek",
+      "status": "implemented",
+      "ability": "If target Creature with 30 or less Scanned Energy would take greater than 10 damage from a single source, it takes 10 damage instead.",
+      "parsedKinds": [
+        "incomingDamageCapIfLowScannedEnergy"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Minor Flourish",
+      "status": "implemented",
+      "ability": "Heal 10 damage to target Creature.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Momental Virtuosity",
+      "status": "implemented",
+      "ability": "Target Creature gains 50 in the Discipline of your choice. Target Creature gains 50 in another Discipline of your choice. (You can target the same Creature.)",
+      "parsedKinds": [
+        "disciplineChoiceModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Mugic Reprise",
+      "status": "implemented",
+      "ability": "Return target Mugic Card from your general discard pile to your hand.",
+      "parsedKinds": [
+        "returnFromDiscard"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Notes of Neverwhere",
+      "status": "implemented",
+      "ability": "The active Location loses all abilities.",
+      "parsedKinds": [
+        "suppressActiveLocationAbilities"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "OverWorld Aria",
+      "status": "implemented",
+      "ability": "Heal 10 damage to target OverWorld Creature. Damage dealt to that Creature by Fire attacks is reduced by 5.",
+      "parsedKinds": [
+        "incomingDamageReduction",
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Prelude of Protection",
+      "status": "implemented",
+      "ability": "Target Creature gains Fireproof 10 , Airproof 10 , Earthproof 10 , and Waterproof 10.",
+      "parsedKinds": [
+        "gainElement",
+        "elementproof"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Purge Dirge",
+      "status": "implemented",
+      "ability": "Deal 5 damage to target Creature for each Mandiblor you control and each Infected Creature in play, then Uninfect all Creatures.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Recurring Rescue",
+      "status": "implemented",
+      "ability": "Heal 10 damage to target Creature. If the target of Recurring Rescue has 30 or less Scanned Energy, return Recurring Rescue to your hand when it resolves.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Refrain of Denial",
+      "status": "implemented",
+      "ability": "Negate target Mugic.",
+      "parsedKinds": [
+        "negateMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Refrain of Denial, (OverWorld)",
+      "status": "implemented",
+      "ability": "Negate target Generic or OverWorld Mugic.",
+      "parsedKinds": [
+        "negateMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Refrain of Denial, (OverWorld/UnderWorld)",
+      "status": "implemented",
+      "ability": "Negate target OverWorld or UnderWorld Mugic.",
+      "parsedKinds": [
+        "negateMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Rhyme of the Reckless",
+      "status": "implemented",
+      "ability": "When target attack deals damage, deal the same amount of damage to the Creature that played that attack.",
+      "parsedKinds": [
+        "targetAttackReflectDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Serenade of Subordinance",
+      "status": "implemented",
+      "ability": "Target Creature loses 50 in the Discipline of your choice. Target Creature gains 50 in another Discipline of your choice. (You can target the same Creature.)",
+      "parsedKinds": [
+        "disciplineChoiceModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Asperity",
+      "status": "implemented",
+      "ability": "Target Creature gains Fire 5 and Air 5.",
+      "parsedKinds": [
+        "gainElement",
+        "elementModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Deflection",
+      "status": "implemented",
+      "ability": "Change the target of target Mugic or ability with a single target.",
+      "parsedKinds": [
+        "retargetSingleTargetMugic"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Song of Desperation",
+      "status": "implemented",
+      "ability": "Target engaged Creature gains 30 Energy. Discipline Checks and Challenges on attacks played by that Creature deal 0 damage.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of EmberNova",
+      "status": "implemented",
+      "ability": "Deal 10 damage to target Creature with Air or Fire.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Song of Encompassing",
+      "status": "implemented",
+      "ability": "Creatures you control gain the Creature Type Mandiblor in addition to their other types.",
+      "parsedKinds": [
+        "grantCreatureTypeToControlledCreatures"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Focus",
+      "status": "implemented",
+      "ability": "Target Creature gains 10 Courage, Power, Wisdom, and Speed.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Fury",
+      "status": "implemented",
+      "ability": "Deal 10 damage to target Creature. Another target Creature gains Fire 5.",
+      "parsedKinds": [
+        "gainElement",
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Futuresight",
+      "status": "implemented",
+      "ability": "Look at the top two cards of target player's Attack Deck or Location Deck. Put one of them on top of that deck and the other on the bottom.",
+      "parsedKinds": [
+        "scryDeck"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of GeoNova",
+      "status": "implemented",
+      "ability": "Deal 10 damage to target Creature with Earth or Water.",
+      "parsedKinds": [
+        "dealDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Mandiblor",
+      "status": "implemented",
+      "ability": "Target Creature gains 5 Courage, Power, Wisdom, and Speed for each Danian Creature in play.",
+      "parsedKinds": [
+        "statPerTribeCreatureCount"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Recovery",
+      "status": "implemented",
+      "ability": "Heal 10 damage to target Creature. That Creature gains Air 5.",
+      "parsedKinds": [
+        "gainElement",
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Song of Resilience",
+      "status": "implemented",
+      "ability": "If target Creature has Fire, it gains Fireproof 10 ; if it has Air, it gains Airproof 10 ; if it has Earth, it gains Earthproof 10 ; if it has Water, it gains Waterproof 10.",
+      "parsedKinds": [
+        "gainElement"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Resistance",
+      "status": "implemented",
+      "ability": "Damage dealt by attacks to the caster is reduced by 5.",
+      "parsedKinds": [
+        "incomingDamageReduction"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Resurgence",
+      "status": "implemented",
+      "ability": "Heal 20 damage to target Creature.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Revival, (UnderWorld)",
+      "status": "implemented",
+      "ability": "Return target UnderWorld Creature Card in your general discard pile to play to any unoccupied space .",
+      "parsedKinds": [
+        "returnCreatureFromDiscardToBoard"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Song of Shelter",
+      "status": "implemented",
+      "ability": "Target Creature you control cannot be targeted by Mugic or abilities.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Stasis",
+      "status": "implemented",
+      "ability": "Target Creature cannot move.",
+      "parsedKinds": [
+        "cannotMove"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Surprisal",
+      "status": "implemented",
+      "ability": "Target Creature gains Range and Swift 1.",
+      "parsedKinds": [
+        "keyword"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Symmetry",
+      "status": "implemented",
+      "ability": "Target engaged Creature gains 10 Energy. Deal 10 damage to another target engaged Creature.",
+      "parsedKinds": [
+        "dealDamage",
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Song of the Dyad",
+      "status": "implemented",
+      "ability": "Choose one: Heal 10 damage to target Creature. Deal 10 damage to target Creature.",
+      "parsedKinds": [
+        "dealDamage",
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Treachery",
+      "status": "implemented",
+      "ability": "Target Creature loses 15 Courage, Power, Wisdom, and Speed.",
+      "parsedKinds": [
+        "statModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Song of Truesight",
+      "status": "implemented",
+      "ability": "Target Creature loses Invisibility.",
+      "parsedKinds": [
+        "removeInvisibility"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Strain of Ash",
+      "status": "implemented",
+      "ability": "Sacrifice a Battlegear equipped to an unengaged UnderWorld Creature you control. If you do, destroy target Battlegear.",
+      "parsedKinds": [
+        "destroyBattlegear"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Strain of Clarity",
+      "status": "implemented",
+      "ability": "Choose one: Shuffle target Mirage Location into its controller's Location Deck. If the active Location is a Mirage, shuffle it into its controller's Location deck and that player reveals a new active Location.",
+      "parsedKinds": [
+        "realityFieldMirageControl",
+        "revealNewLocation"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Strain of Expensive Delusions",
+      "status": "implemented",
+      "ability": "Destroy all Battlegear equipped to Creatures in the same space as target Mirage Location. Shuffle it into its controller's Location Deck.",
+      "parsedKinds": [
+        "destroyBattlegear",
+        "realityFieldMirageControl"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Strain of Infection",
+      "status": "implemented",
+      "ability": "Uninfect up to three Infected Creatures. Put a Mugic counter on target Danian Creature for each Creature Uninfected by Strain of Infection this way.",
+      "parsedKinds": [
+        "mugicCounterModifier"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Strain of the Tide",
+      "status": "implemented",
+      "ability": "Remove any number of OverWorld Creatures in your general discard pile from the game. Heal 10 damage to target Creature for each card you remove this way.",
+      "parsedKinds": [
+        "healDamage"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "ZOTH",
+      "type": "mugic",
+      "name": "Switch Riff",
+      "status": "implemented",
+      "ability": "Swap the spaces of two target unengaged Mipedian Creatures you control.",
+      "parsedKinds": [
+        "boardMove"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "DOP",
+      "type": "mugic",
+      "name": "Trills of Diminution",
+      "status": "implemented",
+      "ability": "Target engaged Creature loses all abilities.",
+      "parsedKinds": [
+        "suppressTargetCreatureAbilities"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Tune of Xerium",
+      "status": "implemented",
+      "ability": "Sacrifice a Battlegear. If you do, return another Battlegear from your general discard pile to play equipped to an unequipped Creature you control.",
+      "parsedKinds": [
+        "returnFromDiscard"
+      ],
+      "unsupportedKinds": [],
+      "tested": true
+    },
+    {
+      "set": "SS",
+      "type": "mugic",
+      "name": "Void Dirge",
+      "status": "implemented",
+      "ability": "Remove up to three target cards in one general discard pile from the game.",
+      "parsedKinds": [
+        "exileGeneralDiscardCards"
+      ],
+      "unsupportedKinds": [],
+      "tested": false
+    }
+  ]
+}
