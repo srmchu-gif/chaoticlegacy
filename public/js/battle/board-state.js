@@ -276,6 +276,7 @@ export function createBoardState(playerCardsA, playerCardsB, options = {}) {
       startResolved: false,
       exchangeCount: 0,
       hiveActive: false,
+      hiveExpiresTurn: null,
       lastResolvedAttackDamage: 0,
       lastResolvedAttackName: null,
       lastResolvedAttackPlayer: null,

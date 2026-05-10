@@ -1,0 +1,591 @@
+[DOP]
+Borth-Majar | Programado no combate: Efeitos parseados: intimidate (Intimidate: Power 10 e intimidade: wisdom 10, então quando entra em combate/engajada com a criatura oponente ele baixa o atributo de poder e inteligência do oponente em -10 até o final do turno.
+
+Brathe | Programado no combate: Efeitos parseados: invisibilityStrike (Invisibility: Strike 15, significa que ele da +15 de dano no seu primeiro ataque)
+
+Canon of Casualty | Programado no combate: Efeitos parseados: vc vai pagar o custo do music que nesse caso é 1 MC e apos vc ira escolher o alvo e dealDamage (Deal 20 damage).
+
+Cascade Symphony | Programado no combate: Efeitos parseados: vc ira pagar o custo para ativar esse music que no caso seria 1 MC e vai escolher o alvo, todo dano de fogo e ar dado ao alvo é reduzido em -5 ate o final do turno.
+
+
+Castle Bodhran | Programado no combate: Efeitos parseados: assim que as criaturas engajadas forem definidas e iniciar o combate cada jogador pode escolher uma carta de music que esta na pilha de descarte para voltar para os musics ativos.
+
+Castle Pillar | Programado no combate: Efeitos parseados: beginCombatMugicCounterHigherStat (At the beginning of combat, if an engaged Creature has higher Wisdom than the opposing engaged Creature, put a Mugic counter on it).
+
+Chaor | Programado no combate: Efeitos parseados: ao gastar 3 MC de chaor vc pode negar qualquer music do outromundo ou uma habilidade que escolha como alvo o chaor.
+
+Chorus of the Hive | Programado no combate: Efeitos parseados: ativa hive ate o final do turno.
+
+Coil Crush | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 3. Efeitos parseados: checa o atributo do usuário desse ataque se o Power for maior ou igual a 75 ele destrói o equipamento da criatura oponente que esta engajada.
+
+Cordac Falls — No início do combate, ambas as criaturas engajadas ganham +5 Energy permanentemente durante a batalha.
+
+Cordac Falls Plungepool — No início do combate, ambas as criaturas engajadas recebem 5 de dano instantaneamente.
+
+Crawsectus — A criatura ganha +5 de dano em ataques do elemento Earth enquanto permanecer em campo.
+
+Crystal Cave — A criatura com menos Speed causa 0 de dano no primeiro ataque de cada combate enquando esse for o local ativo; o efeito termina após esse primeiro ataque.
+
+Cyclance — se vc sacrificar o cyclance A criatura ganha o elemento Air ate o final do combate desse turno.
+
+Dardemus — A criatura oponente engajada perde 10 Courage enquanto estiver enfrentando Dardemus.
+
+Decrescendo — vc paga o custo de ativação e Causa 5 de dano ao alvo no momento da ativação.
+
+Degenervate — Se a criatura que esta usando esse ataque possuir Water, a criatura oponente perde 25 em todas as Disciplines e a criaturaa que usou esse ataque também perde o elemento Water até o fim do combate.
+
+Delerium — Se a criatura que usou esse ataque tiver 50 ou mais Wisdom, o ataque causa +5 de dano adicional durante a resolução.
+
+Diamond of Vlaric — se vc sacrificar o Diamond of vlaric A criatura equipada ganha o elemento Earth ate o final do combate.
+
+Discord of Disarming — vc paga o custo que nesse caso é 1 MC e Destrói o Battlegear alvo do music.
+
+Donmar —vc paga o custo para ativar a habilidade que é 1 MC de donmar e Cura 10 de dano da criatura alvo do efeito.
+
+Doors of the Deepmines — No início do combate, criaturas com elemento Water ganham +10 Energy permanentemente durante a batalha até o final do turno.
+
+Dractyl — Possui Swift 1 que permite andar mais 1 casa adicional na sua vez de mover, e possui range possibilitando se mover por cima de espaços já ocupados por criaturas.
+
+Dragon Pulse — enquando estiver de face para cima equipado em uma criatura ela recebe +25 Courage adicional.
+
+Drakness — Mugics usados por criaturas que você controla e que causam dano causam +5 de dano adicional enquanto Drakness estiver ativo em campo.
+
+Dranakis Threshold — Mugics e habilidades de criaturas ativadas não podem ser usados enquanto esta Location estiver ativo.
+
+Ektospasm — Se a criatura tiver 50 ou mais Power, o ataque causa +5 de dano adicional durante a resolução.
+
+Ekuud — se Hive estiver ativa no turno: Ekuud, ganha 5 de energia por cada criatua que vc controle que seja um mandiblor.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Elixir of Tenacity | Programado no combate: Efeitos parseados: statModifier (has an additional 10 Courage).
+
+Ember Flourish | Programado no combate: Efeitos parseados: healDamage (Heal 15 damage).
+
+Ember Swarm | Programado no combate: Dano base 5, fogo 5, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: conditionalStatModifier (Fire: Opposing engaged Creature loses 25 Wisdom).
+
+Evaporize | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: healDamage, statModifier (Heal 10 damage).
+
+Everrain | Programado no combate: Efeitos parseados: attackDamageModifier (Water attacks deal an additional 5 damage).
+
+Eye of the Maelstrom | Programado no combate: Sem efeito parseado (apenas stats/texto base: When this becomes the active Location, each player discards a Mugic Card.).
+
+Fanfare of the Vanishing | Programado no combate: Efeitos parseados: invisibilityStrike (Invisibility: Strike 15).
+
+Fear Valley | Programado no combate: Efeitos parseados: beginCombatLoseEnergyIfLower (At the beginning of combat, if an engaged Creature has lower Courage than the opposing engaged Creature, it loses 10 Energy).
+
+Fearocity | Programado no combate: Dano base 5, fogo 0, ar 5, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Check Courage 75: Deal 10 damage).
+
+Flame Orb | Programado no combate: Dano base 5, fogo 5, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Check Power 75: Deal 10 damage).
+
+Flash Kick | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: scryDeck (Look at the top two cards of your Location Deck).
+
+Flash Mend | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: healDamage, statModifier (Heal 5 damage).
+
+Flashwarp | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: conditionalDamage (Challenge Power 15: Deal 10 damage).
+
+Flux Bauble | Programado no combate: Efeitos parseados: scryDeck (look at the top two cards of your Location Deck).
+
+Forest of Life | Programado no combate: Efeitos parseados: beginCombatEnergy (At the beginning of combat, if an engaged Creature has higher Power than the opposing engaged Creature, it gains 5 Energy).
+
+Formicidor | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: Formicidor).
+
+Fortissimo | Programado no combate: Efeitos parseados: statModifier (Target Creature gains 5 Courage, Power, Wisdom, Speed, and Energy).
+
+Frafdo | Programado no combate: Efeitos parseados: statModifier (Support: Courage 5).
+
+Frost Blight | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 5, BP 2. Efeitos parseados: conditionalDamage (Stat Check Speed 75: Deal 10 damage).
+
+Galin | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: Galin).
+
+Gauntlets of Might | Programado no combate: Efeitos parseados: statModifier (has an additional 25 Power).
+
+Geo Flourish | Programado no combate: Efeitos parseados: healDamage (Heal 15 damage).
+
+Gespedan | Programado no combate: Efeitos parseados: keyword, statModifier (Swift 1).
+
+Ghuul | Programado no combate: Efeitos parseados: keyword (Swift 1).
+
+Gigantempopolis | Programado no combate: Efeitos parseados: mugicCounterModifier (put a Mugic counter on any engaged OverWorld Creatures).
+
+Glacier Plains | Programado no combate: Sem efeito parseado (apenas stats/texto base: Creatures must pay an additional Mugic counter to play UnderWorld Mugic Cards.).
+
+Gloomuck Swamp | Programado no combate: Efeitos parseados: attackDamageModifier (Earth attacks deal an additional 5 damage).
+
+Gothos Tower | Programado no combate: Efeitos parseados: invisibilityStrike (Invisibility: Strike 15).
+
+Grook | Programado no combate: Efeitos parseados: intimidate (Intimidate: Power 10).
+
+H'earring | Programado no combate: Efeitos parseados: scryDeck (Look at the top three cards of target player's Location Deck).
+
+Hail Storm | Programado no combate: Dano base 10, fogo 0, ar 5, terra 0, agua 5, BP 3. Sem efeito parseado adicional.
+
+Heptadd | Programado no combate: Efeitos parseados: canPlayAnyTribeMugic (Heptadd can play Mugic of any tribe).
+
+Heptadd, (Tin Misprint) | Programado no combate: Efeitos parseados: canPlayAnyTribeMugic (Heptadd can play Mugic of any tribe).
+
+Hive Call | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: activateHive (activate Hive).
+
+Hota | Programado no combate: Sem efeito parseado (apenas stats/texto base).
+
+Hymn of the Elements | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target Creature gains an Elemental Type of your choice.).
+
+Ibiaan | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: Ibiaan).
+
+Incinerase | Programado no combate: Dano base 0, fogo 10, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: removeElement (Your engaged Creature loses Fire).
+
+Inferno Gust | Programado no combate: Dano base 0, fogo 5, ar 5, terra 0, agua 0, BP 1. Efeitos parseados: conditionalDamage (Challenge Speed 15: Deal 10 damage).
+
+Interlude of Consequence | Programado no combate: Sem efeito parseado (apenas stats/texto base: Shuffle target player's Attack Deck or Location Deck.).
+
+Intress | Programado no combate: Efeitos parseados: elementModifier (Water 5).
+
+Iron Balls | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: disableTribalMugic (Tribal Mugic cannot be played).
+
+Iron Pillar | Programado no combate: Efeitos parseados: battlegearNoAbilities (Battlegear have no abilities).
+
+Junda | Programado no combate: Efeitos parseados: activateHive (Activate Hive).
+
+Kannen | Programado no combate: Efeitos parseados: activateHive, returnFromDiscard (Activate Hive).
+
+Kebna | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: Kebna).
+
+Kerric | Programado no combate: Efeitos parseados: keyword (Swift 1).
+
+Khybon | Programado no combate: Efeitos parseados: intimidate (Intimidate: Courage 10).
+
+Kiru City | Programado no combate: Efeitos parseados: tribeStatModifier (OverWorld Creatures have an additional 10 Energy).
+
+Klasp | Programado no combate: Efeitos parseados: keyword, dealDamage (Recklessness 5).
+
+Krekk | Programado no combate: Efeitos parseados: keyword, intimidate (Range).
+
+Kughar | Programado no combate: Efeitos parseados: intimidate (Intimidate: Power 10).
+
+Laarina | Programado no combate: Sem efeito parseado (apenas stats/texto base).
+
+Lake Ken-I-Po | Programado no combate: Efeitos parseados: keyword (Untargetable).
+
+Lava Pond | Programado no combate: Efeitos parseados: attackDamageModifier, elementModifier (Fire attacks deal an additional 5 damage).
+
+Lavalanche | Programado no combate: Dano base 10, fogo 5, ar 0, terra 5, agua 0, BP 3. Sem efeito parseado adicional.
+
+Lhad | Programado no combate: Sem efeito parseado (apenas stats/texto base).
+
+Lightning Burst | Programado no combate: Dano base 5, fogo 0, ar 5, terra 0, agua 0, BP 1. Efeitos parseados: conditionalStatModifier (Air: Opposing engaged Creature loses 25 Power).
+
+Liquilizer | Programado no combate: Efeitos parseados: gainElement (gains Water).
+
+Lord Van Bloot | Programado no combate: Efeitos parseados: beginCombatLoseEnergyIfLower (If any Creature engaged with Lord Van Bloot has less than 65 Courage, that Creature has 10 less Energy).
+
+Lore | Programado no combate: Efeitos parseados: dealDamage, healDamage (Deal 10 damage).
+
+Lucky Shot | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 4. Efeitos parseados: dealDamage (deal 40 damage).
+
+Maglax | Programado no combate: Efeitos parseados: elementModifier (Earth 5).
+
+Magmon | Programado no combate: Efeitos parseados: keyword, elementModifier (Recklessness 5).
+
+Mallash | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: Mallash).
+
+Malvadine | Programado no combate: Efeitos parseados: invisibilityStrike, invisibilitySurprise (Invisibility: Strike 10).
+
+Marquis Darini | Programado no combate: Efeitos parseados: attackDamageModifier (deal an additional 5 damage with their first attack).
+
+Maxxor | Programado no combate: Efeitos parseados: healDamage (Heal 10 damage).
+
+Megaroar | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 4. Efeitos parseados: conditionalDamage (Stat Check Courage 70: Deal 10 damage).
+
+Melody of Malady | Programado no combate: Efeitos parseados: dealDamage, statModifier (Deal 5 damage).
+
+Melody of Mirage | Programado no combate: Efeitos parseados: targetAttackDamageSet (Target attack deals 0 damage).
+
+Miklon | Programado no combate: Sem efeito parseado (apenas stats/texto base).
+
+Minor Flourish | Programado no combate: Efeitos parseados: healDamage (Heal 10 damage).
+
+Mipedian Cactus | Programado no combate: Efeitos parseados: statModifier (has an additional 15 Wisdom).
+
+Mipedim Oasis | Programado no combate: Efeitos parseados: attackDamageModifier (deal an additional 10 damage with their first attack).
+
+Mirthquake | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: removeElement, revealNewLocation (Your engaged Creature loses Earth).
+
+Mount Pillar | Programado no combate: Efeitos parseados: activateHive (activate Hive).
+
+Mowercycle | Programado no combate: Efeitos parseados: statModifier (has an additional 25 Speed).
+
+Mugic Reprise | Programado no combate: Efeitos parseados: returnFromDiscard (Return target Mugic Card from your general discard pile).
+
+Mugician's Lyre | Programado no combate: Efeitos parseados: mugicCounterModifier (Put a Mugic counter on the equipped Creature).
+
+Najarin | Programado no combate: Efeitos parseados: returnFromDiscard (Return target Mugic Card from your general discard pile).
+
+Nauthilax | Programado no combate: Efeitos parseados: keyword (Recklessness 5).
+
+Nexus Fuse | Programado no combate: Efeitos parseados: dealDamage, statModifier (Deal 15 damage).
+
+Notes of Neverwhere | Programado no combate: Sem efeito parseado (apenas stats/texto base: The active Location loses all abilities.).
+
+Odu-Bathax | Programado no combate: Efeitos parseados: statModifier (has an additional 5 Energy).
+
+Orb of Foresight | Programado no combate: Efeitos parseados: scryDeck (look at the top three cards of your Attack Deck).
+
+OverWorld Aria | Programado no combate: Efeitos parseados: incomingDamageReduction, healDamage (Damage dealt to that Creature by Fire attacks is reduced by 5).
+
+Owis | Programado no combate: Efeitos parseados: healDamage (Heal 5 damage).
+
+Paral-Eyes | Programado no combate: Dano base 10, fogo 0, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Challenge Speed 15: Deal 10 damage).
+
+Pebblestorm | Programado no combate: Dano base 0, fogo 0, ar 5, terra 5, agua 0, BP 1. Sem efeito parseado adicional.
+
+Phobia Mask | Programado no combate: Efeitos parseados: intimidate (Intimidate: Courage 10).
+
+Power Pulse | Programado no combate: Dano base 10, fogo 0, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Challenge Power 15: Deal 10 damage).
+
+Prince Mudeenu | Programado no combate: Efeitos parseados: invisibilityStrike (Invisibility: Strike 20).
+
+Prism of Vacuity | Programado no combate: Efeitos parseados: statModifier (Target Creature loses 20 Power).
+
+Psimion | Programado no combate: Efeitos parseados: statModifier (Support: Wisdom 5).
+
+Pyrithion | Programado no combate: Efeitos parseados: intimidate (Intimidate: Courage 10).
+
+Pyroblaster | Programado no combate: Efeitos parseados: gainElement (gains Fire).
+
+Quick Exit | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: conditionalDamage (Challenge Wisdom 15: Deal 10 damage).
+
+Qwun | Programado no combate: Efeitos parseados: invisibilitySurprise (Invisibility: Surprise).
+
+Rarran | Programado no combate: Efeitos parseados: keyword (Range).
+
+Ravanaugh Ridge | Programado no combate: Sem efeito parseado (apenas stats/texto base: At the beginning of combat, if a player controls an engaged Creature with Air, that player can look at the top three cards of their Attack Deck, put 
+one of them on top o...).
+
+Refrain of Denial | Programado no combate: Efeitos parseados: negateMugic (Negate target Mugic).
+
+Refrain of Denial, (OverWorld) | Programado no combate: Sem efeito parseado (apenas stats/texto base: Negate target Generic or OverWorld Mugic.).
+
+Refrain of Denial, (OverWorld/UnderWorld) | Programado no combate: Sem efeito parseado (apenas stats/texto base: Negate target OverWorld or UnderWorld Mugic.).
+
+Rellim | Programado no combate: Efeitos parseados: statModifier (Support: Courage 5).
+
+Ring of Na'arin | Programado no combate: Efeitos parseados: statModifier (has an additional 10 Power).
+
+Rip Tide | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 5, BP 1. Efeitos parseados: conditionalStatModifier (Water: Opposing engaged Creature loses 25 Courage).
+
+Riverland Star | Programado no combate: Efeitos parseados: healDamage, statModifier (heal 5 damage).
+
+Riverlands | Programado no combate: Efeitos parseados: healDamage (heal 5 damage).
+
+Rock Wave | Programado no combate: Dano base 5, fogo 0, ar 0, terra 5, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Check Wisdom 75: Deal 10 damage).
+
+Rothar | Programado no combate: Efeitos parseados: keyword, intimidate (Recklessness 5).
+
+Runic Grove | Programado no combate: Efeitos parseados: disableTribalMugic (Tribal Mugic cannot be played).
+
+Rustoxic | Programado no combate: Dano base 0, fogo 0, ar 0, terra 5, agua 5, BP 1. Efeitos parseados: conditionalDamage (Challenge Courage 15: Deal 10 damage).
+
+Shadow Strike | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: conditionalDamage (Challenge Courage 15: Deal 10 damage).
+
+Shimmark | Programado no combate: Efeitos parseados: invisibilityStrike (Invisibility: Strike 10).
+
+Shriek Shock | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: conditionalDamage (Stat Check Speed 50: Deal 5 damage).
+
+Siado | Programado no combate: Efeitos parseados: invisibilitySurprise (Invisibility: Surprise).
+
+Skartalas | Programado no combate: Efeitos parseados: activateHive (Activate Hive).
+
+Skeletal Steed | Programado no combate: Efeitos parseados: keyword (Swift 1).
+
+Skeletal Strike | Programado no combate: Dano base 10, fogo 0, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Challenge Courage 15: Deal 10 damage).
+
+Skithia | Programado no combate: Efeitos parseados: elementModifier (Fire 5).
+Skreeth | Programado no combate: Efeitos parseados: keyword (Swift 1).
+Sleep Sting | Programado no combate: Dano base 10, fogo 0, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Challenge Wisdom 15: Deal 10 damage).
+Sludge Gush | Programado no combate: Dano base 10, fogo 0, ar 0, terra 5, agua 5, BP 3. Sem efeito parseado adicional.
+Slurhk | Programado no combate: Sem efeito parseado (apenas stats/texto base).
+Sobtjek | Programado no combate: Efeitos parseados: dealDamage (Deal 25 damage).
+Solvis | Programado no combate: Efeitos parseados: dealDamage (Deal 10 damage).
+Song of Asperity | Programado no combate: Efeitos parseados: gainElement, elementModifier (gains Fire).
+Song of Deflection | Programado no combate: Sem efeito parseado (apenas stats/texto base: Change the target of target Mugic or ability with a single target.).
+Song of EmberNova | Programado no combate: Efeitos parseados: dealDamage (Deal 10 damage).
+Song of Focus | Programado no combate: Efeitos parseados: statModifier (Target Creature gains 10 Courage, Power, Wisdom, and Speed).
+Song of Fury | Programado no combate: Efeitos parseados: gainElement, dealDamage (gains Fire).
+Song of Futuresight | Programado no combate: Efeitos parseados: scryDeck (Look at the top two cards of target player's Attack Deck).
+Song of GeoNova | Programado no combate: Efeitos parseados: dealDamage (Deal 10 damage).
+Song of Mandiblor | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target Creature gains 5 Courage, Power, Wisdom, and Speed for each Danian Creature in play.).
+Song of Recovery | Programado no combate: Efeitos parseados: gainElement, healDamage (gains Air).
+Song of Resistance | Programado no combate: Efeitos parseados: incomingDamageReduction (Damage dealt by attacks to the caster is reduced by 5).
+Song of Resurgence | Programado no combate: Efeitos parseados: healDamage (Heal 20 damage).
+Song of Revival, (UnderWorld) | Programado no combate: Sem efeito parseado (apenas stats/texto base: Return target UnderWorld Creature Card in your general discard pile to play to any unoccupied space .).
+Song of Stasis | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target Creature cannot move.).
+Song of Surprisal | Programado no combate: Efeitos parseados: keyword (Swift 1).
+Song of Symmetry | Programado no combate: Efeitos parseados: dealDamage, statModifier (Deal 10 damage).
+Song of Treachery | Programado no combate: Efeitos parseados: statModifier (Target Creature loses 15 Courage, Power, Wisdom, and Speed).
+Song of Truesight | Programado no combate: Efeitos parseados: removeInvisibility (Target Creature loses Invisibility).
+Spectral Viewer | Programado no combate: Sem efeito parseado (apenas stats/texto base: When equipped Creature becomes engaged, Creatures engaged with it lose and cannot gain Invisibility.).
+Spirit Gust | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: conditionalDamage (Stat Check Courage 50: Deal 5 damage).
+Squeeze Play | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: scryDeck (Look at the top two cards of your Attack Deck).
+Staff of Wisdom | Programado no combate: Efeitos parseados: statModifier (has an additional 25 Wisdom).
+Staluk | Programado no combate: Efeitos parseados: keyword, elementModifier (Swift 1).
+Steam Rage | Programado no combate: Dano base 0, fogo 5, ar 0, terra 0, agua 5, BP 1. Sem efeito parseado adicional.
+Stone Mail | Programado no combate: Efeitos parseados: statModifier (has an additional 50 Energy).
+Stone Pillar | Programado no combate: Sem efeito parseado (apenas stats/texto base: Engaged UnderWorld Creatures pay 1 less Mugic counter to play their first Mugic this turn.).
+Stronghold Morn | Programado no combate: Efeitos parseados: gainElement (gain Fire, Water, Air, and Earth).
+Takinom | Programado no combate: Efeitos parseados: keyword, healDamage (Swift 1).
+Talisman of the Mandiblor | Programado no combate: Efeitos parseados: statModifier (has an additional 15 Speed).
+Tangath Toborn | Programado no combate: Efeitos parseados: healDamage (Heal 10 damage).
+Tartarek | Programado no combate: Efeitos parseados: keyword (Swift 1).
+Telekinetic Bolt | Programado no combate: Dano base 10, fogo 0, ar 0, terra 0, agua 0, BP 3. Efeitos parseados: conditionalDamage, healDamage, statModifier (Challenge Wisdom 15: Deal 10 damage).
+The Storm Tunnel | Programado no combate: Efeitos parseados: attackDamageModifier (Air attacks deal an additional 5 damage).
+Thunder Shout | Programado no combate: Dano base 0, fogo 0, ar 10, terra 10, agua 0, BP 2. Sem efeito parseado adicional.
+Tiaane | Programado no combate: Efeitos parseados: dealDamage (Deal 25 damage).
+Tornado Tackle | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: shuffleAttackDeckWithDiscard (Both players shuffle their Attack Decks and Attack Discard piles together).
+Torrent Krinth | Programado no combate: Efeitos parseados: elementModifier (Water 5).
+Torrent of Flame | Programado no combate: Dano base 0, fogo 10, ar 0, terra 0, agua 10, BP 2. Sem efeito parseado adicional.
+Torwegg | Programado no combate: Efeitos parseados: elementModifier (Air 5).
+Toxic Gust | Programado no combate: Dano base 10, fogo 5, ar 5, terra 0, agua 0, BP 3. Sem efeito parseado adicional.
+Toxis | Programado no combate: Efeitos parseados: keyword (Recklessness 5).
+Trills of Diminution | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target engaged Creature loses all abilities.).
+Ubliqun | Programado no combate: Efeitos parseados: moveAsIfAdjacent (Ubliqun can move to any space as if it were adjacent).
+Ulmar | Programado no combate: Efeitos parseados: dealDamage (Deal 10 damage).
+UnderWorld City | Programado no combate: Efeitos parseados: conditionalDamage (Challenge Power 15: Deal 5 damage).
+UnderWorld Colosseum | Programado no combate: Sem efeito parseado (apenas stats/texto base: Creatures with Fire deal an additional 10 damage on their first attack each combat.).
+Unsanity | Programado no combate: Dano base 0, fogo 0, ar 5, terra 0, agua 5, BP 1. Efeitos parseados: conditionalDamage (Challenge Wisdom 15: Deal 10 damage).
+Uro | Programado no combate: Efeitos parseados: invisibilityStrike, invisibilitySurprise (Invisibility: Strike 5).
+Valanii Levaan | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: Valanii).
+Velocitrap | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: conditionalDamage (Challenge Speed 15: Deal 10 damage).
+Velreth | Programado no combate: Efeitos parseados: keyword (Swift 1).
+Vidav | Programado no combate: Efeitos parseados: healDamage (Heal 15 damage).
+Viledriver | Programado no combate: Efeitos parseados: elementModifier (Fire 5).
+Vine Snare | Programado no combate: Dano base 5, fogo 0, ar 0, terra 5, agua 0, BP 1. Efeitos parseados: conditionalStatModifier (Earth: Opposing engaged Creature loses 25 Speed).
+Vinta | Programado no combate: Efeitos parseados: invisibilityStrike (Invisibility: Strike 10).
+Viperlash | Programado no combate: Dano base 15, fogo 0, ar 0, terra 0, agua 0, BP 3. Sem efeito parseado adicional.
+Vlaric Shard | Programado no combate: Efeitos parseados: elementModifier (Earth 5).
+Wamma | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: Wamma).
+Whepcrack | Programado no combate: Efeitos parseados: statModifier, elementModifier (has an additional 15 Power).
+Windslash | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: flipBattlegear (Your opponent turns all face-down Battlegear Cards they control face-up).
+Windstrider | Programado no combate: Efeitos parseados: keyword (Swift 2).
+Wooden Pillar | Programado no combate: Sem efeito parseado (apenas stats/texto base: Creatures must pay an additional Mugic counter to play OverWorld Mugic Cards.).
+Xaerv | Programado no combate: Efeitos parseados: elementModifier (Air 5).
+Xield | Programado no combate: Efeitos parseados: dealDamage, statModifier (Deal 10 damage).
+Yokkis | Programado no combate: Efeitos parseados: statModifier (Support: all Disciplines 5).
+Zalic | Programado no combate: Efeitos parseados: healDamage (Heal 15 damage).
+Zaur | Programado no combate: Sem efeito parseado (apenas stats/texto base).
+Zhade | Programado no combate: Efeitos parseados: invisibilitySurprise (Invisibility: Surprise).
+
+[ZOTH]
+Accelerated Unity | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: attackDamagePerControlledTribe (Deal 5 damage for each Tribe you control beyond the first).
+Acid Wash | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 10, BP 3. Efeitos parseados: conditionalDamage (Challenge Wisdom 15: Deal 10 damage).
+Aggroar | Programado no combate: Efeitos parseados: keyword (Defender).
+Arkanin | Programado no combate: Efeitos parseados: dealDamage, healDamage (Deal 5 damage).
+Balaan | Programado no combate: Efeitos parseados: activateHive, infectTargetCreature (Activate Hive).
+Bierk | Programado no combate: Efeitos parseados: activateHive, hiveGranted (Activate Hive).
+Carnival of Confusion | Programado no combate: Efeitos parseados: attackDamageModifier, locationEnterRemoveAllElements, gainElement (Elemental Attacks deal an additional 5 damage).
+Cascading Rondo | Programado no combate: Sem efeito parseado (apenas stats/texto base: Swap your attack discard pile with your Attack Deck, then shuffle your Attack Deck.).
+Casters' Warsong | Programado no combate: Efeitos parseados: dealDamage (Deal 5 damage).
+Chorus of Cothica | Programado no combate: Efeitos parseados: canPlayAnyTribeMugic (Target Creature can play Mugic of any tribe).
+Composition of Concentration | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target Creature gains 30 in the Discipline of your choice.).
+Daj Huun | Programado no combate: Efeitos parseados: keyword, hiveGranted, statModifier (Swift 2).
+Danian Carapace | Programado no combate: Efeitos parseados: destroyBattlegear (destroy all Battlegear equipped to the opposing engaged Creature).
+Danian Element Choral | Programado no combate: Efeitos parseados: beginCombatGainElementsFromAllies (Target Creature gains all Elemental Types your Creatures have).
+Danihilation | Programado no combate: Dano base 5, fogo 5, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: dealDamage (deal 10 damage).
+Dasalin | Programado no combate: Efeitos parseados: hiveGranted, healDamage, elementModifier (Hive: Dasalin).
+Defender's Song | Programado no combate: Efeitos parseados: keyword (Defender).
+Desiccate the Land | Programado no combate: Dano base 5, fogo 0, ar 5, terra 0, agua 5, BP 2. Efeitos parseados: healDamage (heal 10 damage).
+Dibanni | Programado no combate: Efeitos parseados: mugicCounterModifier (Put a Mugic counter on target adjacent Creature).
+Dissonance of Distraction | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target Creature loses 30 in the Discipline of your choice.).
+Dubin | Programado no combate: Efeitos parseados: infectTargetCreature, statModifier (Infect target Uninfected Creature).
+Elemental Denial | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target Creature loses X Elemental Types of your choice.).
+Elemental Elegy | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target Creature loses an Elemental Type of your choice. If that Creature has no Elemental Types, it cannot move instead.).
+Elementalist Pauldrons | Programado no combate: Efeitos parseados: statModifier (has an additional 5 Energy).
+Elementalist's Psy-Blast | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: conditionalDamage (Stat Check Wisdom 50: Deal 5 damage).
+Faash | Programado no combate: Efeitos parseados: hiveGranted, gainElement (Hive: Faash).
+Forgotten Origins | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target player removes all cards in their general discard pile from the game.).
+Freeze Flash | Programado no combate: Dano base 0, fogo 0, ar 10, terra 10, agua 0, BP 2. Efeitos parseados: conditionalStatModifier (Water: Opposing engaged Creature loses 25 Speed).
+Garv | Programado no combate: Efeitos parseados: flipBattlegear (Flip target Battlegear face-up or face-down).
+Gear Glissando | Programado no combate: Efeitos parseados: flipBattlegear (Flip target Battlegear face-up or face-down).
+Gear Grind | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: flipBattlegear (Flip all face-up Battlegear face-down).
+Geltod | Programado no combate: Efeitos parseados: dealDamage (Deal 5 damage).
+Grand Hall of Muge's Summit | Programado no combate: Sem efeito parseado (apenas stats/texto base: When a Mugic counter is removed from a Creature, Grand Hall of Muge's Summit deals 10 damage to the engaged Creature controlled by the same player.).
+Granite Balls | Programado no combate: Dano base 5, fogo 0, ar 0, terra 5, agua 0, BP 2. Efeitos parseados: dealDamage (deal 10 damage).
+Hammerdoom Chantcaller | Programado no combate: Efeitos parseados: attackDamageVsTribe (Attacks played by Hammerdoom Chantcaller deal an additional 5 damage to Danian Creatures).
+Hive Destruction | Programado no combate: Sem efeito parseado (apenas stats/texto base: Deactivate Hive.).
+Hive Unsung | Programado no combate: Sem efeito parseado (apenas stats/texto base: Deactivate Hive. As Hive Unsung is played, its caster can pay a Mugic counter. If the caster does, return Hive Unsung to your hand when it resolves.).
+Hive-phoon | Programado no combate: Dano base 0, fogo 0, ar 5, terra 0, agua 5, BP 1. Efeitos parseados: gainElement (gains Earth).
+Hune Marquard | Programado no combate: Efeitos parseados: mugicCounterModifier (put a Mugic counter on Hune Marquard).
+Ice Cloak | Programado no combate: Efeitos parseados: elementproof (Fireproof 10).
+Illazar | Programado no combate: Efeitos parseados: mugicCounterModifier (remove a Mugic counter from target Creature).
+Illexia, The Danian Queen | Programado no combate: Efeitos parseados: keyword, activateHive, hiveGranted, mugicCounterModifier (Defender).
+Infectious Melody | Programado no combate: Sem efeito parseado (apenas stats/texto base: Infect up to two target Uninfected Creatures.).
+Infight | Programado no combate: Dano base 20, fogo 0, ar 0, terra 0, agua 0, BP 4. Efeitos parseados: activateHive (Activate Hive).
+Jaal | Programado no combate: Efeitos parseados: elementModifier (Earth 5).
+Kamangareth | Programado no combate: Efeitos parseados: dealDamage (Deal 15 damage).
+Kelvedran | Programado no combate: Efeitos parseados: elementproof (Fireproof 10).
+Khavakk | Programado no combate: Efeitos parseados: hiveGranted, dealDamage (Hive: Deal 15).
+Khritlaan | Programado no combate: Efeitos parseados: countDiscardCreaturesAsControlledType (Mandiblor Creature Cards in your general discard pile count as Mandiblors you control when counting Mandiblors).
+Kolmo | Programado no combate: Efeitos parseados: keyword, invisibilityStrike, invisibilityDisarm (Swift 1).
+Lomma | Programado no combate: Efeitos parseados: keyword, incomingFirstAttackDamageReduction, elementModifier (Defender).
+Mahrrant | Programado no combate: Efeitos parseados: activateHive, mugicCounterModifier (Activate Hive).
+Malevolent Blast | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: removeElement (Your engaged Creature loses Air).
+Mandiblor Crown | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: equipped).
+Mandiblor Might | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: attackDamagePerControlledCreatureType (Deal 5 damage for each Mandiblor Creature you control adjacent to your engaged Creature).
+Melodic Might | Programado no combate: Efeitos parseados: drawDiscardAttack (Draw two Attack Cards, then discard two Attack Cards).
+Melody of the Meek | Programado no combate: Sem efeito parseado (apenas stats/texto base: If target Creature with 30 or less Scanned Energy would take greater than 10 damage from a single source, it takes 10 damage instead.).
+Momental Virtuosity | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target Creature gains 50 in the Discipline of your choice. Target Creature gains 50 in another Discipline of your choice. (You can target the same Creature.)).
+Mount Pillar Reservoir | Programado no combate: Efeitos parseados: elementproof, elementModifier (Fireproof 10).
+Muge's Edge | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: dealDamage, statModifier (deal 10 damage).
+Mugician Steal | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: removeElement, mugicCounterModifier (Your engaged Creature loses Water).
+Munnari | Programado no combate: Efeitos parseados: invisibilityDisarm (Invisibility: Disarm).
+Narfall | Programado no combate: Efeitos parseados: dealDamage (deal 5 damage).
+Oipont's Lookout | Programado no combate: Sem efeito parseado (apenas stats/texto base: Creatures with Air have Earth. If Hive is Active, Danian Creatures have Air and Earth.).
+Ornathor | Programado no combate: Efeitos parseados: elementproof (Waterproof 10).
+OverWorld Embassy at Mount Pillar | Programado no combate: Sem efeito parseado (apenas stats/texto base: When this becomes the active Location, Uninfect all Creatures.).
+Pillar Quake | Programado no combate: Dano base 5, fogo 0, ar 0, terra 5, agua 0, BP 1. Efeitos parseados: attackDamageConditionalModifier (If the opposing engaged Creature is a Danian Creature, damage dealt by Pillar Quake is reduced to 0).
+Prelude of Protection | Programado no combate: Efeitos parseados: gainElement, elementproof (gains Fire).
+Purge Dirge | Programado no combate: Efeitos parseados: dealDamage (Deal 5 damage).
+Queen's Gate | Programado no combate: Sem efeito parseado (apenas stats/texto base: Creatures engaged with Scouts do not have and cannot gain Invisibility.).
+Ramarhvir, The Danian Hivebringer | Programado no combate: Efeitos parseados: mugicCounterModifier (put a Mugic counter on Ramarhvir).
+Raznus, Ambassador to the Danians | Programado no combate: Efeitos parseados: canPlaySpecificTribeMugic, elementproof (Danian Creatures you control can play OverWorld Mugic).
+Recurring Rescue | Programado no combate: Efeitos parseados: healDamage (Heal 10 damage).
+Reverberate | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: dealDamage (deal 10 damage).
+Ribbian | Programado no combate: Efeitos parseados: invisibilityDisarm, elementModifier (Invisibility: Disarm).
+Sands of the Unseen | Programado no combate: Efeitos parseados: invisibilityStrike (Invisibility: Strike 10).
+Scout's Monocular | Programado no combate: Efeitos parseados: statModifier (has an additional 5 Energy).
+Scout's Strike | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Check Speed 50: Deal 10 damage).
+Serenade of Subordinance | Programado no combate: Sem efeito parseado (apenas stats/texto base: Target Creature loses 50 in the Discipline of your choice. Target Creature gains 50 in another Discipline of your choice. (You can target the same Creature.)).
+Sha-Kree Flats | Programado no combate: Sem efeito parseado (apenas stats/texto base: At the beginning of combat, engaged Elementalist Creatures gain an Elemental type of their controller's choice.).
+Slufurah | Programado no combate: Efeitos parseados: dealDamage (Deal 10 damage).
+Song of Encompassing | Programado no combate: Sem efeito parseado (apenas stats/texto base: Creatures you control gain the Creature Type Mandiblor in addition to their other types.).
+Song of Resilience | Programado no combate: Efeitos parseados: gainElement (gains Fire).
+Song of Shelter | Programado no combate: Efeitos parseados: keyword (Target Creature you control cannot be targeted by Mugic or abilities).
+Stingblade Prototype | Programado no combate: Sem efeito parseado (apenas stats/texto base: When Hive is activated, the next time an Attack would deal damage this turn, it deals 10 damage instead.).
+Strike of the Meek | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 5. Efeitos parseados: dealDamage (deal 50 damage).
+Strikto | Programado no combate: Efeitos parseados: onMugicCounterAddedLoseEnergy, onTakeDamageSourceLosesEnergy (When Strikto has a Mugic counter put on it, it loses 10 Energy).
+Sunder Ground | Programado no combate: Dano base 0, fogo 0, ar 0, terra 10, agua 0, BP 0. Efeitos parseados: removeElement (Your engaged Creature loses Earth).
+Supercharged Alterant | Programado no combate: Sem efeito parseado (apenas stats/texto base: When Supercharged Alterant is flipped face-up, choose a Discipline. Equipped Creature gains 100 in the chosen Discipline.).
+Swassa | Programado no combate: Efeitos parseados: keyword, dealDamage (Swift 2).
+Switch Riff | Programado no combate: Sem efeito parseado (apenas stats/texto base: Swap the spaces of two target unengaged Mipedian Creatures you control.).
+Sword of Khy'at | Programado no combate: Efeitos parseados: dealDamage, statModifier (deal 5 damage).
+Tassanil | Programado no combate: Efeitos parseados: hiveGranted, statModifier, elementModifier (Hive: Tassanil).
+Telebracers | Programado no combate: Efeitos parseados: revealNewLocation (reveal a new active Location).
+Terraport | Programado no combate: Dano base 5, fogo 0, ar 0, terra 5, agua 0, BP 3. Efeitos parseados: scryDeck, removeElement (Look at the top two cards of your Location Deck).
+The Barracks | Programado no combate: Efeitos parseados: relocateEffect (relocate it to any unoccupied space adjacent to it).
+The Darkened Dunes | Programado no combate: Efeitos parseados: keyword (Swift 1).
+Ultadur | Programado no combate: Efeitos parseados: keyword (Recklessness 5).
+Ur-Shard | Programado no combate: Efeitos parseados: keyword, destroyBattlegear, elementModifier (Recklessness 5).
+Yondaf | Programado no combate: Efeitos parseados: infectTargetedOpposingUninfectedCreature (When an opposing Uninfected Creature is targeted by a Mugic you control, Infect that Creature).
+
+[SS]
+Apoc-eclipse | Programado no combate: Dano base 0, fogo 5, ar 5, terra 5, agua 5, BP 3. Efeitos parseados: dealDamage, statModifier (deal 5 damage).
+Arbeid | Programado no combate: Efeitos parseados: targetAttackDamageSet (Target attack deals 5 damage).
+Arborsmash | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: gainElement, statModifier (gains Earth).
+Armament Adagio | Programado no combate: Sem efeito parseado (apenas stats/texto base: Swap any Battlegear on two target Creatures controlled by the same player.).
+Atrapol | Programado no combate: Efeitos parseados: destroyBattlegear (destroy target Battlegear).
+Blaze Barrage | Programado no combate: Dano base 0, fogo 0, ar 5, terra 0, agua 5, BP 1. Efeitos parseados: drawDiscardAttack (Draw an Attack Card and discard an Attack Card).
+Blazvatan, The Epic Warbeast | Programado no combate: Efeitos parseados: keyword, elementModifier (Recklessness 25).
+Blind Fury | Programado no combate: Dano base 0, fogo 0, ar 10, terra 0, agua 0, BP 1. Efeitos parseados: conditionalDamage (If your engaged Creature has Recklessness, deal 5 damage).
+Bylkian | Programado no combate: Efeitos parseados: incomingDamageReduction (Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10).
+Catacombs of the Conjurors | Programado no combate: Efeitos parseados: keyword, incomingDamageReduction (Recklessness 5).
+Challor | Programado no combate: Sem efeito parseado (apenas stats/texto base: Equipped Creature cannot be targeted by abilities. This Battlegear begins the game face-up.).
+Clodor | Programado no combate: Efeitos parseados: mugicCounterModifier (put a Mugic counter on it).
+Cyclone Slam | Programado no combate: Dano base 0, fogo 0, ar 5, terra 5, agua 0, BP 3. Efeitos parseados: dealDamage (deal 20 damage).
+Dexterous Storm | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: gainElement, statModifier (gains Air).
+Drimesse | Programado no combate: Efeitos parseados: incomingDamageReduction (Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10).
+Echoes of Empty Hands | Programado no combate: Sem efeito parseado (apenas stats/texto base: Destroy all Battlegear equipped to target engaged Creature. That Creature gains 10 Energy.).
+Elemental Oxidation | Programado no combate: Dano base 0, fogo 5, ar 0, terra 0, agua 5, BP 1. Efeitos parseados: suppressOpposingBattlegear (Flip all Battlegear equipped to the opposing engaged Creature face-down).
+Enlightened Tenacity | Programado no combate: Dano base 0, fogo 0, ar 0, terra 5, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Check Courage 30: Deal 5 damage).
+Enre-hep | Programado no combate: Efeitos parseados: keyword, mugicCounterModifier (Recklessness 5).
+Entropy Modulator | Programado no combate: Efeitos parseados: targetAttackDamageSet (Target attack deals 15 damage).
+Ere | Programado no combate: Efeitos parseados: keyword (Swift 4).
+Fear Fight | Programado no combate: Dano base 5, fogo 0, ar 0, terra 5, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Fail Courage 50: Deal 10 damage).
+Fighters' Fanfare | Programado no combate: Sem efeito parseado (apenas stats/texto base: Damage dealt by the next attack that resolves this turn is dealt to target engaged Creature instead. (Damage is calculated with target as the recipient.)).
+Fivarth | Programado no combate: Efeitos parseados: keyword, incomingDamageReduction (Untargetable).
+Force Strike | Programado no combate: Dano base 0, fogo 5, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Check Power 30: Deal 5 damage).
+Forest of Life, During Aichlyys | Programado no combate: Sem efeito parseado (apenas stats/texto base: Creatures do not have and cannot gain Invisibility.).
+Gnarlus | Programado no combate: Efeitos parseados: incomingDamageReduction (Damage dealt to Gnarlus by Mugic is reduced to 0).
+Hammerdoom Chantcaller, Assimilated | Programado no combate: Efeitos parseados: hiveGranted, attackDamageVsTribe (Hive: Fireproof 10).
+Hampering Winds | Programado no combate: Dano base 5, fogo 0, ar 5, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Fail Speed 50: Deal 10 damage).
+Harnessed Rage | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 3. Efeitos parseados: conditionalDealDamageByStatusValue (If your engaged Creature has Recklessness, deal damage equal to its Recklessness value).
+Heptadd's Crown | Programado no combate: Efeitos parseados: canPlayAnyTribeMugic, dealDamage (Creature can play Mugic of any tribe).
+Heptagon Hail | Programado no combate: Dano base 35, fogo 0, ar 0, terra 0, agua 0, BP 4. Efeitos parseados: mugicCounterModifier (Put a Mugic counter on each Creature controlled by an opponent).
+Hifdan | Programado no combate: Efeitos parseados: keyword (Swift 2).
+Hunter's Lure | Programado no combate: Efeitos parseados: relocateEffect (Relocate both engaged Creatures to any unoccupied space).
+Hurlicane | Programado no combate: Dano base 0, fogo 0, ar 10, terra 0, agua 0, BP 0. Efeitos parseados: removeElement (Your engaged Creature loses Air).
+Hydro Balls | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: gainElement, statModifier (gains Water).
+Hymn of Teleportation | Programado no combate: Efeitos parseados: revealNewLocation (reveal a new active Location).
+Indigo Grove | Programado no combate: Sem efeito parseado (apenas stats/texto base: When this becomes the active Location, you can sacrifice a non-Conjuror Creature you control. If you do, return a Conjuror Creature Card in your general discard pile to ...).
+Iparu | Programado no combate: Efeitos parseados: setDisciplinesToOpposingScanned (At the beginning of combat, Iparu gains or loses Courage, Power, Wisdom and Speed so those values become equal to the opposing engaged Creature's Scanned Courage, Power,...).
+Iparu Jungle | Programado no combate: Sem efeito parseado (apenas stats/texto base: When this becomes the active Location, flip a coin. If tails, shuffle Iparu Jungle into its controller's Location Deck and that player reveals a new active Location. Mir...).
+Kalt | Programado no combate: Efeitos parseados: mugicCounterModifier (put a Mugic counter on it).
+Karraba | Programado no combate: Efeitos parseados: healDamage (Heal 10 damage).
+Kinnianne, Ambassador to the Mipedians | Programado no combate: Efeitos parseados: canPlaySpecificTribeMugic (Kinnianne can play Mipedian Mugic).
+Kolmo, Assimilated | Programado no combate: Efeitos parseados: invisibilityStrike, invisibilitySurprise, relocateEffect (Invisibility: Strike 20).
+Kopond | Programado no combate: Efeitos parseados: dealDamage (Deal 5 damage).
+Lanker | Programado no combate: Efeitos parseados: statModifier (Lanker loses 5 Energy).
+Lightning Canister | Programado no combate: Efeitos parseados: dealDamage, statModifier (deal 5 damage).
+Liquescent Swirl | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 10, BP 0. Efeitos parseados: removeElement (Your engaged Creature loses Water).
+Lobanne | Programado no combate: Efeitos parseados: elementproof (Fireproof 10).
+Makrabon | Programado no combate: Efeitos parseados: infectTargetCreature (Infect target Uninfected Creature).
+Matagore | Programado no combate: Dano base 0, fogo 5, ar 0, terra 5, agua 0, BP 1. Efeitos parseados: gainElement (gains Air).
+Melke | Programado no combate: Efeitos parseados: invisibilityStrike (Invisibility: Strike 10).
+Melody of Parasitic Mayhem | Programado no combate: Efeitos parseados: dealDamage (deal 5 damage).
+Mind Strike | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 5, BP 2. Efeitos parseados: conditionalDamage (Stat Check Wisdom 30: Deal 5 damage).
+Mipedian Dew Farm | Programado no combate: Efeitos parseados: healDamage (Heal 10 damage).
+Mipedim Lounge | Programado no combate: Efeitos parseados: attackDamageModifier (the attack deals an additional 10 damage).
+Mipedim Mirage | Programado no combate: Efeitos parseados: keyword (Swift 1).
+Na-inna | Programado no combate: Efeitos parseados: mugicCounterModifier (put a Mugic counter on another Creature controlled by the same player).
+Olkiex | Programado no combate: Efeitos parseados: flipTargetBattlegearOnMugicCounterGain (When a Creature you control has a Mugic counter put on it, flip target face-up Battlegear face-down).
+OverWorld Embassy at Mipedim Oasis | Programado no combate: Sem efeito parseado (apenas stats/texto base: When this becomes the active Location, shuffle any Mirage Locations into their controllers' Location Decks. Mipedian Creatures have Water.).
+Phelphor | Programado no combate: Efeitos parseados: relocateEffect (At the beginning of your turn, you can relocate target Creature to any unoccupied space adjacent to it).
+Progressive Speed | Programado no combate: Dano base 0, fogo 0, ar 5, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Check Speed 30: Deal 5 damage).
+Purifying Mud | Programado no combate: Dano base 0, fogo 5, ar 0, terra 5, agua 0, BP 1. Efeitos parseados: dealDamage, statModifier (Deal 5 damage).
+Ranun | Programado no combate: Efeitos parseados: incomingDamageReduction, healDamage (Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10).
+Rao'Pa Sahkk, The Ocean with No Water | Programado no combate: Efeitos parseados: mugicCounterModifier (put a Mugic counter on Creatures in this space who were engaged).
+Ravita Flower | Programado no combate: Efeitos parseados: statModifier (has an additional 5 Energy).
+Raznus, Assimilated | Programado no combate: Efeitos parseados: keyword (Danian Creatures you control cannot be targeted by Mugic or abilities).
+Reactive Resolution | Programado no combate: Dano base 10, fogo 0, ar 0, terra 0, agua 0, BP 3. Efeitos parseados: conditionalDamage, dealDamage (Challenge Courage 15: Deal 5 damage).
+Reality Field Generator | Programado no combate: Sem efeito parseado (apenas stats/texto base: When equipped Creature enters a space with a Mirage Location, shuffle that Mirage Location into its controller's Location Deck. Mirage Locations cannot be placed in equi...).
+Reckless Defeat | Programado no combate: Dano base 0, fogo 5, ar 0, terra 0, agua 5, BP 1. Efeitos parseados: conditionalDealDamageByStatusValue (If the opposing engaged Creature has Recklessness, deal damage equal to that Creature's Recklessness value).
+Reckless Reproach | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: conditionalDealDamageByStatusValue (If the opposing engaged Creature has Recklessness, deal damage equal to that Creature's Recklessness value).
+Rhyme of the Reckless | Programado no combate: Efeitos parseados: targetAttackReflectDamage (When target attack deals damage, deal the same amount of damage to the Creature that played that attack).
+Rot Cloud | Programado no combate: Dano base 10, fogo 0, ar 0, terra 0, agua 0, BP 3. Efeitos parseados: dealDamage (deal 5 damage).
+Saand | Programado no combate: Efeitos parseados: invisibilitySurprise, elementModifier (Invisibility: Surprise).
+Slashclaw | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 5. Efeitos parseados: conditionalDealDamageByStatusValue (If your engaged Creature has Recklessness, deal damage equal to twice its Recklessness value).
+Song of Desperation | Programado no combate: Efeitos parseados: dealDamage, statModifier (deal 0 damage).
+Song of the Dyad | Programado no combate: Efeitos parseados: dealDamage, healDamage (Deal 10 damage).
+Strain of Ash | Programado no combate: Efeitos parseados: destroyBattlegear (destroy target Battlegear).
+Strain of Clarity | Programado no combate: Sem efeito parseado (apenas stats/texto base: Choose one: Shuffle target Mirage Location into its controller's Location Deck. If the active Location is a Mirage, shuffle it into its controller's Location deck and th...).
+Strain of Expensive Delusions | Programado no combate: Sem efeito parseado (apenas stats/texto base: Destroy all Battlegear equipped to Creatures in the same space as target Mirage Location. Shuffle it into its controller's Location Deck.).
+Strain of Infection | Programado no combate: Efeitos parseados: mugicCounterModifier (Put a Mugic counter on target Danian Creature for each Creature Uninfected by Strain of Infection this way).
+Strain of the Tide | Programado no combate: Efeitos parseados: healDamage (Heal 10 damage).
+Stupefying Tide | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 5, BP 2. Efeitos parseados: conditionalDamage (Stat Fail Wisdom 50: Deal 10 damage).
+Symmetry Slam | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: attackDamagePerSharedElementType (Deal 5 damage for each Elemental Type shared by both engaged Creatures).
+The Doomhammer | Programado no combate: Efeitos parseados: statModifier, elementModifier (has an additional 50 Power).
+The Hunter's Perimeter | Programado no combate: Efeitos parseados: invisibilitySurprise, revealNewLocation (Invisibility: Surprise).
+Titanix | Programado no combate: Efeitos parseados: keyword, intimidate (Recklessness 20).
+Trampling Tackle | Programado no combate: Dano base 0, fogo 0, ar 0, terra 10, agua 0, BP 1. Efeitos parseados: conditionalDamage (If your engaged Creature has Recklessness, deal 5 damage).
+Tune of Xerium | Programado no combate: Efeitos parseados: returnFromDiscard (return another Battlegear from your general discard pile).
+Twister of Elements | Programado no combate: Dano base 0, fogo 0, ar 5, terra 5, agua 0, BP 1. Efeitos parseados: searchDeckToDiscard (Search your Attack Deck for up to three Attack Cards and put them in your Attack Discard pile, then shuffle your Attack Deck).
+Uboraan | Programado no combate: Efeitos parseados: keyword, elementproof (Recklessness 15).
+Viqtarr | Programado no combate: Efeitos parseados: firstAttackZeroIfHigherCourageAndWisdom (If Viqtarr has both higher Courage and Wisdom than the opposing engaged Creature, the first attack against it each combat deals 0 damage).
+Void Dirge | Programado no combate: Sem efeito parseado (apenas stats/texto base: Remove up to three target cards in one general discard pile from the game.).
+Vyll | Programado no combate: Efeitos parseados: mugicCounterModifier (Remove a Mugic counter from target Creature).
+Warbeast Power Leash | Programado no combate: Efeitos parseados: keyword, statModifier (Recklessness 5).
+Web Cocoon | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: gainElement, statModifier (gains Fire).
+Wind Whip | Programado no combate: Efeitos parseados: keyword (Recklessness 5).
+Wytod | Programado no combate: Efeitos parseados: retargetSingleTargetMugic (Choose a new target for target Mugic which only targets a single Creature).
+Xelfe | Programado no combate: Efeitos parseados: grantRangeAndSwiftFromSourceMugicCounters (Target Creature gains Range and Swift X, where X is the number of Mugic counters on Xelfe.).
+Zapetur | Programado no combate: Efeitos parseados: destroyBattlegear, dealDamage (Destroy target Battlegear).

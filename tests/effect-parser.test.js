@@ -220,6 +220,81 @@ test("parseAbilityEffects reconhece troca de posicoes entre criaturas", () => {
   );
 });
 
+test("parseAbilityEffects reconhece dano direto em criatura alvo com targetSpec global", () => {
+  const text = "Deal 20 damage to target Creature.";
+  const effects = parseAbilityEffects(text);
+  assert.ok(
+    effects.some(
+      (effect) =>
+        effect.kind === "dealDamage"
+        && effect.amount === 20
+        && effect.targetSpec
+        && effect.targetSpec.type === "creature"
+        && effect.targetSpec.scope === "all"
+    )
+  );
+});
+
+test("parseAbilityEffects reconhece Castle Bodhran para retorno de mugic no inicio do combate", () => {
+  const text = "At the beginning of combat, each player can return a Mugic Card from their general discard pile to their hand.";
+  const effects = parseAbilityEffects(text);
+  assert.ok(
+    effects.some(
+      (effect) =>
+        effect.kind === "returnFromDiscard"
+        && effect.cardType === "mugic"
+        && effect.target === "both"
+        && effect.destination === "mugic_slots"
+        && effect.timing === "begin_combat"
+    )
+  );
+});
+
+test("parseAbilityEffects reconhece Coil Crush com destruicao por stat check", () => {
+  const text = "Stat Check Power 75: Choose a Battlegear equipped to an opposing Creature and destroy it.";
+  const effects = parseAbilityEffects(text);
+  assert.ok(
+    effects.some(
+      (effect) =>
+        effect.kind === "destroyBattlegearIfAttackerStatGte"
+        && effect.stat === "power"
+        && effect.threshold === 75
+        && effect.target === "opponent"
+    )
+  );
+  assert.equal(effects.some((effect) => effect.kind === "statModifier" && effect.stat === "power" && effect.amount === 75), false);
+});
+
+test("parseAbilityEffects reconhece begin combat energy com filtro elemental e escopo engajado", () => {
+  const text = "At the beginning of combat, Creatures with Water gain 10 Energy.";
+  const effects = parseAbilityEffects(text);
+  assert.ok(
+    effects.some(
+      (effect) =>
+        effect.kind === "beginCombatEnergy"
+        && effect.amount === 10
+        && effect.scope === "engaged"
+        && effect.requiresElement === "water"
+        && effect.duration === "end_turn"
+    )
+  );
+});
+
+test("parseAbilityEffects reconhece Ekuud com bonus de energia por Mandiblor quando Hive ativa", () => {
+  const text = "Hive: Ekuud has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play.";
+  const effects = parseAbilityEffects(text);
+  assert.ok(
+    effects.some(
+      (effect) =>
+        effect.kind === "hiveEnergyPerControlledCreatureType"
+        && effect.creatureType === "mandiblor"
+        && effect.stat === "energy"
+        && effect.amountPerCreature === 5
+        && effect.requireHiveActive === true
+    )
+  );
+});
+
 test("parseAbilityEffects reconhece mugic counter no inicio do turno para ambos os jogadores", () => {
   const text = "At the beginning of your turn, each player puts a Mugic counter on a Creature they control with no Mugic counters.";
   const effects = parseAbilityEffects(text);

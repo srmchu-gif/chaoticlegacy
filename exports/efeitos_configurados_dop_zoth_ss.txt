@@ -1,0 +1,797 @@
+EFEITOS TECNICOS CONFIGURADOS - SETS DOP/ZOTH/SS
+Gerado em: 2026-05-10T13:44:29.567Z
+Fonte: runtime/chaotic.db + public/js/battle/engine.js + skills/chaotic-effects/references/effects-registry.json
+Total de kinds encontrados: 66
+
+============================================================
+Kind: activateHive
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 11 | Cartas com este kind: 11
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Activate Hive".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Balaan, Bierk, Hive Call, Illexia, The Danian Queen, Junda, Kannen, Mahrrant, Skartalas
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: attackDamageConditionalModifier
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Nao identificado no runtime
+Alvo: Nao identificado | targetSpec=creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "If the opposing engaged Creature is a Danian Creature, damage dealt by Pillar Quake is reduced to 0".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Pillar Quake
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: attackDamageModifier
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 12 | Cartas com este kind: 8
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Contexto do combate atual
+O que faz: Modifica o dano causado por ataques em condicoes especificas.
+Empilha?: Sim (acumula por fonte/resolucao, conforme regras do kind).
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Carnival of Confusion, Everrain, Gloomuck Swamp, Lava Pond, Marquis Darini, Mipedim Lounge, Mipedim Oasis, The Storm Tunnel
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: attackDamagePerControlledCreatureType
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Nao identificado no runtime
+Alvo: Nao identificado | targetSpec=creature:self
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Deal 5 damage for each Mandiblor Creature you control adjacent to your engaged Creature".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Mandiblor Might
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: attackDamagePerControlledTribe
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Nao identificado no runtime
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Deal 5 damage for each Tribe you control beyond the first".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Accelerated Unity
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: attackDamagePerSharedElementType
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Nao identificado no runtime
+Alvo: Nao identificado | targetSpec=creature:self
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Deal 5 damage for each Elemental Type shared by both engaged Creatures".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Symmetry Slam
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: attackDamageVsTribe
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 3 | Cartas com este kind: 2
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Attacks played by Hammerdoom Chantcaller deal an additional 5 damage to Danian Creatures".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Hammerdoom Chantcaller, Hammerdoom Chantcaller, Assimilated
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: battlegearNoAbilities
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Battlegear have no abilities".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Iron Pillar
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: beginCombatDamage
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Nao identificado no runtime
+Alvo: Nao identificado | targetSpec=creature:self
+O que faz: Aplica dano no inicio do combate.
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Cordac Falls Plungepool
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: beginCombatEnergy
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 3 | Cartas com este kind: 3
+Quando ativa (timing): Nao identificado no runtime
+Alvo: Nao identificado | targetSpec=creature:self, creature:opponent
+O que faz: Ajusta energia no inicio do combate.
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Cordac Falls, Doors of the Deepmines, Forest of Life
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: beginCombatGainElementsFromAllies
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=creature:self
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Target Creature gains all Elemental Types your Creatures have".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Danian Element Choral
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: beginCombatLoseEnergyIfLower
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 2 | Cartas com este kind: 2
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=creature:self, creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "If any Creature engaged with Lord Van Bloot has less than 65 Courage, that Creature has 10 less Energy".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Fear Valley, Lord Van Bloot
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: beginCombatMugicCounterHigherStat
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Nao identificado no runtime
+Alvo: Nao identificado | targetSpec=creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "At the beginning of combat, if an engaged Creature has higher Wisdom than the opposing engaged Creature, put a Mugic counter on it".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Castle Pillar
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: canPlayAnyTribeMugic
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 4 | Cartas com este kind: 4
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura/alvo de unidade | targetSpec=mugic:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Heptadd can play Mugic of any tribe".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Chorus of Cothica, Heptadd, Heptadd, (Tin Misprint), Heptadd's Crown
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: canPlaySpecificTribeMugic
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 2 | Cartas com este kind: 2
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura/alvo de unidade
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Kinnianne can play Mipedian Mugic".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Kinnianne, Ambassador to the Mipedians, Raznus, Ambassador to the Danians
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: conditionalDamage
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 48 | Cartas com este kind: 36
+Quando ativa (timing): Nao identificado no runtime
+Alvo: Nao identificado | targetSpec=creature:self
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Challenge Wisdom 15: Deal 10 damage".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Acid Wash, Ash Torrent, Blind Fury, Delerium, Ektospasm, Elementalist's Psy-Blast, Enlightened Tenacity, Fear Fight
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: conditionalDealDamageByStatusValue
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 4 | Cartas com este kind: 4
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=creature:self, creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "If your engaged Creature has Recklessness, deal damage equal to its Recklessness value".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Harnessed Rage, Reckless Defeat, Reckless Reproach, Slashclaw
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: conditionalStatModifier
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 9 | Cartas com este kind: 6
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura/alvo de unidade | target=opponent | targetSpec=creature:opponent
+O que faz: Modifica atributo(s) apenas quando condicao elementar/estado e verdadeira.
+Empilha?: Sim (acumula por fonte/resolucao, conforme regras do kind).
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Degenervate, Ember Swarm, Freeze Flash, Lightning Burst, Rip Tide, Vine Snare
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: countDiscardCreaturesAsControlledType
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (fica ativo enquanto a fonte estiver valida)
+Alvo: Jogador (deck/discard/mao/recursos)
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Mandiblor Creature Cards in your general discard pile count as Mandiblors you control when counting Mandiblors".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Khritlaan
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: dealDamage
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 44 | Cartas com este kind: 43
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura(s) engajadas no combate atual | targetSpec=creature:self
+O que faz: Aplica dano direto no alvo definido.
+Empilha?: Sim (acumula por fonte/resolucao, conforme regras do kind).
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Arkanin, Geltod, Kamangareth, Khavakk, Klasp, Kopond, Lore, Narfall
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: destroyBattlegear
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 6 | Cartas com este kind: 6
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura(s) engajadas no combate atual | target=any, opponent | targetSpec=battlegear:any, creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "destroy target Battlegear".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Atrapol, Danian Carapace, Discord of Disarming, Strain of Ash, Ur-Shard, Zapetur
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: disableMugicAndActivated
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Mugic and activated abilities cannot be played".
+Empilha?: Nao (efeito de bloqueio/set normalmente sobrescreve estado).
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Dranakis Threshold
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: disableTribalMugic
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 2 | Cartas com este kind: 2
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=mugic:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Tribal Mugic cannot be played".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Iron Balls, Runic Grove
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: drawDiscardAttack
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 2 | Cartas com este kind: 2
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Jogador (deck/discard/mao/recursos) | target=self
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Draw an Attack Card and discard an Attack Card".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Blaze Barrage, Melodic Might
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: elementModifier
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 28 | Cartas com este kind: 26
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura/alvo de unidade | targetSpec=creature:self
+O que faz: Adds elemental attack damage (+5 no elemento quando ataque possui o elemento).
+Empilha?: Sim (acumula por fonte/resolucao, conforme regras do kind).
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Barath Beyond, Blazvatan, The Epic Warbeast, Blügon, Crawsectus, Dasalin, Intress, Jaal, Lomma
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: elementproof
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 15 | Cartas com este kind: 8
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=creature:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Fireproof 10".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Ice Cloak, Kelvedran, Lobanne, Mount Pillar Reservoir, Ornathor, Prelude of Protection, Raznus, Ambassador to the Danians, Uboraan
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: firstAttackZeroIfHigherCourageAndWisdom
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (fica ativo enquanto a fonte estiver valida)
+Alvo: Contexto do combate atual | targetSpec=creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "If Viqtarr has both higher Courage and Wisdom than the opposing engaged Creature, the first attack against it each combat deals 0 damage".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Viqtarr
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: firstAttackZeroIfLower
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "If an engaged Creature has lower Speed than the opposing engaged Creature, it deals 0 damage on its first attack each combat".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Crystal Cave
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: flipBattlegear
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 4 | Cartas com este kind: 4
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | target=self, all, opponent | targetSpec=battlegear:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Flip target Battlegear face-up or face-down".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Garv, Gear Glissando, Gear Grind, Windslash
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: flipTargetBattlegearOnMugicCounterGain
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Disparado por evento/condicao (trigger)
+Alvo: Battlegear/equipamento | targetSpec=battlegear:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "When a Creature you control has a Mugic counter put on it, flip target face-up Battlegear face-down".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Dispara no evento; efeito resultante segue duracao propria.
+Exemplos de cartas (DOP/ZOTH/SS): Olkiex
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: gainElement
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 24 | Cartas com este kind: 18
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura/alvo de unidade
+O que faz: Concede elemento(s) temporario(s) ou persistentes conforme o efeito.
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Arborsmash, Cyclance, Dexterous Storm, Faash, Hive-phoon, Hydro Balls, Matagore, Web Cocoon
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: grantRangeAndSwiftFromSourceMugicCounters
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura/alvo de unidade | targetSpec=creature:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Target Creature gains Range and Swift X, where X is the number of Mugic counters on Xelfe.".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Xelfe
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: healDamage
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 30 | Cartas com este kind: 29
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura(s) engajadas no combate atual | targetSpec=creature:self
+O que faz: Cura dano (energia) no alvo definido.
+Empilha?: Sim (acumula por fonte/resolucao, conforme regras do kind).
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Arkanin, Dasalin, Donmar, Karraba, Lore, Maxxor, Owis, Ranun
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: hiveGranted
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 17 | Cartas com este kind: 17
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Hive: Fireproof 10".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Bierk, Daj Huun, Dasalin, Ekuud, Faash, Formicidor, Galin, Hammerdoom Chantcaller, Assimilated
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: incomingDamageReduction
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 10 | Cartas com este kind: 9
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=creature:self, creature:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Bylkian, Cascade Symphony, Catacombs of the Conjurors, Drimesse, Fivarth, Gnarlus, OverWorld Aria, Ranun
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: incomingFirstAttackDamageReduction
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (fica ativo enquanto a fonte estiver valida)
+Alvo: Contexto do combate atual
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "The first attack against Lomma each combat deals 10 less damage".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Lomma
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: infectTargetCreature
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 3 | Cartas com este kind: 3
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura/alvo de unidade | targetSpec=creature:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Infect target Uninfected Creature".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Balaan, Dubin, Makrabon
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: infectTargetedOpposingUninfectedCreature
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Disparado por evento/condicao (trigger)
+Alvo: Tabuleiro/campo (posicoes, local, estado global) | targetSpec=creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "When an opposing Uninfected Creature is targeted by a Mugic you control, Infect that Creature".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Dispara no evento; efeito resultante segue duracao propria.
+Exemplos de cartas (DOP/ZOTH/SS): Yondaf
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: intimidate
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 16 | Cartas com este kind: 11
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Intimidate: Power 10".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Barath Beyond, Borth-Majar, Dardemus, Grook, Khybon, Krekk, Kughar, Pyrithion
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: invisibilityDisarm
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 3 | Cartas com este kind: 3
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Invisibility: Disarm".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Kolmo, Munnari, Ribbian
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: invisibilityStrike
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 16 | Cartas com este kind: 15
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Invisibility: Strike 15".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Ario, Ario, (Misprint), Biondu, Brathe, Kolmo, Kolmo, Assimilated, Malvadine, Melke
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: invisibilitySurprise
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 8 | Cartas com este kind: 8
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Invisibility: Surprise".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Kolmo, Assimilated, Malvadine, Qwun, Saand, Siado, The Hunter's Perimeter, Uro, Zhade
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: keyword
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 56 | Cartas com este kind: 45
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=creature:self
+O que faz: Concede palavra-chave/restricao de combate (ex.: Swift, Invisibility, Recklessness).
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Aggroar, Attacat, Barath Beyond, Blazvatan, The Epic Warbeast, Daj Huun, Dractyl, Enre-hep, Ere
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: locationEnterRemoveAllElements
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "When this becomes the active Location, Creatures lose all Elemental Types".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Carnival of Confusion
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: moveAsIfAdjacent
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (fica ativo enquanto a fonte estiver valida)
+Alvo: Criatura/alvo de unidade
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Ubliqun can move to any space as if it were adjacent".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Ubliqun
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: mugicCounterModifier
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 18 | Cartas com este kind: 17
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura/alvo de unidade | target=self, opponent | targetSpec=creature:self, creature:all, creature:opponent
+O que faz: Adiciona/remove counters de Mugic em alvo valido.
+Empilha?: Sim (acumula por fonte/resolucao, conforme regras do kind).
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Clodor, Dibanni, Enre-hep, Hune Marquard, Illazar, Illexia, The Danian Queen, Kalt, Mahrrant
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: mugicDamageModifier
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Mugic played by Creatures you control that deal damage deal an additional 5 damage".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Drakness
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: negateMugic
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=mugic:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Negate target Mugic".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Refrain of Denial
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: negateMugicOrAbilityTargeting
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Pilha de efeitos/mugic/ativacoes | targetSpec=mugic:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Negate target OverWorld Mugic or ability that targets Chaor".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Chaor
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: onMugicCounterAddedLoseEnergy
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Disparado por evento/condicao (trigger)
+Alvo: Criatura/alvo de unidade
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "When Strikto has a Mugic counter put on it, it loses 10 Energy".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Dispara no evento; efeito resultante segue duracao propria.
+Exemplos de cartas (DOP/ZOTH/SS): Strikto
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: onTakeDamageSourceLosesEnergy
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Disparado por evento/condicao (trigger)
+Alvo: Contexto do combate atual | targetSpec=creature:self
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "When a Creature deals damage to Strikto, that Creature loses 5 Energy".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Dispara no evento; efeito resultante segue duracao propria.
+Exemplos de cartas (DOP/ZOTH/SS): Strikto
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: relocateEffect
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 4 | Cartas com este kind: 4
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Tabuleiro/campo (posicoes, local, estado global) | target=self, all | targetSpec=creature:self, creature:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "relocate it to any unoccupied space".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Hunter's Lure, Kolmo, Assimilated, Phelphor, The Barracks
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: removeElement
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 9 | Cartas com este kind: 9
+Quando ativa (timing): Ativado (inferido por ACTIVATABLE_EFFECT_KINDS)
+Alvo: Nao identificado | target=self | targetSpec=creature:self
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Your engaged Creature loses Water".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Degenervate, Hurlicane, Incinerase, Liquescent Swirl, Malevolent Blast, Mirthquake, Mugician Steal, Sunder Ground
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: removeInvisibility
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Nao identificado no runtime
+Alvo: Nao identificado | target=self
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Target Creature loses Invisibility".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Nao explicitada no registro; depende do handler especifico.
+Exemplos de cartas (DOP/ZOTH/SS): Song of Truesight
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: retargetSingleTargetMugic
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Pilha de efeitos/mugic/ativacoes | targetSpec=mugic:stack
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Choose a new target for target Mugic which only targets a single Creature".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Wytod
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: returnFromDiscard
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 5 | Cartas com este kind: 5
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Jogador (deck/discard/mao/recursos) | targetSpec=mugic:self
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Return a Mandiblor Creature Card from your general discard pile".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Castle Bodhran, Kannen, Mugic Reprise, Najarin, Tune of Xerium
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: revealNewLocation
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 4 | Cartas com este kind: 4
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Tabuleiro/campo (posicoes, local, estado global)
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Reveal a new active Location".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Hymn of Teleportation, Mirthquake, Telebracers, The Hunter's Perimeter
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: scryDeck
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 8 | Cartas com este kind: 8
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Jogador (deck/discard/mao/recursos) | targetSpec=player:all, player:self
+O que faz: Permite olhar/reordenar cartas do topo de um deck (ex.: location/attack).
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Blazier, Flash Kick, Flux Bauble, H'earring, Orb of Foresight, Song of Futuresight, Squeeze Play, Terraport
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: searchDeckToDiscard
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Search your Attack Deck for up to three Attack Cards and put them in your Attack Discard pile, then shuffle your Attack Deck".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Twister of Elements
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: setDisciplinesToOpposingScanned
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "At the beginning of combat, Iparu gains or loses Courage, Power, Wisdom and Speed so those values become equal to the opposing engaged Creature's Scanned Courage, Power, Wisdom and Speed".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Iparu
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: shuffleAttackDeckWithDiscard
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Jogador (deck/discard/mao/recursos) | target=both
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Both players shuffle their Attack Decks and Attack Discard piles together".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Tornado Tackle
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: statModifier
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 80 | Cartas com este kind: 60
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Criatura/alvo de unidade | target=self | targetSpec=creature:self
+O que faz: Aplica modificador direto de atributo(s) na criatura/alvo.
+Empilha?: Sim (acumula por fonte/resolucao, conforme regras do kind).
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Arias, Bodal, Daj Huun, Dubin, Ekuud, Formicidor, Frafdo, Galin
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: suppressOpposingBattlegear
+Status no motor: parcial
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | targetSpec=creature:opponent
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Flip all Battlegear equipped to the opposing engaged Creature face-down".
+Empilha?: Sim por resolucoes multiplas na pilha de ataques/efeitos.
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Elemental Oxidation
+Observacoes/Gaps: GAP: metadata/whitelist existe, mas nao foi encontrada branch explicita "if (effect.kind === ...)" no runtime.
+
+============================================================
+Kind: targetAttackDamageSet
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 3 | Cartas com este kind: 3
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado | target=self | targetSpec=attack:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "Target attack deals 5 damage".
+Empilha?: Nao (efeito de bloqueio/set normalmente sobrescreve estado).
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Arbeid, Entropy Modulator, Melody of Mirage
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+
+============================================================
+Kind: targetAttackReflectDamage
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Burst (resolve na pilha de efeito imediatamente)
+Alvo: Ataque atual ou ataque alvo | targetSpec=attack:all
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "When target attack deals damage, deal the same amount of damage to the Creature that played that attack".
+Empilha?: Depende da combinacao de fontes e do proprio kind.
+Duracao: Instantanea na resolucao; resultado pode persistir conforme estado alterado.
+Exemplos de cartas (DOP/ZOTH/SS): Rhyme of the Reckless
+Observacoes/Gaps: Nenhum gap critico identificado para este kind pela heuristica atual.
+
+============================================================
+Kind: tribeStatModifier
+Status no motor: suportado
+Ocorrencias (DOP/ZOTH/SS): 1 | Cartas com este kind: 1
+Quando ativa (timing): Passivo (inferido por PASSIVE_EFFECT_KINDS)
+Alvo: Nao identificado
+O que faz: Implementacao guiada pelo parser/runtime. Exemplo de texto mapeado: "OverWorld Creatures have an additional 10 Energy".
+Empilha?: Sim (acumula por fonte/resolucao, conforme regras do kind).
+Duracao: Enquanto a fonte permanecer ativa e condicoes forem verdadeiras.
+Exemplos de cartas (DOP/ZOTH/SS): Kiru City
+Observacoes/Gaps: Nota: handler explicito existe, mas sem entrada dedicada no EFFECT_RUNTIME_REGISTRY.
+

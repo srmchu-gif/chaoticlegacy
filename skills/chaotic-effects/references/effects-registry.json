@@ -1,0 +1,107 @@
+{
+  "registry_version": "1.0.0",
+  "updated_at": "2026-05-10",
+  "schema": {
+    "required_fields": [
+      "effect_name",
+      "kind",
+      "status",
+      "timing",
+      "target_rule",
+      "condition_rule",
+      "exact_rule",
+      "stacking_rule",
+      "duration_rule",
+      "exceptions",
+      "examples"
+    ],
+    "status_flow": [
+      "draft",
+      "reviewed",
+      "ready_to_implement"
+    ]
+  },
+  "effects": [
+    {
+      "effect_name": "ELEMENTO_X",
+      "kind": "elemento_x",
+      "status": "reviewed",
+      "timing": {
+        "summary": "Always active according to source context",
+        "rules": [
+          "Creature source: always active while creature is active in battle.",
+          "Battlegear source: active only while gear is face-up on equipped creature.",
+          "Mugic source: active until end of turn.",
+          "Location source: active while location is active; target resolution must follow location text."
+        ]
+      },
+      "target_rule": {
+        "summary": "Target depends on source",
+        "rules": [
+          "Creature source: self target.",
+          "Battlegear source: equipped creature target.",
+          "Mugic source: targeted creature target.",
+          "Location source: target defined by location effect text."
+        ]
+      },
+      "condition_rule": {
+        "summary": "No extra gate besides source validity and target validity",
+        "rules": [
+          "Effect applies only if source is currently active.",
+          "Effect applies only if target is currently valid."
+        ]
+      },
+      "exact_rule": {
+        "summary": "Adds elemental attack damage",
+        "rules": [
+          "Target gets +5 damage for the configured element whenever it executes an attack that has that same element."
+        ]
+      },
+      "stacking_rule": {
+        "enabled": true,
+        "rules": [
+          "Multiple active ELEMENTO_X sources stack additively."
+        ]
+      },
+      "duration_rule": {
+        "summary": "Bound to source scope",
+        "rules": [
+          "Creature and battlegear duration persist while source remains active.",
+          "Mugic duration ends at end of turn.",
+          "Location duration persists while location remains active."
+        ]
+      },
+      "exceptions": [
+        "None explicitly defined yet."
+      ],
+      "examples": [
+        "If target has ELEMENTO_X configured as water, each water attack from that target gains +5 water damage.",
+        "If two separate active sources grant ELEMENTO_X water, total bonus is +10 water damage."
+      ],
+      "params": {
+        "element": "fire|air|earth|water",
+        "amount": 5,
+        "source_scope": "creature|battlegear|mugic|location",
+        "duration_mode": "while_active|until_end_of_turn",
+        "target_mode": "self|equipped|targeted|location_defined"
+      },
+      "implementation_notes": {
+        "preferred_mapping": [
+          {
+            "layer": "parser",
+            "kind": "elementModifier",
+            "notes": "Use existing element modifier model when source text is direct and static."
+          },
+          {
+            "layer": "engine",
+            "kind": "elementModifier",
+            "notes": "Apply on attack resolution for matching element only."
+          }
+        ],
+        "gaps": [
+          "Need explicit location-target resolution path for all location templates."
+        ]
+      }
+    }
+  ]
+}
