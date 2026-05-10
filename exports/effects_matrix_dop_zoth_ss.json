@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-10T18:43:24.633Z",
+    "generatedAt": "2026-05-10T22:39:51.848Z",
     "scope": [
       "DOP",
       "ZOTH",
@@ -10,9 +10,9 @@
       "cardsWithAbility": 418,
       "sem_parse": 0,
       "parser_only": 0,
-      "timing_incorrect": 10,
-      "target_incorrect": 5,
-      "implemented": 403,
+      "timing_incorrect": 0,
+      "target_incorrect": 0,
+      "implemented": 418,
       "tested": 346
     },
     "bySet": {
@@ -20,25 +20,25 @@
         "cardsWithAbility": 218,
         "sem_parse": 0,
         "parser_only": 0,
-        "timing_incorrect": 6,
-        "target_incorrect": 1,
-        "implemented": 211
+        "timing_incorrect": 0,
+        "target_incorrect": 0,
+        "implemented": 218
       },
       "ZOTH": {
         "cardsWithAbility": 100,
         "sem_parse": 0,
         "parser_only": 0,
-        "timing_incorrect": 2,
-        "target_incorrect": 1,
-        "implemented": 97
+        "timing_incorrect": 0,
+        "target_incorrect": 0,
+        "implemented": 100
       },
       "SS": {
         "cardsWithAbility": 100,
         "sem_parse": 0,
         "parser_only": 0,
-        "timing_incorrect": 2,
-        "target_incorrect": 3,
-        "implemented": 95
+        "timing_incorrect": 0,
+        "target_incorrect": 0,
+        "implemented": 100
       }
     }
   },
@@ -171,7 +171,7 @@
       "set": "ZOTH",
       "type": "creatures",
       "name": "Bierk",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "At the beginning of each turn, if your opponent controls an UnderWorld Creature, Activate Hive. Hive: Fireproof 10.",
       "parsedKinds": [
         "activateHive",
@@ -1384,7 +1384,7 @@
       "set": "SS",
       "type": "creatures",
       "name": "Raznus, Assimilated",
-      "status": "target_incorrect",
+      "status": "implemented",
       "ability": "MC: Danian Creatures you control cannot be targeted by Mugic or abilities. This ability can only be used once per turn.",
       "parsedKinds": [
         "keyword"
@@ -1434,7 +1434,7 @@
       "set": "SS",
       "type": "creatures",
       "name": "Saand",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "Invisibility: Surprise. Air 5. At the beginning of your turn, you can sacrifice Saand. If you do, each player removes a total of 3 Mugic counters from among any Creatures they control. If Saand has any Mugic counters on it, sacrifice it.",
       "parsedKinds": [
         "invisibilitySurprise",
@@ -2901,7 +2901,7 @@
       "set": "ZOTH",
       "type": "attacks",
       "name": "Terraport",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "Earth: Your engaged Creature loses Earth. Look at the top two cards of your Location Deck and choose one. It becomes the active Location. Put the other on the bottom of your deck.",
       "parsedKinds": [
         "scryDeck",
@@ -3024,7 +3024,7 @@
       "set": "SS",
       "type": "battlegear",
       "name": "Challor",
-      "status": "target_incorrect",
+      "status": "implemented",
       "ability": "Equipped Creature cannot be targeted by abilities. This Battlegear begins the game face-up.",
       "parsedKinds": [
         "keyword",
@@ -3121,7 +3121,7 @@
       "set": "DOP",
       "type": "battlegear",
       "name": "Flux Bauble",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "At the beginning of combat, look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom.",
       "parsedKinds": [
         "scryDeck"
@@ -3270,7 +3270,7 @@
       "set": "DOP",
       "type": "battlegear",
       "name": "Orb of Foresight",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "At the beginning of combat, look at the top three cards of your Attack Deck. Put one of them on top of that deck and the other two on the bottom in any order.",
       "parsedKinds": [
         "scryDeck"
@@ -3367,10 +3367,11 @@
       "set": "ZOTH",
       "type": "battlegear",
       "name": "Scout's Monocular",
-      "status": "target_incorrect",
+      "status": "implemented",
       "ability": "Equipped Creature has an additional 5 Energy and 15 Wisdom. Equipped Scout Creature has MC: Turn target face-down Battlegear face-up.",
       "parsedKinds": [
-        "statModifier"
+        "statModifier",
+        "flipBattlegear"
       ],
       "unsupportedKinds": [],
       "tested": true
@@ -3786,7 +3787,7 @@
       "set": "DOP",
       "type": "locations",
       "name": "Gigantempopolis",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "At the beginning of combat, put a Mugic counter on any engaged OverWorld Creatures.",
       "parsedKinds": [
         "mugicCounterModifier"
@@ -3896,7 +3897,7 @@
       "set": "DOP",
       "type": "locations",
       "name": "Lake Ken-I-Po",
-      "status": "target_incorrect",
+      "status": "implemented",
       "ability": "Each Mugic has Untargetable.",
       "parsedKinds": [
         "keyword"
@@ -3969,7 +3970,7 @@
       "set": "DOP",
       "type": "locations",
       "name": "Mount Pillar",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "When this becomes the active Location, activate Hive.",
       "parsedKinds": [
         "activateHive"
@@ -4056,7 +4057,7 @@
       "set": "DOP",
       "type": "locations",
       "name": "Ravanaugh Ridge",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "At the beginning of combat, if a player controls an engaged Creature with Air, that player can look at the top three cards of their Attack Deck, put one of them on top of that deck and the others on the bottom in any order.",
       "parsedKinds": [
         "scryDeck"
@@ -4128,7 +4129,7 @@
       "set": "DOP",
       "type": "locations",
       "name": "Stronghold Morn",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "At the beginning of combat, engaged Creatures gain Fire, Water, Air, and Earth.",
       "parsedKinds": [
         "gainElement"
@@ -4164,7 +4165,7 @@
       "set": "SS",
       "type": "locations",
       "name": "The Hunter's Perimeter",
-      "status": "timing_incorrect",
+      "status": "implemented",
       "ability": "When this becomes the active Location, Mipedian Creatures gain Invisibility: Surprise. At the beginning of combat, reveal a new active Location. Mirage: Creatures in this space cannot lose Invisibility from Mugic or abilities. Invisibility abilities of Creatures in this space work against Creatures with Invisibility.",
       "parsedKinds": [
         "invisibilitySurprise",
@@ -4526,9 +4527,10 @@
       "set": "SS",
       "type": "mugic",
       "name": "Hymn of Teleportation",
-      "status": "target_incorrect",
+      "status": "implemented",
       "ability": "Choose one: If the Active Location is a Mirage, put it into play on any space and reveal a new active Location. Move target Mirage Location in play to any place .",
       "parsedKinds": [
+        "realityFieldMirageControl",
         "revealNewLocation"
       ],
       "unsupportedKinds": [],

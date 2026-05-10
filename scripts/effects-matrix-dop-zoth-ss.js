@@ -57,10 +57,13 @@ function inferTimingStatus(card) {
     return ok ? null : "timing_incorrect";
   }
   if (text.includes("at the beginning of your turn") || text.includes("at the beginning of each turn")) {
+    if (text.includes("if you do, each player removes a total of") && text.includes("mugic counters")) {
+      return null;
+    }
     const ok = hasTiming("begin_turn") || hasSourcePrefix("at the beginning of your turn") || hasSourcePrefix("at the beginning of each turn");
     return ok ? null : "timing_incorrect";
   }
-  if (text.includes("becomes the active location")) {
+  if (text.includes("when this becomes the active location") || text.includes("whenever this becomes the active location")) {
     const ok = hasTiming("location_step") || hasSourcePrefix("becomes the active location");
     return ok ? null : "timing_incorrect";
   }
@@ -69,7 +72,7 @@ function inferTimingStatus(card) {
 
 function inferTargetStatus(card) {
   const text = String(card?.ability || "").toLowerCase();
-  if (!text.includes("target")) {
+  if (!/\btarget\b/.test(text)) {
     return null;
   }
   const effects = Array.isArray(card?.parsedEffects) ? card.parsedEffects : [];

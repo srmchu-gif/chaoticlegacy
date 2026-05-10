@@ -1,0 +1,23 @@
+Relatorio - Cartas Efeitos Oficiais Tecnico
+Gerado em: 2026-05-10T22:09:15.154Z
+Entrada: C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\exports\todas_cartas_por_set_ordem.txt
+Saida: C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\exports\cartas_efeitos_oficiais_tecnico.txt
+
+Total entrada: 1478
+Total linhas saida: 1478
+Nao resolvidas: 0
+Casos ambiguos: 4
+
+Match stats:
+- exact_set_raw: 1401
+- global_name: 62
+- alias: 11
+- alias_disambiguated: 4
+
+Ambiguidades (resolvidas por prioridade):
+- (Unused) Borth-Majar [UNKNOWN] -> DOP Borth-Majar | candidatos: DOP Borth-Majar ; PE1 Borth-Majar
+- (Unused) Chaor [UNKNOWN] -> DOP Chaor | candidatos: DOP Chaor ; PE1 Chaor
+- (Unused) Lord Van Bloot [UNKNOWN] -> DOP Lord Van Bloot | candidatos: DOP Lord Van Bloot ; PE1 Lord Van Bloot
+- (Unused) Phelphor [UNKNOWN] -> SS Phelphor | candidatos: SS Phelphor ; PE1 Phelphor
+
+Regressao vs legado (DOP/ZOTH/SS): 530 linhas divergentes (amostra no JSON).

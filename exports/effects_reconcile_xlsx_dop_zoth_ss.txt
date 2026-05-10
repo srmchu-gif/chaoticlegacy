@@ -1,0 +1,15 @@
+Reconciliacao XLSX x Runtime (DOP/ZOTH/SS)
+Gerado em: 2026-05-10T22:39:52.133Z
+XLSX: C:/Users/samue/Downloads/cartas.xlsx
+
+Linhas XLSX (escopo): 446
+Cartas runtime (escopo): 434
+Match: 433
+Sem match no runtime: 13
+Sem match no XLSX: 1
+
+Status:
+- ok: 418
+- no_text_base: 15
+
+Gaps:

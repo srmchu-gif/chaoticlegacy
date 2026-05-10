@@ -1,0 +1,678 @@
+{
+  "generatedAt": "2026-05-10T22:09:15.154Z",
+  "inputFile": "C:\\Users\\samue\\Downloads\\1\\LIVRE PARA O CODEX\\chaotic-api-main\\exports\\todas_cartas_por_set_ordem.txt",
+  "outputFile": "C:\\Users\\samue\\Downloads\\1\\LIVRE PARA O CODEX\\chaotic-api-main\\exports\\cartas_efeitos_oficiais_tecnico.txt",
+  "totals": {
+    "inputCards": 1478,
+    "outputLines": 1478,
+    "unresolved": 0,
+    "ambiguousCases": 4
+  },
+  "matchStats": {
+    "exact_set_raw": 1401,
+    "global_name": 62,
+    "alias": 11,
+    "alias_disambiguated": 4
+  },
+  "unresolved": [],
+  "ambiguous": [
+    {
+      "input": "(Unused) Borth-Majar",
+      "set": "UNKNOWN",
+      "selected": "DOP Borth-Majar",
+      "candidates": [
+        "DOP Borth-Majar",
+        "PE1 Borth-Majar"
+      ],
+      "matchKind": "alias_disambiguated"
+    },
+    {
+      "input": "(Unused) Chaor",
+      "set": "UNKNOWN",
+      "selected": "DOP Chaor",
+      "candidates": [
+        "DOP Chaor",
+        "PE1 Chaor"
+      ],
+      "matchKind": "alias_disambiguated"
+    },
+    {
+      "input": "(Unused) Lord Van Bloot",
+      "set": "UNKNOWN",
+      "selected": "DOP Lord Van Bloot",
+      "candidates": [
+        "DOP Lord Van Bloot",
+        "PE1 Lord Van Bloot"
+      ],
+      "matchKind": "alias_disambiguated"
+    },
+    {
+      "input": "(Unused) Phelphor",
+      "set": "UNKNOWN",
+      "selected": "SS Phelphor",
+      "candidates": [
+        "SS Phelphor",
+        "PE1 Phelphor"
+      ],
+      "matchKind": "alias_disambiguated"
+    }
+  ],
+  "semanticSample": {
+    "Creature": [
+      {
+        "carta": "Arias",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Ario",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Ario, (Misprint)",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Attacat",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Barath Beyond",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      }
+    ],
+    "Attack": [
+      {
+        "carta": "Allmageddon",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Ash Torrent",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Coil Crush",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Degenervate",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Delerium",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      }
+    ],
+    "Battlegear": [
+      {
+        "carta": "Aqua Shield",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Cyclance",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Diamond of Vlaric",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Dragon Pulse",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Elixir of Tenacity",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      }
+    ],
+    "Location": [
+      {
+        "carta": "Castle Bodhran",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Castle Pillar",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Cordac Falls",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Cordac Falls Plungepool",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Crystal Cave",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      }
+    ],
+    "Mugic": [
+      {
+        "carta": "Canon of Casualty",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Cascade Symphony",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Chorus of the Hive",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Decrescendo",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      },
+      {
+        "carta": "Discord of Disarming",
+        "okTrigger": true,
+        "okTargets": true,
+        "okCosts": true,
+        "okDamage": true,
+        "okDuration": true
+      }
+    ]
+  },
+  "regression": {
+    "comparedAgainst": "C:\\Users\\samue\\Downloads\\1\\LIVRE PARA O CODEX\\chaotic-api-main\\exports\\cartas_sets_liberados_dop_zoth_ss_v2.txt",
+    "changedCount": 530,
+    "sample": [
+      {
+        "name": "Allmageddon",
+        "previous": "Programado no combate: BP 5, dano base 10, fire 10, air 10, earth 10, water 10. Sem efeito parseado (stats/texto base apenas)",
+        "current": "Carta=Allmageddon | Tipo=Attack | Set=DOP | EfeitoOficial=Sem texto de habilidade impresso. | Funcionamento=Ataque sem texto adicional: aplica apenas os danos impressos (base/elementais) na resolução do ataque. | Dano={base:10,fire:10,water:10,air:10,earth:10,mugic:0,adicional:N/A,janela:resolucao_do_ataque} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} | Custos={mc:0,ati"
+      },
+      {
+        "name": "Aqua Shield",
+        "previous": "Programado no combate: healDamage(amount=15, targetSpec=creature:all); statModifier(stat=energy, amount=5, targetSpec=creature:self)",
+        "current": "Carta=Aqua Shield | Tipo=Battlegear | Set=DOP | EfeitoOficial=Equipped Creature has an additional 5 Energy. Sacrifice Aqua Shield: Heal 15 damage to target Creature. | Funcionamento=Efeito oficial: \"Equipped Creature has an additional 5 Energy. Sacrifice Aqua Shield: Heal 15 damage to target Creature.\". Em regras, resolve quando o custo é pago e a habilidade resolve, gerando: healDamage, statModifier. | Dano={base:0,"
+      },
+      {
+        "name": "Arias",
+        "previous": "Programado no combate: statModifier(stat=power, amount=5)",
+        "current": "Carta=Arias | Tipo=Creature | Set=DOP | EfeitoOficial=Support: Power 5. | Funcionamento=Efeito oficial: \"Support: Power 5.\". Em regras, resolve na janela definida pelo texto, gerando: statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:power,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sacrifici"
+      },
+      {
+        "name": "Ario",
+        "previous": "Programado no combate: invisibilityStrike(amount=15)",
+        "current": "Carta=Ario | Tipo=Creature | Set=DOP | EfeitoOficial=Invisibility: Strike 15. | Funcionamento=Efeito oficial: \"Invisibility: Strike 15.\". Em regras, resolve na janela definida pelo texto, gerando: invisibilityStrike. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:invisibilityStrike:15,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} | "
+      },
+      {
+        "name": "Ario, (Misprint)",
+        "previous": "Programado no combate: invisibilityStrike(amount=10)",
+        "current": "Carta=Ario, (Misprint) | Tipo=Creature | Set=DOP | EfeitoOficial=Invisibility: Strike 10. | Funcionamento=Efeito oficial: \"Invisibility: Strike 10.\". Em regras, resolve na janela definida pelo texto, gerando: invisibilityStrike. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:invisibilityStrike:10,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,"
+      },
+      {
+        "name": "Ash Torrent",
+        "previous": "Programado no combate: BP 1, dano base 0, fire 5, air 0, earth 5, water 0. conditionalDamage(stat=power, amount=10, threshold=15, mode=challenge, comparator=diffGte)",
+        "current": "Carta=Ash Torrent | Tipo=Attack | Set=DOP | EfeitoOficial=Challenge Power 15: Deal 10 damage. (Compare the Discipline of the Creature that played this Attack with the opposing engaged Creature. If yours has that amount or more higher, deal the damage.) | Funcionamento=Efeito oficial: \"Challenge Power 15: Deal 10 damage. (Compare the Discipline of the Creature that played this Attack with the opposing engaged Creature"
+      },
+      {
+        "name": "Attacat",
+        "previous": "Programado no combate: keyword(amount=1, keyword=swift)",
+        "current": "Carta=Attacat | Tipo=Creature | Set=DOP | EfeitoOficial=Swift 1. | Funcionamento=Efeito oficial: \"Swift 1.\". Em regras, resolve na janela definida pelo texto, gerando: keyword. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sacrificio:nao,descarte:nao,pass"
+      },
+      {
+        "name": "Barath Beyond",
+        "previous": "Programado no combate: keyword(amount=5, keyword=recklessness); intimidate(stat=power, amount=10); elementModifier(stat=fire, amount=5)",
+        "current": "Carta=Barath Beyond | Tipo=Creature | Set=DOP | EfeitoOficial=Fire 5. Intimidate: Power 10. Recklessness 5. | Funcionamento=Efeito oficial: \"Fire 5. Intimidate: Power 10. Recklessness 5.\". Em regras, resolve na janela definida pelo texto, gerando: keyword, intimidate, elementModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:intimidate:10,janela:conforme_trigger} | Condicoes={stat_check:N/A,chall"
+      },
+      {
+        "name": "Biondu",
+        "previous": "Programado no combate: invisibilityStrike(amount=15)",
+        "current": "Carta=Biondu | Tipo=Creature | Set=DOP | EfeitoOficial=Invisibility: Strike 15. | Funcionamento=Efeito oficial: \"Invisibility: Strike 15.\". Em regras, resolve na janela definida pelo texto, gerando: invisibilityStrike. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:invisibilityStrike:15,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} "
+      },
+      {
+        "name": "Blazier",
+        "previous": "Programado no combate: scryDeck(targetSpec=player:all)",
+        "current": "Carta=Blazier | Tipo=Creature | Set=DOP | EfeitoOficial=MC: Look at the top two cards of target player's Location Deck. Put one of them on top of that deck and the other on the bottom. | Funcionamento=Efeito oficial: \"MC: Look at the top two cards of target player's Location Deck. Put one of them on top of that deck and the other on the bottom.\". Em regras, resolve quando o custo é pago e a habilidade resolve, gerand"
+      },
+      {
+        "name": "Blügon",
+        "previous": "Programado no combate: elementModifier(stat=water, amount=5)",
+        "current": "Carta=Blügon | Tipo=Creature | Set=DOP | EfeitoOficial=Water 5. | Funcionamento=Efeito oficial: \"Water 5.\". Em regras, resolve na janela definida pelo texto, gerando: elementModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:water,disciplina:N/A,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sacrificio:nao,descarte"
+      },
+      {
+        "name": "Bodal",
+        "previous": "Programado no combate: statModifier(stat=wisdom, amount=5)",
+        "current": "Carta=Bodal | Tipo=Creature | Set=DOP | EfeitoOficial=Support: Wisdom 5. | Funcionamento=Efeito oficial: \"Support: Wisdom 5.\". Em regras, resolve na janela definida pelo texto, gerando: statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:wisdom,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sacrif"
+      },
+      {
+        "name": "Borth-Majar",
+        "previous": "Programado no combate: intimidate(stat=power, amount=10); intimidate(stat=wisdom, amount=10)",
+        "current": "Carta=Borth-Majar | Tipo=Creature | Set=DOP | EfeitoOficial=Intimidate: Power 10. Intimidate: Wisdom 10. | Funcionamento=Efeito oficial: \"Intimidate: Power 10. Intimidate: Wisdom 10.\". Em regras, resolve na janela definida pelo texto, gerando: intimidate. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:intimidate:10,intimidate:10,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,element"
+      },
+      {
+        "name": "Brathe",
+        "previous": "Programado no combate: invisibilityStrike(amount=15)",
+        "current": "Carta=Brathe | Tipo=Creature | Set=DOP | EfeitoOficial=Invisibility: Strike 15. | Funcionamento=Efeito oficial: \"Invisibility: Strike 15.\". Em regras, resolve na janela definida pelo texto, gerando: invisibilityStrike. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:invisibilityStrike:15,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} "
+      },
+      {
+        "name": "Canon of Casualty",
+        "previous": "Programado no combate: dealDamage(amount=20, targetSpec=creature:all)",
+        "current": "Carta=Canon of Casualty | Tipo=Mugic | Set=DOP | EfeitoOficial=Deal 20 damage to target Creature. | Funcionamento=Efeito oficial: \"Deal 20 damage to target Creature.\". Em regras, resolve na janela definida pelo texto, gerando: dealDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:20,adicional:mugic_deal:20,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N"
+      },
+      {
+        "name": "Cascade Symphony",
+        "previous": "Programado no combate: incomingDamageReduction(amount=5, targetSpec=creature:all)",
+        "current": "Carta=Cascade Symphony | Tipo=Mugic | Set=DOP | EfeitoOficial=Damage dealt to target Creature by Fire or Air attacks is reduced by 5. (An attack which is both Fire and Air is still reduced by 5.) | Funcionamento=Efeito oficial: \"Damage dealt to target Creature by Fire or Air attacks is reduced by 5. (An attack which is both Fire and Air is still reduced by 5.)\". Em regras, resolve na janela definida pelo texto, geran"
+      },
+      {
+        "name": "Castle Bodhran",
+        "previous": "Programado no combate: returnFromDiscard(target=both, cardType=mugic, timing=begin_combat, destination=mugic_slots)",
+        "current": "Carta=Castle Bodhran | Tipo=Location | Set=DOP | EfeitoOficial=At the beginning of combat, each player can return a Mugic Card from their general discard pile to their hand. | Funcionamento=Efeito oficial: \"At the beginning of combat, each player can return a Mugic Card from their general discard pile to their hand.\". Em regras, resolve no início do combate, gerando: returnFromDiscard. | Dano={base:0,fire:0,water:0,a"
+      },
+      {
+        "name": "Castle Pillar",
+        "previous": "Programado no combate: beginCombatMugicCounterHigherStat(stat=wisdom, amount=1, targetSpec=creature:opponent)",
+        "current": "Carta=Castle Pillar | Tipo=Location | Set=DOP | EfeitoOficial=At the beginning of combat, if an engaged Creature has higher Wisdom than the opposing engaged Creature, put a Mugic counter on it. | Funcionamento=Efeito oficial: \"At the beginning of combat, if an engaged Creature has higher Wisdom than the opposing engaged Creature, put a Mugic counter on it.\". Em regras, resolve no início do combate, gerando: beginComb"
+      },
+      {
+        "name": "Chaor",
+        "previous": "Programado no combate: negateMugic(targetSpec=mugic:all)",
+        "current": "Carta=Chaor | Tipo=Creature | Set=DOP | EfeitoOficial=MCMCMC: Negate target OverWorld Mugic or ability that targets Chaor. | Funcionamento=Efeito oficial: \"MCMCMC: Negate target OverWorld Mugic or ability that targets Chaor.\". Em regras, resolve na janela definida pelo texto, gerando: negateMugic. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,ch"
+      },
+      {
+        "name": "Chorus of the Hive",
+        "previous": "Programado no combate: activateHive",
+        "current": "Carta=Chorus of the Hive | Tipo=Mugic | Set=DOP | EfeitoOficial=Activate Hive. | Funcionamento=Efeito oficial: \"Activate Hive.\". Em regras, resolve na janela definida pelo texto, gerando: activateHive. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sacrifi"
+      },
+      {
+        "name": "Coil Crush",
+        "previous": "Programado no combate: BP 3, dano base 5, fire 0, air 0, earth 0, water 0. destroyBattlegearIfAttackerStatGte(stat=power, target=opponent, threshold=75, targetSpec=battlegear:opponent)",
+        "current": "Carta=Coil Crush | Tipo=Attack | Set=DOP | EfeitoOficial=Stat Check Power 75: Choose a Battlegear equipped to an opposing Creature and destroy it. | Funcionamento=Efeito oficial: \"Stat Check Power 75: Choose a Battlegear equipped to an opposing Creature and destroy it.\". Em regras, resolve na resolução do ataque, gerando: destroyBattlegearIfAttackerStatGte. | Dano={base:5,fire:0,water:0,air:0,earth:0,mugic:0,adiciona"
+      },
+      {
+        "name": "Cordac Falls",
+        "previous": "Programado no combate: beginCombatEnergy(amount=5, duration=end_combat, targetSpec=creature:self)",
+        "current": "Carta=Cordac Falls | Tipo=Location | Set=DOP | EfeitoOficial=At the beginning of combat, engaged Creatures gains 5 Energy. | Funcionamento=Efeito oficial: \"At the beginning of combat, engaged Creatures gains 5 Energy.\". Em regras, resolve no início do combate, gerando: beginCombatEnergy. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:inicio_do_combate} | Condicoes={stat_check:N/A,challenge:N"
+      },
+      {
+        "name": "Cordac Falls Plungepool",
+        "previous": "Programado no combate: beginCombatDamage(amount=5, targetSpec=creature:self)",
+        "current": "Carta=Cordac Falls Plungepool | Tipo=Location | Set=DOP | EfeitoOficial=At the beginning of combat, deal 5 damage to engaged Creatures. | Funcionamento=Efeito oficial: \"At the beginning of combat, deal 5 damage to engaged Creatures.\". Em regras, resolve no início do combate, gerando: beginCombatDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:inicio_do_combate} | Condicoes={stat_check:"
+      },
+      {
+        "name": "Crawsectus",
+        "previous": "Programado no combate: elementModifier(stat=earth, amount=5)",
+        "current": "Carta=Crawsectus | Tipo=Creature | Set=DOP | EfeitoOficial=Earth 5. | Funcionamento=Efeito oficial: \"Earth 5.\". Em regras, resolve na janela definida pelo texto, gerando: elementModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:earth,disciplina:N/A,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sacrificio:nao,desc"
+      },
+      {
+        "name": "Crystal Cave",
+        "previous": "Programado no combate: firstAttackZeroIfLower(stat=speed, targetSpec=creature:opponent)",
+        "current": "Carta=Crystal Cave | Tipo=Location | Set=DOP | EfeitoOficial=If an engaged Creature has lower Speed than the opposing engaged Creature, it deals 0 damage on its first attack each combat. | Funcionamento=Efeito oficial: \"If an engaged Creature has lower Speed than the opposing engaged Creature, it deals 0 damage on its first attack each combat.\". Em regras, resolve na janela definida pelo texto, gerando: firstAttackZe"
+      },
+      {
+        "name": "Cyclance",
+        "previous": "Programado no combate: gainElement(duration=end_combat, elements=air)",
+        "current": "Carta=Cyclance | Tipo=Battlegear | Set=DOP | EfeitoOficial=Sacrifice Cyclance: equipped Creature gains Air until the end of combat. | Funcionamento=Efeito oficial: \"Sacrifice Cyclance: equipped Creature gains Air until the end of combat.\". Em regras, resolve quando o custo é pago e a habilidade resolve, gerando: gainElement. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:quando_habilidade_e_"
+      },
+      {
+        "name": "Dardemus",
+        "previous": "Programado no combate: intimidate(stat=courage, amount=10)",
+        "current": "Carta=Dardemus | Tipo=Creature | Set=DOP | EfeitoOficial=Intimidate: Courage 10. | Funcionamento=Efeito oficial: \"Intimidate: Courage 10.\". Em regras, resolve na janela definida pelo texto, gerando: intimidate. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:intimidate:10,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:courage,combate:N/A,alvo:N/A} | Custos={mc"
+      },
+      {
+        "name": "Decrescendo",
+        "previous": "Programado no combate: dealDamage(amount=5, targetSpec=creature:all)",
+        "current": "Carta=Decrescendo | Tipo=Mugic | Set=DOP | EfeitoOficial=Deal 5 damage to target Creature. | Funcionamento=Efeito oficial: \"Deal 5 damage to target Creature.\". Em regras, resolve na janela definida pelo texto, gerando: dealDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:5,adicional:mugic_deal:5,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:cr"
+      },
+      {
+        "name": "Degenervate",
+        "previous": "Programado no combate: BP 0, dano base 0, fire 0, air 0, earth 0, water 0. conditionalStatModifier(stat=courage, amount=-25, target=opponent, requiresElement=water); conditionalStatModifier(stat=power, amount=-25, target=opponent, requiresElement=water); conditionalStatModifier(stat=wisdom, amount=-25, target=opponent,",
+        "current": "Carta=Degenervate | Tipo=Attack | Set=DOP | EfeitoOficial=Water: Opposing Creature loses 25 to all Disciplines. Your engaged Creature loses Water. | Funcionamento=Efeito oficial: \"Water: Opposing Creature loses 25 to all Disciplines. Your engaged Creature loses Water.\". Em regras, resolve na resolução do ataque, gerando: conditionalStatModifier, removeElement. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adici"
+      },
+      {
+        "name": "Delerium",
+        "previous": "Programado no combate: BP 0, dano base 0, fire 0, air 0, earth 0, water 0. conditionalDamage(stat=wisdom, amount=5, threshold=50, mode=stat_check, comparator=selfGte)",
+        "current": "Carta=Delerium | Tipo=Attack | Set=DOP | EfeitoOficial=Stat Check Wisdom 50: Deal 5 damage. | Funcionamento=Efeito oficial: \"Stat Check Wisdom 50: Deal 5 damage.\". Em regras, resolve na resolução do ataque, gerando: conditionalDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:conditionalDamage:5,dano_condicional_por_texto_do_ataque,janela:resolucao_do_ataque} | Condicoes={stat_check:Wisdom 50,chal"
+      },
+      {
+        "name": "Diamond of Vlaric",
+        "previous": "Programado no combate: gainElement(duration=end_combat, elements=earth)",
+        "current": "Carta=Diamond of Vlaric | Tipo=Battlegear | Set=DOP | EfeitoOficial=Sacrifice Diamond of Vlaric: equipped Creature gains Earth until the end of combat. | Funcionamento=Efeito oficial: \"Sacrifice Diamond of Vlaric: equipped Creature gains Earth until the end of combat.\". Em regras, resolve quando o custo é pago e a habilidade resolve, gerando: gainElement. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:"
+      },
+      {
+        "name": "Discord of Disarming",
+        "previous": "Programado no combate: destroyBattlegear(target=any, targetSpec=battlegear:any)",
+        "current": "Carta=Discord of Disarming | Tipo=Mugic | Set=DOP | EfeitoOficial=Destroy target Battlegear. | Funcionamento=Efeito oficial: \"Destroy target Battlegear.\". Em regras, resolve na janela definida pelo texto, gerando: destroyBattlegear. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:battlegea"
+      },
+      {
+        "name": "Donmar",
+        "previous": "Programado no combate: healDamage(amount=10, targetSpec=creature:all)",
+        "current": "Carta=Donmar | Tipo=Creature | Set=DOP | EfeitoOficial=MC: Heal 10 damage to target Creature. | Funcionamento=Efeito oficial: \"MC: Heal 10 damage to target Creature.\". Em regras, resolve quando o custo é pago e a habilidade resolve, gerando: healDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:quando_habilidade_e_ativada} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplin"
+      },
+      {
+        "name": "Doors of the Deepmines",
+        "previous": "Programado no combate: beginCombatEnergy(amount=10, duration=end_turn, requiresElement=water)",
+        "current": "Carta=Doors of the Deepmines | Tipo=Location | Set=DOP | EfeitoOficial=At the beginning of combat, Creatures with Water gain 10 Energy. | Funcionamento=Efeito oficial: \"At the beginning of combat, Creatures with Water gain 10 Energy.\". Em regras, resolve no início do combate, gerando: beginCombatEnergy. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:inicio_do_combate} | Condicoes={stat_check"
+      },
+      {
+        "name": "Dractyl",
+        "previous": "Programado no combate: keyword(amount=1, keyword=swift); keyword(keyword=range)",
+        "current": "Carta=Dractyl | Tipo=Creature | Set=DOP | EfeitoOficial=Range. Swift 1. | Funcionamento=Efeito oficial: \"Range. Swift 1.\". Em regras, resolve na janela definida pelo texto, gerando: keyword. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sacrificio:nao,des"
+      },
+      {
+        "name": "Dragon Pulse",
+        "previous": "Programado no combate: statModifier(stat=courage, amount=25)",
+        "current": "Carta=Dragon Pulse | Tipo=Battlegear | Set=DOP | EfeitoOficial=Equipped Creature has an additional 25 Courage. | Funcionamento=Efeito oficial: \"Equipped Creature has an additional 25 Courage.\". Em regras, resolve na janela definida pelo texto, gerando: statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,discipl"
+      },
+      {
+        "name": "Drakness",
+        "previous": "Programado no combate: mugicDamageModifier(amount=5)",
+        "current": "Carta=Drakness | Tipo=Creature | Set=DOP | EfeitoOficial=Mugic played by Creatures you control that deal damage deal an additional 5 damage. | Funcionamento=Efeito oficial: \"Mugic played by Creatures you control that deal damage deal an additional 5 damage.\". Em regras, resolve na janela definida pelo texto, gerando: mugicDamageModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:mugicDamageModifie"
+      },
+      {
+        "name": "Dranakis Threshold",
+        "previous": "Programado no combate: disableMugicAndActivated",
+        "current": "Carta=Dranakis Threshold | Tipo=Location | Set=DOP | EfeitoOficial=Mugic and activated abilities cannot be played. | Funcionamento=Efeito oficial: \"Mugic and activated abilities cannot be played.\". Em regras, resolve na janela definida pelo texto, gerando: disableMugicAndActivated. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elem"
+      },
+      {
+        "name": "Ektospasm",
+        "previous": "Programado no combate: BP 0, dano base 0, fire 0, air 0, earth 0, water 0. conditionalDamage(stat=power, amount=5, threshold=50, mode=stat_check, comparator=selfGte)",
+        "current": "Carta=Ektospasm | Tipo=Attack | Set=DOP | EfeitoOficial=Stat Check Power 50: Deal 5 damage. | Funcionamento=Efeito oficial: \"Stat Check Power 50: Deal 5 damage.\". Em regras, resolve na resolução do ataque, gerando: conditionalDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:conditionalDamage:5,dano_condicional_por_texto_do_ataque,janela:resolucao_do_ataque} | Condicoes={stat_check:Power 50,challe"
+      },
+      {
+        "name": "Ekuud",
+        "previous": "Programado no combate: hiveEnergyPerControlledCreatureType(stat=energy, creatureType=mandiblor, amountPerCreature=5)",
+        "current": "Carta=Ekuud | Tipo=Creature | Set=DOP | EfeitoOficial=Hive: Ekuud has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play. | Funcionamento=Efeito oficial: \"Hive: Ekuud has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play.\". Em regras, resolve na janela definida pelo texto, gerando: hiveEnergyPerControlledCreatureType. | Dano={base:0,fire:0,w"
+      },
+      {
+        "name": "Elixir of Tenacity",
+        "previous": "Programado no combate: statModifier(stat=courage, amount=10); statModifier(stat=energy, amount=10)",
+        "current": "Carta=Elixir of Tenacity | Tipo=Battlegear | Set=DOP | EfeitoOficial=Equipped Creature has an additional 10 Courage and an additional 10 Speed. If equipped Creature has at least 50 Power, it has an additional 10 Energy. | Funcionamento=Efeito oficial: \"Equipped Creature has an additional 10 Courage and an additional 10 Speed. If equipped Creature has at least 50 Power, it has an additional 10 Energy.\". Em regras, res"
+      },
+      {
+        "name": "Ember Flourish",
+        "previous": "Programado no combate: healDamage(amount=15, targetSpec=creature:all)",
+        "current": "Carta=Ember Flourish | Tipo=Mugic | Set=DOP | EfeitoOficial=Heal 15 damage to target Creature with Air or Fire. | Funcionamento=Efeito oficial: \"Heal 15 damage to target Creature with Air or Fire.\". Em regras, resolve na janela definida pelo texto, gerando: healDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:air,fire"
+      },
+      {
+        "name": "Ember Swarm",
+        "previous": "Programado no combate: BP 1, dano base 5, fire 5, air 0, earth 0, water 0. conditionalStatModifier(stat=wisdom, amount=-25, target=opponent, requiresElement=fire, targetSpec=creature:opponent)",
+        "current": "Carta=Ember Swarm | Tipo=Attack | Set=DOP | EfeitoOficial=Fire: Opposing engaged Creature loses 25 Wisdom. | Funcionamento=Efeito oficial: \"Fire: Opposing engaged Creature loses 25 Wisdom.\". Em regras, resolve na resolução do ataque, gerando: conditionalStatModifier. | Dano={base:5,fire:5,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:resolucao_do_ataque} | Condicoes={stat_check:N/A,challenge:N/A,elemento:fire,di"
+      },
+      {
+        "name": "Evaporize",
+        "previous": "Programado no combate: BP 0, dano base 0, fire 0, air 0, earth 0, water 0. healDamage(amount=10); statModifier(stat=courage, amount=15)",
+        "current": "Carta=Evaporize | Tipo=Attack | Set=DOP | EfeitoOficial=Challenge Courage 15: Heal 10 damage. | Funcionamento=Efeito oficial: \"Challenge Courage 15: Heal 10 damage.\". Em regras, resolve na resolução do ataque, gerando: healDamage, statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:resolucao_do_ataque} | Condicoes={stat_check:N/A,challenge:Courage 15,elemento:N/A,disciplina:courage,"
+      },
+      {
+        "name": "Everrain",
+        "previous": "Programado no combate: attackDamageModifier(amount=5, elements=water); attackDamageModifier(amount=5, elements=earth)",
+        "current": "Carta=Everrain | Tipo=Location | Set=DOP | EfeitoOficial=Water attacks deal an additional 5 damage. Damage dealt by Earth attacks is reduced by 5. | Funcionamento=Efeito oficial: \"Water attacks deal an additional 5 damage. Damage dealt by Earth attacks is reduced by 5.\". Em regras, resolve na janela definida pelo texto, gerando: attackDamageModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:attac"
+      },
+      {
+        "name": "Eye of the Maelstrom",
+        "previous": "Programado no combate: discardMugicFromEachPlayer(timing=location_step)",
+        "current": "Carta=Eye of the Maelstrom | Tipo=Location | Set=DOP | EfeitoOficial=When this becomes the active Location, each player discards a Mugic Card. | Funcionamento=Efeito oficial: \"When this becomes the active Location, each player discards a Mugic Card.\". Em regras, resolve quando a Location se torna ativa, gerando: discardMugicFromEachPlayer. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:confo"
+      },
+      {
+        "name": "Fanfare of the Vanishing",
+        "previous": "Programado no combate: invisibilityStrike(amount=15, targetSpec=creature:self)",
+        "current": "Carta=Fanfare of the Vanishing | Tipo=Mugic | Set=DOP | EfeitoOficial=Target Creature gains Invisibility: Strike 15. | Funcionamento=Efeito oficial: \"Target Creature gains Invisibility: Strike 15.\". Em regras, resolve na janela definida pelo texto, gerando: invisibilityStrike. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:invisibilityStrike:15,janela:conforme_trigger} | Condicoes={stat_check:N/A,chall"
+      },
+      {
+        "name": "Fear Valley",
+        "previous": "Programado no combate: beginCombatLoseEnergyIfLower(stat=courage, amount=10, targetSpec=creature:opponent)",
+        "current": "Carta=Fear Valley | Tipo=Location | Set=DOP | EfeitoOficial=At the beginning of combat, if an engaged Creature has lower Courage than the opposing engaged Creature, it loses 10 Energy. | Funcionamento=Efeito oficial: \"At the beginning of combat, if an engaged Creature has lower Courage than the opposing engaged Creature, it loses 10 Energy.\". Em regras, resolve no início do combate, gerando: beginCombatLoseEnergyIfLo"
+      },
+      {
+        "name": "Fearocity",
+        "previous": "Programado no combate: BP 2, dano base 5, fire 0, air 5, earth 0, water 0. conditionalDamage(stat=courage, amount=10, threshold=75, mode=stat_check, comparator=selfGte)",
+        "current": "Carta=Fearocity | Tipo=Attack | Set=DOP | EfeitoOficial=Stat Check Courage 75: Deal 10 damage. | Funcionamento=Efeito oficial: \"Stat Check Courage 75: Deal 10 damage.\". Em regras, resolve na resolução do ataque, gerando: conditionalDamage. | Dano={base:5,fire:0,water:0,air:5,earth:0,mugic:0,adicional:conditionalDamage:10,dano_condicional_por_texto_do_ataque,janela:resolucao_do_ataque} | Condicoes={stat_check:Courage "
+      },
+      {
+        "name": "Flame Orb",
+        "previous": "Programado no combate: BP 2, dano base 5, fire 5, air 0, earth 0, water 0. conditionalDamage(stat=power, amount=10, threshold=75, mode=stat_check, comparator=selfGte)",
+        "current": "Carta=Flame Orb | Tipo=Attack | Set=DOP | EfeitoOficial=Stat Check Power 75: Deal 10 damage. | Funcionamento=Efeito oficial: \"Stat Check Power 75: Deal 10 damage.\". Em regras, resolve na resolução do ataque, gerando: conditionalDamage. | Dano={base:5,fire:5,water:0,air:0,earth:0,mugic:0,adicional:conditionalDamage:10,dano_condicional_por_texto_do_ataque,janela:resolucao_do_ataque} | Condicoes={stat_check:Power 75,cha"
+      },
+      {
+        "name": "Flash Kick",
+        "previous": "Programado no combate: BP 1, dano base 5, fire 0, air 0, earth 0, water 0. scryDeck(targetSpec=player:self)",
+        "current": "Carta=Flash Kick | Tipo=Attack | Set=DOP | EfeitoOficial=Look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom. | Funcionamento=Efeito oficial: \"Look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom.\". Em regras, resolve na resolução do ataque, gerando: scryDeck. | Dano={base:5,fire:0,water:0,air:0,ea"
+      },
+      {
+        "name": "Flash Mend",
+        "previous": "Programado no combate: BP 0, dano base 0, fire 0, air 0, earth 0, water 0. healDamage(amount=5); statModifier(stat=wisdom, amount=50)",
+        "current": "Carta=Flash Mend | Tipo=Attack | Set=DOP | EfeitoOficial=Stat Check Wisdom 50: Heal 5 damage. | Funcionamento=Efeito oficial: \"Stat Check Wisdom 50: Heal 5 damage.\". Em regras, resolve na resolução do ataque, gerando: healDamage, statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:resolucao_do_ataque} | Condicoes={stat_check:Wisdom 50,challenge:N/A,elemento:N/A,disciplina:wisdom,com"
+      },
+      {
+        "name": "Flashwarp",
+        "previous": "Programado no combate: BP 0, dano base 0, fire 0, air 0, earth 0, water 0. conditionalDamage(stat=power, amount=10, threshold=15, mode=challenge, comparator=diffGte)",
+        "current": "Carta=Flashwarp | Tipo=Attack | Set=DOP | EfeitoOficial=Challenge Power 15: Deal 10 damage. | Funcionamento=Efeito oficial: \"Challenge Power 15: Deal 10 damage.\". Em regras, resolve na resolução do ataque, gerando: conditionalDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:conditionalDamage:10,dano_condicional_por_texto_do_ataque,janela:resolucao_do_ataque} | Condicoes={stat_check:N/A,challenge:"
+      },
+      {
+        "name": "Flux Bauble",
+        "previous": "Programado no combate: scryDeck(targetSpec=player:self)",
+        "current": "Carta=Flux Bauble | Tipo=Battlegear | Set=DOP | EfeitoOficial=At the beginning of combat, look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom. | Funcionamento=Efeito oficial: \"At the beginning of combat, look at the top two cards of your Location Deck. Put one of them on top of that deck and the other on the bottom.\". Em regras, resolve no início do combate"
+      },
+      {
+        "name": "Forest of Life",
+        "previous": "Programado no combate: beginCombatEnergy(amount=5, duration=end_combat, targetSpec=creature:opponent)",
+        "current": "Carta=Forest of Life | Tipo=Location | Set=DOP | EfeitoOficial=At the beginning of combat, if an engaged Creature has higher Power than the opposing engaged Creature, it gains 5 Energy. | Funcionamento=Efeito oficial: \"At the beginning of combat, if an engaged Creature has higher Power than the opposing engaged Creature, it gains 5 Energy.\". Em regras, resolve no início do combate, gerando: beginCombatEnergy. | Dano="
+      },
+      {
+        "name": "Formicidor",
+        "previous": "Programado no combate: hiveGranted; statModifier(stat=courage, amount=10)",
+        "current": "Carta=Formicidor | Tipo=Creature | Set=DOP | EfeitoOficial=Hive: Formicidor has an additional 10 Courage for each Mandiblor you control and each Infected Creature in play. | Funcionamento=Efeito oficial: \"Hive: Formicidor has an additional 10 Courage for each Mandiblor you control and each Infected Creature in play.\". Em regras, resolve na janela definida pelo texto, gerando: hiveGranted, statModifier. | Dano={base:0"
+      },
+      {
+        "name": "Fortissimo",
+        "previous": "Programado no combate: statModifier(stat=courage, amount=5, target=self, targetSpec=creature:all); statModifier(stat=power, amount=5, target=self, targetSpec=creature:all); statModifier(stat=wisdom, amount=5, target=self, targetSpec=creature:all); statModifier(stat=speed, amount=5, target=self, targetSpec=creature:all)",
+        "current": "Carta=Fortissimo | Tipo=Mugic | Set=DOP | EfeitoOficial=Target Creature gains 5 Courage, Power, Wisdom, Speed, and Energy. | Funcionamento=Efeito oficial: \"Target Creature gains 5 Courage, Power, Wisdom, Speed, and Energy.\". Em regras, resolve na janela definida pelo texto, gerando: statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,cha"
+      },
+      {
+        "name": "Frafdo",
+        "previous": "Programado no combate: statModifier(stat=courage, amount=5)",
+        "current": "Carta=Frafdo | Tipo=Creature | Set=DOP | EfeitoOficial=Support: Courage 5. | Funcionamento=Efeito oficial: \"Support: Courage 5.\". Em regras, resolve na janela definida pelo texto, gerando: statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:courage,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sa"
+      },
+      {
+        "name": "Frost Blight",
+        "previous": "Programado no combate: BP 2, dano base 5, fire 0, air 0, earth 0, water 5. conditionalDamage(stat=speed, amount=10, threshold=75, mode=stat_check, comparator=selfGte)",
+        "current": "Carta=Frost Blight | Tipo=Attack | Set=DOP | EfeitoOficial=Stat Check Speed 75: Deal 10 damage. | Funcionamento=Efeito oficial: \"Stat Check Speed 75: Deal 10 damage.\". Em regras, resolve na resolução do ataque, gerando: conditionalDamage. | Dano={base:5,fire:0,water:5,air:0,earth:0,mugic:0,adicional:conditionalDamage:10,dano_condicional_por_texto_do_ataque,janela:resolucao_do_ataque} | Condicoes={stat_check:Speed 75,"
+      },
+      {
+        "name": "Galin",
+        "previous": "Programado no combate: hiveGranted; statModifier(stat=speed, amount=10)",
+        "current": "Carta=Galin | Tipo=Creature | Set=DOP | EfeitoOficial=Hive: Galin has an additional 10 Speed for each Mandiblor you control and each Infected Creature in play. | Funcionamento=Efeito oficial: \"Hive: Galin has an additional 10 Speed for each Mandiblor you control and each Infected Creature in play.\". Em regras, resolve na janela definida pelo texto, gerando: hiveGranted, statModifier. | Dano={base:0,fire:0,water:0,air"
+      },
+      {
+        "name": "Gauntlets of Might",
+        "previous": "Programado no combate: statModifier(stat=power, amount=25)",
+        "current": "Carta=Gauntlets of Might | Tipo=Battlegear | Set=DOP | EfeitoOficial=Equipped Creature has an additional 25 Power. | Funcionamento=Efeito oficial: \"Equipped Creature has an additional 25 Power.\". Em regras, resolve na janela definida pelo texto, gerando: statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disci"
+      },
+      {
+        "name": "Geo Flourish",
+        "previous": "Programado no combate: healDamage(amount=15, targetSpec=creature:all)",
+        "current": "Carta=Geo Flourish | Tipo=Mugic | Set=DOP | EfeitoOficial=Heal 15 damage to target Creature with Earth or Water. | Funcionamento=Efeito oficial: \"Heal 15 damage to target Creature with Earth or Water.\". Em regras, resolve na janela definida pelo texto, gerando: healDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:eart"
+      },
+      {
+        "name": "Gespedan",
+        "previous": "Programado no combate: keyword(amount=1, keyword=swift); statModifier(stat=speed, amount=5)",
+        "current": "Carta=Gespedan | Tipo=Creature | Set=DOP | EfeitoOficial=Support: Speed 5. Swift 1. | Funcionamento=Efeito oficial: \"Support: Speed 5. Swift 1.\". Em regras, resolve na janela definida pelo texto, gerando: keyword, statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:speed,combate:N/A,alvo:N/A} | Custo"
+      },
+      {
+        "name": "Ghuul",
+        "previous": "Programado no combate: keyword(amount=1, keyword=swift); keyword(keyword=range)",
+        "current": "Carta=Ghuul | Tipo=Creature | Set=DOP | EfeitoOficial=Range. Swift 1. | Funcionamento=Efeito oficial: \"Range. Swift 1.\". Em regras, resolve na janela definida pelo texto, gerando: keyword. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sacrificio:nao,desca"
+      },
+      {
+        "name": "Gigantempopolis",
+        "previous": "Programado no combate: mugicCounterModifier(amount=1, target=self, targetSpec=creature:self)",
+        "current": "Carta=Gigantempopolis | Tipo=Location | Set=DOP | EfeitoOficial=At the beginning of combat, put a Mugic counter on any engaged OverWorld Creatures. | Funcionamento=Efeito oficial: \"At the beginning of combat, put a Mugic counter on any engaged OverWorld Creatures.\". Em regras, resolve no início do combate, gerando: mugicCounterModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:inicio_d"
+      },
+      {
+        "name": "Glacier Plains",
+        "previous": "Programado no combate: mugicCostIncrease(amount=1, target=all)",
+        "current": "Carta=Glacier Plains | Tipo=Location | Set=DOP | EfeitoOficial=Creatures must pay an additional Mugic counter to play UnderWorld Mugic Cards. | Funcionamento=Efeito oficial: \"Creatures must pay an additional Mugic counter to play UnderWorld Mugic Cards.\". Em regras, resolve na janela definida pelo texto, gerando: mugicCostIncrease. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trig"
+      },
+      {
+        "name": "Gloomuck Swamp",
+        "previous": "Programado no combate: attackDamageModifier(amount=5, elements=earth); attackDamageModifier(amount=5, elements=fire)",
+        "current": "Carta=Gloomuck Swamp | Tipo=Location | Set=DOP | EfeitoOficial=Earth attacks deal an additional 5 damage. Damage dealt by Fire attacks is reduced by 5. | Funcionamento=Efeito oficial: \"Earth attacks deal an additional 5 damage. Damage dealt by Fire attacks is reduced by 5.\". Em regras, resolve na janela definida pelo texto, gerando: attackDamageModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:a"
+      },
+      {
+        "name": "Gothos Tower",
+        "previous": "Programado no combate: invisibilityStrike(amount=15)",
+        "current": "Carta=Gothos Tower | Tipo=Location | Set=DOP | EfeitoOficial=Creatures not named Lord Van Bloot have 10 less Courage. Lord Van Bloot has Invisibility: Strike 15. | Funcionamento=Efeito oficial: \"Creatures not named Lord Van Bloot have 10 less Courage. Lord Van Bloot has Invisibility: Strike 15.\". Em regras, resolve na janela definida pelo texto, gerando: invisibilityStrike. | Dano={base:0,fire:0,water:0,air:0,earth:0"
+      },
+      {
+        "name": "Grook",
+        "previous": "Programado no combate: intimidate(stat=power, amount=10)",
+        "current": "Carta=Grook | Tipo=Creature | Set=DOP | EfeitoOficial=Intimidate: Power 10. | Funcionamento=Efeito oficial: \"Intimidate: Power 10.\". Em regras, resolve na janela definida pelo texto, gerando: intimidate. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:intimidate:10,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:power,combate:N/A,alvo:N/A} | Custos={mc:0,ativac"
+      },
+      {
+        "name": "H'earring",
+        "previous": "Programado no combate: scryDeck(targetSpec=player:all)",
+        "current": "Carta=H'earring | Tipo=Creature | Set=DOP | EfeitoOficial=MC: Look at the top three cards of target player's Location Deck and put them back in any order. | Funcionamento=Efeito oficial: \"MC: Look at the top three cards of target player's Location Deck and put them back in any order.\". Em regras, resolve quando o custo é pago e a habilidade resolve, gerando: scryDeck. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic"
+      },
+      {
+        "name": "Hail Storm",
+        "previous": "Programado no combate: BP 3, dano base 10, fire 0, air 5, earth 0, water 5. Sem efeito parseado (stats/texto base apenas)",
+        "current": "Carta=Hail Storm | Tipo=Attack | Set=DOP | EfeitoOficial=Sem texto de habilidade impresso. | Funcionamento=Ataque sem texto adicional: aplica apenas os danos impressos (base/elementais) na resolução do ataque. | Dano={base:10,fire:0,water:5,air:5,earth:0,mugic:0,adicional:N/A,janela:resolucao_do_ataque} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao"
+      },
+      {
+        "name": "Heptadd",
+        "previous": "Programado no combate: canPlayAnyTribeMugic",
+        "current": "Carta=Heptadd | Tipo=Creature | Set=DOP | EfeitoOficial=Heptadd can play Mugic of any tribe. | Funcionamento=Efeito oficial: \"Heptadd can play Mugic of any tribe.\". Em regras, resolve na janela definida pelo texto, gerando: canPlayAnyTribeMugic. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:mugic,combate:N/A"
+      },
+      {
+        "name": "Heptadd, (Tin Misprint)",
+        "previous": "Programado no combate: canPlayAnyTribeMugic",
+        "current": "Carta=Heptadd, (Tin Misprint) | Tipo=Creature | Set=DOP | EfeitoOficial=Heptadd can play Mugic of any tribe. | Funcionamento=Efeito oficial: \"Heptadd can play Mugic of any tribe.\". Em regras, resolve na janela definida pelo texto, gerando: canPlayAnyTribeMugic. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:m"
+      },
+      {
+        "name": "Hive Call",
+        "previous": "Programado no combate: BP 0, dano base 0, fire 0, air 0, earth 0, water 0. activateHive",
+        "current": "Carta=Hive Call | Tipo=Attack | Set=DOP | EfeitoOficial=You can remove a Mugic counter from a Creature you control. If you do, activate Hive. | Funcionamento=Efeito oficial: \"You can remove a Mugic counter from a Creature you control. If you do, activate Hive.\". Em regras, resolve na resolução do ataque, sob condição, gerando: activateHive. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:reso"
+      },
+      {
+        "name": "Hota",
+        "previous": "Programado no combate: Sem efeito parseado (stats/texto base apenas)",
+        "current": "Carta=Hota | Tipo=Creature | Set=DOP | EfeitoOficial=Sem texto de habilidade impresso. | Funcionamento=Carta sem texto de habilidade: sem efeito adicional além das características impressas. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/A,challenge:N/A,elemento:N/A,disciplina:N/A,combate:N/A,alvo:N/A} | Custos={mc:0,ativacao:N/A,sacrificio:nao,des"
+      },
+      {
+        "name": "Hymn of the Elements",
+        "previous": "Programado no combate: targetCreatureGainChosenElement(targetSpec=creature:all)",
+        "current": "Carta=Hymn of the Elements | Tipo=Mugic | Set=DOP | EfeitoOficial=Target Creature gains an Elemental Type of your choice. | Funcionamento=Efeito oficial: \"Target Creature gains an Elemental Type of your choice.\". Em regras, resolve na janela definida pelo texto, gerando: targetCreatureGainChosenElement. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:"
+      },
+      {
+        "name": "Ibiaan",
+        "previous": "Programado no combate: hiveGranted; statModifier(stat=wisdom, amount=5)",
+        "current": "Carta=Ibiaan | Tipo=Creature | Set=DOP | EfeitoOficial=Hive: Ibiaan has an additional 5 Wisdom for each Mandiblor you control and each Infected Creature in play. | Funcionamento=Efeito oficial: \"Hive: Ibiaan has an additional 5 Wisdom for each Mandiblor you control and each Infected Creature in play.\". Em regras, resolve na janela definida pelo texto, gerando: hiveGranted, statModifier. | Dano={base:0,fire:0,water:0,"
+      },
+      {
+        "name": "Incinerase",
+        "previous": "Programado no combate: BP 0, dano base 0, fire 10, air 0, earth 0, water 0. removeElement(target=self, duration=end_combat, targetSpec=creature:self)",
+        "current": "Carta=Incinerase | Tipo=Attack | Set=DOP | EfeitoOficial=Fire: Your engaged Creature loses Fire. | Funcionamento=Efeito oficial: \"Fire: Your engaged Creature loses Fire.\". Em regras, resolve na resolução do ataque, gerando: removeElement. | Dano={base:0,fire:10,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:resolucao_do_ataque} | Condicoes={stat_check:N/A,challenge:N/A,elemento:fire,disciplina:N/A,combate:N/A,alv"
+      },
+      {
+        "name": "Inferno Gust",
+        "previous": "Programado no combate: BP 1, dano base 0, fire 5, air 5, earth 0, water 0. conditionalDamage(stat=speed, amount=10, threshold=15, mode=challenge, comparator=diffGte)",
+        "current": "Carta=Inferno Gust | Tipo=Attack | Set=DOP | EfeitoOficial=Challenge Speed 15: Deal 10 damage. | Funcionamento=Efeito oficial: \"Challenge Speed 15: Deal 10 damage.\". Em regras, resolve na resolução do ataque, gerando: conditionalDamage. | Dano={base:0,fire:5,water:0,air:5,earth:0,mugic:0,adicional:conditionalDamage:10,dano_condicional_por_texto_do_ataque,janela:resolucao_do_ataque} | Condicoes={stat_check:N/A,challen"
+      },
+      {
+        "name": "Interlude of Consequence",
+        "previous": "Programado no combate: shuffleTargetPlayerDeckChoice(target=opponent, targetSpec=player:all)",
+        "current": "Carta=Interlude of Consequence | Tipo=Mugic | Set=DOP | EfeitoOficial=Shuffle target player's Attack Deck or Location Deck. | Funcionamento=Efeito oficial: \"Shuffle target player's Attack Deck or Location Deck.\". Em regras, resolve na janela definida pelo texto, gerando: shuffleTargetPlayerDeckChoice. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:conforme_trigger} | Condicoes={stat_check:N/"
+      }
+    ]
+  }
+}

@@ -11,6 +11,7 @@
     "analyze:habilidades": "node scripts/audit-habilidades.js",
     "analyze:creatures": "node scripts/audit-creatures-effects.js",
     "analyze:matrix:dop-zoth-ss": "node scripts/effects-matrix-dop-zoth-ss.js",
+    "analyze:reconcile:xlsx:dop-zoth-ss": "node scripts/reconcile-effects-xlsx-dop-zoth-ss.js",
     "analyze:sources": "python scripts/source_abilities_audit.py",
     "export:effects:xlsx": "node scripts/export-effects-xlsx.js",
     "build:exe": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/build-exe.ps1"
