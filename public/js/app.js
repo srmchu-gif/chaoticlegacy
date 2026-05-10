@@ -3994,7 +3994,11 @@ function activatableCreatureOptionsByUnitId(pendingAction) {
   }
   const options = Array.isArray(pendingAction.options) ? pendingAction.options : [];
   options.forEach((option) => {
-    if (option?.kind !== "ability" || option.option?.sourceKey !== "creature") {
+    if (option?.kind !== "ability") {
+      return;
+    }
+    const sourceKey = option.option?.sourceKey;
+    if (sourceKey !== "creature" && sourceKey !== "gear") {
       return;
     }
     const unitId = option.option?.sourceUnitId;
@@ -4233,31 +4237,91 @@ function renderSlotLayer(container, playerIndex, lane) {
       if (!appState.battle || appState.battle.finished || !isLocalHumanControlled(appState.battle)) {
         return;
       }
+      const activePending = appState.battle.pendingAction;
 
       if (targetSelectionStep) {
         const targetType = targetSelectionStep.spec?.type;
         if (targetType === "creature" || targetType === "battlegear") {
+          const selectable = targetType === "creature" ? selectableCreatureTarget : selectableGearTarget;
+          if (!selectable) {
+            return;
+          }
+          if (isMultiplayerActive()) {
+            submitMultiplayerAction({ type: "choose_target", value: selectable.id }).catch((error) => alert(error.message));
+          } else {
+            chooseEffectTarget(appState.battle, selectable.id);
+            advanceBattle(appState.battle, Boolean(appState.battle.ai?.player0));
+            renderBattle();
+          }
           return;
         }
-        const selectable = (targetSelectionStep.candidates || []).find((candidate) => {
-          if (targetType === "battlegear") {
-            return candidate.type === "battlegear" && candidate.unitId === occupiedUnit?.unitId;
-          }
-          if (targetType === "creature") {
-            return candidate.type === "creature" && candidate.unitId === occupiedUnit?.unitId;
-          }
-          return false;
-        });
-        if (!selectable) {
+        return;
+      }
+
+      if (activePending?.type === "mugic_caster_select" && activePending.playerIndex === localIndex) {
+        if (!occupiedUnit || occupiedOwner !== localIndex) {
+          return;
+        }
+        const options = Array.isArray(activePending.options) ? activePending.options : [];
+        const optionIndex = options.findIndex(
+          (entry) => String(entry?.casterUnitId || "") === String(occupiedUnit.unitId || "")
+        );
+        if (optionIndex < 0) {
           return;
         }
         if (isMultiplayerActive()) {
-          submitMultiplayerAction({ type: "choose_target", value: selectable.id }).catch((error) => alert(error.message));
+          submitMultiplayerAction({ type: "choose_mugic_caster", value: optionIndex }).catch((error) => alert(error.message));
         } else {
-          chooseEffectTarget(appState.battle, selectable.id);
+          chooseMugic(appState.battle, optionIndex);
           advanceBattle(appState.battle, Boolean(appState.battle.ai?.player0));
           renderBattle();
         }
+        return;
+      }
+
+      if (activePending?.type === "priority" && activePending.playerIndex === localIndex) {
+        if (!occupiedUnit || occupiedOwner !== localIndex) {
+          return;
+        }
+        const activatableOptions = (Array.isArray(activePending.options) ? activePending.options : [])
+          .map((option, optionIndex) => ({ option, optionIndex }))
+          .filter(({ option }) => (
+            option?.kind === "ability"
+            && (option.option?.sourceKey === "creature" || option.option?.sourceKey === "gear")
+            && option.option?.sourceUnitId === occupiedUnit.unitId
+          ));
+
+        if (!activatableOptions.length) {
+          appState.creatureAbilityQuickPick = null;
+          return;
+        }
+
+        if (activatableOptions.length === 1) {
+          appState.creatureAbilityQuickPick = null;
+          if (isMultiplayerActive()) {
+            submitMultiplayerAction({ type: "choose_ability", value: activatableOptions[0].optionIndex }).catch((error) => {
+              alert(error.message);
+            });
+          } else {
+            chooseActivatedAbility(appState.battle, activatableOptions[0].optionIndex);
+            advanceBattle(appState.battle, Boolean(appState.battle.ai?.player0));
+            renderBattle();
+          }
+          return;
+        }
+
+        appState.creatureAbilityQuickPick = {
+          sourceUnitId: occupiedUnit.unitId,
+          sourceLabel: occupiedUnit.card?.name || "Creature",
+          sourceKeys: ["creature", "gear"],
+          options: activatableOptions.map(({ optionIndex, option }) => ({
+            optionIndex,
+            sourceKey: option?.option?.sourceKey || "creature",
+            sourceLabel: option?.option?.sourceLabel || occupiedUnit.card?.name || "Habilidade",
+            costLabel: option?.option?.cost?.label || "Ability",
+          })),
+        };
+        renderBattle();
         return;
       }
 
@@ -4328,107 +4392,8 @@ function renderSlotLayer(container, playerIndex, lane) {
       if (!appState.battle || appState.battle.finished || !isLocalHumanControlled(appState.battle)) {
         return;
       }
-      const activePending = appState.battle.pendingAction;
-      const targetStep =
-        activePending?.type === "target_select" && activePending.playerIndex === localIndex
-          ? activePending.targetSteps?.[activePending.currentStep] || null
-          : null;
-      const targetType = targetStep?.spec?.type || null;
-      if (targetType === "creature" || targetType === "battlegear") {
-        event.preventDefault();
-        event.stopPropagation();
-        const selectable = targetType === "creature" ? selectableCreatureTarget : selectableGearTarget;
-        if (!selectable) {
-          return;
-        }
-        if (isMultiplayerActive()) {
-          submitMultiplayerAction({ type: "choose_target", value: selectable.id }).catch((error) => alert(error.message));
-        } else {
-          chooseEffectTarget(appState.battle, selectable.id);
-          advanceBattle(appState.battle, Boolean(appState.battle.ai?.player0));
-          renderBattle();
-        }
-        return;
-      }
-
-      if (activePending?.type === "mugic_caster_select" && activePending.playerIndex === localIndex) {
-        if (!occupiedUnit || occupiedOwner !== localIndex) {
-          return;
-        }
-        const options = Array.isArray(activePending.options) ? activePending.options : [];
-        const optionIndex = options.findIndex(
-          (entry) => String(entry?.casterUnitId || "") === String(occupiedUnit.unitId || "")
-        );
-        if (optionIndex < 0) {
-          return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        if (isMultiplayerActive()) {
-          submitMultiplayerAction({ type: "choose_mugic_caster", value: optionIndex }).catch((error) => alert(error.message));
-        } else {
-          chooseMugic(appState.battle, optionIndex);
-          advanceBattle(appState.battle, Boolean(appState.battle.ai?.player0));
-          renderBattle();
-        }
-        return;
-      }
-
-      if (!occupiedUnit || occupiedOwner !== localIndex) {
-        return;
-      }
-
       event.preventDefault();
       event.stopPropagation();
-
-      if (!activePending || activePending.type !== "priority" || activePending.playerIndex !== localIndex) {
-        appState.creatureAbilityQuickPick = null;
-        appState.battle.log.push("Sem habilidade ativavel agora.");
-        renderBattle();
-        return;
-      }
-
-      const activatableOptions = (Array.isArray(activePending.options) ? activePending.options : [])
-        .map((option, optionIndex) => ({ option, optionIndex }))
-        .filter(({ option }) => (
-          option?.kind === "ability"
-          && (option.option?.sourceKey === "creature" || option.option?.sourceKey === "gear")
-          && option.option?.sourceUnitId === occupiedUnit.unitId
-        ));
-
-      if (!activatableOptions.length) {
-        appState.creatureAbilityQuickPick = null;
-        appState.battle.log.push("Sem habilidade ativavel agora.");
-        renderBattle();
-        return;
-      }
-
-      if (activatableOptions.length === 1) {
-        appState.creatureAbilityQuickPick = null;
-        if (isMultiplayerActive()) {
-          submitMultiplayerAction({ type: "choose_ability", value: activatableOptions[0].optionIndex }).catch((error) => {
-            alert(error.message);
-          });
-        } else {
-          chooseActivatedAbility(appState.battle, activatableOptions[0].optionIndex);
-          advanceBattle(appState.battle, Boolean(appState.battle.ai?.player0));
-          renderBattle();
-        }
-        return;
-      }
-
-      appState.creatureAbilityQuickPick = {
-        sourceUnitId: occupiedUnit.unitId,
-        sourceLabel: occupiedUnit.card?.name || "Creature",
-        sourceKeys: ["creature", "gear"],
-        options: activatableOptions.map(({ optionIndex, option }) => ({
-          optionIndex,
-          sourceKey: option?.option?.sourceKey || "creature",
-          sourceLabel: option?.option?.sourceLabel || occupiedUnit.card?.name || "Habilidade",
-          costLabel: option?.option?.cost?.label || "Ability",
-        })),
-      };
-      renderBattle();
     });
 
     container.appendChild(slot);
@@ -4836,9 +4801,9 @@ function renderAttackHand() {
     } else if (step.spec?.type === "attack") {
       el.attackHand.innerHTML = "<p>Selecione o Attack alvo no painel de log da batalha.</p>";
     } else if (step.spec?.type === "creature") {
-      el.attackHand.innerHTML = "<p>Selecione a criatura alvo no tabuleiro com clique direito.</p>";
+      el.attackHand.innerHTML = "<p>Selecione a criatura alvo no tabuleiro com clique.</p>";
     } else if (step.spec?.type === "battlegear") {
-      el.attackHand.innerHTML = "<p>Selecione o Battlegear alvo no tabuleiro com clique direito.</p>";
+      el.attackHand.innerHTML = "<p>Selecione o Battlegear alvo no tabuleiro com clique.</p>";
     } else {
       el.attackHand.innerHTML = "<p>Selecione o alvo diretamente no tabuleiro/log.</p>";
     }
@@ -4957,53 +4922,14 @@ function renderAttackHand() {
   if (pending?.type === "priority" && pending.playerIndex === localIndex) {
     const options = Array.isArray(pending.options) ? pending.options : [];
     const abilityOptions = options.filter((option) => option.kind === "ability");
-    const creatureAbilityOptions = abilityOptions.filter((option) => option.option?.sourceKey === "creature");
-    const otherAbilityOptions = abilityOptions.filter((option) => option.option?.sourceKey !== "creature");
     const mugicOptions = options.filter((option) => option.kind === "mugic");
-    const engagedUnit = engagedUnitForPlayer(battle, localIndex);
-    if (!otherAbilityOptions.length && !mugicOptions.length && !creatureAbilityOptions.length) {
+    if (!abilityOptions.length && !mugicOptions.length) {
       el.attackHand.innerHTML = "<p>Sem efeito jogavel nesta janela.</p>";
     } else {
-      if (mugicOptions.length) {
-        const helper = document.createElement("p");
-        helper.className = "attack-hand-helper";
-        helper.textContent = "Mugics: use os hexagonos laterais para ativar.";
-        el.attackHand.appendChild(helper);
-      }
-      if (creatureAbilityOptions.length) {
-        const helper = document.createElement("p");
-        helper.className = "attack-hand-helper";
-        helper.textContent = "Habilidades ativadas: clique com o botao direito na criatura/equipamento da unidade.";
-        el.attackHand.appendChild(helper);
-      }
-      otherAbilityOptions.forEach((option) => {
-        if (option.kind === "ability") {
-          const sourceCard = option.option?.sourceKey === "gear" ? engagedUnit?.gearCard : engagedUnit?.card;
-          const node = document.createElement("button");
-          node.type = "button";
-          node.className = "attack-hand-card ability-window-card";
-          node.innerHTML = `
-            <img src="${imageOf(sourceCard || engagedUnit?.card || {})}" alt="${option.option?.sourceLabel || "Ability"}">
-            <span class="attack-chip attack-bp">${option.option?.cost?.label || "Ability"}</span>
-            <span class="attack-chip attack-damage">${option.option?.sourceLabel || "Ability"}</span>
-          `;
-          node.addEventListener("click", () => {
-            if (isMultiplayerActive()) {
-              submitMultiplayerAction({ type: "choose_ability", value: Number(option.optionIndex) }).catch((error) => {
-                alert(error.message);
-              });
-            } else {
-              chooseActivatedAbility(battle, Number(option.optionIndex));
-              advanceBattle(battle, Boolean(battle.ai?.player0));
-              renderBattle();
-            }
-          });
-          if (sourceCard) {
-            attachHoverPreview(node, sourceCard);
-          }
-          el.attackHand.appendChild(node);
-        }
-      });
+      const helper = document.createElement("p");
+      helper.className = "attack-hand-helper";
+      helper.textContent = "Ative Mugics pelos orbes laterais e habilidades clicando na criatura/equipamento.";
+      el.attackHand.appendChild(helper);
     }
     appendPassPriorityCard(() => {
       if (isMultiplayerActive()) {
@@ -5034,7 +4960,7 @@ function renderAttackHand() {
   if (pending?.type === "mugic_caster_select" && pending.playerIndex === localIndex) {
     const casterOptions = Array.isArray(pending.options) ? pending.options : [];
     el.attackHand.innerHTML = casterOptions.length
-      ? "<p>Escolha no tabuleiro a criatura que vai pagar o custo do Mugic (clique direito).</p>"
+      ? "<p>Escolha no tabuleiro a criatura que vai pagar o custo do Mugic (clique).</p>"
       : "<p>Nenhuma criatura elegivel para lancar este Mugic.</p>";
     appendPassPriorityCard(() => {
       if (isMultiplayerActive()) {
@@ -5049,45 +4975,14 @@ function renderAttackHand() {
   }
 
   if (pending?.type === "ability" && pending.playerIndex === localIndex) {
-    const options = Array.isArray(pending.options)
-      ? pending.options.map((option, optionIndex) => ({ option, optionIndex }))
-      : [];
-    const engagedUnit = engagedUnitForPlayer(battle, localIndex);
-    const creatureOptions = options.filter((entry) => entry.option?.sourceKey === "creature");
-    const otherOptions = options.filter((entry) => entry.option?.sourceKey !== "creature");
+    const options = Array.isArray(pending.options) ? pending.options : [];
     if (!options.length) {
       el.attackHand.innerHTML = "<p>Nenhuma habilidade ativada disponivel.</p>";
     } else {
-      if (creatureOptions.length) {
-        const helper = document.createElement("p");
-        helper.className = "attack-hand-helper";
-        helper.textContent = "Habilidades ativadas: use clique direito na criatura/equipamento da unidade.";
-        el.attackHand.appendChild(helper);
-      }
-      otherOptions.forEach(({ option, optionIndex }) => {
-        const sourceCard = option.sourceKey === "gear" ? engagedUnit?.gearCard : engagedUnit?.card;
-        const node = document.createElement("button");
-        node.type = "button";
-        node.className = "attack-hand-card ability-window-card";
-        node.innerHTML = `
-          <img src="${imageOf(sourceCard || engagedUnit?.card || {})}" alt="${option.sourceLabel}">
-          <span class="attack-chip attack-bp">${option.cost?.label || "Ability"}</span>
-          <span class="attack-chip attack-damage">${option.sourceLabel}</span>
-        `;
-        node.addEventListener("click", () => {
-          if (isMultiplayerActive()) {
-            submitMultiplayerAction({ type: "choose_ability", value: optionIndex }).catch((error) => alert(error.message));
-          } else {
-            chooseActivatedAbility(battle, optionIndex);
-            advanceBattle(battle, Boolean(battle.ai?.player0));
-            renderBattle();
-          }
-        });
-        if (sourceCard) {
-          attachHoverPreview(node, sourceCard);
-        }
-        el.attackHand.appendChild(node);
-      });
+      const helper = document.createElement("p");
+      helper.className = "attack-hand-helper";
+      helper.textContent = "Clique na criatura/equipamento para ativar a habilidade.";
+      el.attackHand.appendChild(helper);
     }
     appendPassPriorityCard(() => {
       if (isMultiplayerActive()) {
