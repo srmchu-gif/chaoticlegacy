@@ -20,7 +20,6 @@ import {
   isHumanTurn,
   onBattleEvent,
   phaseHelpText,
-  passPriority,
 } from "./battle/engine.js";
 
 const CARD_TYPES = ["creatures", "attacks", "battlegear", "locations", "mugic"];
@@ -3653,13 +3652,8 @@ function runKeybindAction(action) {
       return;
     }
     if (pending.type === "priority" && pending.playerIndex === localPlayerIndex()) {
-      if (isMultiplayerActive()) {
-        submitMultiplayerAction({ type: "pass_priority" }).catch((error) => alert(error.message));
-      } else {
-        passPriority(appState.battle);
-        advanceBattle(appState.battle, Boolean(appState.battle.ai?.player0));
-        renderBattle();
-      }
+      appState.battle.log.push("Use o botao 'Passar prioridade' para encerrar a janela.");
+      renderBattle();
     }
   }
 }
@@ -4394,29 +4388,29 @@ function renderSlotLayer(container, playerIndex, lane) {
         return;
       }
 
-      const creatureAbilityOptions = (Array.isArray(activePending.options) ? activePending.options : [])
+      const activatableOptions = (Array.isArray(activePending.options) ? activePending.options : [])
         .map((option, optionIndex) => ({ option, optionIndex }))
         .filter(({ option }) => (
           option?.kind === "ability"
-          && option.option?.sourceKey === "creature"
+          && (option.option?.sourceKey === "creature" || option.option?.sourceKey === "gear")
           && option.option?.sourceUnitId === occupiedUnit.unitId
         ));
 
-      if (!creatureAbilityOptions.length) {
+      if (!activatableOptions.length) {
         appState.creatureAbilityQuickPick = null;
         appState.battle.log.push("Sem habilidade ativavel agora.");
         renderBattle();
         return;
       }
 
-      if (creatureAbilityOptions.length === 1) {
+      if (activatableOptions.length === 1) {
         appState.creatureAbilityQuickPick = null;
         if (isMultiplayerActive()) {
-          submitMultiplayerAction({ type: "choose_ability", value: creatureAbilityOptions[0].optionIndex }).catch((error) => {
+          submitMultiplayerAction({ type: "choose_ability", value: activatableOptions[0].optionIndex }).catch((error) => {
             alert(error.message);
           });
         } else {
-          chooseActivatedAbility(appState.battle, creatureAbilityOptions[0].optionIndex);
+          chooseActivatedAbility(appState.battle, activatableOptions[0].optionIndex);
           advanceBattle(appState.battle, Boolean(appState.battle.ai?.player0));
           renderBattle();
         }
@@ -4426,8 +4420,10 @@ function renderSlotLayer(container, playerIndex, lane) {
       appState.creatureAbilityQuickPick = {
         sourceUnitId: occupiedUnit.unitId,
         sourceLabel: occupiedUnit.card?.name || "Creature",
-        options: creatureAbilityOptions.map(({ optionIndex, option }) => ({
+        sourceKeys: ["creature", "gear"],
+        options: activatableOptions.map(({ optionIndex, option }) => ({
           optionIndex,
+          sourceKey: option?.option?.sourceKey || "creature",
           sourceLabel: option?.option?.sourceLabel || occupiedUnit.card?.name || "Habilidade",
           costLabel: option?.option?.cost?.label || "Ability",
         })),
@@ -4758,10 +4754,13 @@ function renderCreatureAbilityPopup() {
     .map((entry) => {
       const optionIndex = Number(entry.optionIndex);
       const option = Array.isArray(pending.options) ? pending.options[optionIndex] : null;
+      const allowedSourceKeys = Array.isArray(quickPick.sourceKeys) && quickPick.sourceKeys.length
+        ? quickPick.sourceKeys
+        : ["creature"];
       if (
         !option
         || option.kind !== "ability"
-        || option.option?.sourceKey !== "creature"
+        || !allowedSourceKeys.includes(String(option.option?.sourceKey || ""))
         || option.option?.sourceUnitId !== quickPick.sourceUnitId
       ) {
         return null;
@@ -4777,7 +4776,7 @@ function renderCreatureAbilityPopup() {
   }
 
   const title = document.createElement("h4");
-  title.textContent = `Escolha a habilidade de ${quickPick.sourceLabel || "sua criatura"}`;
+  title.textContent = `Escolha a habilidade de ${quickPick.sourceLabel || "sua unidade"}`;
   el.creatureAbilityPopup.appendChild(title);
 
   const list = document.createElement("div");
@@ -4974,7 +4973,7 @@ function renderAttackHand() {
       if (creatureAbilityOptions.length) {
         const helper = document.createElement("p");
         helper.className = "attack-hand-helper";
-        helper.textContent = "Habilidades de criatura: clique com o botao direito na criatura com borda neon.";
+        helper.textContent = "Habilidades ativadas: clique com o botao direito na criatura/equipamento da unidade.";
         el.attackHand.appendChild(helper);
       }
       otherAbilityOptions.forEach((option) => {
@@ -5062,7 +5061,7 @@ function renderAttackHand() {
       if (creatureOptions.length) {
         const helper = document.createElement("p");
         helper.className = "attack-hand-helper";
-        helper.textContent = "Habilidades de criatura: use clique direito na criatura com borda neon.";
+        helper.textContent = "Habilidades ativadas: use clique direito na criatura/equipamento da unidade.";
         el.attackHand.appendChild(helper);
       }
       otherOptions.forEach(({ option, optionIndex }) => {

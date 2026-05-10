@@ -89,6 +89,8 @@ const SQLITE_IS_DEFAULT_PATH = !process.env.SQLITE_FILE;
 const PORT = Number(process.env.PORT) || 3000;
 const MAX_BODY_SIZE = 2 * 1024 * 1024;
 const MULTIPLAYER_DISCONNECT_FORFEIT_MS = 120 * 1000;
+const MULTIPLAYER_FINISHED_ROOM_TTL_MS = Math.max(60 * 1000, Number(process.env.MULTIPLAYER_FINISHED_ROOM_TTL_MS || 10 * 60 * 1000));
+const MULTIPLAYER_ROOM_GC_INTERVAL_MS = Math.max(15 * 1000, Number(process.env.MULTIPLAYER_ROOM_GC_INTERVAL_MS || 30 * 1000));
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || (7 * 24 * 60 * 60 * 1000));
 const AUTH_RATE_LIMIT_WINDOW_MS = Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS || 60 * 1000);
 const AUTH_RATE_LIMIT_MAX = Number(process.env.AUTH_RATE_LIMIT_MAX || 25);
@@ -12512,6 +12514,57 @@ function buildRoomSummary(room) {
   };
 }
 
+function markRoomAsFinished(room, reason = "battle_finished") {
+  if (!room || typeof room !== "object") {
+    return;
+  }
+  room.phase = "finished";
+  room.rematch = { pending: false, requestedBy: null, requestedAt: null };
+  room.finishedAt = nowIso();
+  room.finishedAtMs = Date.now();
+  room.finishedReason = String(reason || "battle_finished");
+}
+
+function cleanupFinishedMultiplayerRooms(nowMs = Date.now()) {
+  multiplayerRooms.forEach((room, roomId) => {
+    if (!room || String(room.phase || "") !== "finished") {
+      return;
+    }
+    const finishedAtMsRaw = Number(room?.finishedAtMs || 0);
+    const finishedAtMs = finishedAtMsRaw > 0
+      ? finishedAtMsRaw
+      : (parseIsoToMs(room?.finishedAt || "") || parseIsoToMs(room?.updatedAt || "") || 0);
+    if (!finishedAtMs) {
+      room.finishedAtMs = nowMs;
+      room.finishedAt = room.finishedAt || nowIso();
+      return;
+    }
+    if ((nowMs - finishedAtMs) < MULTIPLAYER_FINISHED_ROOM_TTL_MS) {
+      return;
+    }
+    clearAllDisconnectTimers(room);
+    room.clients?.forEach((client) => {
+      try {
+        client?.res?.end();
+      } catch {}
+    });
+    multiplayerRooms.delete(String(roomId || ""));
+  });
+}
+
+function startMultiplayerRoomGcScheduler() {
+  try {
+    const timer = setInterval(() => {
+      cleanupFinishedMultiplayerRooms(Date.now());
+    }, MULTIPLAYER_ROOM_GC_INTERVAL_MS);
+    if (timer && typeof timer.unref === "function") {
+      timer.unref();
+    }
+  } catch (error) {
+    console.error(`[MP][GC] Falha ao iniciar scheduler de limpeza de salas: ${error?.message || error}`);
+  }
+}
+
 function cleanupExpiredCasualInvites(nowMs = Date.now()) {
   casualBattleInvites.forEach((invite, inviteId) => {
     const expiresAtMs = Number(invite?.expiresAtMs || 0);
@@ -12801,6 +12854,9 @@ function createMultiplayerRoomRecord({
     clients: new Set(),
     createdAt: nowIso(),
     startedAt: null,
+    finishedAt: null,
+    finishedAtMs: 0,
+    finishedReason: "",
     updatedAt: nowIso(),
     lastActionSeq: 0,
     rematch: {
@@ -13074,8 +13130,7 @@ function finalizeDisconnectForfeit(room, seatName) {
   room.battleState.log?.push(
     `${loserLabel} desconectou por mais de ${Math.floor(MULTIPLAYER_DISCONNECT_FORFEIT_MS / 1000)}s. ${room.battleState.winner} vence por forfeit.`
   );
-  room.phase = "finished";
-  room.rematch = { pending: false, requestedBy: null, requestedAt: null };
+  markRoomAsFinished(room, "disconnect_forfeit");
   room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
   clearAllDisconnectTimers(room);
   sendRoomEvent(room, {
@@ -13173,6 +13228,9 @@ async function startRoomBattle(room) {
     room.battleState.board.players[1].label = room.players?.guest?.name || "Guest";
   }
   room.phase = "in_game";
+  room.finishedAt = null;
+  room.finishedAtMs = 0;
+  room.finishedReason = "";
   if (!room.deckSelect || typeof room.deckSelect !== "object") {
     room.deckSelect = {};
   }
@@ -13208,8 +13266,7 @@ function settleRoomForfeit(room, loserSeat) {
   room.battleState.log?.push(
     `Desistencia: ${loser?.label || "Jogador"} concedeu a partida. ${room.battleState.winner} vence.`
   );
-  room.phase = "finished";
-  room.rematch = { pending: false, requestedBy: null, requestedAt: null };
+  markRoomAsFinished(room, "match_forfeit");
   room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
   clearAllDisconnectTimers(room);
   sendRoomEvent(room, {
@@ -17766,7 +17823,13 @@ async function handleRequest(request, response) {
     }
 
     if (request.method === "GET" && pathname === "/api/multiplayer/rooms") {
-      const activeRooms = Array.from(multiplayerRooms.values()).map((room) => buildRoomSummary(room));
+      cleanupFinishedMultiplayerRooms(Date.now());
+      const activeRooms = Array.from(multiplayerRooms.values())
+        .filter((room) => {
+          const phase = String(room?.phase || "lobby");
+          return phase === "lobby" || phase === "deck_select" || phase === "in_game";
+        })
+        .map((room) => buildRoomSummary(room));
       sendJson(response, 200, { rooms: activeRooms });
       return;
     }
@@ -18133,7 +18196,7 @@ async function handleRequest(request, response) {
         room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
       }
       if (room.battleState?.finished) {
-        room.phase = "finished";
+        markRoomAsFinished(room, "battle_finished");
         clearAllDisconnectTimers(room);
       }
       room.updatedAt = nowIso();
@@ -18576,6 +18639,7 @@ queuePerimDailyGeneration("startup", todayDateKey());
 startDailyCreatureLocationScheduler();
 cleanupOldDbBackups(DB_BACKUP_RETENTION_DAYS);
 startDbBackupScheduler();
+startMultiplayerRoomGcScheduler();
 
 const server = http.createServer((request, response) => {
   const requestStartedAt = Date.now();

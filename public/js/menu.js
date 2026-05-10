@@ -2162,11 +2162,19 @@ function bindMultiplayer(username) {
       const res = await fetch("/api/multiplayer/rooms");
       const data = await res.json();
       mpRoomsList.innerHTML = "";
-      if (!Array.isArray(data.rooms) || !data.rooms.length) {
+      const rooms = Array.isArray(data.rooms) ? data.rooms : [];
+      if (activeRoomSession?.roomId) {
+        const stillVisible = rooms.some((entry) => String(entry?.id || "") === String(activeRoomSession.roomId || ""));
+        if (!stillVisible) {
+          activeRoomSession = null;
+          renderCreatedRoomSession();
+        }
+      }
+      if (!rooms.length) {
         mpRoomsList.innerHTML = '<div style="text-align:center; color:#889bb4;">Nenhuma sala encontrada.</div>';
         return;
       }
-      data.rooms.forEach((room) => {
+      rooms.forEach((room) => {
         const roomDiv = document.createElement("div");
         roomDiv.style.padding = "0.5rem";
         roomDiv.style.borderBottom = "1px solid rgba(255,255,255,0.1)";
@@ -2184,11 +2192,9 @@ function bindMultiplayer(username) {
         const statusLabel = room.status || `${room.occupancy || "1/2"} jogadores`;
         const phaseLabel = room.phase === "in_game"
           ? "Em jogo"
-          : room.phase === "finished"
-            ? "Finalizada"
-            : room.phase === "deck_select"
-              ? "Pre-combate"
-              : "Aguardando";
+          : room.phase === "deck_select"
+            ? "Pre-combate"
+            : "Aguardando";
         textDiv.innerHTML = `<strong>ID: ${room.id}${isOwnRoom ? " (Sua sala)" : ""}</strong><br><small>Host: ${room.hostName} | Regra: ${modeLabel} | ${statusLabel} | ${phaseLabel}</small>`;
         roomDiv.appendChild(textDiv);
 
