@@ -57,6 +57,50 @@ Ektospasm — Se a criatura tiver 50 ou mais Power, o ataque causa +5 de dano ad
 Ekuud — se Hive estiver ativa no turno: Ekuud, ganha 5 de energia por cada criatua que vc controle que seja um mandiblor.
 
 
+=======================================================================
+
+
+
+
+Elixir of Tenacity — A criatura equipada ganha +10 Courage e +10 Speed; se possuir 50 ou mais Power, também ganha +10 Energy enquanto o Battlegear estiver equipado.
+
+Ember Flourish — Cura 15 de dano instantaneamente da criatura alvo no momento da ativação a criatura alvo precisa ter o elemento ar ou fogo.
+
+Ember Swarm — Ataque de Fire que causa 5 de dano base +5 Fire; se possuir elemento Fire, a criatura oponente engajada perde 25 Wisdom até o fim do combate.
+
+Evaporize — se a sua criatura engajada tiver  15 ou mais de coragem do que a do oponente, a sua criatura Cura 10 de dano instantaneamente.
+
+Everrain — Ataques Water causam +5 de dano e ataques Earth causam -5 de dano enquanto a Location estiver ativa.
+
+Eye of the Maelstrom — Quando esta Location se torna ativa, cada jogador descarta 1 carta de Mugic da mão; o efeito acontece apenas uma vez ao entrar em jogo.
+
+Fanfare of the Vanishing — Concede Invisibility: Strike 15; enquanto invisível, a criatura recebe Strike 15 durante o combate.
+
+Fear Valley — No início do combate, a criatura engajada com menos Courage perde 10 Energy instantaneamente.
+
+Fearocity — Ataque Air que causa 5 de dano base +5 Air; se a criatura tiver 75 ou mais Courage, causa +10 de dano adicional.
+
+Flame Orb — Ataque Fire que causa 5 de dano base +5 Fire; se a criatura tiver 75 ou mais Power, causa +10 de dano adicional.
+
+Flash Kick — Após o ataque, o jogador olha as 2 primeiras cartas do próprio Deck de Locations; normalmente não altera a ordem, apenas revela.
+
+Flash Mend — Cura 5 de dano instantaneamente da criatura alvo.
+
+Flashwarp — Realiza Challenge Power 15; se vencer o desafio, causa +10 de dano adicional durante a resolução do ataque.
+
+Flux Bauble — Permite olhar as 2 primeiras cartas do seu Deck de Locations enquanto estiver equipado.
+
+Forest of Life — No início do combate, a criatura engajada com maior Power ganha +5 Energy permanentemente durante a batalha.
+
+Formicidor — Possui Hive: Formicidor, compartilhando e recebendo efeitos relacionados ao nome Hive enquanto estiver em campo.
+
+Fortissimo — A criatura alvo ganha +5 Courage, Power, Wisdom, Speed e +5 Energy; os bônus de disciplinas duram até o fim do combate, e a Energy é adicionada imediatamente.
+
+Frafdo — Possui Support: Courage 5; criaturas aliadas adjacentes recebem +5 Courage enquanto Frafdo estiver em campo.
+
+Frost Blight — Ataque Water que causa 5 de dano base +5 Water; se a criatura tiver 75 ou mais Speed, causa +10 de dano adicional.
+
+Galin — Possui Hive: Galin, permitindo interações e bônus relacionados à habilidade Hive enquanto permanecer em campo.
 
 
 
@@ -70,45 +114,26 @@ Ekuud — se Hive estiver ativa no turno: Ekuud, ganha 5 de energia por cada cri
 
 
 
-Elixir of Tenacity | Programado no combate: Efeitos parseados: statModifier (has an additional 10 Courage).
 
-Ember Flourish | Programado no combate: Efeitos parseados: healDamage (Heal 15 damage).
 
-Ember Swarm | Programado no combate: Dano base 5, fogo 5, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: conditionalStatModifier (Fire: Opposing engaged Creature loses 25 Wisdom).
 
-Evaporize | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: healDamage, statModifier (Heal 10 damage).
 
-Everrain | Programado no combate: Efeitos parseados: attackDamageModifier (Water attacks deal an additional 5 damage).
 
-Eye of the Maelstrom | Programado no combate: Sem efeito parseado (apenas stats/texto base: When this becomes the active Location, each player discards a Mugic Card.).
 
-Fanfare of the Vanishing | Programado no combate: Efeitos parseados: invisibilityStrike (Invisibility: Strike 15).
 
-Fear Valley | Programado no combate: Efeitos parseados: beginCombatLoseEnergyIfLower (At the beginning of combat, if an engaged Creature has lower Courage than the opposing engaged Creature, it loses 10 Energy).
 
-Fearocity | Programado no combate: Dano base 5, fogo 0, ar 5, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Check Courage 75: Deal 10 damage).
 
-Flame Orb | Programado no combate: Dano base 5, fogo 5, ar 0, terra 0, agua 0, BP 2. Efeitos parseados: conditionalDamage (Stat Check Power 75: Deal 10 damage).
 
-Flash Kick | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 0, BP 1. Efeitos parseados: scryDeck (Look at the top two cards of your Location Deck).
 
-Flash Mend | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: healDamage, statModifier (Heal 5 damage).
 
-Flashwarp | Programado no combate: Dano base 0, fogo 0, ar 0, terra 0, agua 0, BP 0. Efeitos parseados: conditionalDamage (Challenge Power 15: Deal 10 damage).
 
-Flux Bauble | Programado no combate: Efeitos parseados: scryDeck (look at the top two cards of your Location Deck).
 
-Forest of Life | Programado no combate: Efeitos parseados: beginCombatEnergy (At the beginning of combat, if an engaged Creature has higher Power than the opposing engaged Creature, it gains 5 Energy).
 
-Formicidor | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: Formicidor).
 
-Fortissimo | Programado no combate: Efeitos parseados: statModifier (Target Creature gains 5 Courage, Power, Wisdom, Speed, and Energy).
 
-Frafdo | Programado no combate: Efeitos parseados: statModifier (Support: Courage 5).
 
-Frost Blight | Programado no combate: Dano base 5, fogo 0, ar 0, terra 0, agua 5, BP 2. Efeitos parseados: conditionalDamage (Stat Check Speed 75: Deal 10 damage).
 
-Galin | Programado no combate: Efeitos parseados: hiveGranted, statModifier (Hive: Galin).
+
 
 Gauntlets of Might | Programado no combate: Efeitos parseados: statModifier (has an additional 25 Power).
 

@@ -3779,6 +3779,716 @@ function releaseDeckCardsToInventoryWithCap(cards, deckToRelease, cap = INVENTOR
   };
 }
 
+const MECHANICS_DECK_FAMILIES = [
+  { id: "stat", label: "Stat Buff-Debuff", slug: "STAT" },
+  { id: "element", label: "Element Control", slug: "ELEMENT" },
+  { id: "damage", label: "Damage-Heal", slug: "DAMAGE" },
+  { id: "mugic", label: "Mugic Control", slug: "MUGIC" },
+  { id: "keywords", label: "Combat Keywords", slug: "KEYWORDS" },
+  { id: "target", label: "Target-Retarget", slug: "TARGET" },
+  { id: "challenge", label: "Challenge-Engage", slug: "CHALLENGE" },
+  { id: "movement", label: "Movement-Position", slug: "MOVEMENT" },
+  { id: "attack", label: "Attack Interaction", slug: "ATTACK" },
+  { id: "resource", label: "Resource-Counter", slug: "RESOURCE" },
+  { id: "discard", label: "Discard-Shuffle-Swap", slug: "DISCARD" },
+  { id: "conditional", label: "Conditional-Triggered", slug: "CONDITIONAL" },
+];
+
+const MECHANICS_FAMILY_KIND_PATTERNS = {
+  stat: [
+    /stat/i,
+    /discipline/i,
+    /courage|power|wisdom|speed|energy/i,
+    /modifier/i,
+  ],
+  element: [
+    /element/i,
+    /fire|air|earth|water/i,
+  ],
+  damage: [
+    /damage/i,
+    /heal/i,
+    /prevent/i,
+    /reflect/i,
+  ],
+  mugic: [
+    /mugic/i,
+    /mugician/i,
+    /negateMugic/i,
+  ],
+  keywords: [
+    /keyword/i,
+    /invisibility/i,
+    /intimidate/i,
+    /hive/i,
+    /elementproof/i,
+  ],
+  target: [
+    /target/i,
+    /retarget/i,
+    /redirect/i,
+    /swapBattlegear/i,
+  ],
+  challenge: [
+    /challenge/i,
+    /engage/i,
+    /infect/i,
+    /suppressTarget/i,
+  ],
+  movement: [
+    /move/i,
+    /relocate/i,
+    /adjacent/i,
+    /location/i,
+  ],
+  attack: [
+    /attack/i,
+    /strike/i,
+    /bp/i,
+  ],
+  resource: [
+    /counter/i,
+    /cost/i,
+    /resource/i,
+    /draw/i,
+    /scry/i,
+  ],
+  discard: [
+    /discard/i,
+    /shuffle/i,
+    /swap/i,
+    /deck/i,
+    /returnFromDiscard/i,
+    /searchDeck/i,
+  ],
+  conditional: [
+    /conditional/i,
+    /beginCombat/i,
+    /on[A-Z]/,
+    /if/i,
+    /when/i,
+  ],
+};
+
+const MECHANICS_DECK_TYPE_COUNTS = Object.freeze({
+  creatures: 6,
+  battlegear: 6,
+  mugic: 6,
+  locations: 10,
+  attacks: 20,
+});
+
+const MECHANICS_DECK_PRIMARY_MINIMUM = Object.freeze({
+  creatures: 2,
+  battlegear: 2,
+  mugic: 2,
+  locations: 3,
+  attacks: 2,
+});
+
+const mechanicsDeckGenerationReports = new Map();
+
+function mechanicsDeckRunId() {
+  return `mech_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function isMechanicsEligibleCard(card) {
+  const cardId = String(card?.id || "").trim();
+  if (!cardId) {
+    return false;
+  }
+  if (!isPlayerCardSetAllowedByCardId(cardId)) {
+    return false;
+  }
+  return Array.isArray(card?.parsedEffects) && card.parsedEffects.length > 0;
+}
+
+function collectEffectKindsDeep(node, collector, depth = 0) {
+  if (!node || depth > 10) {
+    return;
+  }
+  if (Array.isArray(node)) {
+    node.forEach((entry) => collectEffectKindsDeep(entry, collector, depth + 1));
+    return;
+  }
+  if (typeof node !== "object") {
+    return;
+  }
+  const kind = String(node.kind || "").trim();
+  if (kind) {
+    collector.add(kind);
+  }
+  Object.keys(node).forEach((key) => {
+    if (key === "kind") {
+      return;
+    }
+    collectEffectKindsDeep(node[key], collector, depth + 1);
+  });
+}
+
+function collectCardEffectKinds(card) {
+  const out = new Set();
+  collectEffectKindsDeep(card?.parsedEffects || [], out, 0);
+  return out;
+}
+
+function resolveMechanicsFamiliesForKinds(kindSet) {
+  const families = new Set();
+  if (!(kindSet instanceof Set) || !kindSet.size) {
+    return families;
+  }
+  kindSet.forEach((kind) => {
+    Object.entries(MECHANICS_FAMILY_KIND_PATTERNS).forEach(([familyId, patterns]) => {
+      if (!Array.isArray(patterns) || !patterns.length) {
+        return;
+      }
+      if (patterns.some((pattern) => pattern.test(kind))) {
+        families.add(familyId);
+      }
+    });
+  });
+  return families;
+}
+
+function mechanicsDeckCardCopyLimit(card) {
+  const rarityKey = String(card?.rarity || "").trim().toLowerCase();
+  const rarityLimit = Number(RARITY_COPY_LIMITS?.[rarityKey]);
+  if (Number.isFinite(rarityLimit) && rarityLimit > 0) {
+    return rarityLimit;
+  }
+  return 2;
+}
+
+function mechanicsAttackBp(card) {
+  const raw = Number(card?.stats?.bp || 0);
+  if (!Number.isFinite(raw)) {
+    return 0;
+  }
+  return Math.max(0, Math.round(raw));
+}
+
+function buildMechanicsDeckPools() {
+  const cards = Array.isArray(library?.cards) ? library.cards : [];
+  const byType = {
+    creatures: [],
+    battlegear: [],
+    mugic: [],
+    locations: [],
+    attacks: [],
+  };
+  const byFamily = {};
+  MECHANICS_DECK_FAMILIES.forEach((family) => {
+    byFamily[family.id] = {
+      creatures: [],
+      battlegear: [],
+      mugic: [],
+      locations: [],
+      attacks: [],
+    };
+  });
+
+  cards.forEach((card) => {
+    const type = String(card?.type || "").trim().toLowerCase();
+    if (!byType[type]) {
+      return;
+    }
+    if (!isMechanicsEligibleCard(card)) {
+      return;
+    }
+    const kindSet = collectCardEffectKinds(card);
+    if (!kindSet.size) {
+      return;
+    }
+    byType[type].push(card);
+    const families = resolveMechanicsFamiliesForKinds(kindSet);
+    families.forEach((familyId) => {
+      if (byFamily[familyId] && Array.isArray(byFamily[familyId][type])) {
+        byFamily[familyId][type].push(card);
+      }
+    });
+  });
+
+  Object.keys(byType).forEach((type) => {
+    byType[type].sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "en"));
+  });
+  Object.keys(byFamily).forEach((familyId) => {
+    Object.keys(byFamily[familyId]).forEach((type) => {
+      byFamily[familyId][type].sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "en"));
+    });
+  });
+  return { byType, byFamily };
+}
+
+function buildMechanicsCapacityMapForOwner(ownerKey) {
+  const owner = normalizeUserKey(ownerKey || "admin");
+  const availableData = buildAvailableScansForDeck("", owner);
+  const capacity = new Map();
+  const availableCounts = availableData?.availableCounts instanceof Map ? availableData.availableCounts : new Map();
+  availableCounts.forEach((amount, key) => {
+    capacity.set(String(key), Math.max(0, Number(amount || 0)));
+  });
+  return capacity;
+}
+
+function cloneMechanicsCapacityMap(sourceMap) {
+  const out = new Map();
+  if (!(sourceMap instanceof Map)) {
+    return out;
+  }
+  sourceMap.forEach((value, key) => {
+    out.set(String(key), Math.max(0, Number(value || 0)));
+  });
+  return out;
+}
+
+function uniqueCardsById(cards) {
+  const out = [];
+  const seen = new Set();
+  (Array.isArray(cards) ? cards : []).forEach((card) => {
+    const cardId = String(card?.id || "").trim();
+    if (!cardId || seen.has(cardId)) {
+      return;
+    }
+    seen.add(cardId);
+    out.push(card);
+  });
+  return out;
+}
+
+function pickMechanicsCardsForType(options = {}) {
+  const type = String(options.type || "");
+  const required = Math.max(0, Number(options.required || 0));
+  const primaryMinimum = Math.max(0, Number(options.primaryMinimum || 0));
+  const capacityMap = options.capacityMap instanceof Map ? options.capacityMap : new Map();
+  const preferred = uniqueCardsById(options.preferredCards || []);
+  const fallback = uniqueCardsById(options.fallbackCards || []);
+  const bpCap = Number.isFinite(Number(options.attackBpCap)) ? Number(options.attackBpCap) : 20;
+  const bpState = options.bpState && typeof options.bpState === "object" ? options.bpState : { used: 0 };
+  const selected = [];
+  const selectedCountById = new Map();
+  let primaryPicked = 0;
+
+  const rankedPreferred = [...preferred];
+  const rankedFallback = fallback.filter((card) => !rankedPreferred.some((candidate) => candidate.id === card.id));
+  const isAttack = type === "attacks";
+  const attackSort = (a, b) => {
+    const aBp = mechanicsAttackBp(a);
+    const bBp = mechanicsAttackBp(b);
+    if (aBp !== bBp) {
+      return aBp - bBp;
+    }
+    return String(a?.name || "").localeCompare(String(b?.name || ""), "en");
+  };
+  if (isAttack) {
+    rankedPreferred.sort(attackSort);
+    rankedFallback.sort(attackSort);
+  }
+
+  const tryAddCard = (card, countAsPrimary) => {
+    const cardId = String(card?.id || "").trim();
+    if (!cardId) {
+      return false;
+    }
+    const key = `${type}:${cardId}`;
+    const remaining = Number(capacityMap.get(key) || 0);
+    if (remaining <= 0) {
+      return false;
+    }
+    const currentCount = Number(selectedCountById.get(cardId) || 0);
+    const perDeckLimit = mechanicsDeckCardCopyLimit(card);
+    if (currentCount >= perDeckLimit) {
+      return false;
+    }
+    if (isAttack) {
+      const bpCost = mechanicsAttackBp(card);
+      if (bpState.used + bpCost > bpCap) {
+        return false;
+      }
+      bpState.used += bpCost;
+    }
+    selected.push(cardId);
+    selectedCountById.set(cardId, currentCount + 1);
+    capacityMap.set(key, remaining - 1);
+    if (countAsPrimary) {
+      primaryPicked += 1;
+    }
+    return true;
+  };
+
+  const fillFromPool = (cardsPool, goalCount, countAsPrimary = false) => {
+    if (!Array.isArray(cardsPool) || !cardsPool.length) {
+      return;
+    }
+    for (let pass = 0; pass < INVENTORY_MAX_COPIES && selected.length < required; pass += 1) {
+      for (const card of cardsPool) {
+        if (selected.length >= required) {
+          return;
+        }
+        if (goalCount > 0 && countAsPrimary && primaryPicked >= goalCount) {
+          return;
+        }
+        const cardId = String(card?.id || "").trim();
+        const currentCount = Number(selectedCountById.get(cardId) || 0);
+        if (currentCount > pass) {
+          continue;
+        }
+        if (tryAddCard(card, countAsPrimary)) {
+          if (goalCount > 0 && countAsPrimary && primaryPicked >= goalCount) {
+            return;
+          }
+        }
+      }
+    }
+  };
+
+  const maxPrimaryPossible = rankedPreferred.reduce((sum, card) => {
+    const cardId = String(card?.id || "").trim();
+    if (!cardId) {
+      return sum;
+    }
+    const key = `${type}:${cardId}`;
+    const remaining = Number(capacityMap.get(key) || 0);
+    return sum + Math.max(0, Math.min(remaining, mechanicsDeckCardCopyLimit(card)));
+  }, 0);
+  const primaryGoal = Math.min(required, primaryMinimum, maxPrimaryPossible);
+  fillFromPool(rankedPreferred, primaryGoal, true);
+  fillFromPool(rankedPreferred, 0, false);
+  fillFromPool(rankedFallback, 0, false);
+
+  if (selected.length !== required) {
+    return {
+      ok: false,
+      error: `Sem cartas suficientes para ${type} (${selected.length}/${required}).`,
+      selected,
+      primaryPicked,
+    };
+  }
+  if (primaryPicked < primaryGoal) {
+    return {
+      ok: false,
+      error: `Nao foi possivel atingir o nucleo tematico em ${type} (${primaryPicked}/${primaryGoal}).`,
+      selected,
+      primaryPicked,
+    };
+  }
+  return {
+    ok: true,
+    selected,
+    primaryPicked,
+  };
+}
+
+function countDeckCardsByTypeAndId(deckData) {
+  const out = new Map();
+  DECK_CARD_TYPES.forEach((type) => {
+    const list = Array.isArray(deckData?.cards?.[type]) ? deckData.cards[type] : [];
+    list.forEach((entry) => {
+      const cardId = deckCardIdFromEntry(type, entry);
+      if (!cardId) {
+        return;
+      }
+      const key = `${type}:${cardId}`;
+      out.set(key, (out.get(key) || 0) + 1);
+    });
+  });
+  return out;
+}
+
+function ensureOwnerInventoryForDeck(ownerKey, deckName, deckData, sourceTag = "admin_mechanics_autoboost") {
+  const owner = normalizeUserKey(ownerKey, "");
+  if (!owner) {
+    return { ok: false, error: "owner_invalido" };
+  }
+  const normalizedDeckName = normalizeDeckName(deckName || "");
+  const existingDeck = normalizedDeckName ? readDeckFileByName(`${normalizedDeckName}.json`) : null;
+  const scans = loadScansData();
+  const ownerData = getScansCardsForUser(scans, owner, true);
+  const inventory = cloneCardBuckets(ownerData.cards);
+  const inventoryCountByType = {};
+  DECK_CARD_TYPES.forEach((type) => {
+    inventoryCountByType[type] = countCardEntriesByType(inventory[type], type);
+  });
+  const availableData = buildAvailableScansForDeck(normalizedDeckName, owner);
+  const availableCounts = availableData.availableCounts instanceof Map ? availableData.availableCounts : new Map();
+  const diff = buildDeckDiffCounts(existingDeck || { cards: {} }, deckData);
+  const boosted = {
+    creatures: 0,
+    attacks: 0,
+    battlegear: 0,
+    mugic: 0,
+    locations: 0,
+  };
+
+  let inventoryChanged = false;
+  diff.consume.forEach((requiredAmount, key) => {
+    const separator = key.indexOf(":");
+    if (separator <= 0) {
+      return;
+    }
+    const type = key.slice(0, separator);
+    const cardId = key.slice(separator + 1);
+    if (!DECK_CARD_TYPES.includes(type)) {
+      return;
+    }
+    const availableAmount = Number(availableCounts.get(key) || 0);
+    let missing = Math.max(0, Number(requiredAmount || 0) - availableAmount);
+    if (!missing) {
+      return;
+    }
+    const inventoryCounts = inventoryCountByType[type] || new Map();
+    while (missing > 0) {
+      const currentInventoryAmount = Number(inventoryCounts.get(cardId) || 0);
+      if (currentInventoryAmount >= INVENTORY_MAX_COPIES) {
+        break;
+      }
+      const baseEntry = {
+        cardId,
+        obtainedAt: nowIso(),
+        source: sourceTag,
+      };
+      if (type === "creatures") {
+        baseEntry.variant = normalizeCreatureVariant(buildCreatureScanVariant());
+      }
+      const normalized = normalizeScansEntryByType(type, baseEntry);
+      if (!normalized) {
+        break;
+      }
+      inventory[type].push(normalized);
+      inventoryCounts.set(cardId, currentInventoryAmount + 1);
+      boosted[type] += 1;
+      missing -= 1;
+      inventoryChanged = true;
+    }
+  });
+
+  if (inventoryChanged) {
+    scans.players[ownerData.key] = {
+      cards: trimCardsToInventoryCap(inventory, INVENTORY_MAX_COPIES),
+    };
+    writeScansData(scans, sourceTag);
+  }
+  const postValidation = validateDeckAgainstScans(deckData, normalizedDeckName, owner);
+  if (!postValidation.ok) {
+    return {
+      ok: false,
+      error: `inventario_insuficiente_pos_boost: ${postValidation.errors.slice(0, 4).join(" | ")}`,
+      boosted,
+    };
+  }
+  return {
+    ok: true,
+    boosted,
+    scansChanged: inventoryChanged,
+  };
+}
+
+function saveDeckForOwnerUsingOfficialFlow(ownerKey, deckName, deckData) {
+  const owner = normalizeUserKey(ownerKey, "");
+  const normalizedDeckName = normalizeDeckName(deckName || "");
+  if (!owner || !normalizedDeckName) {
+    return { ok: false, error: "owner_ou_deck_invalido" };
+  }
+  const existingDeck = readDeckFileByName(`${normalizedDeckName}.json`);
+  const scansValidation = validateDeckAgainstScans(deckData, normalizedDeckName, owner);
+  if (!scansValidation.ok) {
+    return {
+      ok: false,
+      error: `deck_excede_inventario: ${scansValidation.errors.slice(0, 4).join(" | ")}`,
+    };
+  }
+  const scans = loadScansData();
+  const ownerData = getScansCardsForUser(scans, owner, true);
+  const transfer = applyDeckInventoryTransfer(ownerData.cards, existingDeck || { cards: {} }, deckData);
+  if (!transfer.ok) {
+    return {
+      ok: false,
+      error: `inventario_sem_espaco: ${transfer.errors.slice(0, 4).join(" | ")}`,
+    };
+  }
+  scans.players[ownerData.key] = { cards: transfer.cards };
+  writeScansData(scans, "admin_mechanics_deck_save");
+  writeDeckStored(normalizedDeckName, deckData);
+  invalidateUserCaches(owner);
+  return { ok: true };
+}
+
+function buildMechanicsDeckName(family, sequence, usedNames) {
+  const familySlug = String(family?.slug || family?.id || "MECH").toUpperCase().replace(/[^A-Z0-9]+/g, "-");
+  let index = Math.max(1, Number(sequence || 1));
+  while (index < 9999) {
+    const name = `MECH-${familySlug}-${String(index).padStart(2, "0")}`;
+    const normalized = normalizeDeckName(name);
+    if (normalized && !usedNames.has(normalized)) {
+      usedNames.add(normalized);
+      return normalized;
+    }
+    index += 1;
+  }
+  return "";
+}
+
+function runMechanicsDeckGeneration(options = {}) {
+  const owner = normalizeUserKey(options.ownerKey || "admin", "admin");
+  const runId = mechanicsDeckRunId();
+  const startedAt = nowIso();
+  const report = {
+    ok: true,
+    runId,
+    owner,
+    startedAt,
+    finishedAt: "",
+    familiesRequested: MECHANICS_DECK_FAMILIES.map((family) => family.label),
+    familiesCovered: [],
+    skippedFamilies: [],
+    totalCreated: 0,
+    createdDecks: [],
+    failedFamilies: [],
+    warnings: [],
+  };
+
+  const pools = buildMechanicsDeckPools();
+  const fallbackByType = pools.byType;
+  const existingDeckNames = listDecks(owner).map((entry) => normalizeDeckName(entry?.name || "")).filter(Boolean);
+  const usedDeckNames = new Set(existingDeckNames);
+  const existingFamilyById = new Set();
+  MECHANICS_DECK_FAMILIES.forEach((family) => {
+    const prefix = `mech-${String(family.slug || "").toLowerCase()}-`;
+    if (existingDeckNames.some((name) => String(name || "").startsWith(prefix))) {
+      existingFamilyById.add(family.id);
+    }
+  });
+
+  let sequence = 1;
+  MECHANICS_DECK_FAMILIES.forEach((family) => {
+    if (existingFamilyById.has(family.id)) {
+      report.skippedFamilies.push({
+        family: family.label,
+        reason: "ja_possui_deck_gerado",
+      });
+      return;
+    }
+    const familyPool = pools.byFamily?.[family.id] || {};
+    const tempCapacity = cloneMechanicsCapacityMap(buildMechanicsCapacityMapForOwner(owner));
+    const bpState = { used: 0 };
+    const deckCards = {
+      creatures: [],
+      attacks: [],
+      battlegear: [],
+      mugic: [],
+      locations: [],
+    };
+    const themedUsage = {
+      creatures: 0,
+      attacks: 0,
+      battlegear: 0,
+      mugic: 0,
+      locations: 0,
+    };
+
+    const buildOrder = ["attacks", "creatures", "battlegear", "mugic", "locations"];
+    for (const type of buildOrder) {
+      const selection = pickMechanicsCardsForType({
+        type,
+        required: MECHANICS_DECK_TYPE_COUNTS[type],
+        primaryMinimum: MECHANICS_DECK_PRIMARY_MINIMUM[type],
+        preferredCards: familyPool[type] || [],
+        fallbackCards: fallbackByType[type] || [],
+        capacityMap: tempCapacity,
+        attackBpCap: 20,
+        bpState,
+      });
+      if (!selection.ok) {
+        report.failedFamilies.push({
+          family: family.label,
+          reason: selection.error,
+          type,
+        });
+        return;
+      }
+      deckCards[type] = selection.selected.slice(0, MECHANICS_DECK_TYPE_COUNTS[type]);
+      themedUsage[type] = selection.primaryPicked;
+    }
+
+    const totalThemeCards = Object.values(themedUsage).reduce((sum, value) => sum + Number(value || 0), 0);
+    if (totalThemeCards <= 0) {
+      report.failedFamilies.push({
+        family: family.label,
+        reason: "Sem cartas tematicas suficientes para montar deck representativo.",
+      });
+      return;
+    }
+
+    const deckName = buildMechanicsDeckName(family, sequence, usedDeckNames);
+    sequence += 1;
+    if (!deckName) {
+      report.failedFamilies.push({
+        family: family.label,
+        reason: "Nao foi possivel gerar nome unico para o deck.",
+      });
+      return;
+    }
+
+    const deckData = {
+      name: deckName,
+      owner,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      mode: "competitive",
+      cards: deckCards,
+    };
+
+    const validation = validateDeckForRulesMode(deckData, "competitive");
+    if (!validation.ok) {
+      report.failedFamilies.push({
+        family: family.label,
+        reason: `Deck invalido para regras competitivas: ${validation.errors.slice(0, 3).join(" | ")}`,
+      });
+      return;
+    }
+
+    const boostResult = ensureOwnerInventoryForDeck(owner, deckName, deckData, "admin_mechanics_autoboost");
+    if (!boostResult.ok) {
+      report.failedFamilies.push({
+        family: family.label,
+        reason: boostResult.error,
+      });
+      return;
+    }
+
+    const saveResult = saveDeckForOwnerUsingOfficialFlow(owner, deckName, deckData);
+    if (!saveResult.ok) {
+      report.failedFamilies.push({
+        family: family.label,
+        reason: saveResult.error,
+      });
+      return;
+    }
+
+    report.familiesCovered.push(family.label);
+    report.totalCreated += 1;
+    report.createdDecks.push({
+      family: family.label,
+      deckName,
+      attackBP: Number(validation?.counts?.attacks ? bpState.used : 0),
+      counts: validation.counts,
+      themedUsage,
+      autoBoosted: boostResult.boosted,
+    });
+  });
+
+  report.finishedAt = nowIso();
+  report.ok = report.failedFamilies.length === 0;
+  mechanicsDeckGenerationReports.set(runId, report);
+  while (mechanicsDeckGenerationReports.size > 25) {
+    const firstKey = mechanicsDeckGenerationReports.keys().next().value;
+    if (!firstKey) {
+      break;
+    }
+    mechanicsDeckGenerationReports.delete(firstKey);
+  }
+  return report;
+}
+
 const PERIM_ACTIONS = [
   {
     id: "explore",
@@ -16108,6 +16818,67 @@ async function handleRequest(request, response) {
       payload: report,
     });
     sendJson(response, 200, report);
+    return;
+  }
+
+  if (pathname === "/api/admin/decks/generate-mechanics" && request.method === "POST") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    if (applyRateLimitWithUser(request, response, "admin_generate_mechanics_decks", adminUser.username, {
+      windowMs: 60 * 1000,
+      maxHits: 2,
+    })) {
+      return;
+    }
+    let payloadText = "";
+    try {
+      payloadText = await readBody(request);
+    } catch {
+      payloadText = "";
+    }
+    const payload = safeJsonParse(payloadText, {});
+    const owner = normalizeUserKey(payload?.owner || "admin", "admin");
+    if (owner !== "admin") {
+      return sendJson(response, 400, { error: "Geracao permitida somente para a conta admin nesta etapa." });
+    }
+    let generationReport = null;
+    try {
+      generationReport = runMechanicsDeckGeneration({ ownerKey: owner });
+    } catch (error) {
+      console.error(`[ADMIN][MECH_DECKS] Falha ao gerar decks de mecanicas: ${error?.message || error}`);
+      return sendJson(response, 500, { error: "Falha ao gerar decks de mecanicas." });
+    }
+    appendAuditLog("admin_generate_mechanics_decks", {
+      severity: generationReport?.ok ? "info" : "warn",
+      ownerKey: adminUser.username,
+      ipAddress: getClientIp(request),
+      message: "Geracao de decks de mecanicas executada para admin.",
+      payload: {
+        runId: generationReport?.runId || "",
+        totalCreated: Number(generationReport?.totalCreated || 0),
+        failedFamilies: Number(generationReport?.failedFamilies?.length || 0),
+      },
+    });
+    sendJson(response, 200, generationReport);
+    return;
+  }
+
+  if (pathname.startsWith("/api/admin/decks/generate-mechanics/report/") && request.method === "GET") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
+    const runId = String(pathname.replace("/api/admin/decks/generate-mechanics/report/", "") || "").trim();
+    if (!runId) {
+      return sendJson(response, 400, { error: "runId obrigatorio." });
+    }
+    const report = mechanicsDeckGenerationReports.get(runId);
+    if (!report) {
+      return sendJson(response, 404, { error: "Relatorio nao encontrado para esse runId." });
+    }
+    sendJson(response, 200, { ok: true, report });
     return;
   }
 
