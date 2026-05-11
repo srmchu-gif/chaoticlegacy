@@ -305,9 +305,11 @@ async function bindProfile(username, sessionData) {
   const profileModalClose = qs("profile-modal-close");
   const profileTabGeneralBtn = qs("profile-tab-general-btn");
   const profileTabFriendsBtn = qs("profile-tab-friends-btn");
+  const profileTabQuestsBtn = qs("profile-tab-quests-btn");
   const profileTabNotificationsBtn = qs("profile-tab-notifications-btn");
   const profileTabGeneralPanel = qs("profile-tab-general");
   const profileTabFriendsPanel = qs("profile-tab-friends");
+  const profileTabQuestsPanel = qs("profile-tab-quests");
   const profileTabNotificationsPanel = qs("profile-tab-notifications");
   const profileNotificationsSection = qs("profile-notifications-section");
   const profileModalName = qs("profile-modal-name");
@@ -335,6 +337,8 @@ async function bindProfile(username, sessionData) {
   const profileFriendsSubtabRequestsBtn = qs("profile-friends-subtab-requests-btn");
   const profileFriendsSubtabList = qs("profile-friends-subtab-list");
   const profileFriendsSubtabRequests = qs("profile-friends-subtab-requests");
+  const profileQuestsSummary = qs("profile-quests-summary");
+  const profileQuestsList = qs("profile-quests-list");
   const profileAvatarChangeBtn = qs("profile-avatar-change-btn");
   const profileCardModal = qs("profile-card-modal");
   const profileCardBackdrop = qs("profile-card-backdrop");
@@ -375,9 +379,10 @@ async function bindProfile(username, sessionData) {
   };
 
   const setProfileTab = (tab) => {
-    const normalizedTab = tab === "friends" || tab === "notifications" ? tab : "general";
+    const normalizedTab = tab === "friends" || tab === "notifications" || tab === "quests" ? tab : "general";
     const isGeneral = normalizedTab === "general";
     const isFriends = normalizedTab === "friends";
+    const isQuests = normalizedTab === "quests";
     const isNotifications = normalizedTab === "notifications";
     if (profileTabGeneralBtn) {
       profileTabGeneralBtn.classList.toggle("active", isGeneral);
@@ -386,6 +391,10 @@ async function bindProfile(username, sessionData) {
     if (profileTabFriendsBtn) {
       profileTabFriendsBtn.classList.toggle("active", isFriends);
       profileTabFriendsBtn.setAttribute("aria-selected", isFriends ? "true" : "false");
+    }
+    if (profileTabQuestsBtn) {
+      profileTabQuestsBtn.classList.toggle("active", isQuests);
+      profileTabQuestsBtn.setAttribute("aria-selected", isQuests ? "true" : "false");
     }
     if (profileTabNotificationsBtn) {
       profileTabNotificationsBtn.classList.toggle("active", isNotifications);
@@ -398,6 +407,10 @@ async function bindProfile(username, sessionData) {
     if (profileTabFriendsPanel) {
       profileTabFriendsPanel.classList.toggle("active", isFriends);
       profileTabFriendsPanel.setAttribute("aria-hidden", isFriends ? "false" : "true");
+    }
+    if (profileTabQuestsPanel) {
+      profileTabQuestsPanel.classList.toggle("active", isQuests);
+      profileTabQuestsPanel.setAttribute("aria-hidden", isQuests ? "false" : "true");
     }
     if (profileTabNotificationsPanel) {
       profileTabNotificationsPanel.classList.toggle("active", isNotifications);
@@ -488,6 +501,8 @@ async function bindProfile(username, sessionData) {
     incoming: [],
     outgoing: [],
     friends: [],
+    quests: [],
+    questsCounts: { active: 0, readyToRedeem: 0, reserved: 0, granted: 0 },
   };
 
   const formatDateTimeLabel = (value) => {
@@ -696,6 +711,59 @@ async function bindProfile(username, sessionData) {
     }
   };
 
+  const renderQuests = () => {
+    if (profileQuestsSummary) {
+      const counts = socialState.questsCounts || {};
+      profileQuestsSummary.innerHTML = [
+        `Ativas: ${Number(counts.active || 0)}`,
+        `Prontas: ${Number(counts.readyToRedeem || 0)}`,
+        `Reservadas: ${Number(counts.reserved || 0)}`,
+        `Concluidas: ${Number(counts.granted || 0)}`,
+      ].map((text) => `<span>${escapeHtml(text)}</span>`).join("");
+    }
+    if (!profileQuestsList) {
+      return;
+    }
+    const quests = Array.isArray(socialState.quests) ? socialState.quests : [];
+    if (!quests.length) {
+      profileQuestsList.innerHTML = '<div class="trades-empty">Nenhuma quest desbloqueada ainda. Investigue anomalias no PERIM.</div>';
+      return;
+    }
+    const statusLabelByKey = {
+      active: "Ativa",
+      ready_to_redeem: "Pronta para resgatar",
+      reward_reserved: "Resgate em andamento",
+      reward_granted: "Concluida",
+    };
+    profileQuestsList.innerHTML = quests.map((entry) => {
+      const statusKey = String(entry?.status || "active");
+      const reward = entry?.reward || {};
+      const targetLocation = entry?.targetLocation || {};
+      const requirements = Array.isArray(entry?.requirements) ? entry.requirements : [];
+      const reqList = requirements.length
+        ? `<ul class="profile-quest-req-list">${
+          requirements.map((req) => {
+            const done = Boolean(req?.done);
+            const className = done ? "done" : "";
+            const name = String(req?.cardName || req?.cardId || "Recurso");
+            const owned = Number(req?.owned || 0);
+            const required = Number(req?.required || 0);
+            return `<li class="${className}">${escapeHtml(name)} (${owned}/${required})</li>`;
+          }).join("")
+        }</ul>`
+        : '<ul class="profile-quest-req-list"><li>Sem requisitos.</li></ul>';
+      return `
+        <article class="profile-quest-item">
+          <strong>${escapeHtml(entry?.title || "Quest")}</strong>
+          <div class="profile-quest-meta">Carta: ${escapeHtml(String(reward?.cardName || "-"))} • Set ${escapeHtml(String(reward?.set || "-"))} • Raridade ${escapeHtml(String(reward?.rarity || "-"))}</div>
+          <div class="profile-quest-meta">Local de resgate: ${escapeHtml(String(targetLocation?.name || "-"))}</div>
+          <span class="profile-quest-status status-${escapeAttr(statusKey)}">${escapeHtml(statusLabelByKey[statusKey] || "Ativa")}</span>
+          ${reqList}
+        </article>
+      `;
+    }).join("");
+  };
+
   const normalizePresenceStatus = (presence) => {
     const status = String(presence?.status || "").toLowerCase();
     if (status === "em_troca" || status === "em_perim" || status === "online") {
@@ -795,11 +863,12 @@ async function bindProfile(username, sessionData) {
 
   async function refreshProfileSocial({ silent = false } = {}) {
     try {
-      const [notificationsPayload, friendsPayload, requestsPayload, presencePayload] = await Promise.all([
+      const [notificationsPayload, friendsPayload, requestsPayload, presencePayload, questsPayload] = await Promise.all([
         fetchJsonWithTimeout("/api/profile/notifications?limit=30", { method: "GET" }),
         fetchJsonWithTimeout("/api/profile/friends", { method: "GET" }),
         fetchJsonWithTimeout("/api/profile/friends/requests", { method: "GET" }),
         fetchJsonWithTimeout("/api/profile/friends/presence", { method: "GET" }),
+        fetchJsonWithTimeout("/api/profile/quests", { method: "GET" }),
       ]);
       socialState.notifications = Array.isArray(notificationsPayload?.notifications) ? notificationsPayload.notifications : [];
       socialState.unreadCount = Math.max(0, Number(notificationsPayload?.unreadCount || 0));
@@ -816,9 +885,14 @@ async function bindProfile(username, sessionData) {
       });
       socialState.incoming = Array.isArray(requestsPayload?.incoming) ? requestsPayload.incoming : [];
       socialState.outgoing = Array.isArray(requestsPayload?.outgoing) ? requestsPayload.outgoing : [];
+      socialState.quests = Array.isArray(questsPayload?.quests) ? questsPayload.quests : [];
+      socialState.questsCounts = questsPayload?.counts && typeof questsPayload.counts === "object"
+        ? questsPayload.counts
+        : { active: 0, readyToRedeem: 0, reserved: 0, granted: 0 };
       renderNotifications();
       renderFriendRequests();
       renderFriendsList();
+      renderQuests();
     } catch (error) {
       if (!silent) {
         alert(error?.message || "Falha ao carregar dados sociais do perfil.");
@@ -1065,6 +1139,9 @@ async function bindProfile(username, sessionData) {
   }
   if (profileTabFriendsBtn) {
     profileTabFriendsBtn.addEventListener("click", () => setProfileTab("friends"));
+  }
+  if (profileTabQuestsBtn) {
+    profileTabQuestsBtn.addEventListener("click", () => setProfileTab("quests"));
   }
   if (profileTabNotificationsBtn) {
     profileTabNotificationsBtn.addEventListener("click", () => setProfileTab("notifications"));

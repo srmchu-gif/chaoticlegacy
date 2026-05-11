@@ -457,6 +457,7 @@
       <div class="profile-modal-tabs" role="tablist" aria-label="Navegacao do perfil">
         <button id="profile-tab-general-btn" class="profile-tab-btn active" type="button" role="tab" aria-selected="true" aria-controls="profile-tab-general">Geral</button>
         <button id="profile-tab-friends-btn" class="profile-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-friends">Amigos</button>
+        <button id="profile-tab-quests-btn" class="profile-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-quests">Quests</button>
         <button id="profile-tab-notifications-btn" class="profile-tab-btn" type="button" role="tab" aria-selected="false" aria-controls="profile-tab-notifications">Notificacoes</button>
       </div>
       <div id="profile-tab-general" class="profile-tab-panel active" role="tabpanel">
@@ -537,6 +538,14 @@
               <div id="profile-friends-outgoing" class="profile-friends-list"></div>
             </div>
           </div>
+        </section>
+      </div>
+      <div id="profile-tab-quests" class="profile-tab-panel" role="tabpanel" aria-hidden="true">
+        <section class="profile-modal-section profile-modal-section-first">
+          <h4>Quests de Anomalia</h4>
+          <p class="profile-quests-help">Complete requisitos de scans para liberar cartas raras dos sets DOP, ZOTH e SS.</p>
+          <div id="profile-quests-summary" class="profile-quests-summary"></div>
+          <div id="profile-quests-list" class="profile-quests-list"></div>
         </section>
       </div>
       <div id="profile-tab-notifications" class="profile-tab-panel" role="tabpanel" aria-hidden="true">

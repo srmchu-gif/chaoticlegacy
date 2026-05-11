@@ -703,6 +703,47 @@ function createSqlV2Tables() {
   `);
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_rewards_owner_run ON perim_rewards(owner_key, run_id);");
   sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_quest_templates (
+      quest_key TEXT NOT NULL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      reward_type TEXT NOT NULL,
+      reward_card_id TEXT NOT NULL,
+      target_location_card_id TEXT NOT NULL,
+      anomaly_location_ids_json TEXT NOT NULL DEFAULT '[]',
+      requirements_json TEXT NOT NULL DEFAULT '[]',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_quest_templates_enabled ON perim_quest_templates(enabled, reward_type);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_player_quests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_key TEXT NOT NULL,
+      quest_key TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      reserved_run_id TEXT,
+      assigned_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      granted_at TEXT,
+      UNIQUE (owner_key, quest_key)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_player_quests_owner_status ON perim_player_quests(owner_key, status, updated_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_quest_unlocks (
+      owner_key TEXT NOT NULL,
+      card_type TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      source_quest_key TEXT NOT NULL,
+      unlocked_at TEXT NOT NULL,
+      PRIMARY KEY (owner_key, card_type, card_id)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_quest_unlocks_owner ON perim_quest_unlocks(owner_key, unlocked_at DESC);");
+  sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_location_state (
       location_id TEXT NOT NULL PRIMARY KEY,
       turn_label TEXT NOT NULL,
@@ -4964,10 +5005,13 @@ const DEFAULT_LOCATION_RARITY_DROP_CHANCE = {
 };
 
 const PERIM_ANOMALY_DIRECT_REVEAL_CHANCE = 0.02;
+const PERIM_ANOMALY_QUEST_DROP_CHANCE = 0.1;
 const PERIM_LOCATION_DROP_COPY_CAP = 3;
 const PERIM_LOCATION_DROP_BASE_CHANCE_MULTIPLIER = 0.82;
 const PLAYER_ALLOWED_SET_KEYS = new Set(["dop", "zoth", "ss"]);
 const PERIM_ALLOWED_DROP_SET_KEYS = PLAYER_ALLOWED_SET_KEYS;
+const PERIM_QUEST_REWARD_RARITIES = new Set(["rare", "super rare", "ultra rare"]);
+const PERIM_QUEST_TEMPLATE_TARGET_COUNT = 5;
 
 const DEFAULT_PERIM_CAMP_CREATURE_STACKING = {
   enabled: true,
@@ -5090,6 +5134,493 @@ function isPlayerCardSetAllowedByCardId(cardIdRaw) {
 function isPerimDropSetAllowed(setRaw) {
   const key = normalizePerimDropSetKey(setRaw);
   return PERIM_ALLOWED_DROP_SET_KEYS.has(key);
+}
+
+function normalizeQuestCardType(value) {
+  const type = String(value || "").trim().toLowerCase();
+  if (!DECK_CARD_TYPES.includes(type)) {
+    return "";
+  }
+  return type;
+}
+
+function parseQuestRequirements(value) {
+  const source = Array.isArray(value) ? value : parseJsonText(value, []);
+  if (!Array.isArray(source)) {
+    return [];
+  }
+  return source
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+      const cardType = normalizeQuestCardType(entry.cardType || entry.type || "");
+      const cardId = String(entry.cardId || "").trim();
+      const required = Math.max(1, Math.floor(Number(entry.required || entry.amount || 1)));
+      if (!cardType || !cardId) {
+        return null;
+      }
+      return { cardType, cardId, required };
+    })
+    .filter(Boolean);
+}
+
+function buildQuestTemplateSeedList() {
+  const cards = Array.isArray(library?.cards) ? library.cards : [];
+  const allowedCards = cards.filter((card) => {
+    const setKey = normalizePerimDropSetKey(card?.set || "");
+    if (!PERIM_ALLOWED_DROP_SET_KEYS.has(setKey)) {
+      return false;
+    }
+    const name = String(card?.name || "").toLowerCase();
+    return !name.includes("unused") && !name.includes("alpha");
+  });
+  const rewardCandidates = allowedCards
+    .filter((card) => {
+      const rarityKey = normalizePerimDropSetKey(card?.rarity || "");
+      return normalizeQuestCardType(card?.type || "") && PERIM_QUEST_REWARD_RARITIES.has(rarityKey);
+    })
+    .sort((a, b) => String(a?.id || "").localeCompare(String(b?.id || ""), "en"));
+  const requirementPool = allowedCards
+    .filter((card) => {
+      const type = normalizeQuestCardType(card?.type || "");
+      if (!type || type === "locations") {
+        return false;
+      }
+      const rarityKey = normalizePerimDropSetKey(card?.rarity || "");
+      return rarityKey === "common" || rarityKey === "uncommon" || rarityKey === "rare";
+    })
+    .sort((a, b) => String(a?.id || "").localeCompare(String(b?.id || ""), "en"));
+  const locations = allowedCards
+    .filter((card) => normalizeQuestCardType(card?.type || "") === "locations")
+    .sort((a, b) => String(a?.id || "").localeCompare(String(b?.id || ""), "en"));
+  if (!rewardCandidates.length || !requirementPool.length || !locations.length) {
+    return [];
+  }
+  const templates = [];
+  const chunk = Math.max(1, Math.floor(rewardCandidates.length / PERIM_QUEST_TEMPLATE_TARGET_COUNT));
+  for (let i = 0; i < PERIM_QUEST_TEMPLATE_TARGET_COUNT; i += 1) {
+    const rewardCard = rewardCandidates[Math.min(rewardCandidates.length - 1, i * chunk)];
+    if (!rewardCard?.id) {
+      continue;
+    }
+    const rewardSetKey = normalizePerimDropSetKey(rewardCard?.set || "");
+    const reqPoolBySet = requirementPool.filter(
+      (entry) =>
+        normalizePerimDropSetKey(entry?.set || "") === rewardSetKey
+        && String(entry?.id || "") !== String(rewardCard.id)
+    );
+    const requirementA = reqPoolBySet[0] || null;
+    const requirementB = reqPoolBySet[1] || null;
+    if (!requirementA || !requirementB) {
+      continue;
+    }
+    const targetLocation = locations[(i * 7) % locations.length];
+    const questKey = `quest_v1_${rewardSetKey}_${String(rewardCard.id).replace(/[^a-z0-9]+/gi, "_").toLowerCase()}`;
+    const requirements = [
+      {
+        cardType: normalizeQuestCardType(requirementA.type),
+        cardId: String(requirementA.id),
+        required: 2,
+      },
+      {
+        cardType: normalizeQuestCardType(requirementB.type),
+        cardId: String(requirementB.id),
+        required: 1,
+      },
+    ].filter((entry) => entry.cardType && entry.cardId);
+    if (requirements.length < 2) {
+      continue;
+    }
+    templates.push({
+      questKey,
+      title: `Missao de Anomalia: ${rewardCard.name}`,
+      description: "Reuna os recursos exigidos e resgate uma carta rara no local indicado.",
+      rewardType: normalizeQuestCardType(rewardCard.type),
+      rewardCardId: String(rewardCard.id),
+      targetLocationCardId: String(targetLocation.id),
+      anomalyLocationIds: [String(targetLocation.id)],
+      requirements,
+    });
+  }
+  return templates.slice(0, PERIM_QUEST_TEMPLATE_TARGET_COUNT);
+}
+
+function ensurePerimQuestTemplatesSeed() {
+  if (!isSqlV2Ready()) {
+    return;
+  }
+  try {
+    const existing = sqliteDb.prepare("SELECT COUNT(*) AS total FROM perim_quest_templates").get();
+    if (Number(existing?.total || 0) > 0) {
+      return;
+    }
+    const templates = buildQuestTemplateSeedList();
+    if (!templates.length) {
+      console.warn("[PERIM][QUESTS] Seed inicial nao gerado: sem cartas elegiveis.");
+      return;
+    }
+    const now = nowIso();
+    const insert = sqliteDb.prepare(`
+      INSERT INTO perim_quest_templates (
+        quest_key, title, description, reward_type, reward_card_id, target_location_card_id,
+        anomaly_location_ids_json, requirements_json, enabled, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+    `);
+    sqliteDb.exec("BEGIN IMMEDIATE");
+    templates.forEach((template) => {
+      insert.run(
+        String(template.questKey),
+        String(template.title),
+        String(template.description || ""),
+        String(template.rewardType),
+        String(template.rewardCardId),
+        String(template.targetLocationCardId),
+        JSON.stringify(template.anomalyLocationIds || []),
+        JSON.stringify(template.requirements || []),
+        now,
+        now
+      );
+    });
+    sqliteDb.exec("COMMIT");
+    console.log(`[PERIM][QUESTS] Seed inicial criado com ${templates.length} quests.`);
+  } catch (error) {
+    try {
+      sqliteDb.exec("ROLLBACK");
+    } catch {}
+    console.warn(`[PERIM][QUESTS] Falha ao criar seed inicial: ${error?.message || error}`);
+  }
+}
+
+function listPerimQuestTemplates() {
+  if (!isSqlV2Ready()) {
+    return [];
+  }
+  ensurePerimQuestTemplatesSeed();
+  const rows = sqliteDb
+    .prepare(`
+      SELECT quest_key, title, description, reward_type, reward_card_id, target_location_card_id,
+             anomaly_location_ids_json, requirements_json, enabled
+      FROM perim_quest_templates
+      WHERE enabled = 1
+      ORDER BY quest_key
+    `)
+    .all();
+  const indexes = getLibraryCardIndexes();
+  return rows
+    .map((row) => {
+      const rewardType = normalizeQuestCardType(row?.reward_type || "");
+      const rewardCardId = String(row?.reward_card_id || "").trim();
+      const rewardCard = indexes.byId.get(rewardCardId) || null;
+      const requirements = parseQuestRequirements(row?.requirements_json);
+      const targetLocationCardId = String(row?.target_location_card_id || "").trim();
+      const targetLocationCard = indexes.byId.get(targetLocationCardId) || null;
+      const anomalyLocationIds = Array.isArray(parseJsonText(row?.anomaly_location_ids_json, []))
+        ? parseJsonText(row?.anomaly_location_ids_json, [])
+            .map((value) => String(value || "").trim())
+            .filter(Boolean)
+        : [];
+      if (!rewardType || !rewardCardId || !rewardCard || !targetLocationCard || !requirements.length) {
+        return null;
+      }
+      const rewardSetAllowed = isPerimDropSetAllowed(rewardCard?.set || "");
+      if (!rewardSetAllowed) {
+        return null;
+      }
+      const requirementSetAllowed = requirements.every((entry) => {
+        const card = indexes.byId.get(entry.cardId) || null;
+        return Boolean(card) && isPerimDropSetAllowed(card?.set || "");
+      });
+      if (!requirementSetAllowed) {
+        return null;
+      }
+      return {
+        questKey: String(row?.quest_key || ""),
+        title: String(row?.title || ""),
+        description: String(row?.description || ""),
+        rewardType,
+        rewardCardId,
+        rewardCard,
+        targetLocationCardId,
+        targetLocationCard,
+        anomalyLocationIds,
+        requirements,
+      };
+    })
+    .filter(Boolean);
+}
+
+function listPerimPlayerQuestRows(ownerKeyRaw) {
+  if (!isSqlV2Ready()) {
+    return [];
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return [];
+  }
+  return sqliteDb
+    .prepare(`
+      SELECT id, owner_key, quest_key, status, reserved_run_id, assigned_at, updated_at, granted_at
+      FROM perim_player_quests
+      WHERE owner_key = ?
+      ORDER BY assigned_at ASC
+    `)
+    .all(ownerKey);
+}
+
+function getQuestUnlockedRewardKeySet(ownerKeyRaw) {
+  const set = new Set();
+  if (!isSqlV2Ready()) {
+    return set;
+  }
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey) {
+    return set;
+  }
+  sqliteDb
+    .prepare("SELECT card_type, card_id FROM perim_quest_unlocks WHERE owner_key = ?")
+    .all(ownerKey)
+    .forEach((row) => {
+      const cardType = normalizeQuestCardType(row?.card_type || "");
+      const cardId = String(row?.card_id || "").trim();
+      if (!cardType || !cardId) {
+        return;
+      }
+      set.add(`${cardType}:${cardId}`);
+    });
+  return set;
+}
+
+function getQuestLockedRewardKeySet(ownerKeyRaw) {
+  const templates = listPerimQuestTemplates();
+  if (!templates.length) {
+    return new Set();
+  }
+  const unlocked = getQuestUnlockedRewardKeySet(ownerKeyRaw);
+  const locked = new Set();
+  templates.forEach((template) => {
+    const rewardKey = `${template.rewardType}:${template.rewardCardId}`;
+    if (!unlocked.has(rewardKey)) {
+      locked.add(rewardKey);
+    }
+  });
+  return locked;
+}
+
+function computePerimQuestProgress(ownerKeyRaw, cards) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  if (!ownerKey || !isSqlV2Ready()) {
+    return [];
+  }
+  const templates = listPerimQuestTemplates();
+  if (!templates.length) {
+    return [];
+  }
+  const rows = listPerimPlayerQuestRows(ownerKey);
+  const rowByQuest = new Map(rows.map((row) => [String(row?.quest_key || ""), row]));
+  const inventoryCounts = buildInventoryCountMap(cards);
+  const cardIndexes = getLibraryCardIndexes();
+  const now = nowIso();
+  const quests = [];
+  templates.forEach((template) => {
+    const row = rowByQuest.get(template.questKey);
+    if (!row) {
+      return;
+    }
+    let status = String(row?.status || "active");
+    const requirements = template.requirements.map((entry) => {
+      const owned = Math.max(0, Number(inventoryCounts.get(`${entry.cardType}:${entry.cardId}`) || 0));
+      const card = cardIndexes.byId.get(entry.cardId) || null;
+      return {
+        ...entry,
+        cardName: String(card?.name || entry.cardId),
+        owned,
+        done: owned >= entry.required,
+      };
+    });
+    const readyByInventory = requirements.every((entry) => entry.done);
+    if (status === "active" && readyByInventory) {
+      status = "ready_to_redeem";
+      sqliteDb
+        .prepare("UPDATE perim_player_quests SET status = ?, updated_at = ? WHERE id = ?")
+        .run(status, now, Number(row.id));
+    }
+    const rewardKey = `${template.rewardType}:${template.rewardCardId}`;
+    const rewardSet = normalizePerimDropSetKey(template.rewardCard?.set || "");
+    quests.push({
+      questKey: template.questKey,
+      title: template.title,
+      description: template.description,
+      status,
+      assignedAt: String(row?.assigned_at || now),
+      updatedAt: String(row?.updated_at || now),
+      grantedAt: row?.granted_at ? String(row.granted_at) : null,
+      reservedRunId: row?.reserved_run_id ? String(row.reserved_run_id) : "",
+      reward: {
+        key: rewardKey,
+        type: template.rewardType,
+        cardId: template.rewardCardId,
+        cardName: String(template.rewardCard?.name || template.rewardCardId),
+        set: String(template.rewardCard?.set || ""),
+        rarity: String(template.rewardCard?.rarity || ""),
+        image: String(template.rewardCard?.image || ""),
+        setAllowed: PERIM_ALLOWED_DROP_SET_KEYS.has(rewardSet),
+      },
+      targetLocation: {
+        cardId: template.targetLocationCardId,
+        name: String(template.targetLocationCard?.name || template.targetLocationCardId),
+        set: String(template.targetLocationCard?.set || ""),
+      },
+      requirements,
+      readyByInventory,
+    });
+  });
+  return quests;
+}
+
+function assignPerimQuestFromAnomaly(ownerKeyRaw, locationCardIdRaw, cards) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const locationCardId = String(locationCardIdRaw || "").trim();
+  if (!ownerKey || !locationCardId || !isSqlV2Ready()) {
+    return null;
+  }
+  if (Math.random() > PERIM_ANOMALY_QUEST_DROP_CHANCE) {
+    return null;
+  }
+  const templates = listPerimQuestTemplates();
+  if (!templates.length) {
+    return null;
+  }
+  const rows = listPerimPlayerQuestRows(ownerKey);
+  const existing = new Set(rows.map((row) => String(row?.quest_key || "")));
+  const eligible = templates.filter((template) => {
+    if (existing.has(template.questKey)) {
+      return false;
+    }
+    const anomalyLocations = Array.isArray(template.anomalyLocationIds) ? template.anomalyLocationIds : [];
+    if (!anomalyLocations.length) {
+      return true;
+    }
+    return anomalyLocations.includes(locationCardId);
+  });
+  if (!eligible.length) {
+    return null;
+  }
+  const picked = pickFromList(eligible);
+  if (!picked) {
+    return null;
+  }
+  const now = nowIso();
+  sqliteDb.prepare(`
+    INSERT OR IGNORE INTO perim_player_quests (owner_key, quest_key, status, reserved_run_id, assigned_at, updated_at, granted_at)
+    VALUES (?, ?, 'active', NULL, ?, ?, NULL)
+  `).run(ownerKey, picked.questKey, now, now);
+  createProfileNotification(
+    ownerKey,
+    "quest_unlocked",
+    "Nova quest de anomalia",
+    `Missao desbloqueada: ${picked.title}.`,
+    { questKey: picked.questKey }
+  );
+  return picked;
+}
+
+function reserveQuestRewardForRun(ownerKeyRaw, runIdRaw, locationCardIdRaw, rewards, inventoryCounts, options = {}) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const runId = String(runIdRaw || "").trim();
+  const locationCardId = String(locationCardIdRaw || "").trim();
+  if (!ownerKey || !runId || !locationCardId || !Array.isArray(rewards) || !isSqlV2Ready()) {
+    return null;
+  }
+  const cards = Array.isArray(options.cards) ? options.cards : [];
+  const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const quests = computePerimQuestProgress(ownerKey, cards);
+  const candidate = quests.find(
+    (quest) => quest.status === "ready_to_redeem" && String(quest?.targetLocation?.cardId || "") === locationCardId
+  );
+  if (!candidate) {
+    return null;
+  }
+  const rewardType = normalizeQuestCardType(candidate?.reward?.type || "");
+  const rewardCardId = String(candidate?.reward?.cardId || "").trim();
+  if (!rewardType || !rewardCardId) {
+    return null;
+  }
+  const stockKey = `${rewardType}:${rewardCardId}`;
+  const currentAmount = Math.max(0, Number(inventoryCounts?.get(stockKey) || 0));
+  if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
+    return null;
+  }
+  const rewardPayload = normalizeRewardPayload({
+    type: rewardType,
+    cardId: rewardCardId,
+    cardName: candidate?.reward?.cardName || rewardCardId,
+    rarity: candidate?.reward?.rarity || "Unknown",
+    image: candidate?.reward?.image || "",
+    source: "perim_quest_reward",
+    questKey: candidate.questKey,
+  });
+  if (!rewardPayload) {
+    return null;
+  }
+  rewardPayload.source = "perim_quest_reward";
+  rewardPayload.questKey = candidate.questKey;
+  rewards.push(rewardPayload);
+  increaseInventoryCountMap(inventoryCounts, rewardPayload);
+  sqliteDb
+    .prepare("UPDATE perim_player_quests SET status = 'reward_reserved', reserved_run_id = ?, updated_at = ? WHERE owner_key = ? AND quest_key = ?")
+    .run(runId, nowIso(), ownerKey, candidate.questKey);
+  return { questKey: candidate.questKey, reward: rewardPayload };
+}
+
+function grantReservedQuestByRun(ownerKeyRaw, runIdRaw, rewards) {
+  const ownerKey = normalizeUserKey(ownerKeyRaw, "");
+  const runId = String(runIdRaw || "").trim();
+  if (!ownerKey || !runId || !isSqlV2Ready()) {
+    return null;
+  }
+  const row = sqliteDb
+    .prepare(`
+      SELECT quest_key
+      FROM perim_player_quests
+      WHERE owner_key = ? AND reserved_run_id = ? AND status = 'reward_reserved'
+      LIMIT 1
+    `)
+    .get(ownerKey, runId);
+  if (!row?.quest_key) {
+    return null;
+  }
+  const questKey = String(row.quest_key);
+  const templates = listPerimQuestTemplates();
+  const template = templates.find((entry) => entry.questKey === questKey) || null;
+  if (!template) {
+    return null;
+  }
+  const rewardType = normalizeQuestCardType(template.rewardType);
+  const rewardCardId = String(template.rewardCardId || "").trim();
+  const hasRewardInRun = Array.isArray(rewards)
+    && rewards.some((entry) => String(entry?.type || "") === rewardType && String(entry?.cardId || "") === rewardCardId);
+  if (!hasRewardInRun) {
+    return null;
+  }
+  const now = nowIso();
+  sqliteDb
+    .prepare("UPDATE perim_player_quests SET status = 'reward_granted', granted_at = ?, updated_at = ?, reserved_run_id = NULL WHERE owner_key = ? AND quest_key = ?")
+    .run(now, now, ownerKey, questKey);
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO perim_quest_unlocks (owner_key, card_type, card_id, source_quest_key, unlocked_at)
+      VALUES (?, ?, ?, ?, ?)
+    `)
+    .run(ownerKey, rewardType, rewardCardId, questKey, now);
+  createProfileNotification(
+    ownerKey,
+    "quest_completed",
+    "Quest concluida",
+    `Voce concluiu ${template.title} e liberou ${template.rewardCard?.name || rewardCardId}.`,
+    { questKey, rewardType, rewardCardId }
+  );
+  return { questKey, rewardType, rewardCardId };
 }
 
 function normalizePerimDropTables(payload) {
@@ -6326,6 +6857,7 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
     ? options.tribeScannerRareBoosts
     : new Map();
   const requireLocalMugicEligible = Boolean(options.requireLocalMugicEligible);
+  const excludedRewardCardKeys = options.excludedRewardCardKeys instanceof Set ? options.excludedRewardCardKeys : new Set();
   const tribeKey = String(preferredTribe || "").trim().toLowerCase();
   let basePool = cards;
   let selectedTribeKey = tribeKey;
@@ -6363,6 +6895,9 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
       return false;
     }
     const stockKey = `${type}:${String(card?.id || "")}`;
+    if (excludedRewardCardKeys.has(stockKey)) {
+      return false;
+    }
     const currentAmount = inventoryCounts.get(stockKey) || 0;
     return ignoreInventoryCap || currentAmount < INVENTORY_MAX_COPIES;
   });
@@ -6462,6 +6997,7 @@ function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}
   const forceDrop = Boolean(options.forceDrop);
   const maxRarity = String(options.maxRarity || "").trim();
   const rareBoost = Math.max(0, Number(options.rareBoost || 0));
+  const excludedRewardCardKeys = options.excludedRewardCardKeys instanceof Set ? options.excludedRewardCardKeys : new Set();
   if (!Array.isArray(creaturePoolRaw) || !creaturePoolRaw.length) {
     return null;
   }
@@ -6479,6 +7015,9 @@ function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}
         return null;
       }
       if (!isPerimDropSetAllowed(card?.set || "")) {
+        return null;
+      }
+      if (excludedRewardCardKeys.has(`creatures:${String(card.id)}`)) {
         return null;
       }
       const cardNameLower = String(card.name || "").toLowerCase();
@@ -6876,6 +7415,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   const creatureRareBoost = Math.max(0, Number(tribeBoostEntry?.creatureRareBoost ?? scannerEffect.rareBoost ?? 0));
   const mugicRareBoost = Math.max(0, Number(tribeBoostEntry?.mugicRareBoost ?? scannerEffect.mugicRareBoost ?? scannerEffect.rareBoost ?? 0));
   const campWaitCount = Math.max(0, Math.floor(Number(options?.campWaitCount || 0)));
+  const excludedRewardCardKeys = options.excludedRewardCardKeys instanceof Set ? options.excludedRewardCardKeys : new Set();
   const campStacking = getPerimCampCreatureStackingSettings();
   const campBonusPercent = actionId === "camp"
     ? calculatePerimCampCreatureBonusPercent(campWaitCount)
@@ -6916,6 +7456,9 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
           return null;
         }
         if (!isPerimDropSetAllowed(card?.set || "")) {
+          return null;
+        }
+        if (excludedRewardCardKeys.has(`locations:${id}`)) {
           return null;
         }
         const lowerName = String(card?.name || "").toLowerCase();
@@ -6978,6 +7521,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         rareBoost: creatureRareBoost,
         includeCreatureVariant,
         ignoreInventoryCap,
+        excludedRewardCardKeys,
       });
       if (normalRoll) {
         return normalRoll;
@@ -6996,6 +7540,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       ignoreInventoryCap,
       maxRarity: String(campStacking.bonusMaxRarity || "super rare"),
       forceDrop: true,
+      excludedRewardCardKeys,
     });
   };
   const pickRewardForType = (type) => {
@@ -7011,6 +7556,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       locationEntry,
       tribeScannerRareBoosts,
       requireLocalMugicEligible: type === "mugic",
+      excludedRewardCardKeys,
     });
   };
 
@@ -7066,6 +7612,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
+        excludedRewardCardKeys,
       }) ||
       rewardCardFromType("battlegear", tribe, {
         inventoryCounts,
@@ -7074,6 +7621,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
+        excludedRewardCardKeys,
       }) ||
       rewardCardFromType("mugic", tribe, {
         inventoryCounts,
@@ -7083,6 +7631,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         locationEntry,
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
+        excludedRewardCardKeys,
       }) ||
       pickCreatureForAction();
     if (failFallback) {
@@ -7120,6 +7669,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
+        excludedRewardCardKeys,
       });
       if (attackReward) {
         appendReward(attackReward);
@@ -7159,6 +7709,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       activeClimate,
       locationEntry,
       tribeScannerRareBoosts,
+      excludedRewardCardKeys,
     })
       || rewardCardFromType("battlegear", tribe, {
         inventoryCounts,
@@ -7167,6 +7718,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
+        excludedRewardCardKeys,
       })
       || rewardCardFromType("mugic", tribe, {
         inventoryCounts,
@@ -7176,6 +7728,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         locationEntry,
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
+        excludedRewardCardKeys,
       });
     if (fallback) {
       appendReward(fallback);
@@ -7198,6 +7751,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         activeClimate,
         locationEntry,
         tribeScannerRareBoosts,
+        excludedRewardCardKeys,
       })
       || rewardCardFromType("mugic", tribe, {
         inventoryCounts,
@@ -7207,6 +7761,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         locationEntry,
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
+        excludedRewardCardKeys,
       });
     if (!topUp || !appendReward(topUp)) {
       break;
@@ -8670,6 +9225,7 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
   incrementPerimMissionProgress(playerKeyRaw, 1, new Date());
   incrementWeeklyPerimMissionProgress(playerKeyRaw, 1, new Date());
   applyScannerProgressFromRewards(playerKeyRaw, collected);
+  const questGrant = grantReservedQuestByRun(playerKeyRaw, target.runId, collected);
   invalidateUserCaches(playerKeyRaw);
   return {
     ok: true,
@@ -8678,6 +9234,7 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
     skippedByCap,
     choiceSelections,
     choiceGroups: resolvedChoices.groups || [],
+    questGrant,
   };
 }
 
@@ -10848,6 +11405,45 @@ function buildProfilePayload(usernameRaw) {
     currentTag: currentTag || null,
     battleHistory: Array.isArray(profile.battleHistory) ? profile.battleHistory.slice(-PROFILE_HISTORY_LIMIT).reverse() : [],
     updatedAt: profile.updatedAt || nowIso(),
+  };
+}
+
+function buildProfileQuestsPayload(usernameRaw) {
+  const ownerKey = normalizeUserKey(usernameRaw, "");
+  if (!ownerKey || !isSqlV2Ready()) {
+    return {
+      quests: [],
+      counts: { active: 0, readyToRedeem: 0, reserved: 0, granted: 0 },
+      updatedAt: nowIso(),
+    };
+  }
+  ensurePerimQuestTemplatesSeed();
+  const scans = loadScansData();
+  const { cards } = getScansCardsForUser(scans, ownerKey, true);
+  const questsRaw = computePerimQuestProgress(ownerKey, cards);
+  const quests = questsRaw.map((quest) => ({
+    questKey: quest.questKey,
+    title: quest.title,
+    description: quest.description,
+    status: quest.status,
+    assignedAt: quest.assignedAt,
+    updatedAt: quest.updatedAt,
+    grantedAt: quest.grantedAt,
+    reward: quest.reward,
+    targetLocation: quest.targetLocation,
+    requirements: quest.requirements,
+    readyByInventory: Boolean(quest.readyByInventory),
+  }));
+  const counts = {
+    active: quests.filter((quest) => quest.status === "active").length,
+    readyToRedeem: quests.filter((quest) => quest.status === "ready_to_redeem").length,
+    reserved: quests.filter((quest) => quest.status === "reward_reserved").length,
+    granted: quests.filter((quest) => quest.status === "reward_granted").length,
+  };
+  return {
+    quests,
+    counts,
+    updatedAt: nowIso(),
   };
 }
 
@@ -15022,6 +15618,7 @@ async function handleRequest(request, response) {
     const runId = crypto.randomBytes(12).toString("hex");
     const inventoryCounts = buildInventoryCountMap(cards);
     const locationOwnedTotalCounts = buildPlayerLocationOwnershipCountMap(playerKeyRaw, cards);
+    const lockedQuestRewardCardKeys = getQuestLockedRewardKeySet(playerKeyRaw);
     const campWaitCount = actionId === "camp"
       ? getPerimCampWaitCount(playerState, locationCard.id)
       : 0;
@@ -15033,7 +15630,23 @@ async function handleRequest(request, response) {
       includeCreatureVariant: true,
       ignoreInventoryCap: instantPerim,
       campWaitCount,
+      excludedRewardCardKeys: lockedQuestRewardCardKeys,
     });
+    let droppedQuest = null;
+    if (actionId === "anomaly") {
+      droppedQuest = assignPerimQuestFromAnomaly(playerKeyRaw, locationCard.id, cards);
+    }
+    const reservedQuest = reserveQuestRewardForRun(
+      playerKeyRaw,
+      runId,
+      locationCard.id,
+      rewards,
+      inventoryCounts,
+      {
+        cards,
+        ignoreInventoryCap: instantPerim,
+      }
+    );
     if (actionId === "camp") {
       const hasCreatureReward = rewards.some((reward) => String(reward?.type || "") === "creatures");
       const campWaitChanged = hasCreatureReward
@@ -15082,6 +15695,17 @@ async function handleRequest(request, response) {
       activeRun: playerState.activeRun,
       pendingRewards: playerState.pendingRewards,
       instant: instantPerim,
+      questDrop: droppedQuest
+        ? {
+            questKey: droppedQuest.questKey,
+            title: droppedQuest.title,
+          }
+        : null,
+      questReserved: reservedQuest
+        ? {
+            questKey: reservedQuest.questKey,
+          }
+        : null,
     });
     return;
   }
@@ -15195,6 +15819,23 @@ async function handleRequest(request, response) {
     writePerimStateFile(rootState);
     invalidateUserCaches(playerKeyRaw);
     sendJson(response, 200, { ok: true, ...result });
+    return;
+  }
+
+  if (pathname === "/api/profile/quests" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Quests indisponiveis sem banco SQL." });
+      return;
+    }
+    const payload = buildProfileQuestsPayload(authUser.username);
+    sendJson(response, 200, {
+      ok: true,
+      ...payload,
+    });
     return;
   }
 
@@ -18247,6 +18888,7 @@ async function handleRequest(request, response) {
 
   if (request.method === "POST" && pathname === "/api/reload") {
       refreshLibraryCatalog(true);
+      ensurePerimQuestTemplatesSeed();
       loadPerimDropTables(true);
       effectPendingStats = writeBasePendingEffectsReport();
       creaturePendingStats = writeBaseCreaturePendingEffectsReport();
@@ -18630,6 +19272,7 @@ try {
 }
 
 refreshLibraryCatalog(false);
+ensurePerimQuestTemplatesSeed();
 loadPerimDropTables(true);
 hydrateCreatureDropSqlMetadata();
 writePerimActionsDropsReport();

@@ -1431,6 +1431,103 @@ body.menu-top50-disabled #profile-top50-bubble {
   overflow: auto;
 }
 
+.profile-quests-help {
+  margin: 0 0 0.45rem;
+  font-size: 0.68rem;
+  color: #9eb8cc;
+}
+
+.profile-quests-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.profile-quests-summary span {
+  font-size: 0.64rem;
+  color: #cde8f7;
+  border: 1px solid rgba(0, 210, 255, 0.3);
+  border-radius: 999px;
+  padding: 0.2rem 0.45rem;
+  background: rgba(0, 210, 255, 0.1);
+}
+
+.profile-quests-list {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.profile-quest-item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.45rem 0.5rem;
+  background: rgba(8, 16, 26, 0.64);
+}
+
+.profile-quest-item strong {
+  color: #dff6ff;
+  font-size: 0.72rem;
+}
+
+.profile-quest-meta {
+  margin-top: 0.18rem;
+  font-size: 0.66rem;
+  color: #9bb5c9;
+}
+
+.profile-quest-status {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.24rem;
+  font-size: 0.62rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.profile-quest-status.status-active {
+  color: #ffd781;
+  border-color: rgba(255, 204, 102, 0.4);
+  background: rgba(255, 195, 77, 0.12);
+}
+
+.profile-quest-status.status-ready_to_redeem {
+  color: #89ffd0;
+  border-color: rgba(90, 255, 190, 0.4);
+  background: rgba(62, 221, 156, 0.13);
+}
+
+.profile-quest-status.status-reward_reserved {
+  color: #90d7ff;
+  border-color: rgba(76, 179, 255, 0.4);
+  background: rgba(31, 129, 204, 0.13);
+}
+
+.profile-quest-status.status-reward_granted {
+  color: #d6b3ff;
+  border-color: rgba(184, 131, 255, 0.4);
+  background: rgba(131, 84, 201, 0.16);
+}
+
+.profile-quest-req-list {
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.profile-quest-req-list li {
+  font-size: 0.64rem;
+  color: #a8bfd2;
+}
+
+.profile-quest-req-list li.done {
+  color: #84f7c4;
+}
+
 .profile-notification-item {
   display: grid;
   gap: 0.15rem;
