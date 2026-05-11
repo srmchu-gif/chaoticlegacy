@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-10T22:39:51.848Z",
+    "generatedAt": "2026-05-11T01:15:10.708Z",
     "scope": [
       "DOP",
       "ZOTH",
@@ -12,8 +12,11 @@
       "parser_only": 0,
       "timing_incorrect": 0,
       "target_incorrect": 0,
-      "implemented": 418,
-      "tested": 346
+      "multi_effect_incomplete": 33,
+      "target_resolution_incomplete": 1,
+      "choice_resolution_incomplete": 0,
+      "implemented": 384,
+      "tested": 347
     },
     "bySet": {
       "DOP": {
@@ -22,7 +25,10 @@
         "parser_only": 0,
         "timing_incorrect": 0,
         "target_incorrect": 0,
-        "implemented": 218
+        "multi_effect_incomplete": 8,
+        "target_resolution_incomplete": 0,
+        "choice_resolution_incomplete": 0,
+        "implemented": 210
       },
       "ZOTH": {
         "cardsWithAbility": 100,
@@ -30,7 +36,10 @@
         "parser_only": 0,
         "timing_incorrect": 0,
         "target_incorrect": 0,
-        "implemented": 100
+        "multi_effect_incomplete": 14,
+        "target_resolution_incomplete": 0,
+        "choice_resolution_incomplete": 0,
+        "implemented": 86
       },
       "SS": {
         "cardsWithAbility": 100,
@@ -38,7 +47,10 @@
         "parser_only": 0,
         "timing_incorrect": 0,
         "target_incorrect": 0,
-        "implemented": 100
+        "multi_effect_incomplete": 11,
+        "target_resolution_incomplete": 1,
+        "choice_resolution_incomplete": 0,
+        "implemented": 88
       }
     }
   },
@@ -405,7 +417,7 @@
       "set": "SS",
       "type": "creatures",
       "name": "Drimesse",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10. If Drimesse has no Mugic counters on it, sacrifice it.",
       "parsedKinds": [
         "incomingDamageReduction"
@@ -543,7 +555,7 @@
       "set": "ZOTH",
       "type": "creatures",
       "name": "Geltod",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Discard an UnderWorld Mugic Card: Deal 5 damage to target Creature.",
       "parsedKinds": [
         "dealDamage"
@@ -753,7 +765,7 @@
       "set": "ZOTH",
       "type": "creatures",
       "name": "Jaal",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "When Jaal deals Earth damage to an Uninfected Creature, Infect that Creature. If engaged with an Infected Creature, Jaal has Earth 5.",
       "parsedKinds": [
         "elementModifier"
@@ -1190,7 +1202,7 @@
       "set": "DOP",
       "type": "creatures",
       "name": "Najarin",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "MCMC: Return target Mugic Card from your general discard pile to your hand.",
       "parsedKinds": [
         "returnFromDiscard"
@@ -1334,7 +1346,7 @@
       "set": "ZOTH",
       "type": "creatures",
       "name": "Ramarhvir, The Danian Hivebringer",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "When Hive is activated, you can remove a Mugic counter from a Danian Creature you control, if you do put a Mugic counter on Ramarhvir, the Danian Hivebringer. MCMC: Return target Mandiblor Creature Card in your general discard pile to play to any unoccupied space .",
       "parsedKinds": [
         "mugicCounterModifier"
@@ -1670,7 +1682,7 @@
       "set": "DOP",
       "type": "creatures",
       "name": "Ubliqun",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "MC: Ubliqun can move to any space as if it were adjacent.",
       "parsedKinds": [
         "moveAsIfAdjacent"
@@ -1939,7 +1951,7 @@
       "set": "ZOTH",
       "type": "attacks",
       "name": "Acid Wash",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Challenge Wisdom 15: Deal 10 damage. Water: Uninfect all engaged Creatures. Those Creatures cannot be Infected.",
       "parsedKinds": [
         "conditionalDamage"
@@ -1977,7 +1989,7 @@
       "set": "DOP",
       "type": "attacks",
       "name": "Ash Torrent",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Challenge Power 15: Deal 10 damage. (Compare the Discipline of the Creature that played this Attack with the opposing engaged Creature. If yours has that amount or more higher, deal the damage.)",
       "parsedKinds": [
         "conditionalDamage"
@@ -1989,7 +2001,7 @@
       "set": "SS",
       "type": "attacks",
       "name": "Blaze Barrage",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Fire, Air: Draw an Attack Card and discard an Attack Card.",
       "parsedKinds": [
         "drawDiscardAttack"
@@ -2074,7 +2086,7 @@
       "set": "ZOTH",
       "type": "attacks",
       "name": "Desiccate the Land",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Earth: If an Attack Card named Desiccate the Land is in your attack discard pile, heal 10 damage.",
       "parsedKinds": [
         "healDamage"
@@ -2341,7 +2353,7 @@
       "set": "DOP",
       "type": "attacks",
       "name": "Hive Call",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "You can remove a Mugic counter from a Creature you control. If you do, activate Hive.",
       "parsedKinds": [
         "activateHive"
@@ -2414,7 +2426,7 @@
       "set": "ZOTH",
       "type": "attacks",
       "name": "Infight",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "If the opposing engaged Creature is a Danian Creature, Activate Hive. Hive cannot be Deactivated.",
       "parsedKinds": [
         "activateHive"
@@ -2474,7 +2486,7 @@
       "set": "ZOTH",
       "type": "attacks",
       "name": "Malevolent Blast",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Air: Your engaged Creature loses Air. Discard an Attack Card, then draw an Attack Card.",
       "parsedKinds": [
         "removeElement"
@@ -2743,7 +2755,7 @@
       "set": "ZOTH",
       "type": "attacks",
       "name": "Scout's Strike",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Stat Check Speed 50: Deal 10 damage. If your engaged Creature is a Scout, look at opposing player's Attack and Mugic hands.",
       "parsedKinds": [
         "conditionalDamage"
@@ -2914,7 +2926,7 @@
       "set": "DOP",
       "type": "attacks",
       "name": "Tornado Tackle",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Air: Both players shuffle their Attack Decks and Attack Discard piles together.",
       "parsedKinds": [
         "shuffleAttackDeckWithDiscard"
@@ -2938,7 +2950,7 @@
       "set": "SS",
       "type": "attacks",
       "name": "Twister of Elements",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Air, Water: Search your Attack Deck for up to three Attack Cards and put them in your Attack Discard pile, then shuffle your Attack Deck.",
       "parsedKinds": [
         "searchDeckToDiscard"
@@ -3049,7 +3061,7 @@
       "set": "ZOTH",
       "type": "battlegear",
       "name": "Danian Carapace",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "When equipped Creature deals damage to an Uninfected Creature, Infect that Creature. When the equipped Creature is destroyed while engaged, destroy all Battlegear equipped to the opposing engaged Creature. Then, if that Creature is Unequipped, equip Danian carapace to it. (Players control any Battlegear equipped to Creatures they control.)",
       "parsedKinds": [
         "destroyBattlegear"
@@ -3171,7 +3183,7 @@
       "set": "ZOTH",
       "type": "battlegear",
       "name": "Ice Cloak",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "When Ice Cloak is flipped face-up, if equipped Creature is engaged with a Creature with Fire, equipped Creature gains 10 Energy. Equipped Creature has Fireproof 10.",
       "parsedKinds": [
         "elementproof"
@@ -3221,7 +3233,7 @@
       "set": "DOP",
       "type": "battlegear",
       "name": "Mipedian Cactus",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Equipped Creature has an additional 15 Wisdom. Equipped Mipedian Creature has MC: equipped Creature can move to any space on the board as if it were adjacent.",
       "parsedKinds": [
         "statModifier"
@@ -3429,7 +3441,7 @@
       "set": "DOP",
       "type": "battlegear",
       "name": "Stone Mail",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Equipped Creature cannot move. Equipped Creature has an additional 50 Energy. All damage dealt to equipped Creature is increased by 5. Equipped Creature has no abilities and cannot gain abilities.",
       "parsedKinds": [
         "statModifier"
@@ -3466,7 +3478,7 @@
       "set": "DOP",
       "type": "battlegear",
       "name": "Talisman of the Mandiblor",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Equipped Creature has an additional 15 Speed. Equipped Danian Creature has Sacrifice equipped Creature: Return a Mandiblor Creature Card in your general discard pile to play to any unoccupied space .",
       "parsedKinds": [
         "statModifier"
@@ -3591,7 +3603,7 @@
       "set": "SS",
       "type": "battlegear",
       "name": "Wind Whip",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Equipped Mipedian Creature has Air. If equipped Creature is a Conjuror Creature, Warbeast Creatures you control have Recklessness 5.",
       "parsedKinds": [
         "keyword"
@@ -3934,7 +3946,7 @@
       "set": "SS",
       "type": "locations",
       "name": "Mipedim Lounge",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Mirage: When an Attack Card is played by a Creature in this space, its controller can flip a coin. If tails, that player sacrifices his engaged Creature. If heads, the attack deals an additional 10 damage, and that player can flip again.",
       "parsedKinds": [
         "attackDamageModifier"
@@ -3946,7 +3958,7 @@
       "set": "SS",
       "type": "locations",
       "name": "Mipedim Mirage",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Creatures have Swift 1. Mirage: If an adjacent Creature can move into this space, it must do so.",
       "parsedKinds": [
         "keyword"
@@ -4045,7 +4057,7 @@
       "set": "SS",
       "type": "locations",
       "name": "Rao'Pa Sahkk, The Ocean with No Water",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Attacks that are either Air or Earth deal an additional 5 damage. (Attacks which are both Air and Earth deal only 5 additional damage.) When a Water attack is played, that attack's controller reveals a new active Location. Mirage: When combat ends, put a Mugic counter on Creatures in this space who were engaged.",
       "parsedKinds": [
         "mugicCounterModifier"
@@ -4274,7 +4286,7 @@
       "set": "ZOTH",
       "type": "mugic",
       "name": "Casters' Warsong",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Deal 5 damage to target Creature. If the caster of this Mugic is a Muge, deal an additional 10 damage.",
       "parsedKinds": [
         "dealDamage"
@@ -4407,7 +4419,7 @@
       "set": "ZOTH",
       "type": "mugic",
       "name": "Elemental Elegy",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Target Creature loses an Elemental Type of your choice. If that Creature has no Elemental Types, it cannot move instead.",
       "parsedKinds": [
         "removeChosenElementFromCreature"
@@ -4443,7 +4455,7 @@
       "set": "SS",
       "type": "mugic",
       "name": "Fighters' Fanfare",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Damage dealt by the next attack that resolves this turn is dealt to target engaged Creature instead. (Damage is calculated with target as the recipient.)",
       "parsedKinds": [
         "redirectNextAttackDamageToTargetCreature"
@@ -4515,7 +4527,7 @@
       "set": "ZOTH",
       "type": "mugic",
       "name": "Hive Unsung",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Deactivate Hive. As Hive Unsung is played, its caster can pay a Mugic counter. If the caster does, return Hive Unsung to your hand when it resolves.",
       "parsedKinds": [
         "deactivateHive"
@@ -4558,7 +4570,7 @@
         "infectTargetCreature"
       ],
       "unsupportedKinds": [],
-      "tested": false
+      "tested": true
     },
     {
       "set": "DOP",
@@ -4616,6 +4628,7 @@
       "status": "implemented",
       "ability": "Infect target Uninfected engaged Creature. If Hive is Active, Uninfect all Creatures controlled by an opponent and deal 5 damage to target engaged Creature for each Creature Uninfected this way instead.",
       "parsedKinds": [
+        "infectTargetCreature",
         "dealDamage"
       ],
       "unsupportedKinds": [],
@@ -4723,7 +4736,7 @@
       "set": "ZOTH",
       "type": "mugic",
       "name": "Recurring Rescue",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Heal 10 damage to target Creature. If the target of Recurring Rescue has 30 or less Scanned Energy, return Recurring Rescue to your hand when it resolves.",
       "parsedKinds": [
         "healDamage"
@@ -5065,7 +5078,7 @@
       "set": "SS",
       "type": "mugic",
       "name": "Strain of Ash",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Sacrifice a Battlegear equipped to an unengaged UnderWorld Creature you control. If you do, destroy target Battlegear.",
       "parsedKinds": [
         "destroyBattlegear"
@@ -5115,7 +5128,7 @@
       "set": "SS",
       "type": "mugic",
       "name": "Strain of the Tide",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Remove any number of OverWorld Creatures in your general discard pile from the game. Heal 10 damage to target Creature for each card you remove this way.",
       "parsedKinds": [
         "healDamage"
@@ -5151,7 +5164,7 @@
       "set": "SS",
       "type": "mugic",
       "name": "Tune of Xerium",
-      "status": "implemented",
+      "status": "multi_effect_incomplete",
       "ability": "Sacrifice a Battlegear. If you do, return another Battlegear from your general discard pile to play equipped to an unequipped Creature you control.",
       "parsedKinds": [
         "returnFromDiscard"
@@ -5163,7 +5176,7 @@
       "set": "SS",
       "type": "mugic",
       "name": "Void Dirge",
-      "status": "implemented",
+      "status": "target_resolution_incomplete",
       "ability": "Remove up to three target cards in one general discard pile from the game.",
       "parsedKinds": [
         "exileGeneralDiscardCards"

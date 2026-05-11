@@ -1643,6 +1643,7 @@ test("habilidades ativadas com multiplos custos geram opcoes separadas", async (
     },
   ];
   caster.mugicCounters = 2;
+  battle.pendingAction = { type: "priority", playerIndex: 0, choice: null, windowType: "test_priority" };
 
   const actions = engine.getPriorityActions(battle, 0).filter((entry) => entry.kind === "ability");
   const casterOptions = actions.filter((entry) => entry.option?.sourceUnitId === caster.unitId);
@@ -1725,4 +1726,105 @@ test("habilidade once per turn nao reaparece em nova janela do mesmo turno", asy
 
   assert.equal(abilityUsed, true);
   assert.equal(checkedSecondWindow, true);
+});
+
+test("another target exige alvo diferente na selecao sequencial", async () => {
+  const { engine, battle } = await setupMovePhase("AT1", "AT2");
+  const firstCandidate = {
+    id: `creature:${battle.board.players[0].creatures[0].unitId}`,
+    type: "creature",
+    playerIndex: 0,
+    unitId: battle.board.players[0].creatures[0].unitId,
+  };
+  const secondCandidate = {
+    id: `creature:${battle.board.players[1].creatures[0].unitId}`,
+    type: "creature",
+    playerIndex: 1,
+    unitId: battle.board.players[1].creatures[0].unitId,
+  };
+  battle.pendingAction = {
+    type: "target_select",
+    sourceKind: "passive_auto",
+    sourceLabel: "Teste another target",
+    playerIndex: 0,
+    sourcePlayerIndex: 0,
+    sourceUnitId: battle.board.players[0].creatures[0].unitId,
+    currentStep: 0,
+    targetSteps: [
+      {
+        effectIndex: 0,
+        effectKind: "dealDamage",
+        label: "Deal 5 damage to target Creature.",
+        spec: { type: "creature", required: true, scope: "all" },
+        candidates: [firstCandidate, secondCandidate],
+      },
+      {
+        effectIndex: 1,
+        effectKind: "gainElement",
+        label: "Another target Creature gains Fire 5.",
+        spec: { type: "creature", required: true, scope: "all", distinctFromPrevious: true },
+        candidates: [firstCandidate, secondCandidate],
+      },
+    ],
+    selectedTargets: {},
+    passiveEffects: [],
+  };
+
+  assert.ok(firstCandidate?.id);
+  assert.equal(engine.chooseEffectTarget(battle, firstCandidate.id), false);
+  assert.equal(battle.pendingAction?.currentStep, 1);
+
+  const secondStep = battle.pendingAction.targetSteps?.[1];
+  assert.ok(secondStep?.spec?.distinctFromPrevious);
+  const denied = engine.chooseEffectTarget(battle, firstCandidate.id);
+  assert.equal(denied, false);
+  assert.equal(battle.pendingAction?.currentStep, 1);
+
+  assert.ok(secondCandidate?.id);
+  const accepted = engine.chooseEffectTarget(battle, secondCandidate.id);
+  assert.equal(accepted, true);
+});
+
+test("texto com you can target the same Creature permite repetir alvo", async () => {
+  const { engine, battle } = await setupMovePhase("AT3", "AT4");
+  const sharedCandidate = {
+    id: `creature:${battle.board.players[0].creatures[0].unitId}`,
+    type: "creature",
+    playerIndex: 0,
+    unitId: battle.board.players[0].creatures[0].unitId,
+  };
+  battle.pendingAction = {
+    type: "target_select",
+    sourceKind: "passive_auto",
+    sourceLabel: "Teste same target",
+    playerIndex: 0,
+    sourcePlayerIndex: 0,
+    sourceUnitId: battle.board.players[0].creatures[0].unitId,
+    currentStep: 0,
+    targetSteps: [
+      {
+        effectIndex: 0,
+        effectKind: "statModifier",
+        label: "Target Creature gains 5 Power.",
+        spec: { type: "creature", required: true, scope: "all", distinctFromPrevious: false },
+        candidates: [sharedCandidate],
+      },
+      {
+        effectIndex: 1,
+        effectKind: "statModifier",
+        label: "Target Creature gains 5 Wisdom.",
+        spec: { type: "creature", required: true, scope: "all", distinctFromPrevious: false },
+        candidates: [sharedCandidate],
+      },
+    ],
+    selectedTargets: {},
+    passiveEffects: [],
+  };
+
+  assert.ok(sharedCandidate?.id);
+  assert.equal(engine.chooseEffectTarget(battle, sharedCandidate.id), false);
+  assert.equal(battle.pendingAction?.currentStep, 1);
+
+  const accepted = engine.chooseEffectTarget(battle, sharedCandidate.id);
+  assert.equal(accepted, true);
 });

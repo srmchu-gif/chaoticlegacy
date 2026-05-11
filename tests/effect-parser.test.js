@@ -540,3 +540,31 @@ test("parseAbilityEffects cobre padroes novos dos sets DOP/ZOTH/SS", () => {
   assert.ok(effects.some((effect) => effect.kind === "suppressActiveLocationAbilities"));
   assert.ok(effects.some((effect) => effect.kind === "discardMugicFromEachPlayer"));
 });
+
+test("parseAbilityEffects marca alvo distinto quando texto usa another target", () => {
+  const text = "Deal 10 damage to target Creature. Another target Creature gains Fire 5.";
+  const effects = parseAbilityEffects(text);
+  const gainEffect = effects.find((effect) => effect.kind === "gainElement");
+  assert.ok(gainEffect);
+  assert.equal(gainEffect.targetSpec?.type, "creature");
+  assert.equal(gainEffect.targetSpec?.distinctFromPrevious, true);
+});
+
+test("parseAbilityEffects permite alvo repetido quando texto autoriza same target", () => {
+  const text =
+    "Target Creature gains 50 in the Discipline of your choice. " +
+    "Target Creature gains 50 in another Discipline of your choice. (You can target the same Creature.)";
+  const effects = parseAbilityEffects(text);
+  const disciplineEffect = effects.find((effect) => effect.kind === "disciplineChoiceModifier");
+  assert.ok(disciplineEffect);
+  assert.notEqual(disciplineEffect.targetSpec?.distinctFromPrevious, true);
+});
+
+test("parseAbilityEffects reconhece infect em alvo engajado", () => {
+  const text = "Infect target Uninfected engaged Creature.";
+  const effects = parseAbilityEffects(text);
+  const infectEffect = effects.find((effect) => effect.kind === "infectTargetCreature");
+  assert.ok(infectEffect);
+  assert.equal(infectEffect.targetSpec?.type, "creature");
+  assert.equal(infectEffect.targetSpec?.requireUninfected, true);
+});

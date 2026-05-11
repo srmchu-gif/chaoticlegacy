@@ -7316,21 +7316,29 @@ function resolveEffectStack(battle, forceAutoHuman = false) {
 
 function effectTargetSpec(effect) {
   const sourceText = String(effect?.sourceText || "");
+  const sourceTextLower = sourceText.toLowerCase();
+  const requiresDistinctTarget =
+    /\banother target\b/.test(sourceTextLower)
+    && !/\byou (?:can|may) target the same\b/.test(sourceTextLower);
   const requiredCreatureTypesFromText = collectRequiredCreatureTypesFromText(sourceText);
   if (effect?.targetSpec && effect.targetSpec.type) {
+    const baseSpec = {
+      ...effect.targetSpec,
+      ...(requiresDistinctTarget ? { distinctFromPrevious: true } : {}),
+    };
     if (effect.targetSpec.type !== "creature") {
-      return effect.targetSpec;
+      return baseSpec;
     }
     const requiredCreatureTypes =
       Array.isArray(effect.targetSpec.requiredCreatureTypes) && effect.targetSpec.requiredCreatureTypes.length
         ? effect.targetSpec.requiredCreatureTypes.map((entry) => normalizeCreatureTypeKey(entry)).filter(Boolean)
         : requiredCreatureTypesFromText;
     return {
-      ...effect.targetSpec,
+      ...baseSpec,
       ...(requiredCreatureTypes.length ? { requiredCreatureTypes } : {}),
     };
   }
-  const text = sourceText.toLowerCase();
+  const text = sourceTextLower;
   if (!text.includes("target")) {
     return null;
   }
@@ -7345,10 +7353,10 @@ function effectTargetSpec(effect) {
     type = "creature_discard";
   } else if (/\btarget\b[^.;:]*\bplayer\b/.test(text) || /\btarget player's\b/.test(text)) {
     type = "player";
-  } else if (text.includes("target location")) {
+  } else if (text.includes("target location") || /\btarget\s+[^.;:]*\s+location\b/.test(text)) {
     type = "location";
   } else if (
-    /\btarget\s+[^.;:]*\s+creature\b/.test(text)
+    /\btarget(?:\s+[^.;:]*)?\s+creature\b/.test(text)
     || text.includes("engaged creature")
     || text.includes("that creature")
     || text.includes("opposing creature")
@@ -7362,6 +7370,7 @@ function effectTargetSpec(effect) {
     type,
     required: true,
     scope: String(effect?.target || "self").toLowerCase(),
+    ...(requiresDistinctTarget ? { distinctFromPrevious: true } : {}),
     ...(type === "creature" && requiredCreatureTypesFromText.length
       ? { requiredCreatureTypes: requiredCreatureTypesFromText }
       : {}),
@@ -7710,6 +7719,47 @@ function buildTargetStepsForEffects(battle, sourcePlayerIndex, effects, sourceUn
   return steps;
 }
 
+function candidateTargetKey(candidate) {
+  if (!candidate || typeof candidate !== "object") {
+    return "";
+  }
+  const type = String(candidate.type || "");
+  const id = String(candidate.id || "");
+  if (id) {
+    return `${type}:${id}`;
+  }
+  const playerIndex = Number.isInteger(candidate.playerIndex) ? candidate.playerIndex : -1;
+  const unitId = String(candidate.unitId || "");
+  const slot = Number.isInteger(candidate.slot) ? candidate.slot : -1;
+  return `${type}:${playerIndex}:${unitId}:${slot}`;
+}
+
+function usedTargetKeysForPendingStep(pending, currentStepIndex, specType = "") {
+  if (!pending || typeof pending !== "object") {
+    return new Set();
+  }
+  const used = new Set();
+  const steps = Array.isArray(pending.targetSteps) ? pending.targetSteps : [];
+  for (let index = 0; index < currentStepIndex; index += 1) {
+    const previousStep = steps[index];
+    if (!previousStep) {
+      continue;
+    }
+    const previousTarget = pending.selectedTargets?.[previousStep.effectIndex];
+    if (!previousTarget) {
+      continue;
+    }
+    if (specType && String(previousTarget.type || "") !== specType) {
+      continue;
+    }
+    const key = candidateTargetKey(previousTarget);
+    if (key) {
+      used.add(key);
+    }
+  }
+  return used;
+}
+
 function effectChoiceSpec(effect) {
   if (!effect || typeof effect !== "object") {
     return null;
@@ -7798,12 +7848,27 @@ function cloneEffectsWithRuntimeIndex(effects) {
 
 function selectedTargetsForAi(steps) {
   const selected = {};
-  for (const step of steps) {
-    const picked = aiPickTargetCandidate(step);
+  const usedByType = new Map();
+  for (let index = 0; index < (steps || []).length; index += 1) {
+    const step = steps[index];
+    const requiresDistinct = Boolean(step?.spec?.distinctFromPrevious);
+    let candidates = Array.isArray(step?.candidates) ? step.candidates.slice() : [];
+    if (requiresDistinct) {
+      const typeKey = String(step?.spec?.type || "");
+      const used = usedByType.get(typeKey) || new Set();
+      candidates = candidates.filter((candidate) => !used.has(candidateTargetKey(candidate)));
+    }
+    const picked = aiPickTargetCandidate({ ...step, candidates });
     if (!picked) {
       return null;
     }
     selected[step.effectIndex] = picked;
+    const typeKey = String(step?.spec?.type || "");
+    if (typeKey) {
+      const used = usedByType.get(typeKey) || new Set();
+      used.add(candidateTargetKey(picked));
+      usedByType.set(typeKey, used);
+    }
   }
   return selected;
 }
@@ -9730,6 +9795,13 @@ function resolvePendingTargetSelection(battle, candidateId = null) {
   const selected = (step.candidates || []).find((candidate) => String(candidate.id) === String(candidateId));
   if (!selected) {
     return false;
+  }
+  if (step.spec?.distinctFromPrevious) {
+    const usedTargets = usedTargetKeysForPendingStep(pending, pending.currentStep, String(step.spec?.type || ""));
+    if (usedTargets.has(candidateTargetKey(selected))) {
+      battle.log.push("Selecao invalida: este efeito exige outro alvo diferente do anterior.");
+      return false;
+    }
   }
 
   pending.selectedTargets[step.effectIndex] = selected;

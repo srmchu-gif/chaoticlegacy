@@ -1,0 +1,141 @@
+AUDITORIA MULTI-EFEITO + TARGET (DOP/ZOTH/SS)
+Gerado em: 2026-05-11T01:15:10.708Z
+Cartas com habilidade: 418
+Implementadas sem gap: 384
+Gaps totais: 34
+
+1. [target_resolution_incomplete] SS mugic - Void Dirge
+   Habilidade: Remove up to three target cards in one general discard pile from the game.
+   Kinds: exileGeneralDiscardCards
+
+2. [multi_effect_incomplete] ZOTH attacks - Acid Wash
+   Habilidade: Challenge Wisdom 15: Deal 10 damage. Water: Uninfect all engaged Creatures. Those Creatures cannot be Infected.
+   Kinds: conditionalDamage
+
+3. [multi_effect_incomplete] DOP attacks - Ash Torrent
+   Habilidade: Challenge Power 15: Deal 10 damage. (Compare the Discipline of the Creature that played this Attack with the opposing engaged Creature. If yours has that amount or more higher, deal the damage.)
+   Kinds: conditionalDamage
+
+4. [multi_effect_incomplete] SS attacks - Blaze Barrage
+   Habilidade: Fire, Air: Draw an Attack Card and discard an Attack Card.
+   Kinds: drawDiscardAttack
+
+5. [multi_effect_incomplete] ZOTH mugic - Casters' Warsong
+   Habilidade: Deal 5 damage to target Creature. If the caster of this Mugic is a Muge, deal an additional 10 damage.
+   Kinds: dealDamage
+
+6. [multi_effect_incomplete] ZOTH battlegear - Danian Carapace
+   Habilidade: When equipped Creature deals damage to an Uninfected Creature, Infect that Creature. When the equipped Creature is destroyed while engaged, destroy all Battlegear equipped to the opposing engaged Creature. Then, if that Creature is Unequipped, equip Danian carapace to it. (Players control any Battlegear equipped to Creatures they control.)
+   Kinds: destroyBattlegear
+
+7. [multi_effect_incomplete] ZOTH attacks - Desiccate the Land
+   Habilidade: Earth: If an Attack Card named Desiccate the Land is in your attack discard pile, heal 10 damage.
+   Kinds: healDamage
+
+8. [multi_effect_incomplete] SS creatures - Drimesse
+   Habilidade: Damage dealt to Warbeast Creatures you control by Recklessness is reduced by 10. If Drimesse has no Mugic counters on it, sacrifice it.
+   Kinds: incomingDamageReduction
+
+9. [multi_effect_incomplete] ZOTH mugic - Elemental Elegy
+   Habilidade: Target Creature loses an Elemental Type of your choice. If that Creature has no Elemental Types, it cannot move instead.
+   Kinds: removeChosenElementFromCreature
+
+10. [multi_effect_incomplete] SS mugic - Fighters' Fanfare
+   Habilidade: Damage dealt by the next attack that resolves this turn is dealt to target engaged Creature instead. (Damage is calculated with target as the recipient.)
+   Kinds: redirectNextAttackDamageToTargetCreature
+
+11. [multi_effect_incomplete] ZOTH creatures - Geltod
+   Habilidade: Discard an UnderWorld Mugic Card: Deal 5 damage to target Creature.
+   Kinds: dealDamage
+
+12. [multi_effect_incomplete] DOP attacks - Hive Call
+   Habilidade: You can remove a Mugic counter from a Creature you control. If you do, activate Hive.
+   Kinds: activateHive
+
+13. [multi_effect_incomplete] ZOTH mugic - Hive Unsung
+   Habilidade: Deactivate Hive. As Hive Unsung is played, its caster can pay a Mugic counter. If the caster does, return Hive Unsung to your hand when it resolves.
+   Kinds: deactivateHive
+
+14. [multi_effect_incomplete] ZOTH battlegear - Ice Cloak
+   Habilidade: When Ice Cloak is flipped face-up, if equipped Creature is engaged with a Creature with Fire, equipped Creature gains 10 Energy. Equipped Creature has Fireproof 10.
+   Kinds: elementproof
+
+15. [multi_effect_incomplete] ZOTH attacks - Infight
+   Habilidade: If the opposing engaged Creature is a Danian Creature, Activate Hive. Hive cannot be Deactivated.
+   Kinds: activateHive
+
+16. [multi_effect_incomplete] ZOTH creatures - Jaal
+   Habilidade: When Jaal deals Earth damage to an Uninfected Creature, Infect that Creature. If engaged with an Infected Creature, Jaal has Earth 5.
+   Kinds: elementModifier
+
+17. [multi_effect_incomplete] ZOTH attacks - Malevolent Blast
+   Habilidade: Air: Your engaged Creature loses Air. Discard an Attack Card, then draw an Attack Card.
+   Kinds: removeElement
+
+18. [multi_effect_incomplete] DOP battlegear - Mipedian Cactus
+   Habilidade: Equipped Creature has an additional 15 Wisdom. Equipped Mipedian Creature has MC: equipped Creature can move to any space on the board as if it were adjacent.
+   Kinds: statModifier
+
+19. [multi_effect_incomplete] SS locations - Mipedim Lounge
+   Habilidade: Mirage: When an Attack Card is played by a Creature in this space, its controller can flip a coin. If tails, that player sacrifices his engaged Creature. If heads, the attack deals an additional 10 damage, and that player can flip again.
+   Kinds: attackDamageModifier
+
+20. [multi_effect_incomplete] SS locations - Mipedim Mirage
+   Habilidade: Creatures have Swift 1. Mirage: If an adjacent Creature can move into this space, it must do so.
+   Kinds: keyword
+
+21. [multi_effect_incomplete] DOP creatures - Najarin
+   Habilidade: MCMC: Return target Mugic Card from your general discard pile to your hand.
+   Kinds: returnFromDiscard
+
+22. [multi_effect_incomplete] ZOTH creatures - Ramarhvir, The Danian Hivebringer
+   Habilidade: When Hive is activated, you can remove a Mugic counter from a Danian Creature you control, if you do put a Mugic counter on Ramarhvir, the Danian Hivebringer. MCMC: Return target Mandiblor Creature Card in your general discard pile to play to any unoccupied space .
+   Kinds: mugicCounterModifier
+
+23. [multi_effect_incomplete] SS locations - Rao'Pa Sahkk, The Ocean with No Water
+   Habilidade: Attacks that are either Air or Earth deal an additional 5 damage. (Attacks which are both Air and Earth deal only 5 additional damage.) When a Water attack is played, that attack's controller reveals a new active Location. Mirage: When combat ends, put a Mugic counter on Creatures in this space who were engaged.
+   Kinds: mugicCounterModifier
+
+24. [multi_effect_incomplete] ZOTH mugic - Recurring Rescue
+   Habilidade: Heal 10 damage to target Creature. If the target of Recurring Rescue has 30 or less Scanned Energy, return Recurring Rescue to your hand when it resolves.
+   Kinds: healDamage
+
+25. [multi_effect_incomplete] ZOTH attacks - Scout's Strike
+   Habilidade: Stat Check Speed 50: Deal 10 damage. If your engaged Creature is a Scout, look at opposing player's Attack and Mugic hands.
+   Kinds: conditionalDamage
+
+26. [multi_effect_incomplete] DOP battlegear - Stone Mail
+   Habilidade: Equipped Creature cannot move. Equipped Creature has an additional 50 Energy. All damage dealt to equipped Creature is increased by 5. Equipped Creature has no abilities and cannot gain abilities.
+   Kinds: statModifier
+
+27. [multi_effect_incomplete] SS mugic - Strain of Ash
+   Habilidade: Sacrifice a Battlegear equipped to an unengaged UnderWorld Creature you control. If you do, destroy target Battlegear.
+   Kinds: destroyBattlegear
+
+28. [multi_effect_incomplete] SS mugic - Strain of the Tide
+   Habilidade: Remove any number of OverWorld Creatures in your general discard pile from the game. Heal 10 damage to target Creature for each card you remove this way.
+   Kinds: healDamage
+
+29. [multi_effect_incomplete] DOP battlegear - Talisman of the Mandiblor
+   Habilidade: Equipped Creature has an additional 15 Speed. Equipped Danian Creature has Sacrifice equipped Creature: Return a Mandiblor Creature Card in your general discard pile to play to any unoccupied space .
+   Kinds: statModifier
+
+30. [multi_effect_incomplete] DOP attacks - Tornado Tackle
+   Habilidade: Air: Both players shuffle their Attack Decks and Attack Discard piles together.
+   Kinds: shuffleAttackDeckWithDiscard
+
+31. [multi_effect_incomplete] SS mugic - Tune of Xerium
+   Habilidade: Sacrifice a Battlegear. If you do, return another Battlegear from your general discard pile to play equipped to an unequipped Creature you control.
+   Kinds: returnFromDiscard
+
+32. [multi_effect_incomplete] SS attacks - Twister of Elements
+   Habilidade: Air, Water: Search your Attack Deck for up to three Attack Cards and put them in your Attack Discard pile, then shuffle your Attack Deck.
+   Kinds: searchDeckToDiscard
+
+33. [multi_effect_incomplete] DOP creatures - Ubliqun
+   Habilidade: MC: Ubliqun can move to any space as if it were adjacent.
+   Kinds: moveAsIfAdjacent
+
+34. [multi_effect_incomplete] SS battlegear - Wind Whip
+   Habilidade: Equipped Mipedian Creature has Air. If equipped Creature is a Conjuror Creature, Warbeast Creatures you control have Recklessness 5.
+   Kinds: keyword
