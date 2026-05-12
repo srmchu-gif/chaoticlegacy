@@ -1,5 +1,5 @@
 Creature Drop Alias Report
-generated_at=2026-05-11T03:02:07.768Z
+generated_at=2026-05-12T10:01:10.643Z
 creature_entries=531
 unresolved_refs=0
 resolved_exact=402

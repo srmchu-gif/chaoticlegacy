@@ -1,38 +1,38 @@
 PERIM - Acoes e Regras de Drops
-Gerado em: 2026-05-12T00:40:47.540Z
+Gerado em: 2026-05-12T10:01:10.158Z
 
 Acoes:
 - Explorar a Area (explore)
   descricao: Busca geral por itens comuns, criaturas e maior chance de locais proximos.
-  duracao_base_ms: 240000
+  duracao_base_ms: 3600000
   chance_sucesso_base: 0.68
   chance_bonus: 0.54
   chance_attacks_extra: 0.58
   pesos_primarios: creatures=44, attacks=18, battlegear=14, mugic=10, locations=14
 - Rastrear Criaturas (track)
   descricao: Foco em escanear criaturas; se falhar, revela uma pista da area.
-  duracao_base_ms: 300000
+  duracao_base_ms: 3900000
   chance_sucesso_base: 0.76
   chance_bonus: 0.38
   chance_attacks_extra: 0.7
   pesos_primarios: creatures=74, attacks=12, battlegear=6, mugic=8
 - Investigar Anomalias (anomaly)
   descricao: Investiga criatura da area com 1 a 5 pistas e menor chance de carta.
-  duracao_base_ms: 420000
+  duracao_base_ms: 4800000
   chance_sucesso_base: 0.44
   chance_bonus: 0.26
   chance_attacks_extra: 0.36
   pesos_primarios: creatures=34, attacks=17, battlegear=23, mugic=20, locations=6
 - Acampar / Esperar (camp)
   descricao: Aguarda criaturas raras. Processo mais lento.
-  duracao_base_ms: 540000
+  duracao_base_ms: 5400000
   chance_sucesso_base: 0.6
   chance_bonus: 0.48
   chance_attacks_extra: 0.5
   pesos_primarios: creatures=58, attacks=13, battlegear=15, mugic=10, locations=4
 - Procurar Recursos / Reliquias (relic)
   descricao: Busca focada em ataques, equipamentos e mugics.
-  duracao_base_ms: 360000
+  duracao_base_ms: 4200000
   chance_sucesso_base: 0.64
   chance_bonus: 0.62
   chance_attacks_extra: 0.66
