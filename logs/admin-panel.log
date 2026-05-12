@@ -4,3 +4,4 @@
 2026-05-11 21:40:08 | op=quest-update | target=quest:quest_v1_zoth_attacks_zoth_infight_251 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260511-214008.db.gz | operator=local-admin
 2026-05-11 21:40:16 | op=quest-update | target=quest:quest_v1_zoth_locations_zoth_carnival_of_confusion_1153 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260511-214015.db.gz | operator=local-admin
 2026-05-11 23:02:57 | op=delete-user | target=ramon | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260511-230256.db.gz | operator=local-admin
+2026-05-12 08:25:17 | op=set-password | target=o_dimello | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-082516.db.gz | operator=local-admin

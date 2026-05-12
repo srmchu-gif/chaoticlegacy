@@ -473,8 +473,8 @@ body.menu-sidebars-hidden .side-panel.is-open {
   background: rgba(13, 20, 33, 0.78);
 }
 
-body.menu-global-chat-disabled #top50-tab-chat,
-body.menu-global-chat-disabled #top50-panel-chat,
+body.menu-global-chat-disabled #global-chat-sidebar,
+body.menu-global-chat-disabled #profile-global-chat-bubble,
 body.menu-top50-disabled #top50-sidebar,
 body.menu-top50-disabled #profile-top50-bubble {
   display: none;

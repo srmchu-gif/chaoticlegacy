@@ -6,6 +6,8 @@ const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
 
 const CARD_TYPES = ["creatures", "attacks", "battlegear", "locations", "mugic"];
+const LOCATION_TRIBE_KEYS = ["overworld", "underworld", "danian", "mipedian", "marrillian", "tribeless"];
+const QUEST_ALLOWED_SET_KEYS = new Set(["dop", "zoth", "ss"]);
 
 const USER_KEY_COLUMNS = [
   "owner_key",
@@ -138,6 +140,40 @@ function normalizeUserKey(username) {
 function normalizeCardType(value) {
   const key = String(value || "").trim().toLowerCase();
   return CARD_TYPES.includes(key) ? key : "";
+}
+
+function normalizeSetKey(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isQuestCardSetAllowed(card) {
+  const setKey = normalizeSetKey(card?.setName || "");
+  return QUEST_ALLOWED_SET_KEYS.has(setKey);
+}
+
+function normalizeLocationTribeKey(value) {
+  const token = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+  if (!token) return "";
+  if (
+    token === "tribeless"
+    || token === "semtribo"
+    || token === "generic"
+    || token === "notribe"
+    || token === "neutral"
+    || token === "none"
+  ) {
+    return "tribeless";
+  }
+  if (token.includes("overworld") || token.includes("outromundo")) return "overworld";
+  if (token.includes("underworld") || token.includes("submundo")) return "underworld";
+  if (token.includes("danian")) return "danian";
+  if (token.includes("mipedian") || token.includes("miprdian") || token.includes("maipidian")) return "mipedian";
+  if (token.includes("marrillian") || token.includes("marrilian")) return "marrillian";
+  return "";
 }
 
 function ensureDbPath(dbPathArg) {
@@ -359,6 +395,17 @@ function ensurePerimDropEventTable(db) {
   db.exec("CREATE INDEX IF NOT EXISTS idx_perim_drop_events_active_window ON perim_drop_events(enabled, location_card_id, start_at, end_at);");
 }
 
+function ensurePerimLocationTribesTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS perim_location_tribes (
+      location_card_id TEXT NOT NULL PRIMARY KEY,
+      tribe_key TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_tribes_tribe ON perim_location_tribes(tribe_key, updated_at DESC);");
+}
+
 function getCatalogCardById(db, cardIdRaw) {
   const cardId = String(cardIdRaw || "").trim();
   if (!cardId) {
@@ -383,18 +430,71 @@ function listCatalogCards(db, cardTypeRaw = "") {
   const normalizedType = normalizeCardType(cardTypeRaw);
   const rows = normalizedType
     ? db
-        .prepare("SELECT id, type, name, set_name, rarity FROM card_catalog WHERE type = ? ORDER BY name COLLATE NOCASE, id")
+        .prepare("SELECT id, type, name, set_name, rarity, tribe FROM card_catalog WHERE type = ? ORDER BY name COLLATE NOCASE, id")
         .all(normalizedType)
     : db
-        .prepare("SELECT id, type, name, set_name, rarity FROM card_catalog ORDER BY type, name COLLATE NOCASE, id")
+        .prepare("SELECT id, type, name, set_name, rarity, tribe FROM card_catalog ORDER BY type, name COLLATE NOCASE, id")
         .all();
   return rows.map((row) => ({
     id: String(row.id || ""),
     type: normalizeCardType(row.type || ""),
     name: String(row.name || row.id || ""),
     setName: String(row.set_name || ""),
-    rarity: String(row.rarity || "")
+    rarity: String(row.rarity || ""),
+    tribe: String(row.tribe || "")
   }));
+}
+
+function sanitizeLocationTribePayload(db, raw) {
+  const locationCardId = String(raw?.locationCardId || "").trim();
+  const tribeKey = normalizeLocationTribeKey(raw?.tribeKey || raw?.tribe || "");
+  if (!locationCardId) {
+    throw new Error("locationCardId e obrigatorio.");
+  }
+  if (!tribeKey || !LOCATION_TRIBE_KEYS.includes(tribeKey)) {
+    throw new Error("tribeKey invalida para local.");
+  }
+  const locationCard = getCatalogCardById(db, locationCardId);
+  if (!locationCard || locationCard.type !== "locations") {
+    throw new Error(`Local invalido: ${locationCardId}`);
+  }
+  return { locationCardId, tribeKey };
+}
+
+function sanitizeLocationTribeDeletePayload(db, raw) {
+  const locationCardId = String(raw?.locationCardId || "").trim();
+  if (!locationCardId) {
+    throw new Error("locationCardId e obrigatorio.");
+  }
+  const locationCard = getCatalogCardById(db, locationCardId);
+  if (!locationCard || locationCard.type !== "locations") {
+    throw new Error(`Local invalido: ${locationCardId}`);
+  }
+  return { locationCardId };
+}
+
+function listLocationTribes(db) {
+  ensurePerimLocationTribesTable(db);
+  return db
+    .prepare(`
+      SELECT
+        t.location_card_id,
+        t.tribe_key,
+        t.updated_at,
+        c.name AS location_name,
+        c.set_name AS location_set
+      FROM perim_location_tribes t
+      LEFT JOIN card_catalog c ON c.id = t.location_card_id
+      ORDER BY c.name COLLATE NOCASE, t.location_card_id
+    `)
+    .all()
+    .map((row) => ({
+      locationCardId: String(row.location_card_id || ""),
+      locationName: String(row.location_name || row.location_card_id || ""),
+      locationSet: String(row.location_set || ""),
+      tribeKey: normalizeLocationTribeKey(row.tribe_key || ""),
+      updatedAt: String(row.updated_at || ""),
+    }));
 }
 
 function parseDateIsoRequired(value, fieldName) {
@@ -500,6 +600,9 @@ function sanitizeQuestRequirements(db, requirementsRaw) {
       if (!card || card.type !== cardType) {
         throw new Error(`Requisito invalido: ${cardType}:${cardId}`);
       }
+      if (!isQuestCardSetAllowed(card)) {
+        throw new Error(`Requisito fora dos sets liberados (DOP/ZOTH/SS): ${cardType}:${cardId}`);
+      }
       return { cardType, cardId, required };
     })
     .filter(Boolean);
@@ -539,6 +642,9 @@ function sanitizeQuestPayload(db, raw, isUpdate = false) {
   const rewardCard = getCatalogCardById(db, rewardCardId);
   if (!rewardCard || rewardCard.type !== rewardType) {
     throw new Error(`rewardCardId invalido para rewardType: ${rewardCardId}`);
+  }
+  if (!isQuestCardSetAllowed(rewardCard)) {
+    throw new Error(`rewardCardId fora dos sets liberados (DOP/ZOTH/SS): ${rewardCardId}`);
   }
   const targetLocation = getCatalogCardById(db, targetLocationCardId);
   if (!targetLocation || targetLocation.type !== "locations") {
@@ -813,6 +919,50 @@ function run() {
         deletedId: eventId,
         deleted: Number(removed?.changes || 0) > 0,
         events: listDropEvents(db)
+      });
+      return;
+    }
+
+    if (args.action === "location-tribes-list") {
+      jsonOk({ locationTribes: listLocationTribes(db) });
+      return;
+    }
+
+    if (args.action === "location-tribe-set") {
+      ensurePerimLocationTribesTable(db);
+      const payload = decodePayload(args.payloadB64);
+      const sanitized = sanitizeLocationTribePayload(db, payload);
+      const updatedAt = nowIso();
+      withTransaction(db, () => {
+        db
+          .prepare(`
+            INSERT INTO perim_location_tribes (location_card_id, tribe_key, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(location_card_id) DO UPDATE SET
+              tribe_key = excluded.tribe_key,
+              updated_at = excluded.updated_at
+          `)
+          .run(sanitized.locationCardId, sanitized.tribeKey, updatedAt);
+      });
+      jsonOk({
+        locationCardId: sanitized.locationCardId,
+        tribeKey: sanitized.tribeKey,
+        locationTribes: listLocationTribes(db),
+      });
+      return;
+    }
+
+    if (args.action === "location-tribe-delete") {
+      ensurePerimLocationTribesTable(db);
+      const payload = decodePayload(args.payloadB64);
+      const sanitized = sanitizeLocationTribeDeletePayload(db, payload);
+      const removed = withTransaction(db, () =>
+        db.prepare("DELETE FROM perim_location_tribes WHERE location_card_id = ?").run(sanitized.locationCardId)
+      );
+      jsonOk({
+        locationCardId: sanitized.locationCardId,
+        deleted: Number(removed?.changes || 0) > 0,
+        locationTribes: listLocationTribes(db),
       });
       return;
     }

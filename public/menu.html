@@ -42,6 +42,9 @@
               <button id="profile-top50-bubble" class="profile-notification-bell profile-ranking-bubble" type="button" title="Abrir ranking geral">
                 <span class="profile-notification-bell-icon">&#127942;</span>
               </button>
+              <button id="profile-global-chat-bubble" class="profile-notification-bell profile-chat-bubble" type="button" title="Abrir chat global">
+                <span class="profile-notification-bell-icon">&#128172;</span>
+              </button>
             </div>
           </div>
           <div class="profile-tag-row">
@@ -615,7 +618,6 @@
           <button id="top50-tab-score" class="side-panel-tab active" type="button">Pontuacao</button>
           <button id="top50-tab-scans" class="side-panel-tab" type="button">Scans</button>
           <button id="top50-tab-online" class="side-panel-tab" type="button">Online</button>
-          <button id="top50-tab-chat" class="side-panel-tab" type="button">Chat</button>
         </div>
       </div>
       <div id="top50-panel-score" class="top50-tab-panel active">
@@ -630,18 +632,27 @@
         <div id="top50-online-state" class="side-panel-state">Carregando jogadores online...</div>
         <div id="top50-online-list" class="side-panel-list"></div>
       </div>
-      <div id="top50-panel-chat" class="top50-tab-panel">
-        <div id="global-chat-state" class="side-panel-state">Conectando chat...</div>
-        <div id="global-chat-messages" class="side-panel-messages"></div>
-        <div class="side-panel-input-row">
-          <input id="global-chat-input" type="text" maxlength="240" placeholder="Digite uma mensagem..." />
-          <button id="global-chat-send" class="menu-btn standard-btn compact-action-btn" type="button">Enviar</button>
+    </div>
+  </aside>
+
+  <aside id="global-chat-sidebar" class="side-panel side-panel-left is-closed" aria-label="Chat global" aria-hidden="true">
+    <div class="side-panel-body">
+      <div class="side-panel-header">
+        <div class="side-panel-head-row">
+          <h3>Chat Global</h3>
+          <button id="global-chat-pin" class="side-panel-pin" type="button" aria-pressed="false" title="Fixar posicao">Pin</button>
         </div>
+      </div>
+      <div id="global-chat-state" class="side-panel-state">Conectando chat...</div>
+      <div id="global-chat-messages" class="side-panel-messages"></div>
+      <div class="side-panel-input-row">
+        <input id="global-chat-input" type="text" maxlength="240" placeholder="Digite uma mensagem..." />
+        <button id="global-chat-send" class="menu-btn standard-btn compact-action-btn" type="button">Enviar</button>
       </div>
     </div>
   </aside>
 
   <script src="config.js"></script>
-  <script type="module" src="js/menu.js?v=23"></script>
+  <script type="module" src="js/menu.js?v=24"></script>
 </body>
 </html>

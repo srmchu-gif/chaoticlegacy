@@ -204,6 +204,7 @@ $script:LocationCards = @()
 $script:Users = @()
 $script:EventsCache = @()
 $script:QuestsCache = @()
+$script:LocationTribesCache = @()
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Painel Admin Local - Usuarios / Eventos / Quests"
@@ -469,6 +470,70 @@ $btnEventRefresh.Location = New-Object System.Drawing.Point(270, 404)
 $btnEventRefresh.Size = New-Object System.Drawing.Size(90, 30)
 $eventsPanel.Controls.Add($btnEventRefresh)
 
+$lblLocationTribeTitle = New-Object System.Windows.Forms.Label
+$lblLocationTribeTitle.Text = "Tribo dos Locais (PERIM)"
+$lblLocationTribeTitle.Location = New-Object System.Drawing.Point(12, 446)
+$lblLocationTribeTitle.Size = New-Object System.Drawing.Size(220, 22)
+$eventsPanel.Controls.Add($lblLocationTribeTitle)
+
+$lblLocationTribeLoc = New-Object System.Windows.Forms.Label
+$lblLocationTribeLoc.Text = "Local:"
+$lblLocationTribeLoc.Location = New-Object System.Drawing.Point(12, 470)
+$lblLocationTribeLoc.Size = New-Object System.Drawing.Size(80, 20)
+$eventsPanel.Controls.Add($lblLocationTribeLoc)
+
+$comboLocationTribeLocation = New-Object System.Windows.Forms.ComboBox
+$comboLocationTribeLocation.DropDownStyle = "DropDownList"
+$comboLocationTribeLocation.Location = New-Object System.Drawing.Point(12, 492)
+$comboLocationTribeLocation.Size = New-Object System.Drawing.Size(520, 28)
+$eventsPanel.Controls.Add($comboLocationTribeLocation)
+
+$lblLocationTribeKey = New-Object System.Windows.Forms.Label
+$lblLocationTribeKey.Text = "Tribo:"
+$lblLocationTribeKey.Location = New-Object System.Drawing.Point(12, 526)
+$lblLocationTribeKey.Size = New-Object System.Drawing.Size(80, 20)
+$eventsPanel.Controls.Add($lblLocationTribeKey)
+
+$comboLocationTribeKey = New-Object System.Windows.Forms.ComboBox
+$comboLocationTribeKey.DropDownStyle = "DropDownList"
+$comboLocationTribeKey.Location = New-Object System.Drawing.Point(12, 548)
+$comboLocationTribeKey.Size = New-Object System.Drawing.Size(220, 28)
+$eventsPanel.Controls.Add($comboLocationTribeKey)
+
+$btnLocationTribeSave = New-Object System.Windows.Forms.Button
+$btnLocationTribeSave.Text = "Salvar tribo"
+$btnLocationTribeSave.Location = New-Object System.Drawing.Point(242, 546)
+$btnLocationTribeSave.Size = New-Object System.Drawing.Size(96, 30)
+$eventsPanel.Controls.Add($btnLocationTribeSave)
+
+$btnLocationTribeDelete = New-Object System.Windows.Forms.Button
+$btnLocationTribeDelete.Text = "Remover"
+$btnLocationTribeDelete.Location = New-Object System.Drawing.Point(344, 546)
+$btnLocationTribeDelete.Size = New-Object System.Drawing.Size(88, 30)
+$eventsPanel.Controls.Add($btnLocationTribeDelete)
+
+$btnLocationTribeRefresh = New-Object System.Windows.Forms.Button
+$btnLocationTribeRefresh.Text = "Atualizar"
+$btnLocationTribeRefresh.Location = New-Object System.Drawing.Point(438, 546)
+$btnLocationTribeRefresh.Size = New-Object System.Drawing.Size(94, 30)
+$eventsPanel.Controls.Add($btnLocationTribeRefresh)
+
+$locationTribesGrid = New-Object System.Windows.Forms.DataGridView
+$locationTribesGrid.Location = New-Object System.Drawing.Point(12, 582)
+$locationTribesGrid.Size = New-Object System.Drawing.Size(520, 146)
+$locationTribesGrid.ReadOnly = $true
+$locationTribesGrid.AllowUserToAddRows = $false
+$locationTribesGrid.AllowUserToDeleteRows = $false
+$locationTribesGrid.RowHeadersVisible = $false
+$locationTribesGrid.SelectionMode = "FullRowSelect"
+$locationTribesGrid.AutoSizeColumnsMode = "Fill"
+$locationTribesGrid.ColumnCount = 4
+$locationTribesGrid.Columns[0].Name = "Local"
+$locationTribesGrid.Columns[1].Name = "ID"
+$locationTribesGrid.Columns[2].Name = "Tribo"
+$locationTribesGrid.Columns[3].Name = "Atualizado"
+$eventsPanel.Controls.Add($locationTribesGrid)
+
 # Quests tab
 $questSplit = New-Object System.Windows.Forms.SplitContainer
 $questSplit.Dock = "Fill"
@@ -705,6 +770,30 @@ function Build-LocationItems {
   })
 }
 
+function Get-LocationTribeDisplayLabel {
+  param([string]$TribeKey)
+  switch ($TribeKey) {
+    "overworld" { return "Outromundo" }
+    "underworld" { return "Submundo" }
+    "danian" { return "Danian" }
+    "mipedian" { return "Mipedian" }
+    "marrillian" { return "Marrillian" }
+    "tribeless" { return "Sem tribo" }
+    default { return [string]$TribeKey }
+  }
+}
+
+function Build-LocationTribeKeyItems {
+  return @(
+    (New-DisplayItem -Label "Outromundo" -Value "overworld")
+    (New-DisplayItem -Label "Submundo" -Value "underworld")
+    (New-DisplayItem -Label "Danian" -Value "danian")
+    (New-DisplayItem -Label "Mipedian" -Value "mipedian")
+    (New-DisplayItem -Label "Marrillian" -Value "marrillian")
+    (New-DisplayItem -Label "Sem tribo" -Value "tribeless")
+  )
+}
+
 function Refresh-TypeCardCombos {
   $eventType = Get-SelectedValue -Combo $comboEventType
   Set-ComboItems -Combo $comboEventCard -Items (Build-CardItems -Type $eventType)
@@ -714,6 +803,23 @@ function Refresh-TypeCardCombos {
 
   $reqType = Get-SelectedValue -Combo $comboReqType
   Set-ComboItems -Combo $comboReqCard -Items (Build-CardItems -Type $reqType)
+}
+
+function Load-LocationTribes {
+  Set-Status "Carregando tribos de locais..."
+  $payload = Invoke-AdminEngine -Action "location-tribes-list"
+  $script:LocationTribesCache = @($payload.locationTribes)
+  $locationTribesGrid.Rows.Clear()
+  foreach ($entry in $script:LocationTribesCache) {
+    $label = Get-LocationTribeDisplayLabel -TribeKey ([string]$entry.tribeKey)
+    [void]$locationTribesGrid.Rows.Add(
+      [string]$entry.locationName,
+      [string]$entry.locationCardId,
+      $label,
+      [string]$entry.updatedAt
+    )
+  }
+  Set-Status "Tribos de locais carregadas."
 }
 
 function Load-Users {
@@ -1034,11 +1140,32 @@ $btnEventRefresh.Add_Click({
   }
 })
 
+$btnLocationTribeRefresh.Add_Click({
+  try { Load-LocationTribes } catch {
+    [System.Windows.Forms.MessageBox]::Show("Erro ao atualizar tribos de locais: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
 $eventsGrid.Add_SelectionChanged({
   if ($eventsGrid.SelectedRows.Count -lt 1) { return }
   $idText = [string]$eventsGrid.SelectedRows[0].Cells[0].Value
   $id = 0
   if ([int]::TryParse($idText, [ref]$id)) { Fill-EventFormById -EventId $id }
+})
+
+$locationTribesGrid.Add_SelectionChanged({
+  if ($locationTribesGrid.SelectedRows.Count -lt 1) { return }
+  $locationCardId = [string]$locationTribesGrid.SelectedRows[0].Cells[1].Value
+  $tribeLabel = [string]$locationTribesGrid.SelectedRows[0].Cells[2].Value
+  if (-not [string]::IsNullOrWhiteSpace($locationCardId)) {
+    $comboLocationTribeLocation.SelectedValue = $locationCardId
+  }
+  foreach ($item in $comboLocationTribeKey.Items) {
+    if ([string]$item.Label -eq $tribeLabel) {
+      $comboLocationTribeKey.SelectedItem = $item
+      break
+    }
+  }
 })
 
 $btnEventSave.Add_Click({
@@ -1078,6 +1205,52 @@ $btnEventDelete.Add_Click({
     Reset-EventForm
   } catch {
     [System.Windows.Forms.MessageBox]::Show("Falha ao excluir evento: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnLocationTribeSave.Add_Click({
+  try {
+    $locationCardId = Get-SelectedValue -Combo $comboLocationTribeLocation
+    $tribeKey = Get-SelectedValue -Combo $comboLocationTribeKey
+    if (-not $locationCardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um local para salvar a tribo.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if (-not $tribeKey) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma tribo valida.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $payload = @{
+      locationCardId = $locationCardId
+      tribeKey = $tribeKey
+    }
+    $op = Invoke-MutatingOperation -OperationName "location-tribe-set" -Target ("location-tribe:" + $locationCardId) -ActionBlock {
+      Invoke-AdminEngine -Action "location-tribe-set" -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Tribo do local salva.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-LocationTribes
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao salvar tribo do local: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnLocationTribeDelete.Add_Click({
+  try {
+    $locationCardId = Get-SelectedValue -Combo $comboLocationTribeLocation
+    if (-not $locationCardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um local para remover o override de tribo.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $confirm = [System.Windows.Forms.MessageBox]::Show("Remover override de tribo deste local e voltar para o padrao da carta?", "Confirmar", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question)
+    if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    $payload = @{ locationCardId = $locationCardId }
+    $op = Invoke-MutatingOperation -OperationName "location-tribe-delete" -Target ("location-tribe:" + $locationCardId) -ActionBlock {
+      Invoke-AdminEngine -Action "location-tribe-delete" -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Override de tribo removido.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-LocationTribes
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao remover tribo do local: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
   }
 })
 
@@ -1180,6 +1353,8 @@ try {
   Set-ComboItems -Combo $comboReqType -Items $typeItems
   Set-ComboItems -Combo $comboEventLocation -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboQuestTargetLocation -Items (Build-LocationItems)
+  Set-ComboItems -Combo $comboLocationTribeLocation -Items (Build-LocationItems)
+  Set-ComboItems -Combo $comboLocationTribeKey -Items (Build-LocationTribeKeyItems)
   Refresh-TypeCardCombos
   Reset-EventForm
   Reset-QuestForm
@@ -1187,6 +1362,7 @@ try {
   Load-Users
   if ($userCombo.Items.Count -gt 0) { Load-UserPreview }
   Load-Events
+  Load-LocationTribes
   Load-Quests
   Load-Logs
   Set-Status "Painel admin pronto."

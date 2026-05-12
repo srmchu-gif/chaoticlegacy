@@ -35,6 +35,7 @@ const MENU_I18N = {
   pt: {
     menuTitle: "Chaotic Legacy - Menu Principal",
     rankingButtonTitle: "Abrir ranking geral",
+    chatButtonTitle: "Abrir chat global",
     menuBtnDromosSub: "Battlefield",
     menuBtnPerimSub: "Exploracao e Scans",
     menuBtnBuilderSub: "Monte suas estrategias",
@@ -58,6 +59,7 @@ const MENU_I18N = {
     top50StateOnlineCount: "{count} jogador(es) online agora.",
     top50StateLoadError: "Falha ao carregar top 50.",
     top50OnlineLoadError: "Falha ao carregar jogadores online.",
+    globalChatTitle: "Chat Global",
     globalChatStateOnline: "Chat global online.",
     globalChatStateConnecting: "Conectando chat...",
     globalChatStateUnstable: "Conexao instavel no chat global.",
@@ -80,6 +82,7 @@ const MENU_I18N = {
   en: {
     menuTitle: "Chaotic Legacy - Main Menu",
     rankingButtonTitle: "Open global ranking",
+    chatButtonTitle: "Open global chat",
     menuBtnDromosSub: "Battlefield",
     menuBtnPerimSub: "Exploration and Scans",
     menuBtnBuilderSub: "Build your strategies",
@@ -103,6 +106,7 @@ const MENU_I18N = {
     top50StateOnlineCount: "{count} player(s) online now.",
     top50StateLoadError: "Failed to load top 50.",
     top50OnlineLoadError: "Failed to load online players.",
+    globalChatTitle: "Global Chat",
     globalChatStateOnline: "Global chat online.",
     globalChatStateConnecting: "Connecting chat...",
     globalChatStateUnstable: "Unstable global chat connection.",
@@ -125,6 +129,7 @@ const MENU_I18N = {
   es: {
     menuTitle: "Chaotic Legacy - Menu Principal",
     rankingButtonTitle: "Abrir ranking general",
+    chatButtonTitle: "Abrir chat global",
     menuBtnDromosSub: "Battlefield",
     menuBtnPerimSub: "Exploracion y Scans",
     menuBtnBuilderSub: "Arma tus estrategias",
@@ -148,6 +153,7 @@ const MENU_I18N = {
     top50StateOnlineCount: "{count} jugador(es) online ahora.",
     top50StateLoadError: "Error al cargar top 50.",
     top50OnlineLoadError: "Error al cargar jugadores online.",
+    globalChatTitle: "Chat Global",
     globalChatStateOnline: "Chat global online.",
     globalChatStateConnecting: "Conectando chat...",
     globalChatStateUnstable: "Conexion inestable del chat global.",
@@ -206,6 +212,10 @@ function applyMenuLanguageToStaticUi() {
   if (rankBubble) {
     rankBubble.title = menuT("rankingButtonTitle");
   }
+  const chatBubble = qs("profile-global-chat-bubble");
+  if (chatBubble) {
+    chatBubble.title = menuT("chatButtonTitle");
+  }
   const navSubtitleMap = [
     ["#btn-dromos small", "menuBtnDromosSub"],
     ["#btn-perim small", "menuBtnPerimSub"],
@@ -228,7 +238,6 @@ function applyMenuLanguageToStaticUi() {
     ["top50-tab-score", "top50TabScore"],
     ["top50-tab-scans", "top50TabScans"],
     ["top50-tab-online", "top50TabOnline"],
-    ["top50-tab-chat", "top50TabChat"],
   ];
   tabMap.forEach(([id, key]) => {
     const node = qs(id);
@@ -259,6 +268,10 @@ function applyMenuLanguageToStaticUi() {
   const globalChatState = qs("global-chat-state");
   if (globalChatState) {
     globalChatState.textContent = menuT("globalChatStateConnecting");
+  }
+  const globalChatTitle = document.querySelector("#global-chat-sidebar h3");
+  if (globalChatTitle) {
+    globalChatTitle.textContent = menuT("globalChatTitle");
   }
   const perimChatInput = qs("perim-chat-input");
   if (perimChatInput) {
@@ -323,7 +336,9 @@ function refreshMenuHomePanelSettingsFromStorage() {
 function updateMainMenuSidebarVisibility() {
   const top50Sidebar = qs("top50-sidebar");
   const profileTop50Bubble = qs("profile-top50-bubble");
-  if (!top50Sidebar && !profileTop50Bubble) {
+  const globalChatSidebar = qs("global-chat-sidebar");
+  const profileGlobalChatBubble = qs("profile-global-chat-bubble");
+  if (!top50Sidebar && !profileTop50Bubble && !globalChatSidebar && !profileGlobalChatBubble) {
     return;
   }
   const globalEnabled = menuHomePanelSettings.globalChatEnabled !== false;
@@ -332,6 +347,9 @@ function updateMainMenuSidebarVisibility() {
   document.body.classList.toggle("menu-top50-disabled", !top50Enabled);
   if (profileTop50Bubble) {
     profileTop50Bubble.hidden = !top50Enabled;
+  }
+  if (profileGlobalChatBubble) {
+    profileGlobalChatBubble.hidden = !globalEnabled;
   }
   const menuNav = qs("menu-nav");
   const dromosPanel = qs("dromos-panel");
@@ -342,10 +360,13 @@ function updateMainMenuSidebarVisibility() {
   const anyPanelVisible = [dromosPanel, perimPanel, tradesPanel, multiplayerPanel]
     .filter(Boolean)
     .some((panel) => getComputedStyle(panel).display !== "none");
-  const showSidebars = navVisible && !anyPanelVisible && top50Enabled;
+  const showSidebars = navVisible && !anyPanelVisible && (top50Enabled || globalEnabled);
   document.body.classList.toggle("menu-sidebars-hidden", !showSidebars);
   if (top50Sidebar) {
     top50Sidebar.hidden = !top50Enabled;
+  }
+  if (globalChatSidebar) {
+    globalChatSidebar.hidden = !globalEnabled;
   }
   window.dispatchEvent(new CustomEvent("menu:sidebar-visibility-updated", {
     detail: {
@@ -393,7 +414,10 @@ async function fetchJsonWithTimeout(url, options = {}, timeoutMs = NETWORK_TIMEO
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
-      throw new Error(payload?.error || `HTTP ${response.status}`);
+      const error = new Error(payload?.error || `HTTP ${response.status}`);
+      error.status = response.status;
+      error.payload = payload;
+      throw error;
     }
     return payload;
   } catch (error) {
@@ -439,9 +463,10 @@ function normalizeTribeThemeClass(value) {
 
 function formatDurationLabel(ms) {
   const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function setExpandedMode(enabled) {
@@ -543,6 +568,7 @@ async function bindProfile(username, sessionData) {
   const avatarUpload = qs("avatar-upload");
   const profileNotificationBell = qs("profile-notification-bell");
   const profileTop50Bubble = qs("profile-top50-bubble");
+  const profileGlobalChatBubble = qs("profile-global-chat-bubble");
   const profileNotificationBadge = qs("profile-notification-badge");
 
   const profileModal = qs("profile-modal");
@@ -1379,6 +1405,14 @@ async function bindProfile(username, sessionData) {
       window.dispatchEvent(new CustomEvent("menu:toggle-top50"));
     });
   }
+  if (profileGlobalChatBubble) {
+    profileGlobalChatBubble.addEventListener("click", () => {
+      if (menuHomePanelSettings.globalChatEnabled === false) {
+        return;
+      }
+      window.dispatchEvent(new CustomEvent("menu:toggle-global-chat"));
+    });
+  }
   if (profileTabGeneralBtn) {
     profileTabGeneralBtn.addEventListener("click", () => setProfileTab("general"));
   }
@@ -1617,24 +1651,28 @@ function bindSidePanels(username) {
   const top50TabScore = qs("top50-tab-score");
   const top50TabScans = qs("top50-tab-scans");
   const top50TabOnline = qs("top50-tab-online");
-  const top50TabChat = qs("top50-tab-chat");
   const top50ScorePanel = qs("top50-panel-score");
   const top50ScansPanel = qs("top50-panel-scans");
   const top50OnlinePanel = qs("top50-panel-online");
-  const top50ChatPanel = qs("top50-panel-chat");
+  const globalChatSidebar = qs("global-chat-sidebar");
+  const globalChatPinBtn = qs("global-chat-pin");
   const globalChatStateEl = qs("global-chat-state");
   const globalChatMessagesEl = qs("global-chat-messages");
   const globalChatInputEl = qs("global-chat-input");
   const globalChatSendBtn = qs("global-chat-send");
 
-  let chatEventSource = null;
+  let globalChatEventSource = null;
+  let globalChatReconnectTimer = null;
+  let globalChatReconnectAttempts = 0;
   let globalChatMessages = [];
   const state = {
-    isEnabled: menuHomePanelSettings.top50Enabled !== false,
+    top50Enabled: menuHomePanelSettings.top50Enabled !== false,
     chatEnabled: menuHomePanelSettings.globalChatEnabled !== false,
     isHomeVisible: !document.body.classList.contains("menu-sidebars-hidden"),
-    isOpen: false,
-    isPinned: false,
+    top50Open: false,
+    top50Pinned: false,
+    chatOpen: false,
+    chatPinned: false,
     activeTab: "score",
     streamConnected: false,
   };
@@ -1793,12 +1831,20 @@ function bindSidePanels(username) {
     sidebar.addEventListener("pointerdown", stop);
   };
 
+  const clearGlobalChatReconnect = () => {
+    if (globalChatReconnectTimer) {
+      clearTimeout(globalChatReconnectTimer);
+      globalChatReconnectTimer = null;
+    }
+  };
+
   const closeGlobalChatStream = () => {
-    if (chatEventSource) {
+    clearGlobalChatReconnect();
+    if (globalChatEventSource) {
       try {
-        chatEventSource.close();
+        globalChatEventSource.close();
       } catch (_) {}
-      chatEventSource = null;
+      globalChatEventSource = null;
     }
     state.streamConnected = false;
   };
@@ -1822,12 +1868,25 @@ function bindSidePanels(username) {
     globalChatMessagesEl.scrollTop = globalChatMessagesEl.scrollHeight;
   };
 
+  const scheduleGlobalChatReconnect = () => {
+    if (!state.chatEnabled || !state.chatOpen || !state.isHomeVisible) {
+      return;
+    }
+    clearGlobalChatReconnect();
+    globalChatReconnectAttempts += 1;
+    const delayMs = Math.min(20000, 1000 * (2 ** Math.min(globalChatReconnectAttempts - 1, 4)));
+    globalChatReconnectTimer = setTimeout(() => {
+      void refreshGlobalChat(true);
+    }, delayMs);
+  };
+
   const connectGlobalEvents = () => {
     if (!globalChatStateEl) return;
     closeGlobalChatStream();
-    chatEventSource = new EventSource(apiUrl(`/api/chat/global/events?lang=${encodeURIComponent(menuUiLanguage)}`));
+    globalChatEventSource = new EventSource(apiUrl(`/api/chat/global/events?lang=${encodeURIComponent(menuUiLanguage)}`));
     state.streamConnected = true;
-    chatEventSource.onmessage = (event) => {
+    globalChatReconnectAttempts = 0;
+    globalChatEventSource.onmessage = (event) => {
       const payload = safeJsonParse(event.data, null);
       if (!payload) return;
       if (payload.type === "global_chat_snapshot") {
@@ -1839,11 +1898,12 @@ function bindSidePanels(username) {
         renderGlobalMessages(globalChatMessages.concat([payload.message]).slice(-120));
       }
     };
-    chatEventSource.onerror = () => {
+    globalChatEventSource.onerror = () => {
       state.streamConnected = false;
       if (globalChatStateEl) {
         globalChatStateEl.textContent = menuT("globalChatStateUnstable");
       }
+      scheduleGlobalChatReconnect();
     };
   };
 
@@ -1952,22 +2012,28 @@ function bindSidePanels(username) {
     }
   };
 
-  const isSidebarEffectivelyOpen = () => (
-    state.isEnabled && state.isHomeVisible && state.isOpen
+  const isTop50EffectivelyOpen = () => (
+    state.top50Enabled && state.isHomeVisible && state.top50Open
+  );
+
+  const isGlobalChatEffectivelyOpen = () => (
+    state.chatEnabled && state.isHomeVisible && state.chatOpen
   );
 
   const applySidebarOpenState = () => {
-    const shouldOpen = isSidebarEffectivelyOpen();
-    applyPanelOpenState(top50Sidebar, shouldOpen);
-    if (!shouldOpen) {
+    const top50ShouldOpen = isTop50EffectivelyOpen();
+    applyPanelOpenState(top50Sidebar, top50ShouldOpen);
+    const chatShouldOpen = isGlobalChatEffectivelyOpen();
+    applyPanelOpenState(globalChatSidebar, chatShouldOpen);
+    if (!chatShouldOpen) {
       closeGlobalChatStream();
     }
   };
 
   const setActiveTab = (nextTabRaw, persist = true) => {
     const requested = String(nextTabRaw || "score").toLowerCase();
-    const valid = requested === "scans" || requested === "chat" || requested === "online" ? requested : "score";
-    const nextTab = (valid === "chat" && !state.chatEnabled) ? "score" : valid;
+    const valid = requested === "scans" || requested === "online" ? requested : "score";
+    const nextTab = valid;
     state.activeTab = nextTab;
     if (persist) {
       localStorage.setItem(TOP50_ACTIVE_TAB_KEY, nextTab);
@@ -1975,19 +2041,12 @@ function bindSidePanels(username) {
     if (top50TabScore) top50TabScore.classList.toggle("active", nextTab === "score");
     if (top50TabScans) top50TabScans.classList.toggle("active", nextTab === "scans");
     if (top50TabOnline) top50TabOnline.classList.toggle("active", nextTab === "online");
-    if (top50TabChat) top50TabChat.classList.toggle("active", nextTab === "chat");
     if (top50ScorePanel) top50ScorePanel.classList.toggle("active", nextTab === "score");
     if (top50ScansPanel) top50ScansPanel.classList.toggle("active", nextTab === "scans");
     if (top50OnlinePanel) top50OnlinePanel.classList.toggle("active", nextTab === "online");
-    if (top50ChatPanel) top50ChatPanel.classList.toggle("active", nextTab === "chat");
-    if (!isSidebarEffectivelyOpen()) {
+    if (!isTop50EffectivelyOpen()) {
       return;
     }
-    if (nextTab === "chat") {
-      void refreshGlobalChat(true);
-      return;
-    }
-    closeGlobalChatStream();
     if (nextTab === "online") {
       void refreshOnlinePlayers();
       return;
@@ -1996,15 +2055,13 @@ function bindSidePanels(username) {
   };
 
   const setSidebarOpen = (nextOpen, persist = true) => {
-    state.isOpen = Boolean(nextOpen);
+    state.top50Open = Boolean(nextOpen);
     if (persist) {
-      writeBool(TOP50_OPEN_KEY, state.isOpen);
+      writeBool(TOP50_OPEN_KEY, state.top50Open);
     }
     applySidebarOpenState();
-    if (isSidebarEffectivelyOpen()) {
-      if (state.activeTab === "chat") {
-        void refreshGlobalChat(true);
-      } else if (state.activeTab === "online") {
+    if (isTop50EffectivelyOpen()) {
+      if (state.activeTab === "online") {
         void refreshOnlinePlayers();
       } else {
         void refreshTop50(state.activeTab);
@@ -2012,17 +2069,41 @@ function bindSidePanels(username) {
     }
   };
 
+  const setGlobalChatOpen = (nextOpen, persist = true) => {
+    state.chatOpen = Boolean(nextOpen);
+    if (persist) {
+      writeBool(GLOBAL_CHAT_OPEN_KEY, state.chatOpen);
+    }
+    applySidebarOpenState();
+    if (isGlobalChatEffectivelyOpen()) {
+      void refreshGlobalChat(true);
+    }
+  };
+
   const toggleTop50Panel = (eventOrOptions = null) => {
     const eventType = String(eventOrOptions?.type || "");
     const bypassHiddenGuard = eventType === "menu:toggle-top50" || Boolean(eventOrOptions?.bypassHiddenGuard);
-    if (!state.isEnabled) {
+    if (!state.top50Enabled) {
       return;
     }
     if (!bypassHiddenGuard && !state.isHomeVisible) {
       return;
     }
-    const nextOpen = !state.isOpen;
+    const nextOpen = !state.top50Open;
     setSidebarOpen(nextOpen, true);
+  };
+
+  const toggleGlobalChatPanel = (eventOrOptions = null) => {
+    const eventType = String(eventOrOptions?.type || "");
+    const bypassHiddenGuard = eventType === "menu:toggle-global-chat" || Boolean(eventOrOptions?.bypassHiddenGuard);
+    if (!state.chatEnabled) {
+      return;
+    }
+    if (!bypassHiddenGuard && !state.isHomeVisible) {
+      return;
+    }
+    const nextOpen = !state.chatOpen;
+    setGlobalChatOpen(nextOpen, true);
   };
 
   const bindSidebarDrag = (sidebar, key, canDrag) => {
@@ -2119,60 +2200,104 @@ function bindSidePanels(username) {
       ? homeVisibleOverride
       : isMainMenuHomeVisible();
     const wasVisible = state.isHomeVisible;
-    state.isEnabled = menuHomePanelSettings.top50Enabled !== false;
+    state.top50Enabled = menuHomePanelSettings.top50Enabled !== false;
     state.chatEnabled = menuHomePanelSettings.globalChatEnabled !== false;
     state.isHomeVisible = nextHomeVisible;
-    if (!state.chatEnabled && state.activeTab === "chat") {
-      setActiveTab("score", true);
+    if (!state.chatEnabled && state.chatOpen) {
+      state.chatOpen = false;
+      writeBool(GLOBAL_CHAT_OPEN_KEY, false);
     }
     applySidebarOpenState();
-    if (isSidebarEffectivelyOpen() && !wasVisible) {
-      if (state.activeTab === "chat") {
-        void refreshGlobalChat(true);
-      } else if (state.activeTab === "online") {
+    if (isTop50EffectivelyOpen() && !wasVisible) {
+      if (state.activeTab === "online") {
         void refreshOnlinePlayers();
       } else {
         void refreshTop50(state.activeTab);
       }
     }
+    if (isGlobalChatEffectivelyOpen() && !wasVisible) {
+      void refreshGlobalChat(true);
+    }
   };
 
-  state.isOpen = readBool(TOP50_OPEN_KEY, readLegacyOpenFromCollapsed(TOP50_UI_KEY, false));
-  state.isPinned = readBool(TOP50_PIN_KEY, false);
+  const migrateGlobalChatLegacyState = () => {
+    const migrationKey = "chaotic.global_chat_migrated_v1";
+    if (localStorage.getItem(migrationKey) === "true") {
+      return;
+    }
+    if (localStorage.getItem(GLOBAL_CHAT_OPEN_KEY) === null) {
+      const activeTabRaw = String(localStorage.getItem(TOP50_ACTIVE_TAB_KEY) || "").toLowerCase();
+      const fallbackOpen = activeTabRaw === "chat"
+        ? true
+        : readBool(GLOBAL_CHAT_OPEN_KEY, readLegacyOpenFromCollapsed(GLOBAL_CHAT_UI_KEY, false));
+      writeBool(GLOBAL_CHAT_OPEN_KEY, fallbackOpen);
+    }
+    if (localStorage.getItem(GLOBAL_CHAT_PIN_KEY) === null) {
+      writeBool(GLOBAL_CHAT_PIN_KEY, readBool(TOP50_PIN_KEY, false));
+    }
+    if (localStorage.getItem(GLOBAL_CHAT_POS_KEY) === null) {
+      const legacyPos = readPanelPosition(TOP50_POS_KEY);
+      if (legacyPos) {
+        writePanelPosition(GLOBAL_CHAT_POS_KEY, legacyPos);
+      }
+    }
+    localStorage.setItem(migrationKey, "true");
+  };
+
+  migrateGlobalChatLegacyState();
+
+  state.top50Open = readBool(TOP50_OPEN_KEY, readLegacyOpenFromCollapsed(TOP50_UI_KEY, false));
+  state.top50Pinned = readBool(TOP50_PIN_KEY, false);
+  state.chatOpen = readBool(GLOBAL_CHAT_OPEN_KEY, readLegacyOpenFromCollapsed(GLOBAL_CHAT_UI_KEY, false));
+  state.chatPinned = readBool(GLOBAL_CHAT_PIN_KEY, false);
   state.activeTab = String(localStorage.getItem(TOP50_ACTIVE_TAB_KEY) || "score").toLowerCase();
-  if (!["score", "scans", "online", "chat"].includes(state.activeTab)) {
+  if (!["score", "scans", "online"].includes(state.activeTab)) {
     state.activeTab = "score";
   }
-  if (!state.chatEnabled && state.activeTab === "chat") {
-    state.activeTab = "score";
-  }
-  writeBool(TOP50_OPEN_KEY, state.isOpen);
-  writeBool(TOP50_PIN_KEY, state.isPinned);
+  writeBool(TOP50_OPEN_KEY, state.top50Open);
+  writeBool(TOP50_PIN_KEY, state.top50Pinned);
+  writeBool(GLOBAL_CHAT_OPEN_KEY, state.chatOpen);
+  writeBool(GLOBAL_CHAT_PIN_KEY, state.chatPinned);
   localStorage.setItem(TOP50_ACTIVE_TAB_KEY, state.activeTab);
 
   bindPanelInteractionGuard(top50Sidebar);
-  applyPinButtonState(top50PinBtn, state.isPinned);
+  bindPanelInteractionGuard(globalChatSidebar);
+  applyPinButtonState(top50PinBtn, state.top50Pinned);
+  applyPinButtonState(globalChatPinBtn, state.chatPinned);
   applyPanelPosition(top50Sidebar, TOP50_POS_KEY, "right");
+  applyPanelPosition(globalChatSidebar, GLOBAL_CHAT_POS_KEY, "left");
   setActiveTab(state.activeTab, false);
   syncPanelVisibilityFromContext();
-  bindSidebarDrag(top50Sidebar, TOP50_POS_KEY, () => state.isOpen && !state.isPinned);
-  if (isSidebarEffectivelyOpen()) {
-    if (state.activeTab === "chat") {
-      void refreshGlobalChat(true);
-    } else if (state.activeTab === "online") {
+  bindSidebarDrag(top50Sidebar, TOP50_POS_KEY, () => state.top50Open && !state.top50Pinned);
+  bindSidebarDrag(globalChatSidebar, GLOBAL_CHAT_POS_KEY, () => state.chatOpen && !state.chatPinned);
+  if (isTop50EffectivelyOpen()) {
+    if (state.activeTab === "online") {
       void refreshOnlinePlayers();
     } else {
       void refreshTop50(state.activeTab);
     }
   }
+  if (isGlobalChatEffectivelyOpen()) {
+    void refreshGlobalChat(true);
+  }
 
   if (top50PinBtn) {
     top50PinBtn.addEventListener("click", () => {
-      state.isPinned = !state.isPinned;
-      writeBool(TOP50_PIN_KEY, state.isPinned);
-      applyPinButtonState(top50PinBtn, state.isPinned);
-      if (state.isPinned) {
+      state.top50Pinned = !state.top50Pinned;
+      writeBool(TOP50_PIN_KEY, state.top50Pinned);
+      applyPinButtonState(top50PinBtn, state.top50Pinned);
+      if (state.top50Pinned) {
         persistCurrentPanelPosition(top50Sidebar, TOP50_POS_KEY);
+      }
+    });
+  }
+  if (globalChatPinBtn) {
+    globalChatPinBtn.addEventListener("click", () => {
+      state.chatPinned = !state.chatPinned;
+      writeBool(GLOBAL_CHAT_PIN_KEY, state.chatPinned);
+      applyPinButtonState(globalChatPinBtn, state.chatPinned);
+      if (state.chatPinned) {
+        persistCurrentPanelPosition(globalChatSidebar, GLOBAL_CHAT_POS_KEY);
       }
     });
   }
@@ -2206,17 +2331,14 @@ function bindSidePanels(username) {
       setActiveTab("online", true);
     });
   }
-  if (top50TabChat) {
-    top50TabChat.addEventListener("click", () => {
-      setActiveTab("chat", true);
-    });
-  }
-
   updateMainMenuSidebarVisibility();
   const onResize = () => {
     updateMainMenuSidebarVisibility();
-    if (state.isOpen) {
+    if (state.top50Open) {
       applyPanelPosition(top50Sidebar, TOP50_POS_KEY, "right");
+    }
+    if (state.chatOpen) {
+      applyPanelPosition(globalChatSidebar, GLOBAL_CHAT_POS_KEY, "left");
     }
   };
 
@@ -2236,16 +2358,17 @@ function bindSidePanels(username) {
       && event.key !== TOP50_PIN_KEY
       && event.key !== TOP50_POS_KEY
       && event.key !== TOP50_ACTIVE_TAB_KEY
+      && event.key !== GLOBAL_CHAT_OPEN_KEY
+      && event.key !== GLOBAL_CHAT_PIN_KEY
+      && event.key !== GLOBAL_CHAT_POS_KEY
     ) {
       return;
     }
     if (event.key === TOP50_OPEN_KEY) {
-      state.isOpen = readBool(TOP50_OPEN_KEY, state.isOpen);
+      state.top50Open = readBool(TOP50_OPEN_KEY, state.top50Open);
       applySidebarOpenState();
-      if (isSidebarEffectivelyOpen()) {
-        if (state.activeTab === "chat") {
-          void refreshGlobalChat(true);
-        } else if (state.activeTab === "online") {
+      if (isTop50EffectivelyOpen()) {
+        if (state.activeTab === "online") {
           void refreshOnlinePlayers();
         } else {
           void refreshTop50(state.activeTab);
@@ -2253,14 +2376,33 @@ function bindSidePanels(username) {
       }
       return;
     }
+    if (event.key === GLOBAL_CHAT_OPEN_KEY) {
+      state.chatOpen = readBool(GLOBAL_CHAT_OPEN_KEY, state.chatOpen);
+      applySidebarOpenState();
+      if (isGlobalChatEffectivelyOpen()) {
+        void refreshGlobalChat(true);
+      }
+      return;
+    }
     if (event.key === TOP50_PIN_KEY) {
-      state.isPinned = readBool(TOP50_PIN_KEY, state.isPinned);
-      applyPinButtonState(top50PinBtn, state.isPinned);
+      state.top50Pinned = readBool(TOP50_PIN_KEY, state.top50Pinned);
+      applyPinButtonState(top50PinBtn, state.top50Pinned);
+      return;
+    }
+    if (event.key === GLOBAL_CHAT_PIN_KEY) {
+      state.chatPinned = readBool(GLOBAL_CHAT_PIN_KEY, state.chatPinned);
+      applyPinButtonState(globalChatPinBtn, state.chatPinned);
       return;
     }
     if (event.key === TOP50_POS_KEY) {
-      if (state.isOpen) {
+      if (state.top50Open) {
         applyPanelPosition(top50Sidebar, TOP50_POS_KEY, "right");
+      }
+      return;
+    }
+    if (event.key === GLOBAL_CHAT_POS_KEY) {
+      if (state.chatOpen) {
+        applyPanelPosition(globalChatSidebar, GLOBAL_CHAT_POS_KEY, "left");
       }
       return;
     }
@@ -2275,12 +2417,14 @@ function bindSidePanels(username) {
 
   window.addEventListener("resize", onResize);
   window.addEventListener("menu:toggle-top50", toggleTop50Panel);
+  window.addEventListener("menu:toggle-global-chat", toggleGlobalChatPanel);
   window.addEventListener("menu:sidebar-visibility-updated", sidebarVisibilityHandler);
   window.addEventListener("storage", storageHandler);
 
   window.addEventListener("beforeunload", () => {
     window.removeEventListener("resize", onResize);
     window.removeEventListener("menu:toggle-top50", toggleTop50Panel);
+    window.removeEventListener("menu:toggle-global-chat", toggleGlobalChatPanel);
     window.removeEventListener("menu:sidebar-visibility-updated", sidebarVisibilityHandler);
     window.removeEventListener("storage", storageHandler);
     closeGlobalChatStream();
@@ -3466,6 +3610,8 @@ function bindPerim(username) {
     finishRefreshSent: false,
     chatMessages: [],
     chatEventSource: null,
+    chatReconnectTimer: null,
+    chatReconnectAttempts: 0,
     chatLocationId: "",
     chatLoading: false,
   };
@@ -3563,6 +3709,10 @@ function pickPresencePhrase(locationEntry, count) {
   }
 
   function closeChatEventSource() {
+    if (state.chatReconnectTimer) {
+      clearTimeout(state.chatReconnectTimer);
+      state.chatReconnectTimer = null;
+    }
     if (state.chatEventSource) {
       try {
         state.chatEventSource.close();
@@ -3667,6 +3817,7 @@ function pickPresencePhrase(locationEntry, count) {
         closeChatEventSource();
         const source = new EventSource(apiUrl(`/api/perim/locations/${encodeURIComponent(locationId)}/chat/events?lang=${encodeURIComponent(menuUiLanguage)}`));
         state.chatEventSource = source;
+        state.chatReconnectAttempts = 0;
         source.onmessage = (event) => {
           const data = safeJsonParse(event.data, null);
           if (!data || typeof data !== "object") {
@@ -3693,6 +3844,16 @@ function pickPresencePhrase(locationEntry, count) {
           if (chatStateEl) {
             chatStateEl.textContent = menuT("perimChatConnectionUnstable");
           }
+          if (state.chatReconnectTimer) {
+            clearTimeout(state.chatReconnectTimer);
+            state.chatReconnectTimer = null;
+          }
+          state.chatReconnectAttempts += 1;
+          const retryDelay = Math.min(20000, 1000 * (2 ** Math.min(state.chatReconnectAttempts - 1, 4)));
+          state.chatReconnectTimer = setTimeout(() => {
+            state.chatReconnectTimer = null;
+            void refreshLocationChat(true);
+          }, retryDelay);
         };
       }
     } catch (error) {
@@ -3802,8 +3963,7 @@ function pickPresencePhrase(locationEntry, count) {
     }
     eventsList.innerHTML = '<div style="font-size:0.72rem;color:#8ea8bf;">Carregando eventos...</div>';
     try {
-      const res = await fetch("/api/perim/events");
-      const payload = await res.json();
+      const payload = await fetchJsonWithTimeout("/api/perim/events", { method: "GET" }, NETWORK_TIMEOUT_MS.perimState);
       const events = Array.isArray(payload?.events) ? payload.events : [];
       if (!events.length) {
         eventsList.innerHTML = '<div style="font-size:0.72rem;color:#8ea8bf;">Nenhum evento ativo no momento.</div>';
@@ -4199,21 +4359,15 @@ function pickPresencePhrase(locationEntry, count) {
       claimBtn.addEventListener("click", async () => {
         claimBtn.disabled = true;
         try {
-          const res = await fetch("/api/perim/claim", {
+          const data = await fetchJsonWithTimeout("/api/perim/claim", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               username: normalizeUsername(username),
               runId: entry.runId,
             }),
-          });
-          const data = await res.json();
-          if (!res.ok || !data?.ok) {
-            if (data?.needsChoices) {
-              setStatus(data?.error || "Escolha as cartas duplicadas antes de coletar.", true);
-              await refreshPerimState();
-              return;
-            }
+          }, NETWORK_TIMEOUT_MS.perimState);
+          if (!data?.ok) {
             throw new Error(data?.error || "Falha ao coletar.");
           }
           const skipped = Array.isArray(data.skippedByCap) ? data.skippedByCap.length : 0;
@@ -4225,7 +4379,12 @@ function pickPresencePhrase(locationEntry, count) {
           openRewardModal(data.rewards || []);
           await refreshPerimState();
         } catch (error) {
+          const isChoiceError = Boolean(error?.payload?.needsChoices) || /escolha|choice/i.test(String(error?.message || ""));
+          if (isChoiceError) {
+            await refreshPerimState();
+          }
           setStatus(error?.message || "Erro ao coletar recompensas.", true);
+        } finally {
           claimBtn.disabled = false;
         }
       });
@@ -4309,11 +4468,12 @@ function pickPresencePhrase(locationEntry, count) {
 
   async function refreshPerimState() {
     try {
-      const response = await fetch(`/api/perim/state?username=${encodeURIComponent(normalizeUsername(username))}`);
-      const payload = await response.json();
-      if (!response.ok || !payload?.ok) {
-        throw new Error(payload?.error || "Falha ao carregar PERIM.");
-      }
+      const payload = await fetchJsonWithTimeout(
+        `/api/perim/state?username=${encodeURIComponent(normalizeUsername(username))}`,
+        { method: "GET" },
+        NETWORK_TIMEOUT_MS.perimState
+      );
+      if (!payload?.ok) throw new Error(payload?.error || "Falha ao carregar PERIM.");
       state.payload = payload;
       const locations = getLocations();
       if (!locations.some((entry) => entry.cardId === state.selectedLocationCardId)) {
@@ -4385,7 +4545,7 @@ function pickPresencePhrase(locationEntry, count) {
       }
       startBtn.disabled = true;
       try {
-        const response = await fetch("/api/perim/start", {
+        const payload = await fetchJsonWithTimeout("/api/perim/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -4395,11 +4555,8 @@ function pickPresencePhrase(locationEntry, count) {
             locationEntryId: selectedLocation.entryId,
             actionId: state.selectedActionId,
           }),
-        });
-        const payload = await response.json();
-        if (!response.ok || !payload?.ok) {
-          throw new Error(payload?.error || "Nao foi possivel iniciar a acao.");
-        }
+        }, NETWORK_TIMEOUT_MS.perimState);
+        if (!payload?.ok) throw new Error(payload?.error || "Nao foi possivel iniciar a acao.");
         setStatus("Acao iniciada com sucesso.");
         await refreshPerimState();
       } catch (error) {

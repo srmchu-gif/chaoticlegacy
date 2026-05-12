@@ -776,6 +776,14 @@ function createSqlV2Tables() {
     );
   `);
   sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_location_tribes (
+      location_card_id TEXT NOT NULL PRIMARY KEY,
+      tribe_key TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_tribes_tribe ON perim_location_tribes(tribe_key, updated_at DESC);");
+  sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_location_chat (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       location_id TEXT NOT NULL,
@@ -6908,11 +6916,12 @@ function attackClimateElementBoostWeight(card, climateRaw) {
   return hasMatch ? 1.08 : 1;
 }
 
-function selectMugicTribeWeightsFromLocation(locationEntry = null) {
+function selectMugicTribeWeightsFromLocation(locationEntry = null, options = {}) {
   const result = new Map();
   if (!locationEntry || typeof locationEntry !== "object") {
     return result;
   }
+  const locationTribeKey = normalizePerimLocationTribeKey(options.locationTribeKey || "");
   const { creaturesById, creaturesByNormalizedName } = getLibraryIndexes();
   const creatures = getCreaturesAtLocation(String(locationEntry?.cardId || locationEntry?.id || locationEntry?.name || ""));
   creatures.forEach((entry) => {
@@ -6922,6 +6931,9 @@ function selectMugicTribeWeightsFromLocation(locationEntry = null) {
       card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
     }
     if (!card) {
+      return;
+    }
+    if (locationTribeKey && !isPerimTribeMatchForCard(card, locationTribeKey)) {
       return;
     }
     const mugicAbility = Number(card?.stats?.mugicability ?? card?.mugicability ?? 0);
@@ -6985,6 +6997,7 @@ function pickCreatureCandidateAtLocation(locationEntry, options = {}) {
   const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
   const rareBoost = Math.max(0, Number(options.rareBoost || 0));
   const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const locationTribeKey = normalizePerimLocationTribeKey(options.locationTribeKey || "");
   const { creaturesById, creaturesByNormalizedName } = getLibraryIndexes();
   const candidates = pool
     .map((entry) => {
@@ -6994,6 +7007,9 @@ function pickCreatureCandidateAtLocation(locationEntry, options = {}) {
         card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
       }
       if (!card) {
+        return null;
+      }
+      if (locationTribeKey && !isPerimTribeMatchForCard(card, locationTribeKey)) {
         return null;
       }
       const stockKey = `creatures:${String(card.id || "")}`;
@@ -7019,6 +7035,7 @@ function buildPerimCluesForRun(actionId, locationEntry, rewards, options = {}) {
   const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
   const scannerEffect = options.scannerEffect || scannerEffectsByLevel(1);
   const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const locationTribeKey = normalizePerimLocationTribeKey(options.locationTribeKey || "");
   const hasCreatureReward = Array.isArray(rewards) && rewards.some((reward) => String(reward?.type || "") === "creatures");
   if (String(actionId || "") === "track") {
     if (hasCreatureReward) {
@@ -7028,6 +7045,7 @@ function buildPerimCluesForRun(actionId, locationEntry, rewards, options = {}) {
       inventoryCounts,
       rareBoost: scannerEffect.rareBoost,
       ignoreInventoryCap,
+      locationTribeKey,
     });
     if (!candidate) {
       return ["Nenhum sinal confiavel de criatura encontrado nesta area."];
@@ -7042,6 +7060,7 @@ function buildPerimCluesForRun(actionId, locationEntry, rewards, options = {}) {
     inventoryCounts,
     rareBoost: scannerEffect.rareBoost,
     ignoreInventoryCap,
+    locationTribeKey,
   });
   if (!candidate) {
     return ["A anomalia nao estabilizou pistas suficientes sobre criaturas nesta area."];
@@ -7081,13 +7100,23 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
   const tribeScannerRareBoosts = options.tribeScannerRareBoosts instanceof Map
     ? options.tribeScannerRareBoosts
     : new Map();
+  const locationTribeKey = normalizePerimLocationTribeKey(options.locationTribeKey || "");
   const requireLocalMugicEligible = Boolean(options.requireLocalMugicEligible);
   const excludedRewardCardKeys = options.excludedRewardCardKeys instanceof Set ? options.excludedRewardCardKeys : new Set();
   const tribeKey = String(preferredTribe || "").trim().toLowerCase();
   let basePool = cards;
   let selectedTribeKey = tribeKey;
   if (type === "mugic" && locationEntry) {
-    const tribeWeights = selectMugicTribeWeightsFromLocation(locationEntry);
+    if (locationTribeKey) {
+      const filteredPool = cards.filter((card) => isPerimTribeMatchForCard(card, locationTribeKey));
+      if (!filteredPool.length && requireLocalMugicEligible) {
+        return null;
+      }
+      if (filteredPool.length) {
+        basePool = filteredPool;
+      }
+    }
+    const tribeWeights = selectMugicTribeWeightsFromLocation(locationEntry, { locationTribeKey });
     if (!tribeWeights.size && requireLocalMugicEligible) {
       return null;
     }
@@ -7101,7 +7130,7 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
         : [];
       if (selectedPool.length) {
         basePool = selectedPool;
-      } else if (requireLocalMugicEligible) {
+      } else if (requireLocalMugicEligible && !basePool.length) {
         return null;
       }
     }
@@ -7222,6 +7251,7 @@ function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}
   const forceDrop = Boolean(options.forceDrop);
   const maxRarity = String(options.maxRarity || "").trim();
   const rareBoost = Math.max(0, Number(options.rareBoost || 0));
+  const locationTribeKey = normalizePerimLocationTribeKey(options.locationTribeKey || "");
   const excludedRewardCardKeys = options.excludedRewardCardKeys instanceof Set ? options.excludedRewardCardKeys : new Set();
   if (!Array.isArray(creaturePoolRaw) || !creaturePoolRaw.length) {
     return null;
@@ -7237,6 +7267,9 @@ function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}
         card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
       }
       if (!card || !card.id) {
+        return null;
+      }
+      if (locationTribeKey && !isPerimTribeMatchForCard(card, locationTribeKey)) {
         return null;
       }
       if (!isPerimDropSetAllowed(card?.set || "")) {
@@ -7619,6 +7652,7 @@ function computePerimDurationMs(locationId, actionId, baseDurationMs, scannerEff
 function buildPerimRewards(locationEntry, actionId, options = {}) {
   const perfStart = Date.now();
   const tribe = String(locationEntry?.tribe || "").trim();
+  const locationTribeKey = resolvePerimLocationEffectiveTribeKey(locationEntry);
   const rewards = [];
   const profile = getPerimRewardProfile(actionId);
   const scannerEffect = options.scannerEffect || scannerEffectsByLevel(1);
@@ -7635,7 +7669,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   let creatureDropsInRun = 0;
   const perimState = getPerimGlobalLocationState(locationEntry, new Date());
   const activeClimate = normalizeClimateText(perimState?.climate || "nublado");
-  const locationScannerKey = normalizeTribeToScannerKey(tribe);
+  const locationScannerKey = normalizeTribeToScannerKey(locationTribeKey || tribe);
   const tribeBoostEntry = tribeScannerRareBoosts.get(locationScannerKey) || null;
   const creatureRareBoost = Math.max(0, Number(tribeBoostEntry?.creatureRareBoost ?? scannerEffect.rareBoost ?? 0));
   const mugicRareBoost = Math.max(0, Number(tribeBoostEntry?.mugicRareBoost ?? scannerEffect.mugicRareBoost ?? scannerEffect.rareBoost ?? 0));
@@ -7746,6 +7780,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         rareBoost: creatureRareBoost,
         includeCreatureVariant,
         ignoreInventoryCap,
+        locationTribeKey,
         excludedRewardCardKeys,
       });
       if (normalRoll) {
@@ -7765,6 +7800,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       ignoreInventoryCap,
       maxRarity: String(campStacking.bonusMaxRarity || "super rare"),
       forceDrop: true,
+      locationTribeKey,
       excludedRewardCardKeys,
     });
   };
@@ -7779,6 +7815,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       ignoreInventoryCap,
       activeClimate,
       locationEntry,
+      locationTribeKey,
       tribeScannerRareBoosts,
       requireLocalMugicEligible: type === "mugic",
       excludedRewardCardKeys,
@@ -7889,6 +7926,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
+        locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
       }) ||
@@ -7898,6 +7936,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
+        locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
       }) ||
@@ -7907,6 +7946,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
+        locationTribeKey,
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
         excludedRewardCardKeys,
@@ -7946,6 +7986,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
+        locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
       });
@@ -7986,6 +8027,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       ignoreInventoryCap,
       activeClimate,
       locationEntry,
+      locationTribeKey,
       tribeScannerRareBoosts,
       excludedRewardCardKeys,
     })
@@ -7995,6 +8037,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
+        locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
       })
@@ -8004,6 +8047,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
+        locationTribeKey,
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
         excludedRewardCardKeys,
@@ -8028,6 +8072,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
+        locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
       })
@@ -8037,6 +8082,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
+        locationTribeKey,
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
         excludedRewardCardKeys,
@@ -14962,6 +15008,97 @@ function resolveMusicFilePath(relativeMusicPath) {
   return "";
 }
 
+const PERIM_LOCATION_TRIBE_KEYS = new Set([
+  "overworld",
+  "underworld",
+  "danian",
+  "mipedian",
+  "marrillian",
+  "tribeless",
+]);
+
+function normalizePerimLocationTribeKey(rawValue) {
+  const cleaned = String(rawValue || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+  if (!cleaned) {
+    return "";
+  }
+  if (
+    cleaned === "tribeless"
+    || cleaned === "semtribo"
+    || cleaned === "generic"
+    || cleaned === "notribe"
+    || cleaned === "neutral"
+    || cleaned === "none"
+    || cleaned === "?"
+  ) {
+    return "tribeless";
+  }
+  if (cleaned.includes("danian")) {
+    return "danian";
+  }
+  if (cleaned.includes("underworld") || cleaned.includes("submundo")) {
+    return "underworld";
+  }
+  if (cleaned.includes("overworld") || cleaned.includes("outromundo")) {
+    return "overworld";
+  }
+  if (cleaned.includes("mipedian") || cleaned.includes("miprdian") || cleaned.includes("maipidian")) {
+    return "mipedian";
+  }
+  if (cleaned.includes("marrillian") || cleaned.includes("marrilian")) {
+    return "marrillian";
+  }
+  return "";
+}
+
+function getPerimLocationTribeOverrideKey(locationCardIdRaw) {
+  if (!sqliteDb) {
+    return "";
+  }
+  const locationCardId = String(locationCardIdRaw || "").trim();
+  if (!locationCardId) {
+    return "";
+  }
+  try {
+    const row = sqliteDb
+      .prepare("SELECT tribe_key FROM perim_location_tribes WHERE location_card_id = ? LIMIT 1")
+      .get(locationCardId);
+    return normalizePerimLocationTribeKey(row?.tribe_key || "");
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao consultar override de tribo do local ${locationCardId}: ${error?.message || error}`);
+    return "";
+  }
+}
+
+function resolvePerimLocationEffectiveTribeKey(locationEntry) {
+  const locationCardId = String(locationEntry?.cardId || locationEntry?.id || "").trim();
+  const override = getPerimLocationTribeOverrideKey(locationCardId);
+  if (override) {
+    return override;
+  }
+  return normalizePerimLocationTribeKey(locationEntry?.tribe || "");
+}
+
+function isPerimTribeMatchForCard(card, expectedTribeKeyRaw) {
+  const expectedTribeKey = normalizePerimLocationTribeKey(expectedTribeKeyRaw);
+  if (!expectedTribeKey) {
+    return true;
+  }
+  const rawTribe = String(card?.tribe || "").trim();
+  const normalizedCardTribe = normalizePerimLocationTribeKey(rawTribe);
+  if (expectedTribeKey === "tribeless") {
+    if (!rawTribe || rawTribe === "?") {
+      return true;
+    }
+    return normalizedCardTribe === "tribeless";
+  }
+  return normalizedCardTribe === expectedTribeKey;
+}
+
 function isPathInside(parentPath, childPath) {
   const relative = path.relative(parentPath, childPath);
   return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
@@ -16197,6 +16334,7 @@ async function handleRequest(request, response) {
       inventoryCounts,
       scannerEffect: scannerState.effect,
       ignoreInventoryCap: instantPerim,
+      locationTribeKey: resolvePerimLocationEffectiveTribeKey(selectedLocation),
     });
     const contextSnapshot = buildPerimContextSnapshot(selectedLocation, actionId, scannerState.effect, startAt, clues);
     playerState.activeRun = {
