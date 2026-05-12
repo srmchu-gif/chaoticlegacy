@@ -44,7 +44,7 @@
         <div class="builder-layout">
           <article class="card-panel library-panel">
             <div class="row">
-              <h2>Biblioteca</h2>
+              <h2 id="library-title">Biblioteca</h2>
               <div class="inline-controls library-view-toggle">
                 <button id="library-view-library" class="ghost-btn active" type="button">Biblioteca</button>
                 <button id="library-view-scans" class="ghost-btn" type="button">Scans</button>
@@ -73,6 +73,34 @@
                   <option value="mipedian">Mipedian</option>
                   <option value="danian">Danian</option>
                   <option value="marrillian">Marrillian</option>
+                </select>
+                <label id="set-filter-title" class="flag-filter filter-title-inline">Sets (multiselecao)</label>
+                <select id="set-filter" multiple size="4" title="Filtro de sets"></select>
+                <label id="stars-filter-title" class="flag-filter filter-title-inline">Estrelas (criaturas)</label>
+                <select id="stars-filter" multiple size="4" title="Filtro de estrelas">
+                  <option value="">Todas as estrelas</option>
+                  <option value="0.0">0.0★</option>
+                  <option value="0.5">0.5★</option>
+                  <option value="1.0">1.0★</option>
+                  <option value="1.5">1.5★</option>
+                  <option value="2.0">2.0★</option>
+                  <option value="2.5">2.5★</option>
+                  <option value="3.0">3.0★</option>
+                  <option value="3.5">3.5★</option>
+                  <option value="4.0">4.0★</option>
+                  <option value="4.5">4.5★</option>
+                  <option value="5.0">5.0★</option>
+                </select>
+                <select id="sort-field-filter">
+                  <option value="name">Ordenar: Nome</option>
+                  <option value="set">Ordenar: Set</option>
+                  <option value="rarity">Ordenar: Raridade</option>
+                  <option value="type">Ordenar: Tipo</option>
+                  <option value="stars">Ordenar: Estrelas</option>
+                </select>
+                <select id="sort-direction-filter">
+                  <option value="asc">Crescente</option>
+                  <option value="desc">Decrescente</option>
                 </select>
                 <label class="flag-filter">
                   <input id="flag-alpha" type="checkbox" />
@@ -103,7 +131,7 @@
 
           <article class="card-panel deck-panel">
             <div class="row">
-              <h2>Deck</h2>
+              <h2 id="deck-title">Deck</h2>
               <div class="inline-controls">
                 <select id="deck-mode">
                   <option value="casual">Casual</option>

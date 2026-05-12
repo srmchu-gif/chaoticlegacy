@@ -105,6 +105,7 @@ const SMTP_PASS = String(process.env.SMTP_PASS || "").trim();
 const SMTP_FROM = String(process.env.SMTP_FROM || "").trim();
 const TURNSTILE_SECRET_KEY = String(process.env.TURNSTILE_SECRET_KEY || "").trim();
 const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+const ADMIN_BOOTSTRAP_PASSWORD = String(process.env.ADMIN_BOOTSTRAP_PASSWORD || "").trim();
 const SESSION_COOKIE_NAME = "chaotic_sid";
 const USER_CACHE_TTL_MS = Math.max(5 * 1000, Number(process.env.USER_CACHE_TTL_MS || 30 * 1000));
 const METRICS_WINDOW_MS = Math.max(5 * 60 * 1000, Number(process.env.METRICS_WINDOW_MS || 30 * 60 * 1000));
@@ -125,6 +126,10 @@ const CODEMASTER_WIN_BONUS_SCORE = 14;
 const DROME_CHALLENGE_INVITE_TTL_MS = 10 * 60 * 1000;
 const GLOBAL_CHAT_RETENTION_DAYS = Math.max(1, Number(process.env.GLOBAL_CHAT_RETENTION_DAYS || 1));
 const GLOBAL_CHAT_MAX_MESSAGE_LENGTH = 240;
+const CHAT_TRANSLATION_CACHE_TTL_MS = Math.max(60 * 1000, Number(process.env.CHAT_TRANSLATION_CACHE_TTL_MS || 10 * 60 * 1000));
+const CHAT_TRANSLATION_HTTP_TIMEOUT_MS = Math.max(1500, Number(process.env.CHAT_TRANSLATION_HTTP_TIMEOUT_MS || 6500));
+const LIBRETRANSLATE_URL = String(process.env.LIBRETRANSLATE_URL || "https://libretranslate.com/translate").trim();
+const LIBRETRANSLATE_API_KEY = String(process.env.LIBRETRANSLATE_API_KEY || "").trim();
 const CASUAL_INVITE_TTL_MS = 5 * 60 * 1000;
 const RANKED_QUEUE_STALE_MS = 6 * 60 * 1000;
 const RANKED_QUEUE_BASE_RANGE = 40;
@@ -1524,16 +1529,19 @@ migrateDeckFilesToSqlIfNeeded();
 function seedAdminAccount() {
   if (!sqliteDb) return;
   const ADMIN_USER = "admin";
-  const ADMIN_PASS_HASH = "=4WatRWY"; // btoa("admin").split("").reverse().join("")
   const existing = sqliteDb.prepare("SELECT id FROM users WHERE username = ? COLLATE NOCASE").get(ADMIN_USER);
   if (!existing) {
+    if (!ADMIN_BOOTSTRAP_PASSWORD) {
+      console.warn("[SEED] Conta admin ausente e ADMIN_BOOTSTRAP_PASSWORD nao configurado. Nenhuma conta admin foi criada automaticamente.");
+      return;
+    }
     const now = nowIso();
-    const sessionToken = crypto.randomBytes(32).toString("hex");
+    const adminHash = hashPasswordSecure(ADMIN_BOOTSTRAP_PASSWORD);
     sqliteDb.prepare(`
       INSERT INTO users (username, email, password_hash, tribe, verified, session_token, created_at, updated_at)
       VALUES (?, ?, ?, ?, 1, ?, ?, ?)
-    `).run(ADMIN_USER, "admin@chaotic.local", ADMIN_PASS_HASH, "", sessionToken, now, now);
-    console.log(`[SEED] Conta admin criada (usuario: admin, senha: admin)`);
+    `).run(ADMIN_USER, "admin@chaotic.local", adminHash, "", null, now, now);
+    console.log("[SEED] Conta admin criada via bootstrap seguro (ADMIN_BOOTSTRAP_PASSWORD).");
   }
   // Give admin 3 copies of every card in the library
   const adminKey = normalizeUserKey(ADMIN_USER);
@@ -1583,6 +1591,7 @@ const tradeCardLocks = new Map();
 const tradeInvites = new Map();
 const perimLocationChatClients = new Map();
 const globalChatClients = new Set();
+const chatTranslationCache = new Map();
 const activePresenceByOwner = new Map();
 const casualBattleInvites = new Map();
 const rankedQueueByDrome = new Map();
@@ -1926,6 +1935,7 @@ const CORS_ALLOWED_ORIGINS = String(process.env.CORS_ALLOWED_ORIGINS || "")
   .split(",")
   .map((value) => String(value || "").trim())
   .filter(Boolean);
+const IS_PRODUCTION_ENV = String(process.env.NODE_ENV || "").toLowerCase() === "production";
 
 function isAllowedCorsOrigin(origin) {
   const normalized = String(origin || "").trim();
@@ -1935,14 +1945,16 @@ function isAllowedCorsOrigin(origin) {
   if (CORS_ALLOWED_ORIGINS.includes(normalized)) {
     return true;
   }
-  if (/^https:\/\/[a-z0-9-]+\.github\.io$/i.test(normalized)) {
-    return true;
-  }
-  if (/^https?:\/\/localhost(?::\d+)?$/i.test(normalized)) {
-    return true;
-  }
-  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(normalized)) {
-    return true;
+  if (!IS_PRODUCTION_ENV) {
+    if (/^https:\/\/[a-z0-9-]+\.github\.io$/i.test(normalized)) {
+      return true;
+    }
+    if (/^https?:\/\/localhost(?::\d+)?$/i.test(normalized)) {
+      return true;
+    }
+    if (/^https?:\/\/127\.0\.0\.1(?::\d+)?$/i.test(normalized)) {
+      return true;
+    }
   }
   return false;
 }
@@ -2197,6 +2209,64 @@ function applyRateLimitWithUser(request, response, bucket, userKeyRaw = "", opti
   const userKey = normalizeUserKey(userKeyRaw || "", "anonymous");
   const compositeBucket = `${bucket}:${userKey}`;
   return applyRateLimit(request, response, compositeBucket, options);
+}
+
+function legacyPasswordHash(passwordRaw) {
+  return Buffer.from(String(passwordRaw || ""), "utf8").toString("base64").split("").reverse().join("");
+}
+
+function decodeLegacyPasswordHash(hashRaw) {
+  const reversed = String(hashRaw || "").split("").reverse().join("");
+  try {
+    return Buffer.from(reversed, "base64").toString("utf8");
+  } catch {
+    return "";
+  }
+}
+
+function hashPasswordSecure(passwordRaw) {
+  const password = String(passwordRaw || "");
+  const salt = crypto.randomBytes(16).toString("hex");
+  const digest = crypto.scryptSync(password, Buffer.from(salt, "hex"), 64).toString("hex");
+  return `scrypt$${salt}$${digest}`;
+}
+
+function safeStringEqual(leftRaw, rightRaw) {
+  const left = Buffer.from(String(leftRaw || ""), "utf8");
+  const right = Buffer.from(String(rightRaw || ""), "utf8");
+  if (left.length !== right.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(left, right);
+}
+
+function verifyPasswordAgainstStored(passwordRaw, storedHashRaw) {
+  const password = String(passwordRaw || "");
+  const storedHash = String(storedHashRaw || "");
+  if (!password || !storedHash) {
+    return { ok: false, needsUpgrade: false };
+  }
+  if (storedHash.startsWith("scrypt$")) {
+    const parts = storedHash.split("$");
+    if (parts.length !== 3) {
+      return { ok: false, needsUpgrade: false };
+    }
+    const saltHex = String(parts[1] || "");
+    const expectedHex = String(parts[2] || "");
+    if (!/^[a-f0-9]+$/i.test(saltHex) || !/^[a-f0-9]+$/i.test(expectedHex)) {
+      return { ok: false, needsUpgrade: false };
+    }
+    const digest = crypto.scryptSync(password, Buffer.from(saltHex, "hex"), 64).toString("hex");
+    return {
+      ok: safeStringEqual(digest, expectedHex),
+      needsUpgrade: false,
+    };
+  }
+  const legacy = legacyPasswordHash(password);
+  return {
+    ok: safeStringEqual(legacy, storedHash),
+    needsUpgrade: true,
+  };
 }
 
 function buildSessionExpiryIso(fromMs = nowMs()) {
@@ -9062,6 +9132,137 @@ function setPerimClaimChoiceSelections(playerState, runId, selectionsRaw = {}) {
   };
 }
 
+function normalizeChatLanguage(rawValue) {
+  const value = String(rawValue || "").trim().toLowerCase();
+  if (value === "pt-br" || value === "pt") return "pt";
+  if (value === "en" || value.startsWith("en-")) return "en";
+  if (value === "es" || value.startsWith("es-")) return "es";
+  return "pt";
+}
+
+function cacheChatTranslation(key, translatedText) {
+  chatTranslationCache.set(String(key || ""), {
+    translatedText: String(translatedText || ""),
+    expiresAt: Date.now() + CHAT_TRANSLATION_CACHE_TTL_MS,
+  });
+}
+
+function getCachedChatTranslation(key) {
+  const item = chatTranslationCache.get(String(key || ""));
+  if (!item) {
+    return null;
+  }
+  if (Number(item.expiresAt || 0) <= Date.now()) {
+    chatTranslationCache.delete(String(key || ""));
+    return null;
+  }
+  return String(item.translatedText || "");
+}
+
+function clearExpiredChatTranslationCache() {
+  const nowMs = Date.now();
+  chatTranslationCache.forEach((value, key) => {
+    if (Number(value?.expiresAt || 0) <= nowMs) {
+      chatTranslationCache.delete(key);
+    }
+  });
+}
+
+async function translateChatText(textRaw, targetLangRaw) {
+  const text = String(textRaw || "").trim();
+  const targetLang = normalizeChatLanguage(targetLangRaw);
+  if (!text || targetLang === "pt") {
+    return { text, translated: false, translationError: null };
+  }
+  const cacheKey = `${targetLang}:${text}`;
+  const cached = getCachedChatTranslation(cacheKey);
+  if (cached !== null) {
+    return { text: cached || text, translated: cached !== text, translationError: null };
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CHAT_TRANSLATION_HTTP_TIMEOUT_MS);
+  try {
+    const body = {
+      q: text,
+      source: "auto",
+      target: targetLang,
+      format: "text",
+    };
+    if (LIBRETRANSLATE_API_KEY) {
+      body.api_key = LIBRETRANSLATE_API_KEY;
+    }
+    const response = await fetch(LIBRETRANSLATE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      return { text, translated: false, translationError: `translation_http_${response.status}` };
+    }
+    const payload = await response.json().catch(() => ({}));
+    const translatedText = String(payload?.translatedText || "").trim();
+    if (!translatedText) {
+      return { text, translated: false, translationError: "translation_empty" };
+    }
+    cacheChatTranslation(cacheKey, translatedText);
+    return { text: translatedText, translated: translatedText !== text, translationError: null };
+  } catch {
+    return { text, translated: false, translationError: "translation_unavailable" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function translateChatMessageForViewer(message, viewerOwnerKeyRaw, targetLangRaw, contextPrefix = "chat") {
+  const viewerOwnerKey = normalizeUserKey(viewerOwnerKeyRaw || "", "");
+  const ownerKey = normalizeUserKey(message?.ownerKey || "", "");
+  const originalMessage = String(message?.message || "");
+  const targetLang = normalizeChatLanguage(targetLangRaw);
+  if (!originalMessage) {
+    return { ...message, originalMessage, translated: false, translationError: null, language: targetLang };
+  }
+  if (!viewerOwnerKey || !ownerKey || viewerOwnerKey === ownerKey || targetLang === "pt") {
+    return { ...message, originalMessage, translated: false, translationError: null, language: targetLang };
+  }
+  const cacheKey = `${contextPrefix}:${message?.id || 0}:${targetLang}:${originalMessage}`;
+  const cached = getCachedChatTranslation(cacheKey);
+  if (cached !== null) {
+    return {
+      ...message,
+      originalMessage,
+      message: cached || originalMessage,
+      translated: cached !== originalMessage,
+      translationError: null,
+      language: targetLang,
+    };
+  }
+  const translatedResult = await translateChatText(originalMessage, targetLang);
+  cacheChatTranslation(cacheKey, translatedResult.text || originalMessage);
+  return {
+    ...message,
+    originalMessage,
+    message: translatedResult.text || originalMessage,
+    translated: Boolean(translatedResult.translated),
+    translationError: translatedResult.translationError || null,
+    language: targetLang,
+  };
+}
+
+async function translateChatMessagesForViewer(messages, viewerOwnerKeyRaw, targetLangRaw, contextPrefix = "chat") {
+  const list = Array.isArray(messages) ? messages : [];
+  if (!list.length) {
+    return [];
+  }
+  const translated = [];
+  for (const message of list) {
+    translated.push(await translateChatMessageForViewer(message, viewerOwnerKeyRaw, targetLangRaw, contextPrefix));
+  }
+  return translated;
+}
+
 function canAccessPerimLocationChat(playerKeyRaw, locationIdRaw, nowMsValue = Date.now()) {
   const playerKey = normalizePerimPlayerKey(playerKeyRaw);
   const locationId = String(locationIdRaw || "").trim();
@@ -9108,6 +9309,7 @@ function cleanupPerimLocationChatHistory(dayKey = todayDateKey()) {
   if (!sqliteDb) {
     return;
   }
+  clearExpiredChatTranslationCache();
   sqliteDb
     .prepare("DELETE FROM perim_location_chat WHERE day_key < ?")
     .run(String(dayKey || todayDateKey()));
@@ -9142,7 +9344,7 @@ function listPerimLocationChatMessages(locationIdRaw, options = {}) {
   }));
 }
 
-function broadcastPerimLocationChatEvent(locationIdRaw, payload) {
+async function broadcastPerimLocationChatEvent(locationIdRaw, payload) {
   const locationId = String(locationIdRaw || "").trim();
   if (!locationId) {
     return;
@@ -9151,20 +9353,45 @@ function broadcastPerimLocationChatEvent(locationIdRaw, payload) {
   if (!clients || !clients.size) {
     return;
   }
-  const message = `data: ${JSON.stringify(payload)}\n\n`;
-  clients.forEach((client) => {
+  const clientsList = [...clients];
+  for (const client of clientsList) {
+    let nextPayload = payload;
+    if (payload?.type === "perim_location_chat_message" && payload.message) {
+      const translatedMessage = await translateChatMessageForViewer(
+        payload.message,
+        client?.ownerKey || "",
+        client?.lang || "pt",
+        "perim_location"
+      );
+      nextPayload = {
+        ...payload,
+        message: translatedMessage,
+      };
+    } else if (payload?.type === "perim_location_chat_snapshot" && Array.isArray(payload.messages)) {
+      const translatedMessages = await translateChatMessagesForViewer(
+        payload.messages,
+        client?.ownerKey || "",
+        client?.lang || "pt",
+        "perim_location_snapshot"
+      );
+      nextPayload = {
+        ...payload,
+        messages: translatedMessages,
+      };
+    }
+    const message = `data: ${JSON.stringify(nextPayload)}\n\n`;
     try {
       client.res.write(message);
     } catch {
       clients.delete(client);
     }
-  });
+  }
   if (!clients.size) {
     perimLocationChatClients.delete(locationId);
   }
 }
 
-function postPerimLocationChatMessage(locationIdRaw, ownerKeyRaw, usernameRaw, messageRaw) {
+async function postPerimLocationChatMessage(locationIdRaw, ownerKeyRaw, usernameRaw, messageRaw) {
   if (!sqliteDb) {
     return { ok: false, error: "Chat de local indisponivel sem banco SQL." };
   }
@@ -9199,7 +9426,7 @@ function postPerimLocationChatMessage(locationIdRaw, ownerKeyRaw, usernameRaw, m
     message,
     createdAt,
   };
-  broadcastPerimLocationChatEvent(locationId, {
+  await broadcastPerimLocationChatEvent(locationId, {
     type: "perim_location_chat_message",
     locationId,
     message: chatMessage,
@@ -9216,6 +9443,7 @@ function pruneGlobalChatHistory(referenceDate = new Date()) {
   if (!sqliteDb) {
     return;
   }
+  clearExpiredChatTranslationCache();
   const cutoff = new Date(referenceDate.getTime() - (GLOBAL_CHAT_RETENTION_DAYS * 24 * 60 * 60 * 1000));
   sqliteDb
     .prepare("DELETE FROM global_chat_messages WHERE day_key < ?")
@@ -9263,16 +9491,41 @@ function writeGlobalChatSsePayload(client, payload) {
   }
 }
 
-function broadcastGlobalChatEvent(payload) {
+async function broadcastGlobalChatEvent(payload) {
   if (!globalChatClients.size) {
     return;
   }
   const staleClients = [];
-  globalChatClients.forEach((client) => {
-    if (!writeGlobalChatSsePayload(client, payload)) {
+  const clientsList = [...globalChatClients];
+  for (const client of clientsList) {
+    let nextPayload = payload;
+    if (payload?.type === "global_chat_message" && payload.message) {
+      const translatedMessage = await translateChatMessageForViewer(
+        payload.message,
+        client?.ownerKey || "",
+        client?.lang || "pt",
+        "global_chat"
+      );
+      nextPayload = {
+        ...payload,
+        message: translatedMessage,
+      };
+    } else if (payload?.type === "global_chat_snapshot" && Array.isArray(payload.messages)) {
+      const translatedMessages = await translateChatMessagesForViewer(
+        payload.messages,
+        client?.ownerKey || "",
+        client?.lang || "pt",
+        "global_chat_snapshot"
+      );
+      nextPayload = {
+        ...payload,
+        messages: translatedMessages,
+      };
+    }
+    if (!writeGlobalChatSsePayload(client, nextPayload)) {
       staleClients.push(client);
     }
-  });
+  }
   staleClients.forEach((client) => {
     globalChatClients.delete(client);
   });
@@ -9299,7 +9552,7 @@ function persistGlobalChatMessage(ownerKey, username, avatar, message) {
   };
 }
 
-function postGlobalChatMessage(ownerKeyRaw, usernameRaw, avatarRaw, messageRaw) {
+async function postGlobalChatMessage(ownerKeyRaw, usernameRaw, avatarRaw, messageRaw) {
   if (!sqliteDb) {
     return { ok: false, error: "Chat global indisponivel sem banco SQL." };
   }
@@ -9321,7 +9574,7 @@ function postGlobalChatMessage(ownerKeyRaw, usernameRaw, avatarRaw, messageRaw) 
   if (!chatMessage) {
     return { ok: false, error: "Falha ao gravar mensagem do chat global." };
   }
-  broadcastGlobalChatEvent({
+  await broadcastGlobalChatEvent({
     type: "global_chat_message",
     message: chatMessage,
   });
@@ -14848,9 +15101,6 @@ async function handleRequest(request, response) {
   }
   if (request.method === "GET" && pathname === "/health") {
     const dbOk = Boolean(sqliteDb);
-    const dailyCreatureRowsToday = getTodayDailyCreatureRowsCount();
-    const integrity = runIntegrityProbe();
-    const profilesReadable = areProfilesReadable();
     sendJson(response, 200, {
       ok: true,
       timestamp: nowIso(),
@@ -14861,12 +15111,8 @@ async function handleRequest(request, response) {
       db: {
         driver: dbOk ? "sqlite" : "json_fallback",
         ok: dbOk,
-        sqliteFile: dbOk ? SQLITE_FILE : null,
         dbSchemaVersion: Number(sqlSchemaVersion || 0),
         storageMode: String(sqlStorageMode || "unknown"),
-        dbIntegrityStatus: dbOk ? integrity.status : "unavailable",
-        profilesReadable,
-        dailyCreatureRowsToday,
       },
       smtpConfigured: isSmtpConfigured(),
       turnstileConfigured: Boolean(TURNSTILE_SECRET_KEY),
@@ -15090,12 +15336,18 @@ async function handleRequest(request, response) {
     if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
     const username = String(payload.username || "").trim();
     const email = String(payload.email || "").trim();
-    const passwordHash = String(payload.passwordHash || "");
+    const passwordPlain = String(payload.password || "").trim();
+    const legacyProvidedHash = String(payload.passwordHash || "").trim();
+    const resolvedPassword = passwordPlain || decodeLegacyPasswordHash(legacyProvidedHash);
     const tribe = String(payload.tribe || "");
     const turnstileToken = String(payload.turnstileToken || "").trim();
     const requestIp = getClientIp(request);
-    if (!username || !email || !passwordHash) {
+    if (!username || !email || !resolvedPassword) {
       sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
+      return;
+    }
+    if (resolvedPassword.length < 6) {
+      sendJson(response, 400, { error: "Senha deve ter no minimo 6 caracteres." });
       return;
     }
     if (applyRateLimitWithUser(request, response, "auth_register_user", username, {
@@ -15168,6 +15420,7 @@ async function handleRequest(request, response) {
     let targetEmail = email;
 
     if (!resumedPending) {
+      const passwordHash = hashPasswordSecure(resolvedPassword);
       sqliteDb.prepare(`
         INSERT INTO users (username, email, password_hash, tribe, verified, session_token, created_at, updated_at)
         VALUES (?, ?, ?, ?, 0, NULL, ?, ?)
@@ -15260,7 +15513,6 @@ async function handleRequest(request, response) {
     response.setHeader("Set-Cookie", buildSessionCookieHeader(request, session.sessionToken, session.expiresAt));
     sendJson(response, 200, {
       ok: true,
-      sessionToken: session.sessionToken,
       sessionExpiresAt: session.expiresAt,
       username: user?.username || username,
       tribe: user?.tribe || "",
@@ -15333,10 +15585,12 @@ async function handleRequest(request, response) {
     const payload = safeJsonParse(payloadText, null);
     if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
     const username = String(payload.username || "").trim();
-    const passwordHash = String(payload.passwordHash || "");
+    const passwordPlain = String(payload.password || "").trim();
+    const legacyProvidedHash = String(payload.passwordHash || "").trim();
+    const resolvedPassword = passwordPlain || decodeLegacyPasswordHash(legacyProvidedHash);
     const requestIp = getClientIp(request);
     const fingerprint = buildClientFingerprint(request);
-    if (!username || !passwordHash) {
+    if (!username || !resolvedPassword) {
       sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
       return;
     }
@@ -15365,7 +15619,8 @@ async function handleRequest(request, response) {
       sendJson(response, 401, { error: "Nome de acesso nao encontrado." });
       return;
     }
-    if (user.password_hash !== passwordHash) {
+    const passwordCheck = verifyPasswordAgainstStored(resolvedPassword, user.password_hash);
+    if (!passwordCheck.ok) {
       const failure = registerLoginFailure(requestIp, username);
       appendAuditLog("auth_login_failure", {
         severity: "warn",
@@ -15376,6 +15631,11 @@ async function handleRequest(request, response) {
       });
       sendJson(response, 401, { error: "Senha incorreta." });
       return;
+    }
+    if (passwordCheck.needsUpgrade) {
+      sqliteDb
+        .prepare("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?")
+        .run(hashPasswordSecure(resolvedPassword), nowIso(), Number(user.id));
     }
     if (!user.verified) {
       registerLoginFailure(requestIp, username);
@@ -15416,7 +15676,6 @@ async function handleRequest(request, response) {
     response.setHeader("Set-Cookie", buildSessionCookieHeader(request, session.sessionToken, session.expiresAt));
     sendJson(response, 200, {
       ok: true,
-      sessionToken: session.sessionToken,
       sessionExpiresAt: session.expiresAt,
       username: user.username,
       tribe: user.tribe,
@@ -15429,7 +15688,7 @@ async function handleRequest(request, response) {
       sendJson(response, 401, { error: "Sessao invalida." });
       return;
     }
-    const token = getRequestSessionToken(request) || parsedUrl.searchParams.get("token") || "";
+    const token = getRequestSessionToken(request) || "";
     const user = loadUserByValidSessionToken(token);
     if (!user) {
       response.setHeader("Set-Cookie", clearSessionCookieHeader(request));
@@ -15438,7 +15697,6 @@ async function handleRequest(request, response) {
     }
     sendJson(response, 200, {
       ok: true,
-      sessionToken: token,
       username: user.username,
       email: user.email,
       tribe: user.tribe,
@@ -15486,10 +15744,7 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/auth/logout" && request.method === "POST") {
-    let payloadText;
-    try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
-    const payload = safeJsonParse(payloadText, null);
-    const token = getRequestSessionToken(request) || payload?.sessionToken || "";
+    const token = getRequestSessionToken(request) || "";
     const userBeforeLogout = token ? loadUserByValidSessionToken(token) : null;
     if (token && sqliteDb) {
       clearSessionToken(token);
@@ -15509,7 +15764,11 @@ async function handleRequest(request, response) {
   }
 
   if (request.method === "GET" && pathname === "/api/scans") {
-    const username = parsedUrl.searchParams.get("username") || "local-player";
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const username = String(authUser.username || "local-player");
     const editingDeck =
       parsedUrl.searchParams.get("editingDeckAnchor")
       || parsedUrl.searchParams.get("editingDeck")
@@ -15534,7 +15793,11 @@ async function handleRequest(request, response) {
   }
 
   if (request.method === "GET" && pathname === "/api/scans/copies") {
-    const username = parsedUrl.searchParams.get("username") || "local-player";
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const username = String(authUser.username || "local-player");
     const editingDeck =
       parsedUrl.searchParams.get("editingDeckAnchor")
       || parsedUrl.searchParams.get("editingDeck")
@@ -15555,6 +15818,10 @@ async function handleRequest(request, response) {
   }
 
   if (request.method === "POST" && pathname === "/api/scans/rebuild-from-decks") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
     let payloadText = "";
     try {
       payloadText = await readBody(request);
@@ -15562,8 +15829,7 @@ async function handleRequest(request, response) {
       payloadText = "";
     }
     const payload = safeJsonParse(payloadText, {});
-    const username =
-      String(payload?.username || parsedUrl.searchParams.get("username") || "local-player").trim() || "local-player";
+    const username = String(authUser.username || "local-player").trim() || "local-player";
     const scans = loadScansData();
     const ownerKey = normalizeUserKey(username);
     scans.players[ownerKey] = {
@@ -15582,7 +15848,11 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/perim/state" && request.method === "GET") {
-    const playerKey = parsedUrl.searchParams.get("playerKey") || parsedUrl.searchParams.get("username") || "local-player";
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const playerKey = String(authUser.username || "local-player");
     const cacheKey = normalizePerimPlayerKey(playerKey);
     const payload = cacheRead(userResponseCache.perim, cacheKey, () => ({ ok: true, ...buildPerimStatePayload(playerKey) }));
     sendJson(response, 200, payload);
@@ -15590,7 +15860,11 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/perim/events" && request.method === "GET") {
-    const playerKey = parsedUrl.searchParams.get("playerKey") || parsedUrl.searchParams.get("username") || "local-player";
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const playerKey = String(authUser.username || "local-player");
     const locationEntries = collectPerimLocationEntriesForPlayer(playerKey);
     const locations = buildPerimLocationsFromScans(locationEntries).map((entry) => ({
       ...entry,
@@ -15630,11 +15904,14 @@ async function handleRequest(request, response) {
     if (request.method === "GET" && !chatSubsegment) {
       const limitRaw = Number(parsedUrl.searchParams.get("limit") || 80);
       const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 80));
-      const messages = listPerimLocationChatMessages(locationId, { limit, dayKey: todayDateKey() });
+      const targetLang = normalizeChatLanguage(parsedUrl.searchParams.get("lang") || "pt");
+      const rawMessages = listPerimLocationChatMessages(locationId, { limit, dayKey: todayDateKey() });
+      const messages = await translateChatMessagesForViewer(rawMessages, ownerKey, targetLang, "perim_location_history");
       sendJson(response, 200, {
         ok: true,
         locationId,
         dayKey: todayDateKey(),
+        language: targetLang,
         messages,
       });
       return;
@@ -15652,7 +15929,7 @@ async function handleRequest(request, response) {
         sendJson(response, 400, { error: "JSON invalido." });
         return;
       }
-      const postResult = postPerimLocationChatMessage(
+      const postResult = await postPerimLocationChatMessage(
         locationId,
         ownerKey,
         authUser.username || ownerKey,
@@ -15666,6 +15943,7 @@ async function handleRequest(request, response) {
       return;
     }
     if (request.method === "GET" && chatSubsegment === "events") {
+      const targetLang = normalizeChatLanguage(parsedUrl.searchParams.get("lang") || "pt");
       response.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
@@ -15674,10 +15952,11 @@ async function handleRequest(request, response) {
       if (!perimLocationChatClients.has(locationId)) {
         perimLocationChatClients.set(locationId, new Set());
       }
-      const client = { res: response, ownerKey };
+      const client = { res: response, ownerKey, lang: targetLang };
       perimLocationChatClients.get(locationId).add(client);
-      const initialMessages = listPerimLocationChatMessages(locationId, { limit: 60, dayKey: todayDateKey() });
-      response.write(`data: ${JSON.stringify({ type: "perim_location_chat_snapshot", locationId, messages: initialMessages })}\n\n`);
+      const initialMessagesRaw = listPerimLocationChatMessages(locationId, { limit: 60, dayKey: todayDateKey() });
+      const initialMessages = await translateChatMessagesForViewer(initialMessagesRaw, ownerKey, targetLang, "perim_location_events_snapshot");
+      response.write(`data: ${JSON.stringify({ type: "perim_location_chat_snapshot", locationId, language: targetLang, messages: initialMessages })}\n\n`);
       const pingTimer = setInterval(() => {
         if (!canAccessPerimLocationChat(ownerKey, locationId, Date.now())) {
           try {
@@ -15776,6 +16055,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/perim/start" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -15788,7 +16071,7 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "JSON invalido." });
       return;
     }
-    const playerKeyRaw = String(payload.playerKey || payload.username || "local-player");
+    const playerKeyRaw = String(authUser.username || "local-player");
     if (applyRateLimitWithUser(request, response, "perim_start_user", playerKeyRaw, {
       windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
       maxHits: ACTION_RATE_LIMIT_MAX,
@@ -15965,6 +16248,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/perim/claim" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -15977,7 +16264,7 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "JSON invalido." });
       return;
     }
-    const playerKeyRaw = String(payload.playerKey || payload.username || "local-player");
+    const playerKeyRaw = String(authUser.username || "local-player");
     if (applyRateLimitWithUser(request, response, "perim_claim_user", playerKeyRaw, {
       windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
       maxHits: ACTION_RATE_LIMIT_MAX,
@@ -16010,6 +16297,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/perim/debug/finish" && request.method === "POST") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
     let payloadText = "";
     try {
       payloadText = await readBody(request);
@@ -16030,7 +16321,11 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/profile" && request.method === "GET") {
-    const username = parsedUrl.searchParams.get("username") || "local-player";
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const username = String(authUser.username || "local-player");
     const cacheKey = normalizeUserKey(username);
     const payload = cacheRead(userResponseCache.profile, cacheKey, () => ({ ok: true, profile: buildProfilePayload(username) }));
     sendJson(response, 200, payload);
@@ -16038,6 +16333,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/perim/claim/choices" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -16050,7 +16349,7 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "JSON invalido." });
       return;
     }
-    const playerKeyRaw = String(payload.playerKey || payload.username || "local-player");
+    const playerKeyRaw = String(authUser.username || "local-player");
     if (applyRateLimitWithUser(request, response, "perim_claim_choice_user", playerKeyRaw, {
       windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
       maxHits: ACTION_RATE_LIMIT_MAX,
@@ -16588,6 +16887,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/profile/avatar" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -16600,7 +16903,7 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "JSON invalido." });
       return;
     }
-    const username = String(payload.username || "local-player");
+    const username = String(authUser.username || "local-player");
     const avatar = String(payload.avatar || "").trim();
     if (!avatar) {
       sendJson(response, 400, { error: "Avatar invalido." });
@@ -16617,6 +16920,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/profile/battle-result" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -16629,7 +16936,7 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "JSON invalido." });
       return;
     }
-    const username = String(payload.username || "local-player");
+    const username = String(authUser.username || "local-player");
     const result = String(payload.result || "").toLowerCase();
     if (result !== "win" && result !== "loss") {
       sendJson(response, 400, { error: "Resultado invalido." });
@@ -16739,6 +17046,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/profile/creature-usage" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -16751,7 +17062,7 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "JSON invalido." });
       return;
     }
-    const username = String(payload.username || "local-player");
+    const username = String(authUser.username || "local-player");
     const profilesState = loadProfilesData();
     const { profile } = getOrCreateProfile(profilesState, username);
     const changed = applyCreatureUsageToProfile(profile, payload);
@@ -16766,6 +17077,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/profile/bootstrap" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -16778,11 +17093,7 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "JSON invalido." });
       return;
     }
-    const username = String(payload.username || "").trim();
-    if (!username) {
-      sendJson(response, 400, { error: "Username obrigatorio." });
-      return;
-    }
+    const username = String(authUser.username || "local-player");
     const favoriteTribe = String(payload.favoriteTribe || "").trim();
     const profilesState = loadProfilesData();
     const { key, profile } = getOrCreateProfile(profilesState, username);
@@ -18432,9 +18743,13 @@ async function handleRequest(request, response) {
       return;
     }
     const limit = normalizeGlobalChatLimit(parsedUrl.searchParams.get("limit"), 80);
-    const messages = listGlobalChatMessages(limit);
+    const ownerKey = normalizeUserKey(authUser.username || "", "");
+    const targetLang = normalizeChatLanguage(parsedUrl.searchParams.get("lang") || "pt");
+    const rawMessages = listGlobalChatMessages(limit);
+    const messages = await translateChatMessagesForViewer(rawMessages, ownerKey, targetLang, "global_chat_history");
     sendJson(response, 200, {
       ok: true,
+      language: targetLang,
       messages,
       total: messages.length,
       generatedAt: nowIso(),
@@ -18466,7 +18781,7 @@ async function handleRequest(request, response) {
     })) {
       return;
     }
-    const result = postGlobalChatMessage(
+    const result = await postGlobalChatMessage(
       ownerKey,
       authUser.username || ownerKey,
       resolveAvatarForUsername(ownerKey),
@@ -18491,13 +18806,17 @@ async function handleRequest(request, response) {
       Connection: "keep-alive",
     });
     response.write("retry: 3000\n\n");
+    const targetLang = normalizeChatLanguage(parsedUrl.searchParams.get("lang") || "pt");
+    const ownerKey = normalizeUserKey(authUser.username || "", "");
     const client = {
-      ownerKey: normalizeUserKey(authUser.username || "", ""),
+      ownerKey,
+      lang: targetLang,
       res: response,
     };
     globalChatClients.add(client);
-    const snapshot = listGlobalChatMessages(80);
-    writeGlobalChatSsePayload(client, { type: "global_chat_snapshot", messages: snapshot });
+    const snapshotRaw = listGlobalChatMessages(80);
+    const snapshot = await translateChatMessagesForViewer(snapshotRaw, ownerKey, targetLang, "global_chat_events_snapshot");
+    writeGlobalChatSsePayload(client, { type: "global_chat_snapshot", language: targetLang, messages: snapshot });
     const heartbeat = setInterval(() => {
       try {
         response.write(": ping\n\n");
@@ -18729,7 +19048,11 @@ async function handleRequest(request, response) {
       return;
     }
 
-    if (request.method === "POST" && pathname === "/api/multiplayer/rooms") {
+  if (request.method === "POST" && pathname === "/api/multiplayer/rooms") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
       let payloadText;
       try {
         payloadText = await readBody(request);
@@ -18749,24 +19072,9 @@ async function handleRequest(request, response) {
         });
       }
       const rankedMatch = matchType === MATCH_TYPE_RANKED_DROME;
-      let rankedAuthUser = null;
-      if (rankedMatch) {
-        rankedAuthUser = requireAuthenticatedUser(request, response);
-        if (!rankedAuthUser) {
-          return;
-        }
-      }
 
       const rulesMode = isValidRulesMode(payload.rulesMode) ? payload.rulesMode : "competitive";
-      const hostUsername = normalizeUserKey(
-        payload.username
-          || payload.playerName
-          || rankedAuthUser?.username
-          || "host"
-      );
-      if (rankedAuthUser && normalizeUserKey(rankedAuthUser.username || "", "") !== hostUsername) {
-        return sendJson(response, 403, { error: "Usuario da sessao nao corresponde ao host da partida ranqueada." });
-      }
+      const hostUsername = normalizeUserKey(authUser.username || "host");
       if (applyRateLimitWithUser(request, response, "multiplayer_create_user", hostUsername, {
         windowMs: ACTION_RATE_LIMIT_WINDOW_MS,
         maxHits: ACTION_RATE_LIMIT_MAX,
@@ -18790,7 +19098,7 @@ async function handleRequest(request, response) {
       const hostAvatar = resolveAvatarForUsername(hostUsername);
       const { room, roomId, hostToken } = createMultiplayerRoomRecord({
         hostUsername,
-        hostName: String(payload.playerName || rankedAuthUser?.username || "Host"),
+        hostName: String(payload.playerName || authUser.username || "Host"),
         hostAvatar,
         hostDeck: null,
         hostDeckName: "",
@@ -18844,17 +19152,15 @@ async function handleRequest(request, response) {
       const roomMatchType = normalizeMatchType(room?.matchType || "");
       const roomDromeId = normalizeDromeId(room?.dromeId || room?.challengeMeta?.dromeId || "");
 
-      let guestUsername = normalizeUserKey(payload.username || payload.playerName || "guest");
+      const joinAuth = requireAuthenticatedUser(request, response);
+      if (!joinAuth) {
+        return;
+      }
+      let guestUsername = normalizeUserKey(joinAuth.username || "", "");
+      if (!guestUsername) {
+        return sendJson(response, 403, { error: "Sessao invalida para entrar na sala." });
+      }
       if (roomMatchType === MATCH_TYPE_RANKED_DROME) {
-        const joinAuth = requireAuthenticatedUser(request, response);
-        if (!joinAuth) {
-          return;
-        }
-        const joinOwner = normalizeUserKey(joinAuth.username || "", "");
-        if (!joinOwner || (guestUsername && guestUsername !== joinOwner)) {
-          return sendJson(response, 403, { error: "Usuario da sessao nao corresponde ao convidado da partida ranked." });
-        }
-        guestUsername = joinOwner;
         ensureDromeSeasonCycle(new Date());
         const seasonKey = seasonKeyFromDate(new Date());
         const selection = getDromeSelectionForSeason(guestUsername, seasonKey);
@@ -19141,6 +19447,10 @@ async function handleRequest(request, response) {
   }
 
   if (request.method === "POST" && pathname === "/api/reload") {
+      const adminUser = requireAdminUser(request, response);
+      if (!adminUser) {
+        return;
+      }
       refreshLibraryCatalog(true);
       ensurePerimQuestTemplatesSeed();
       loadPerimDropTables(true);
@@ -19174,6 +19484,10 @@ async function handleRequest(request, response) {
       return;
     }
     if (request.method === "POST") {
+      const adminUser = requireAdminUser(request, response);
+      if (!adminUser) {
+        return;
+      }
       let payloadText;
       try {
         payloadText = await readBody(request);
@@ -19200,6 +19514,10 @@ async function handleRequest(request, response) {
         || pathname === "/api/creatures/pending/append")
       && request.method === "POST"
     ) {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -19224,6 +19542,10 @@ async function handleRequest(request, response) {
     }
 
   if (pathname === "/api/debug/session/start" && request.method === "POST") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -19248,6 +19570,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/debug/session/append" && request.method === "POST") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
     let payloadText;
     try {
       payloadText = await readBody(request);
@@ -19274,6 +19600,10 @@ async function handleRequest(request, response) {
   }
 
   if (pathname === "/api/debug/session/end" && request.method === "POST") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
     let payloadText = "";
     try {
       payloadText = await readBody(request);
@@ -19306,7 +19636,11 @@ async function handleRequest(request, response) {
   }
 
   if (request.method === "GET" && pathname === "/api/decks") {
-    const username = parsedUrl.searchParams.get("username") || "";
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const username = String(authUser.username || "local-player");
     sendJson(response, 200, { decks: listDecks(username) });
     return;
   }
@@ -19321,6 +19655,10 @@ async function handleRequest(request, response) {
   }
 
   if (request.method === "POST" && pathname === "/api/shutdown") {
+    const adminUser = requireAdminUser(request, response);
+    if (!adminUser) {
+      return;
+    }
     sendJson(response, 200, { ok: true });
     // Kill the process shortly after responding
     setTimeout(() => {
@@ -19331,8 +19669,11 @@ async function handleRequest(request, response) {
   }
 
   if (pathname.startsWith("/api/decks/")) {
-    const requesterUsername = parsedUrl.searchParams.get("username") || "";
-    const requesterKey = requesterUsername ? normalizeUserKey(requesterUsername) : "";
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const requesterKey = normalizeUserKey(authUser.username || "local-player");
     const rawName = decodeURIComponent(pathname.replace("/api/decks/", ""));
     const normalizedName = normalizeDeckName(rawName);
     if (!normalizedName) {
@@ -19556,7 +19897,8 @@ const server = http.createServer((request, response) => {
     );
   });
   handleRequest(request, response).catch((error) => {
-    sendJson(response, 500, { error: error.message });
+    console.error("[HTTP] Erro interno ao processar requisicao:", error?.message || error);
+    sendJson(response, 500, { error: "Erro interno do servidor." });
   });
 });
 

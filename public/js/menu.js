@@ -28,11 +28,246 @@ const NETWORK_TIMEOUT_MS = {
 };
 const PRESENCE_HEARTBEAT_VISIBLE_MS = 25000;
 const PRESENCE_HEARTBEAT_HIDDEN_MS = 90000;
+const SUPPORTED_UI_LANGUAGES = new Set(["pt", "en", "es"]);
+let menuUiLanguage = "pt";
+
+const MENU_I18N = {
+  pt: {
+    menuTitle: "Chaotic Legacy - Menu Principal",
+    rankingButtonTitle: "Abrir ranking geral",
+    menuBtnDromosSub: "Battlefield",
+    menuBtnPerimSub: "Exploracao e Scans",
+    menuBtnBuilderSub: "Monte suas estrategias",
+    menuBtnMultiplayerSub: "Jogue com outros",
+    menuBtnTradesSub: "Troca de cartas",
+    menuBtnSettingsSub: "Opcoes do jogo",
+    top50Title: "Ranking Geral",
+    top50TabScore: "Pontuacao",
+    top50TabScans: "Scans",
+    top50TabOnline: "Online",
+    top50TabChat: "Chat",
+    top50Loading: "Carregando top 50...",
+    top50LoadingOnline: "Carregando jogadores online...",
+    top50NoData: "Sem dados de ranking.",
+    top50NoOnline: "Nenhum jogador online agora.",
+    top50ScoreLabel: "Score",
+    top50ScansLabel: "Scans",
+    top50DromeLabel: "Dromo",
+    top50StateScore: "Top 50 por pontuacao.",
+    top50StateScans: "Top 50 por scans.",
+    top50StateOnlineCount: "{count} jogador(es) online agora.",
+    top50StateLoadError: "Falha ao carregar top 50.",
+    top50OnlineLoadError: "Falha ao carregar jogadores online.",
+    globalChatStateOnline: "Chat global online.",
+    globalChatStateConnecting: "Conectando chat...",
+    globalChatStateUnstable: "Conexao instavel no chat global.",
+    globalChatNoMessages: "Sem mensagens no chat global.",
+    globalChatInputPlaceholder: "Digite uma mensagem...",
+    globalChatSend: "Enviar",
+    globalChatSendError: "Falha ao enviar mensagem.",
+    perimChatBlocked: "Somente jogadores em acao ativa no local podem conversar.",
+    perimChatBlockedEmpty: "Inicie uma acao para liberar o chat deste local.",
+    perimChatNoMessages: "Sem mensagens neste local ainda.",
+    perimChatStateActive: "Conversa ativa no local {location}. {count} {playerLabel} no chat deste local. Mensagens visiveis ate o fim do dia.",
+    perimChatOnePlayer: "jogador",
+    perimChatManyPlayers: "jogadores",
+    perimChatInputPlaceholder: "Digite uma mensagem...",
+    perimChatSendError: "Falha ao enviar mensagem no chat.",
+    perimChatLoadError: "Falha ao carregar chat deste local.",
+    perimChatConnectionUnstable: "Conexao do chat instavel. Tentando manter atualizacao.",
+    chatTranslateFallback: "Mensagem exibida no idioma original (traducao indisponivel).",
+  },
+  en: {
+    menuTitle: "Chaotic Legacy - Main Menu",
+    rankingButtonTitle: "Open global ranking",
+    menuBtnDromosSub: "Battlefield",
+    menuBtnPerimSub: "Exploration and Scans",
+    menuBtnBuilderSub: "Build your strategies",
+    menuBtnMultiplayerSub: "Play with others",
+    menuBtnTradesSub: "Card trading",
+    menuBtnSettingsSub: "Game options",
+    top50Title: "Global Ranking",
+    top50TabScore: "Score",
+    top50TabScans: "Scans",
+    top50TabOnline: "Online",
+    top50TabChat: "Chat",
+    top50Loading: "Loading top 50...",
+    top50LoadingOnline: "Loading online players...",
+    top50NoData: "No ranking data.",
+    top50NoOnline: "No players online right now.",
+    top50ScoreLabel: "Score",
+    top50ScansLabel: "Scans",
+    top50DromeLabel: "Drome",
+    top50StateScore: "Top 50 by score.",
+    top50StateScans: "Top 50 by scans.",
+    top50StateOnlineCount: "{count} player(s) online now.",
+    top50StateLoadError: "Failed to load top 50.",
+    top50OnlineLoadError: "Failed to load online players.",
+    globalChatStateOnline: "Global chat online.",
+    globalChatStateConnecting: "Connecting chat...",
+    globalChatStateUnstable: "Unstable global chat connection.",
+    globalChatNoMessages: "No global chat messages yet.",
+    globalChatInputPlaceholder: "Type a message...",
+    globalChatSend: "Send",
+    globalChatSendError: "Failed to send message.",
+    perimChatBlocked: "Only players with an active action at this location can chat.",
+    perimChatBlockedEmpty: "Start an action to unlock this location chat.",
+    perimChatNoMessages: "No messages in this location yet.",
+    perimChatStateActive: "Active chat at {location}. {count} {playerLabel} in this location chat. Messages are visible until the end of the day.",
+    perimChatOnePlayer: "player",
+    perimChatManyPlayers: "players",
+    perimChatInputPlaceholder: "Type a message...",
+    perimChatSendError: "Failed to send location chat message.",
+    perimChatLoadError: "Failed to load this location chat.",
+    perimChatConnectionUnstable: "Chat connection unstable. Trying to keep updates active.",
+    chatTranslateFallback: "Message shown in original language (translation unavailable).",
+  },
+  es: {
+    menuTitle: "Chaotic Legacy - Menu Principal",
+    rankingButtonTitle: "Abrir ranking general",
+    menuBtnDromosSub: "Battlefield",
+    menuBtnPerimSub: "Exploracion y Scans",
+    menuBtnBuilderSub: "Arma tus estrategias",
+    menuBtnMultiplayerSub: "Juega con otros",
+    menuBtnTradesSub: "Intercambio de cartas",
+    menuBtnSettingsSub: "Opciones del juego",
+    top50Title: "Ranking General",
+    top50TabScore: "Puntuacion",
+    top50TabScans: "Scans",
+    top50TabOnline: "Online",
+    top50TabChat: "Chat",
+    top50Loading: "Cargando top 50...",
+    top50LoadingOnline: "Cargando jugadores online...",
+    top50NoData: "Sin datos de ranking.",
+    top50NoOnline: "No hay jugadores online ahora.",
+    top50ScoreLabel: "Puntuacion",
+    top50ScansLabel: "Scans",
+    top50DromeLabel: "Dromo",
+    top50StateScore: "Top 50 por puntuacion.",
+    top50StateScans: "Top 50 por scans.",
+    top50StateOnlineCount: "{count} jugador(es) online ahora.",
+    top50StateLoadError: "Error al cargar top 50.",
+    top50OnlineLoadError: "Error al cargar jugadores online.",
+    globalChatStateOnline: "Chat global online.",
+    globalChatStateConnecting: "Conectando chat...",
+    globalChatStateUnstable: "Conexion inestable del chat global.",
+    globalChatNoMessages: "Sin mensajes en el chat global.",
+    globalChatInputPlaceholder: "Escribe un mensaje...",
+    globalChatSend: "Enviar",
+    globalChatSendError: "Error al enviar mensaje.",
+    perimChatBlocked: "Solo jugadores con accion activa en este lugar pueden chatear.",
+    perimChatBlockedEmpty: "Inicia una accion para habilitar el chat de este lugar.",
+    perimChatNoMessages: "Sin mensajes en este lugar todavia.",
+    perimChatStateActive: "Conversacion activa en {location}. {count} {playerLabel} en este chat del lugar. Mensajes visibles hasta el final del dia.",
+    perimChatOnePlayer: "jugador",
+    perimChatManyPlayers: "jugadores",
+    perimChatInputPlaceholder: "Escribe un mensaje...",
+    perimChatSendError: "Error al enviar mensaje del chat local.",
+    perimChatLoadError: "Error al cargar chat de este lugar.",
+    perimChatConnectionUnstable: "Conexion del chat inestable. Intentando mantener actualizacion.",
+    chatTranslateFallback: "Mensaje mostrado en idioma original (traduccion no disponible).",
+  },
+};
 
 initMatrixEffect();
 
 function qs(id) {
   return document.getElementById(id);
+}
+
+function normalizeLanguage(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  if (raw === "pt-br" || raw === "pt") return "pt";
+  if (raw === "en" || raw.startsWith("en-")) return "en";
+  if (raw === "es" || raw.startsWith("es-")) return "es";
+  return "pt";
+}
+
+function uiDictionary() {
+  return MENU_I18N[menuUiLanguage] || MENU_I18N.pt;
+}
+
+function menuT(key, vars = null) {
+  const dict = uiDictionary();
+  const fallback = MENU_I18N.pt;
+  let text = String(dict?.[key] ?? fallback?.[key] ?? key);
+  if (vars && typeof vars === "object") {
+    Object.entries(vars).forEach(([varKey, value]) => {
+      text = text.replaceAll(`{${varKey}}`, String(value ?? ""));
+    });
+  }
+  return text;
+}
+
+function applyMenuLanguageToStaticUi() {
+  document.documentElement.lang = menuUiLanguage === "pt" ? "pt-BR" : menuUiLanguage;
+  document.title = menuT("menuTitle");
+  const rankBubble = qs("profile-top50-bubble");
+  if (rankBubble) {
+    rankBubble.title = menuT("rankingButtonTitle");
+  }
+  const navSubtitleMap = [
+    ["#btn-dromos small", "menuBtnDromosSub"],
+    ["#btn-perim small", "menuBtnPerimSub"],
+    ["#btn-builder small", "menuBtnBuilderSub"],
+    ["#btn-multiplayer small", "menuBtnMultiplayerSub"],
+    ["#btn-trades small", "menuBtnTradesSub"],
+    ["#btn-settings small", "menuBtnSettingsSub"],
+  ];
+  navSubtitleMap.forEach(([selector, key]) => {
+    const node = document.querySelector(selector);
+    if (node) {
+      node.textContent = menuT(key);
+    }
+  });
+  const title = document.querySelector("#top50-sidebar h3");
+  if (title) {
+    title.textContent = menuT("top50Title");
+  }
+  const tabMap = [
+    ["top50-tab-score", "top50TabScore"],
+    ["top50-tab-scans", "top50TabScans"],
+    ["top50-tab-online", "top50TabOnline"],
+    ["top50-tab-chat", "top50TabChat"],
+  ];
+  tabMap.forEach(([id, key]) => {
+    const node = qs(id);
+    if (node) {
+      node.textContent = menuT(key);
+    }
+  });
+  const globalChatInput = qs("global-chat-input");
+  if (globalChatInput) {
+    globalChatInput.placeholder = menuT("globalChatInputPlaceholder");
+  }
+  const globalChatSend = qs("global-chat-send");
+  if (globalChatSend) {
+    globalChatSend.textContent = menuT("globalChatSend");
+  }
+  const top50State = qs("top50-state");
+  if (top50State) {
+    top50State.textContent = menuT("top50Loading");
+  }
+  const top50ScansState = qs("top50-scans-state");
+  if (top50ScansState) {
+    top50ScansState.textContent = menuT("top50Loading");
+  }
+  const top50OnlineState = qs("top50-online-state");
+  if (top50OnlineState) {
+    top50OnlineState.textContent = menuT("top50LoadingOnline");
+  }
+  const globalChatState = qs("global-chat-state");
+  if (globalChatState) {
+    globalChatState.textContent = menuT("globalChatStateConnecting");
+  }
+  const perimChatInput = qs("perim-chat-input");
+  if (perimChatInput) {
+    perimChatInput.placeholder = menuT("perimChatInputPlaceholder");
+  }
+  const perimChatSend = qs("perim-chat-send");
+  if (perimChatSend) {
+    perimChatSend.textContent = menuT("globalChatSend");
+  }
 }
 
 function normalizeMenuHomePanelSettings(source) {
@@ -65,15 +300,23 @@ async function loadMenuHomePanelSettings() {
   );
   const patchedLocal = localSettings && typeof localSettings === "object" ? localSettings : {};
   patchedLocal.menuHomePanels = merged;
+  const mergedLanguage = normalizeLanguage(serverSettings?.language?.ui || localSettings?.language?.ui || "pt");
+  menuUiLanguage = mergedLanguage;
+  patchedLocal.language = patchedLocal.language && typeof patchedLocal.language === "object"
+    ? { ...patchedLocal.language, ui: mergedLanguage }
+    : { ui: mergedLanguage };
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(patchedLocal));
   localStorage.removeItem(LEGACY_SETTINGS_KEY);
   menuHomePanelSettings = merged;
+  applyMenuLanguageToStaticUi();
   return merged;
 }
 
 function refreshMenuHomePanelSettingsFromStorage() {
   const settings = parseStoredSettings();
   menuHomePanelSettings = normalizeMenuHomePanelSettings(settings?.menuHomePanels);
+  menuUiLanguage = normalizeLanguage(settings?.language?.ui || menuUiLanguage || "pt");
+  applyMenuLanguageToStaticUi();
   return menuHomePanelSettings;
 }
 
@@ -1401,7 +1644,8 @@ function bindSidePanels(username) {
     if (Number.isNaN(parsed.getTime())) {
       return "--:--";
     }
-    return parsed.toLocaleTimeString("pt-BR", {
+    const locale = menuUiLanguage === "en" ? "en-US" : menuUiLanguage === "es" ? "es-ES" : "pt-BR";
+    return parsed.toLocaleTimeString(locale, {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -1564,13 +1808,14 @@ function bindSidePanels(username) {
     const list = Array.isArray(messages) ? messages.slice(-120) : [];
     globalChatMessages = list;
     if (!list.length) {
-      globalChatMessagesEl.innerHTML = '<div class="trades-empty">Sem mensagens no chat global.</div>';
+      globalChatMessagesEl.innerHTML = `<div class="trades-empty">${escapeHtml(menuT("globalChatNoMessages"))}</div>`;
       return;
     }
     globalChatMessagesEl.innerHTML = list.map((entry) => `
       <article class="side-panel-chat-msg">
         <strong>${escapeHtml(entry?.username || "Jogador")}</strong>
         <span>${escapeHtml(entry?.message || "")}</span>
+        ${entry?.translationError ? `<small>${escapeHtml(menuT("chatTranslateFallback"))}</small>` : ""}
         <small>${escapeHtml(formatMessageTime(entry?.createdAt || Date.now()))}</small>
       </article>
     `).join("");
@@ -1580,14 +1825,14 @@ function bindSidePanels(username) {
   const connectGlobalEvents = () => {
     if (!globalChatStateEl) return;
     closeGlobalChatStream();
-    chatEventSource = new EventSource(apiUrl("/api/chat/global/events"));
+    chatEventSource = new EventSource(apiUrl(`/api/chat/global/events?lang=${encodeURIComponent(menuUiLanguage)}`));
     state.streamConnected = true;
     chatEventSource.onmessage = (event) => {
       const payload = safeJsonParse(event.data, null);
       if (!payload) return;
       if (payload.type === "global_chat_snapshot") {
         renderGlobalMessages(payload.messages || []);
-        globalChatStateEl.textContent = "Chat global online.";
+        globalChatStateEl.textContent = menuT("globalChatStateOnline");
         return;
       }
       if (payload.type === "global_chat_message" && payload.message) {
@@ -1597,7 +1842,7 @@ function bindSidePanels(username) {
     chatEventSource.onerror = () => {
       state.streamConnected = false;
       if (globalChatStateEl) {
-        globalChatStateEl.textContent = "Conexao instavel no chat global.";
+        globalChatStateEl.textContent = menuT("globalChatStateUnstable");
       }
     };
   };
@@ -1605,15 +1850,15 @@ function bindSidePanels(username) {
   const refreshGlobalChat = async (connectStream = true) => {
     if (!globalChatStateEl) return;
     try {
-      const payload = await fetchJsonWithTimeout("/api/chat/global?limit=120", { method: "GET" });
+      const payload = await fetchJsonWithTimeout(`/api/chat/global?limit=120&lang=${encodeURIComponent(menuUiLanguage)}`, { method: "GET" });
       renderGlobalMessages(payload?.messages || []);
-      globalChatStateEl.textContent = "Chat global online.";
+      globalChatStateEl.textContent = menuT("globalChatStateOnline");
       if (connectStream) {
         connectGlobalEvents();
       }
     } catch (error) {
       if (globalChatStateEl) {
-        globalChatStateEl.textContent = error?.message || "Falha ao carregar chat global.";
+        globalChatStateEl.textContent = error?.message || menuT("globalChatStateUnstable");
       }
     }
   };
@@ -1631,7 +1876,7 @@ function bindSidePanels(username) {
       if (globalChatInputEl) globalChatInputEl.value = "";
     } catch (error) {
       if (globalChatStateEl) {
-        globalChatStateEl.textContent = error?.message || "Falha ao enviar mensagem.";
+        globalChatStateEl.textContent = error?.message || menuT("globalChatSendError");
       }
     } finally {
       if (globalChatSendBtn) globalChatSendBtn.disabled = false;
@@ -1643,17 +1888,17 @@ function bindSidePanels(username) {
     if (!targetList) return;
     const list = Array.isArray(players) ? players : [];
     if (!list.length) {
-      targetList.innerHTML = '<div class="trades-empty">Sem dados de ranking.</div>';
+      targetList.innerHTML = `<div class="trades-empty">${escapeHtml(menuT("top50NoData"))}</div>`;
       return;
     }
-    const valueLabel = metric === "scans" ? "Scans" : "Score";
+    const valueLabel = metric === "scans" ? menuT("top50ScansLabel") : menuT("top50ScoreLabel");
     targetList.innerHTML = list.map((entry) => `
       <article class="top50-row">
         <img src="${escapeAttr(entry?.avatar || "/fundo%20cartas.png")}" alt="${escapeAttr(entry?.username || "Jogador")}" />
         <div>
           <strong>#${Number(entry?.rank || 0)} ${escapeHtml(entry?.username || "-")}</strong>
           <span>${valueLabel}: ${metric === "scans" ? Number(entry?.totalScans || 0) : Number(entry?.score || 0)}</span>
-          <span>Dromo: ${escapeHtml(entry?.currentDrome?.name || "-")}</span>
+          <span>${escapeHtml(menuT("top50DromeLabel"))}: ${escapeHtml(entry?.currentDrome?.name || "-")}</span>
         </div>
       </article>
     `).join("");
@@ -1663,7 +1908,7 @@ function bindSidePanels(username) {
     if (!top50OnlineListEl) return;
     const list = Array.isArray(players) ? players : [];
     if (!list.length) {
-      top50OnlineListEl.innerHTML = '<div class="trades-empty">Nenhum jogador online agora.</div>';
+      top50OnlineListEl.innerHTML = `<div class="trades-empty">${escapeHtml(menuT("top50NoOnline"))}</div>`;
       return;
     }
     top50OnlineListEl.innerHTML = list.map((entry) => `
@@ -1671,8 +1916,8 @@ function bindSidePanels(username) {
         <img src="${escapeAttr(entry?.avatar || "/fundo%20cartas.png")}" alt="${escapeAttr(entry?.username || "Jogador")}" />
         <div>
           <strong>#${Number(entry?.rank || 0)} ${escapeHtml(entry?.username || "-")}</strong>
-          <span>Score: ${Number(entry?.score || 0)}</span>
-          <span>Dromo: ${escapeHtml(entry?.currentDrome?.name || "-")}</span>
+          <span>${escapeHtml(menuT("top50ScoreLabel"))}: ${Number(entry?.score || 0)}</span>
+          <span>${escapeHtml(menuT("top50DromeLabel"))}: ${escapeHtml(entry?.currentDrome?.name || "-")}</span>
         </div>
       </article>
     `).join("");
@@ -1684,9 +1929,9 @@ function bindSidePanels(username) {
     try {
       const payload = await fetchJsonWithTimeout(`/api/leaderboards/top50?metric=${encodeURIComponent(metric)}`, { method: "GET" });
       renderTop50(payload?.players || [], metric);
-      targetState.textContent = metric === "scans" ? "Top 50 por scans." : "Top 50 por pontuacao.";
+      targetState.textContent = metric === "scans" ? menuT("top50StateScans") : menuT("top50StateScore");
     } catch (error) {
-      targetState.textContent = error?.message || "Falha ao carregar top 50.";
+      targetState.textContent = error?.message || menuT("top50StateLoadError");
       const targetList = metric === "scans" ? top50ScansListEl : top50ScoreListEl;
       if (targetList) targetList.innerHTML = "";
     }
@@ -1698,9 +1943,9 @@ function bindSidePanels(username) {
       const payload = await fetchJsonWithTimeout("/api/presence/online?limit=50", { method: "GET" });
       const players = Array.isArray(payload?.players) ? payload.players : [];
       renderOnlinePlayers(players);
-      top50OnlineStateEl.textContent = `${players.length} jogador(es) online agora.`;
+      top50OnlineStateEl.textContent = menuT("top50StateOnlineCount", { count: players.length });
     } catch (error) {
-      top50OnlineStateEl.textContent = error?.message || "Falha ao carregar jogadores online.";
+      top50OnlineStateEl.textContent = error?.message || menuT("top50OnlineLoadError");
       if (top50OnlineListEl) {
         top50OnlineListEl.innerHTML = "";
       }
@@ -3360,12 +3605,12 @@ function pickPresencePhrase(locationEntry, count) {
     })();
     const displayLocationName = locationNameRaw || selectedLocationName || "local atual";
     const activeChatterCount = Math.max(0, Number(chatMeta?.activeChatterCount || 0));
-    const chatterLabel = activeChatterCount === 1 ? "jogador" : "jogadores";
+    const chatterLabel = activeChatterCount === 1 ? menuT("perimChatOnePlayer") : menuT("perimChatManyPlayers");
     chatStateEl.textContent = canChat
-      ? `Conversa ativa no local ${displayLocationName}. ${activeChatterCount} ${chatterLabel} no chat deste local. Mensagens visiveis ate o fim do dia.`
-      : "Somente jogadores em acao ativa no local podem conversar.";
+      ? menuT("perimChatStateActive", { location: displayLocationName, count: activeChatterCount, playerLabel: chatterLabel })
+      : menuT("perimChatBlocked");
     if (!canChat) {
-      chatMessagesEl.innerHTML = '<div class="trades-empty">Inicie uma acao para liberar o chat deste local.</div>';
+      chatMessagesEl.innerHTML = `<div class="trades-empty">${escapeHtml(menuT("perimChatBlockedEmpty"))}</div>`;
       if (chatInputEl) {
         chatInputEl.disabled = true;
       }
@@ -3382,7 +3627,7 @@ function pickPresencePhrase(locationEntry, count) {
     }
     const messages = Array.isArray(state.chatMessages) ? state.chatMessages : [];
     if (!messages.length) {
-      chatMessagesEl.innerHTML = '<div class="trades-empty">Sem mensagens neste local ainda.</div>';
+      chatMessagesEl.innerHTML = `<div class="trades-empty">${escapeHtml(menuT("perimChatNoMessages"))}</div>`;
       return;
     }
     chatMessagesEl.innerHTML = messages
@@ -3390,6 +3635,7 @@ function pickPresencePhrase(locationEntry, count) {
         <article class="perim-chat-msg">
           <strong>${escapeHtml(entry?.username || entry?.ownerKey || "Jogador")}</strong>
           <span>${escapeHtml(entry?.message || "")}</span>
+          ${entry?.translationError ? `<small>${escapeHtml(menuT("chatTranslateFallback"))}</small>` : ""}
           <small>${escapeHtml(formatChatTimeLabel(entry?.createdAt))}</small>
         </article>
       `)
@@ -3413,13 +3659,13 @@ function pickPresencePhrase(locationEntry, count) {
     }
     state.chatLoading = true;
     try {
-      const payload = await fetchJsonWithTimeout(`/api/perim/locations/${encodeURIComponent(locationId)}/chat?limit=120`, { method: "GET" });
+      const payload = await fetchJsonWithTimeout(`/api/perim/locations/${encodeURIComponent(locationId)}/chat?limit=120&lang=${encodeURIComponent(menuUiLanguage)}`, { method: "GET" });
       state.chatMessages = Array.isArray(payload?.messages) ? payload.messages : [];
       state.chatLocationId = locationId;
       renderLocationChat();
       if (!state.chatEventSource || force) {
         closeChatEventSource();
-        const source = new EventSource(apiUrl(`/api/perim/locations/${encodeURIComponent(locationId)}/chat/events`));
+        const source = new EventSource(apiUrl(`/api/perim/locations/${encodeURIComponent(locationId)}/chat/events?lang=${encodeURIComponent(menuUiLanguage)}`));
         state.chatEventSource = source;
         source.onmessage = (event) => {
           const data = safeJsonParse(event.data, null);
@@ -3445,13 +3691,13 @@ function pickPresencePhrase(locationEntry, count) {
         };
         source.onerror = () => {
           if (chatStateEl) {
-            chatStateEl.textContent = "Conexao do chat instavel. Tentando manter atualizacao.";
+            chatStateEl.textContent = menuT("perimChatConnectionUnstable");
           }
         };
       }
     } catch (error) {
       if (chatStateEl) {
-        chatStateEl.textContent = error?.message || "Falha ao carregar chat deste local.";
+        chatStateEl.textContent = error?.message || menuT("perimChatLoadError");
       }
     } finally {
       state.chatLoading = false;
@@ -3479,7 +3725,7 @@ function pickPresencePhrase(locationEntry, count) {
       }
     } catch (error) {
       if (chatStateEl) {
-        chatStateEl.textContent = error?.message || "Falha ao enviar mensagem no chat.";
+        chatStateEl.textContent = error?.message || menuT("perimChatSendError");
       }
     } finally {
       if (chatSendBtn) {

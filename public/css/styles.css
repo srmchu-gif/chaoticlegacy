@@ -253,3 +253,7 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
   .battle-setup-grid{grid-template-columns:1fr}
 }
 
+/* Builder filter quality-of-life for multi-select controls */
+.builder-filters .filter-title-inline{font-size:.68rem;opacity:.9}
+.builder-filters #set-filter,.builder-filters #stars-filter{min-width:8.5rem;max-width:11rem;min-height:5.2rem}
+.builder-filters #sort-field-filter,.builder-filters #sort-direction-filter{min-width:9rem}

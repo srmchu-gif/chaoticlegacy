@@ -111,6 +111,30 @@ const UI_LANGUAGE_LABELS = {
     tabBuilder: "Deck Builder",
     tabBattle: "Battlefield",
     tabSettings: "Configuracoes",
+    libraryTitle: "Biblioteca",
+    libraryViewLibrary: "Biblioteca",
+    libraryViewScans: "Scans",
+    scansSummaryPrefix: "Scans disponiveis",
+    deckTitle: "Deck",
+    clearFilters: "Limpar Filtros",
+    cardSearchPlaceholder: "Buscar carta...",
+    setFilterTitle: "Sets (multiselecao)",
+    starsFilterAll: "Todas as estrelas",
+    starsFilterTitle: "Estrelas (criaturas)",
+    sortFieldName: "Ordenar: Nome",
+    sortFieldSet: "Ordenar: Set",
+    sortFieldRarity: "Ordenar: Raridade",
+    sortFieldType: "Ordenar: Tipo",
+    sortFieldStars: "Ordenar: Estrelas",
+    sortDirectionAsc: "Crescente",
+    sortDirectionDesc: "Decrescente",
+    noCardsInventoryFiltered: "Sem cartas disponiveis no inventario para estes filtros.",
+    noCardsFound: "Nenhuma carta encontrada.",
+    markFlagsPrompt: "Marque Alpha, Promo, Unused ou Outras para exibir cartas.",
+    showingLimited: "Mostrando {limit} de {total} cartas. Refine os filtros.",
+    deckLimitAlert: "Limite de {limit} para {type} atingido.",
+    scansOutOfStock: "Sem copias disponiveis no inventario de scans.",
+    scansReserveFail: "Nao foi possivel reservar esta carta no inventario de scans.",
     reload: "Recarregar Pasta",
     settingsTitle: "Configuracoes",
     settingsSave: "Salvar Configuracoes",
@@ -127,6 +151,30 @@ const UI_LANGUAGE_LABELS = {
     tabBuilder: "Deck Builder",
     tabBattle: "Battlefield",
     tabSettings: "Settings",
+    libraryTitle: "Library",
+    libraryViewLibrary: "Library",
+    libraryViewScans: "Scans",
+    scansSummaryPrefix: "Available scans",
+    deckTitle: "Deck",
+    clearFilters: "Clear Filters",
+    cardSearchPlaceholder: "Search card...",
+    setFilterTitle: "Sets (multi-select)",
+    starsFilterAll: "All stars",
+    starsFilterTitle: "Stars (creatures)",
+    sortFieldName: "Sort: Name",
+    sortFieldSet: "Sort: Set",
+    sortFieldRarity: "Sort: Rarity",
+    sortFieldType: "Sort: Type",
+    sortFieldStars: "Sort: Stars",
+    sortDirectionAsc: "Ascending",
+    sortDirectionDesc: "Descending",
+    noCardsInventoryFiltered: "No inventory cards available for these filters.",
+    noCardsFound: "No cards found.",
+    markFlagsPrompt: "Enable Alpha, Promo, Unused or Other to display cards.",
+    showingLimited: "Showing {limit} of {total} cards. Refine filters.",
+    deckLimitAlert: "{type} limit of {limit} reached.",
+    scansOutOfStock: "No copies available in scan inventory.",
+    scansReserveFail: "Could not reserve this card from scan inventory.",
     reload: "Reload Folder",
     settingsTitle: "Settings",
     settingsSave: "Save Settings",
@@ -143,6 +191,30 @@ const UI_LANGUAGE_LABELS = {
     tabBuilder: "Deck Builder",
     tabBattle: "Battlefield",
     tabSettings: "Configuracion",
+    libraryTitle: "Biblioteca",
+    libraryViewLibrary: "Biblioteca",
+    libraryViewScans: "Scans",
+    scansSummaryPrefix: "Scans disponibles",
+    deckTitle: "Mazo",
+    clearFilters: "Limpiar Filtros",
+    cardSearchPlaceholder: "Buscar carta...",
+    setFilterTitle: "Sets (multiseleccion)",
+    starsFilterAll: "Todas las estrellas",
+    starsFilterTitle: "Estrellas (criaturas)",
+    sortFieldName: "Ordenar: Nombre",
+    sortFieldSet: "Ordenar: Set",
+    sortFieldRarity: "Ordenar: Rareza",
+    sortFieldType: "Ordenar: Tipo",
+    sortFieldStars: "Ordenar: Estrellas",
+    sortDirectionAsc: "Ascendente",
+    sortDirectionDesc: "Descendente",
+    noCardsInventoryFiltered: "No hay cartas disponibles en inventario para estos filtros.",
+    noCardsFound: "No se encontraron cartas.",
+    markFlagsPrompt: "Marca Alpha, Promo, Unused u Otras para mostrar cartas.",
+    showingLimited: "Mostrando {limit} de {total} cartas. Ajusta los filtros.",
+    deckLimitAlert: "Limite de {limit} para {type} alcanzado.",
+    scansOutOfStock: "No hay copias disponibles en el inventario de scans.",
+    scansReserveFail: "No fue posible reservar esta carta del inventario de scans.",
     reload: "Recargar Carpeta",
     settingsTitle: "Configuracion",
     settingsSave: "Guardar Configuracion",
@@ -293,6 +365,21 @@ function normalizeLanguage(value) {
   return ["pt", "en", "es"].includes(value) ? value : "pt";
 }
 
+function uiDictionary() {
+  return UI_LANGUAGE_LABELS[normalizeLanguage(appState?.settings?.language?.ui)] || UI_LANGUAGE_LABELS.pt;
+}
+
+function uiText(key, vars = null) {
+  const dictionary = uiDictionary();
+  let text = String(dictionary?.[key] ?? UI_LANGUAGE_LABELS.pt?.[key] ?? key);
+  if (vars && typeof vars === "object") {
+    Object.entries(vars).forEach(([name, value]) => {
+      text = text.replaceAll(`{${name}}`, String(value ?? ""));
+    });
+  }
+  return text;
+}
+
 function normalizeTheme(value) {
   return ["dark", "light"].includes(value) ? value : DEFAULT_SETTINGS.extras.theme;
 }
@@ -393,6 +480,10 @@ const appState = {
   cardsById: new Map(),
   filterType: "all",
   filterText: "",
+  filterSets: [],
+  filterStars: [],
+  sortField: "name",
+  sortDirection: "asc",
   filterElement: "",
   filterTribe: "",
   filterFlags: {
@@ -545,6 +636,10 @@ const el = {
   battleMenuBtn: document.querySelector("#battle-menu-btn"),
   reloadLibrary: document.querySelector("#reload-library"),
   cardTypeFilter: document.querySelector("#card-type-filter"),
+  setFilter: document.querySelector("#set-filter"),
+  starsFilter: document.querySelector("#stars-filter"),
+  sortFieldFilter: document.querySelector("#sort-field-filter"),
+  sortDirectionFilter: document.querySelector("#sort-direction-filter"),
   elementFilter: document.querySelector("#element-filter"),
   tribeFilter: document.querySelector("#tribe-filter"),
   flagAlpha: document.querySelector("#flag-alpha"),
@@ -1916,9 +2011,125 @@ function parseMinValue(input) {
   return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
+function getSelectedMultiValues(selectEl) {
+  if (!selectEl) {
+    return [];
+  }
+  return [...selectEl.options]
+    .filter((option) => option.selected)
+    .map((option) => String(option.value || "").trim())
+    .filter(Boolean);
+}
+
+function selectedSetKeys() {
+  return new Set((Array.isArray(appState.filterSets) ? appState.filterSets : []).map((value) => String(value || "").trim().toLowerCase()));
+}
+
+function selectedStarKeys() {
+  return new Set((Array.isArray(appState.filterStars) ? appState.filterStars : []).map((value) => String(value || "").trim()));
+}
+
+function raritySortScore(card) {
+  const rarity = String(card?.rarity || "").trim().toLowerCase();
+  const scoreMap = {
+    common: 1,
+    uncommon: 2,
+    rare: 3,
+    "super rare": 4,
+    "ultra rare": 5,
+    legendary: 6,
+  };
+  return Number(scoreMap[rarity] || 0);
+}
+
+function compareCardsBySortField(a, b) {
+  const direction = appState.sortDirection === "desc" ? -1 : 1;
+  const field = appState.sortField || "name";
+  const nameA = String(a?.name || "").toLowerCase();
+  const nameB = String(b?.name || "").toLowerCase();
+  if (field === "set") {
+    const setA = String(a?.set || "").toLowerCase();
+    const setB = String(b?.set || "").toLowerCase();
+    if (setA !== setB) {
+      return setA.localeCompare(setB) * direction;
+    }
+    return nameA.localeCompare(nameB) * direction;
+  }
+  if (field === "rarity") {
+    const rarityDelta = raritySortScore(a) - raritySortScore(b);
+    if (rarityDelta !== 0) {
+      return rarityDelta * direction;
+    }
+    return nameA.localeCompare(nameB) * direction;
+  }
+  if (field === "type") {
+    const typeA = String(a?.type || "").toLowerCase();
+    const typeB = String(b?.type || "").toLowerCase();
+    if (typeA !== typeB) {
+      return typeA.localeCompare(typeB) * direction;
+    }
+    return nameA.localeCompare(nameB) * direction;
+  }
+  if (field === "stars") {
+    const aIsCreature = String(a?.type || "") === "creatures";
+    const bIsCreature = String(b?.type || "") === "creatures";
+    if (aIsCreature !== bIsCreature) {
+      return aIsCreature ? -1 : 1;
+    }
+    const starsA = Number(a?._scanVariant?.stars ?? a?.variant?.stars ?? -1);
+    const starsB = Number(b?._scanVariant?.stars ?? b?.variant?.stars ?? -1);
+    const safeA = Number.isFinite(starsA) ? starsA : -1;
+    const safeB = Number.isFinite(starsB) ? starsB : -1;
+    if (safeA !== safeB) {
+      return (safeA - safeB) * direction;
+    }
+    return nameA.localeCompare(nameB) * direction;
+  }
+  return nameA.localeCompare(nameB) * direction;
+}
+
+function populateSetFilterOptions() {
+  if (!el.setFilter || !appState.library?.cards) {
+    return;
+  }
+  const selectedValues = new Set((appState.filterSets || []).map((value) => String(value || "").trim().toLowerCase()));
+  const discoveredSets = [...new Set(
+    appState.library.cards
+      .map((card) => String(card?.set || "").trim())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+  el.setFilter.innerHTML = "";
+  discoveredSets.forEach((setName) => {
+    const key = setName.toLowerCase();
+    const option = document.createElement("option");
+    option.value = key;
+    option.textContent = setName;
+    option.selected = selectedValues.has(key);
+    el.setFilter.appendChild(option);
+  });
+}
+
 function syncLibraryFilterControlsFromState() {
   if (el.cardTypeFilter) {
     el.cardTypeFilter.value = appState.filterType || "all";
+  }
+  if (el.setFilter) {
+    const selected = selectedSetKeys();
+    [...el.setFilter.options].forEach((option) => {
+      option.selected = selected.has(String(option.value || "").trim().toLowerCase());
+    });
+  }
+  if (el.starsFilter) {
+    const selected = selectedStarKeys();
+    [...el.starsFilter.options].forEach((option) => {
+      option.selected = selected.has(String(option.value || "").trim());
+    });
+  }
+  if (el.sortFieldFilter) {
+    el.sortFieldFilter.value = appState.sortField || "name";
+  }
+  if (el.sortDirectionFilter) {
+    el.sortDirectionFilter.value = appState.sortDirection || "asc";
   }
   if (el.elementFilter) {
     el.elementFilter.value = appState.filterElement || "";
@@ -1957,6 +2168,10 @@ function syncLibraryFilterControlsFromState() {
 
 function clearLibraryFilters() {
   appState.filterType = "all";
+  appState.filterSets = [];
+  appState.filterStars = [];
+  appState.sortField = "name";
+  appState.sortDirection = "asc";
   appState.filterElement = "";
   appState.filterTribe = "";
   appState.filterText = "";
@@ -2081,11 +2296,13 @@ function updateScansStockSummaryFromAvailable() {
   if (!el.scansStockSummary) {
     return;
   }
+  const language = normalizeLanguage(appState.settings?.language?.ui);
+  const dictionary = UI_LANGUAGE_LABELS[language] || UI_LANGUAGE_LABELS.pt;
   const total = CARD_TYPES.reduce((sum, type) => {
     const list = Array.isArray(appState.scans?.available?.[type]) ? appState.scans.available[type] : [];
     return sum + list.length;
   }, 0);
-  el.scansStockSummary.textContent = `Scans disponiveis: ${total}`;
+  el.scansStockSummary.textContent = `${dictionary.scansSummaryPrefix}: ${total}`;
 }
 
 function cloneDeckEntryRef(entry) {
@@ -2322,6 +2539,8 @@ function getFilteredLibraryCards() {
   const query = appState.filterText.trim().toLowerCase();
 
   const hasStatFilter = Object.values(appState.filterStats).some((value) => value > 0);
+  const setFilters = selectedSetKeys();
+  const starFilters = selectedStarKeys();
   const elementFilter = appState.filterElement;
   const tribeFilter = appState.filterTribe;
   const tribeFilterKey = normalizeFilterToken(tribeFilter);
@@ -2330,10 +2549,17 @@ function getFilteredLibraryCards() {
     return [];
   }
 
-  return source.filter((card) => {
+  const filtered = source.filter((card) => {
     const text = `${card.name || ""} ${card.tribe || ""} ${card.set || ""} ${card.ability || ""}`.toLowerCase();
     if (query && !text.includes(query)) {
       return false;
+    }
+
+    if (setFilters.size) {
+      const setKey = String(card?.set || "").trim().toLowerCase();
+      if (!setFilters.has(setKey)) {
+        return false;
+      }
     }
 
     if (tribeFilterKey) {
@@ -2373,8 +2599,30 @@ function getFilteredLibraryCards() {
       }
     }
 
+    if (starFilters.size) {
+      if (card.type !== "creatures") {
+        return false;
+      }
+      const starsRaw = Number(card?._scanVariant?.stars ?? card?.variant?.stars);
+      const starsKey = Number.isFinite(starsRaw) ? starsRaw.toFixed(1) : "";
+      if (!starFilters.has(starsKey)) {
+        return false;
+      }
+    }
+
     return true;
   });
+
+  return filtered
+    .map((card, index) => ({ card, index }))
+    .sort((left, right) => {
+      const delta = compareCardsBySortField(left.card, right.card);
+      if (delta !== 0) {
+        return delta;
+      }
+      return left.index - right.index;
+    })
+    .map((entry) => entry.card);
 }
 
 function renderLibraryCards() {
@@ -2387,14 +2635,14 @@ function renderLibraryCards() {
 
   if (!cards.length) {
     el.cardLibrary.innerHTML = hasSelectedSpecialFlag
-      ? (isScansView ? "<p>Sem cartas disponiveis no inventario para estes filtros.</p>" : "<p>Nenhuma carta encontrada.</p>")
-      : "<p>Marque Alpha, Promo, Unused ou Outras para exibir cartas.</p>";
+      ? (isScansView ? `<p>${uiText("noCardsInventoryFiltered")}</p>` : `<p>${uiText("noCardsFound")}</p>`)
+      : `<p>${uiText("markFlagsPrompt")}</p>`;
     return;
   }
 
   if (cards.length > limit) {
     const info = document.createElement("p");
-    info.textContent = `Mostrando ${limit} de ${cards.length} cartas. Refine os filtros.`;
+    info.textContent = uiText("showingLimited", { limit, total: cards.length });
     el.cardLibrary.appendChild(info);
   }
 
@@ -2403,22 +2651,22 @@ function renderLibraryCards() {
     const availableCopies = Number(availableMap.get(stockKey) || 0);
     const addButton = createActionButton("+ Deck", () => {
       if (!canAddCardToDeck(card.type)) {
-        alert(`Limite de ${maxCountForType(card.type)} para ${TYPE_LABEL[card.type]} atingido.`);
+        alert(uiText("deckLimitAlert", { limit: maxCountForType(card.type), type: TYPE_LABEL[card.type] }));
         return;
       }
       const freshAvailable = scansAvailableCopies(card.type, card.id);
       if (freshAvailable <= 0) {
-        alert("Sem copias disponiveis no inventario de scans.");
+        alert(uiText("scansOutOfStock"));
         return;
       }
       const scansEntry = resolveScansEntryForCard(card.type, card);
       if (!scansEntry) {
-        alert("Nao foi possivel reservar esta carta no inventario de scans.");
+        alert(uiText("scansReserveFail"));
         return;
       }
       const storedRef = card.type === "creatures" ? scansEntry : deckEntryCardId(scansEntry);
       if (!addCardToDeck(card.type, storedRef)) {
-        alert(`Limite de ${maxCountForType(card.type)} para ${TYPE_LABEL[card.type]} atingido.`);
+        alert(uiText("deckLimitAlert", { limit: maxCountForType(card.type), type: TYPE_LABEL[card.type] }));
         return;
       }
       removeEntryFromAvailableScans(card.type, scansEntry);
@@ -2712,10 +2960,12 @@ async function loadLibrary() {
   const library = await apiJson("/api/library");
   appState.library = library;
   appState.cardsById = new Map(library.cards.map((card) => [card.id, card]));
+  populateSetFilterOptions();
   await refreshScansData();
   el.libraryMeta.textContent =
     `Cartas ${library.stats.totalCards} | Cr ${library.stats.creatures} | Atk ${library.stats.attacks} | ` +
     `Gear ${library.stats.battlegear} | Loc ${library.stats.locations} | Mugic ${library.stats.mugic}`;
+  syncLibraryFilterControlsFromState();
   renderLibraryCards();
 }
 
@@ -3156,6 +3406,10 @@ function syncAdminObservabilityVisibility() {
 function applyInterfaceLanguage() {
   const language = normalizeLanguage(appState.settings.language.ui);
   const dictionary = UI_LANGUAGE_LABELS[language] || UI_LANGUAGE_LABELS.pt;
+  const setFilterTitleEl = document.querySelector("#set-filter-title");
+  const starsFilterTitleEl = document.querySelector("#stars-filter-title");
+  const libraryTitleEl = document.querySelector("#library-title");
+  const deckTitleEl = document.querySelector("#deck-title");
   if (el.tabBuilder) {
     el.tabBuilder.textContent = dictionary.tabBuilder;
   }
@@ -3198,6 +3452,64 @@ function applyInterfaceLanguage() {
   if (el.resetProgress) {
     el.resetProgress.textContent = dictionary.resetProgress;
   }
+  if (libraryTitleEl) {
+    libraryTitleEl.textContent = dictionary.libraryTitle;
+  }
+  if (deckTitleEl) {
+    deckTitleEl.textContent = dictionary.deckTitle;
+  }
+  if (el.libraryViewLibrary) {
+    el.libraryViewLibrary.textContent = dictionary.libraryViewLibrary;
+  }
+  if (el.libraryViewScans) {
+    el.libraryViewScans.textContent = dictionary.libraryViewScans;
+  }
+  if (el.cardSearch) {
+    el.cardSearch.placeholder = dictionary.cardSearchPlaceholder;
+  }
+  if (el.clearLibraryFilters) {
+    el.clearLibraryFilters.textContent = dictionary.clearFilters;
+  }
+  if (setFilterTitleEl) {
+    setFilterTitleEl.textContent = dictionary.setFilterTitle;
+  }
+  if (starsFilterTitleEl) {
+    starsFilterTitleEl.textContent = dictionary.starsFilterTitle;
+  }
+  if (el.starsFilter) {
+    const allOption = el.starsFilter.querySelector('option[value=""]');
+    if (allOption) {
+      allOption.textContent = dictionary.starsFilterAll;
+    }
+  }
+  if (el.sortFieldFilter) {
+    const labels = {
+      name: dictionary.sortFieldName,
+      set: dictionary.sortFieldSet,
+      rarity: dictionary.sortFieldRarity,
+      type: dictionary.sortFieldType,
+      stars: dictionary.sortFieldStars,
+    };
+    [...el.sortFieldFilter.options].forEach((option) => {
+      const key = String(option.value || "");
+      if (labels[key]) {
+        option.textContent = labels[key];
+      }
+    });
+  }
+  if (el.sortDirectionFilter) {
+    const labels = {
+      asc: dictionary.sortDirectionAsc,
+      desc: dictionary.sortDirectionDesc,
+    };
+    [...el.sortDirectionFilter.options].forEach((option) => {
+      const key = String(option.value || "");
+      if (labels[key]) {
+        option.textContent = labels[key];
+      }
+    });
+  }
+  updateScansStockSummaryFromAvailable();
 }
 
 function stopFpsCounter() {
@@ -6238,6 +6550,30 @@ function bindEvents() {
     appState.filterType = el.cardTypeFilter.value || "all";
     renderLibraryCards();
   });
+  if (el.setFilter) {
+    el.setFilter.addEventListener("change", () => {
+      appState.filterSets = getSelectedMultiValues(el.setFilter).map((value) => value.toLowerCase());
+      renderLibraryCards();
+    });
+  }
+  if (el.starsFilter) {
+    el.starsFilter.addEventListener("change", () => {
+      appState.filterStars = getSelectedMultiValues(el.starsFilter);
+      renderLibraryCards();
+    });
+  }
+  if (el.sortFieldFilter) {
+    el.sortFieldFilter.addEventListener("change", () => {
+      appState.sortField = String(el.sortFieldFilter.value || "name");
+      renderLibraryCards();
+    });
+  }
+  if (el.sortDirectionFilter) {
+    el.sortDirectionFilter.addEventListener("change", () => {
+      appState.sortDirection = String(el.sortDirectionFilter.value || "asc");
+      renderLibraryCards();
+    });
+  }
   el.elementFilter.addEventListener("change", () => {
     appState.filterElement = el.elementFilter.value || "";
     renderLibraryCards();

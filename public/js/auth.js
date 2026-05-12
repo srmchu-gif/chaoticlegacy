@@ -5,8 +5,6 @@ const DB_SESSION = "chaotic_session";
 const DB_REMEMBER = "chaotic_remember";
 const DB_VERIFY_SESSION = "chaotic_verify_session";
 
-const hashPassword = (pass) => btoa(pass).split("").reverse().join("");
-
 initMatrixEffect();
 
 function safeJsonParse(value, fallback = null) {
@@ -279,7 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             username: userInp,
-            passwordHash: hashPassword(passInp),
+            password: passInp,
           }),
         });
 
@@ -343,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({
             username: userInp,
             email: emailInp,
-            passwordHash: hashPassword(passInp),
+            password: passInp,
             tribe: tribeRadio.value,
             turnstileToken,
           }),
