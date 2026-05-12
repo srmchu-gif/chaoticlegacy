@@ -4654,31 +4654,31 @@ const PERIM_ACTIONS = [
     id: "explore",
     name: "Explorar a Area",
     description: "Busca geral por itens comuns, criaturas e maior chance de locais proximos.",
-    durationMs: 4 * 60 * 1000,
+    durationMs: 60 * 60 * 1000,
   },
   {
     id: "track",
     name: "Rastrear Criaturas",
     description: "Foco em escanear criaturas; se falhar, revela uma pista da area.",
-    durationMs: 5 * 60 * 1000,
+    durationMs: 65 * 60 * 1000,
   },
   {
     id: "anomaly",
     name: "Investigar Anomalias",
     description: "Investiga criatura da area com 1 a 5 pistas e menor chance de carta.",
-    durationMs: 7 * 60 * 1000,
+    durationMs: 80 * 60 * 1000,
   },
   {
     id: "camp",
     name: "Acampar / Esperar",
     description: "Aguarda criaturas raras. Processo mais lento.",
-    durationMs: 9 * 60 * 1000,
+    durationMs: 90 * 60 * 1000,
   },
   {
     id: "relic",
     name: "Procurar Recursos / Reliquias",
     description: "Busca focada em ataques, equipamentos e mugics.",
-    durationMs: 6 * 60 * 1000,
+    durationMs: 70 * 60 * 1000,
   },
 ];
 
@@ -7543,7 +7543,7 @@ function computePerimDurationMs(locationId, actionId, baseDurationMs, scannerEff
     Number(scannerEffect?.globalDurationMultiplier ?? scannerEffect?.durationMultiplier ?? 1)
   );
   const multiplier = randomMultiplier * tribalDurationMultiplier * globalDurationMultiplier;
-  return Math.max(60 * 1000, Math.round(baseDurationMs * multiplier));
+  return Math.max(60 * 60 * 1000, Math.round(baseDurationMs * multiplier));
 }
 
 function buildPerimRewards(locationEntry, actionId, options = {}) {
