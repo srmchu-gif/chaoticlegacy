@@ -5,6 +5,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
 
+const CARD_TYPES = ["creatures", "attacks", "battlegear", "locations", "mugic"];
+
 const USER_KEY_COLUMNS = [
   "owner_key",
   "from_owner_key",
@@ -72,21 +74,31 @@ const EXPECTED_TABLES = [
 ];
 
 function parseArgs(argv) {
-  const out = { action: "", dbPath: "", username: "" };
+  const out = {};
   for (let i = 0; i < argv.length; i += 1) {
-    const token = argv[i];
-    if (token === "--action") {
-      out.action = String(argv[i + 1] || "").trim();
-      i += 1;
-    } else if (token === "--db") {
-      out.dbPath = String(argv[i + 1] || "").trim();
-      i += 1;
-    } else if (token === "--username") {
-      out.username = String(argv[i + 1] || "").trim();
-      i += 1;
+    const token = String(argv[i] || "");
+    if (!token.startsWith("--")) {
+      continue;
     }
+    const key = token.slice(2);
+    const next = argv[i + 1];
+    if (typeof next === "undefined" || String(next).startsWith("--")) {
+      out[key] = "1";
+      continue;
+    }
+    out[key] = String(next);
+    i += 1;
   }
-  return out;
+  return {
+    action: String(out.action || "").trim(),
+    dbPath: String(out.db || "").trim(),
+    username: String(out.username || "").trim(),
+    password: String(out.password || "").trim(),
+    id: String(out.id || "").trim(),
+    questKey: String(out.questKey || "").trim(),
+    payloadB64: String(out.payloadB64 || "").trim(),
+    cardType: String(out.cardType || "").trim()
+  };
 }
 
 function jsonOk(payload) {
@@ -112,11 +124,57 @@ function jsonErr(message, details) {
 }
 
 function quoteIdent(name) {
-  return `"${String(name || "").replace(/"/g, '""')}"`;
+  return `"${String(name || "").replace(/"/g, "\"\"")}"`;
+}
+
+function nowIso() {
+  return new Date().toISOString();
 }
 
 function normalizeUserKey(username) {
   return String(username || "").trim().toLowerCase();
+}
+
+function normalizeCardType(value) {
+  const key = String(value || "").trim().toLowerCase();
+  return CARD_TYPES.includes(key) ? key : "";
+}
+
+function ensureDbPath(dbPathArg) {
+  const value = String(dbPathArg || "").trim();
+  if (!value) {
+    throw new Error("Parametro --db e obrigatorio.");
+  }
+  const resolved = path.resolve(value);
+  if (!fs.existsSync(resolved)) {
+    throw new Error(`Banco SQLite nao encontrado: ${resolved}`);
+  }
+  return resolved;
+}
+
+function ensureUsername(usernameArg) {
+  const username = String(usernameArg || "").trim();
+  if (!username) {
+    throw new Error("Parametro --username e obrigatorio.");
+  }
+  return username;
+}
+
+function decodePayload(payloadB64) {
+  const raw = String(payloadB64 || "").trim();
+  if (!raw) {
+    return {};
+  }
+  try {
+    const text = Buffer.from(raw, "base64").toString("utf8");
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error("payload_not_object");
+    }
+    return parsed;
+  } catch (error) {
+    throw new Error(`Payload invalido: ${error.message || error}`);
+  }
 }
 
 function getSchemaMap(db) {
@@ -135,6 +193,10 @@ function getSchemaMap(db) {
     map.set(table, new Set(cols));
   }
   return map;
+}
+
+function hasTable(schemaMap, tableName) {
+  return schemaMap.has(tableName);
 }
 
 function buildTableRules(schemaMap) {
@@ -203,6 +265,17 @@ function buildTableRules(schemaMap) {
   return Array.from(dedup.values());
 }
 
+function buildQueryParams(sql, params) {
+  const out = {};
+  if (sql.includes("@ownerKey")) {
+    out.ownerKey = params.ownerKey;
+  }
+  if (sql.includes("@username")) {
+    out.username = params.username;
+  }
+  return out;
+}
+
 function countPerRule(db, rules, params) {
   const lines = [];
   for (const rule of rules) {
@@ -231,13 +304,6 @@ function getExpectedCoverage(schemaMap, rules) {
   });
 }
 
-function listUsers(db) {
-  const rows = db
-    .prepare("SELECT username FROM users ORDER BY username COLLATE NOCASE")
-    .all();
-  return rows.map((row) => String(row.username || "").trim()).filter(Boolean);
-}
-
 function deleteByRules(db, rules, params) {
   const sortedRules = [...rules].sort((a, b) => {
     const pa = Number(a.priority || 10);
@@ -262,35 +328,351 @@ function deleteByRules(db, rules, params) {
   return removed;
 }
 
-function buildQueryParams(sql, params) {
-  const out = {};
-  if (sql.includes("@ownerKey")) {
-    out.ownerKey = params.ownerKey;
+function listUsers(db) {
+  const rows = db
+    .prepare("SELECT username FROM users ORDER BY username COLLATE NOCASE")
+    .all();
+  return rows.map((row) => String(row.username || "").trim()).filter(Boolean);
+}
+
+function hashPasswordLikeClient(passwordPlain) {
+  const base64 = Buffer.from(String(passwordPlain || ""), "utf8").toString("base64");
+  return base64.split("").reverse().join("");
+}
+
+function ensurePerimDropEventTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS perim_drop_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_text TEXT NOT NULL,
+      card_type TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      location_card_id TEXT NOT NULL,
+      chance_percent REAL NOT NULL DEFAULT 0,
+      start_at TEXT NOT NULL,
+      end_at TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_perim_drop_events_active_window ON perim_drop_events(enabled, location_card_id, start_at, end_at);");
+}
+
+function getCatalogCardById(db, cardIdRaw) {
+  const cardId = String(cardIdRaw || "").trim();
+  if (!cardId) {
+    return null;
   }
-  if (sql.includes("@username")) {
-    out.username = params.username;
+  const row = db
+    .prepare("SELECT id, type, name, set_name, rarity FROM card_catalog WHERE id = ? LIMIT 1")
+    .get(cardId);
+  if (!row) {
+    return null;
+  }
+  return {
+    id: String(row.id || ""),
+    type: normalizeCardType(row.type || ""),
+    name: String(row.name || row.id || ""),
+    setName: String(row.set_name || ""),
+    rarity: String(row.rarity || "")
+  };
+}
+
+function listCatalogCards(db, cardTypeRaw = "") {
+  const normalizedType = normalizeCardType(cardTypeRaw);
+  const rows = normalizedType
+    ? db
+        .prepare("SELECT id, type, name, set_name, rarity FROM card_catalog WHERE type = ? ORDER BY name COLLATE NOCASE, id")
+        .all(normalizedType)
+    : db
+        .prepare("SELECT id, type, name, set_name, rarity FROM card_catalog ORDER BY type, name COLLATE NOCASE, id")
+        .all();
+  return rows.map((row) => ({
+    id: String(row.id || ""),
+    type: normalizeCardType(row.type || ""),
+    name: String(row.name || row.id || ""),
+    setName: String(row.set_name || ""),
+    rarity: String(row.rarity || "")
+  }));
+}
+
+function parseDateIsoRequired(value, fieldName) {
+  const text = String(value || "").trim();
+  if (!text) {
+    throw new Error(`Campo '${fieldName}' e obrigatorio.`);
+  }
+  const ms = Date.parse(text);
+  if (!Number.isFinite(ms)) {
+    throw new Error(`Data invalida em '${fieldName}'.`);
+  }
+  return new Date(ms).toISOString();
+}
+
+function sanitizeDropEventPayload(db, raw) {
+  const eventText = String(raw?.eventText || raw?.text || "").trim();
+  const cardType = normalizeCardType(raw?.cardType || "");
+  const cardId = String(raw?.cardId || "").trim();
+  const locationCardId = String(raw?.locationCardId || "").trim();
+  const chancePercent = Number(raw?.chancePercent);
+  const startAt = parseDateIsoRequired(raw?.startAt, "startAt");
+  const endAt = parseDateIsoRequired(raw?.endAt, "endAt");
+  const enabled = Boolean(raw?.enabled);
+
+  if (!eventText) {
+    throw new Error("Texto do evento e obrigatorio.");
+  }
+  if (!cardType) {
+    throw new Error("cardType invalido.");
+  }
+  if (!cardId) {
+    throw new Error("cardId e obrigatorio.");
+  }
+  if (!locationCardId) {
+    throw new Error("locationCardId e obrigatorio.");
+  }
+  if (!Number.isFinite(chancePercent) || chancePercent < 0 || chancePercent > 100) {
+    throw new Error("chancePercent deve estar entre 0 e 100.");
+  }
+  if (Date.parse(startAt) > Date.parse(endAt)) {
+    throw new Error("startAt deve ser menor ou igual a endAt.");
+  }
+
+  const eventCard = getCatalogCardById(db, cardId);
+  if (!eventCard) {
+    throw new Error(`Carta de evento nao encontrada: ${cardId}`);
+  }
+  if (eventCard.type !== cardType) {
+    throw new Error(`cardType nao corresponde a carta ${cardId}. Esperado: ${eventCard.type}`);
+  }
+  const locationCard = getCatalogCardById(db, locationCardId);
+  if (!locationCard || locationCard.type !== "locations") {
+    throw new Error(`Local de evento invalido: ${locationCardId}`);
+  }
+
+  return {
+    eventText,
+    cardType,
+    cardId,
+    locationCardId,
+    chancePercent: Math.max(0, Math.min(100, chancePercent)),
+    startAt,
+    endAt,
+    enabled: enabled ? 1 : 0
+  };
+}
+
+function listDropEvents(db) {
+  ensurePerimDropEventTable(db);
+  return db
+    .prepare(`
+      SELECT id, event_text, card_type, card_id, location_card_id, chance_percent, start_at, end_at, enabled, created_at, updated_at
+      FROM perim_drop_events
+      ORDER BY datetime(start_at) DESC, id DESC
+    `)
+    .all()
+    .map((row) => ({
+      id: Number(row.id || 0),
+      eventText: String(row.event_text || ""),
+      cardType: String(row.card_type || ""),
+      cardId: String(row.card_id || ""),
+      locationCardId: String(row.location_card_id || ""),
+      chancePercent: Number(row.chance_percent || 0),
+      startAt: String(row.start_at || ""),
+      endAt: String(row.end_at || ""),
+      enabled: Number(row.enabled || 0) === 1,
+      createdAt: String(row.created_at || ""),
+      updatedAt: String(row.updated_at || "")
+    }));
+}
+
+function sanitizeQuestRequirements(db, requirementsRaw) {
+  const source = Array.isArray(requirementsRaw) ? requirementsRaw : [];
+  const out = source
+    .map((entry) => {
+      const cardType = normalizeCardType(entry?.cardType || entry?.type || "");
+      const cardId = String(entry?.cardId || "").trim();
+      const required = Math.max(1, Math.floor(Number(entry?.required || entry?.amount || 1)));
+      if (!cardType || !cardId) {
+        return null;
+      }
+      const card = getCatalogCardById(db, cardId);
+      if (!card || card.type !== cardType) {
+        throw new Error(`Requisito invalido: ${cardType}:${cardId}`);
+      }
+      return { cardType, cardId, required };
+    })
+    .filter(Boolean);
+  if (!out.length) {
+    throw new Error("A quest precisa de pelo menos 1 requisito.");
   }
   return out;
 }
 
-function ensureDbPath(dbPathArg) {
-  const value = String(dbPathArg || "").trim();
-  if (!value) {
-    throw new Error("Parametro --db e obrigatorio.");
+function sanitizeQuestPayload(db, raw, isUpdate = false) {
+  const questKey = String(raw?.questKey || "").trim();
+  const title = String(raw?.title || "").trim();
+  const description = String(raw?.description || "").trim();
+  const rewardType = normalizeCardType(raw?.rewardType || "");
+  const rewardCardId = String(raw?.rewardCardId || "").trim();
+  const targetLocationCardId = String(raw?.targetLocationCardId || "").trim();
+  const enabled = raw?.enabled === false ? 0 : 1;
+  const anomalyLocationIdsRaw = Array.isArray(raw?.anomalyLocationIds)
+    ? raw.anomalyLocationIds
+    : [];
+
+  if (!isUpdate && !questKey) {
+    throw new Error("questKey e obrigatorio.");
   }
-  const resolved = path.resolve(value);
-  if (!fs.existsSync(resolved)) {
-    throw new Error(`Banco SQLite nao encontrado: ${resolved}`);
+  if (!title) {
+    throw new Error("title e obrigatorio.");
   }
-  return resolved;
+  if (!rewardType) {
+    throw new Error("rewardType invalido.");
+  }
+  if (!rewardCardId) {
+    throw new Error("rewardCardId e obrigatorio.");
+  }
+  if (!targetLocationCardId) {
+    throw new Error("targetLocationCardId e obrigatorio.");
+  }
+  const rewardCard = getCatalogCardById(db, rewardCardId);
+  if (!rewardCard || rewardCard.type !== rewardType) {
+    throw new Error(`rewardCardId invalido para rewardType: ${rewardCardId}`);
+  }
+  const targetLocation = getCatalogCardById(db, targetLocationCardId);
+  if (!targetLocation || targetLocation.type !== "locations") {
+    throw new Error(`targetLocationCardId invalido: ${targetLocationCardId}`);
+  }
+
+  const anomalyLocationIds = [...new Set(
+    anomalyLocationIdsRaw
+      .map((entry) => String(entry || "").trim())
+      .filter(Boolean)
+  )];
+  anomalyLocationIds.forEach((locationId) => {
+    const row = getCatalogCardById(db, locationId);
+    if (!row || row.type !== "locations") {
+      throw new Error(`anomalyLocationIds contem local invalido: ${locationId}`);
+    }
+  });
+  const requirements = sanitizeQuestRequirements(db, raw?.requirements);
+
+  return {
+    questKey,
+    title,
+    description,
+    rewardType,
+    rewardCardId,
+    targetLocationCardId,
+    anomalyLocationIds,
+    requirements,
+    enabled
+  };
 }
 
-function ensureUsername(usernameArg) {
-  const username = String(usernameArg || "").trim();
-  if (!username) {
-    throw new Error("Parametro --username e obrigatorio.");
+function listQuests(db) {
+  return db
+    .prepare(`
+      SELECT quest_key, title, description, reward_type, reward_card_id, target_location_card_id,
+             anomaly_location_ids_json, requirements_json, enabled, created_at, updated_at
+      FROM perim_quest_templates
+      ORDER BY quest_key
+    `)
+    .all()
+    .map((row) => ({
+      questKey: String(row.quest_key || ""),
+      title: String(row.title || ""),
+      description: String(row.description || ""),
+      rewardType: String(row.reward_type || ""),
+      rewardCardId: String(row.reward_card_id || ""),
+      targetLocationCardId: String(row.target_location_card_id || ""),
+      anomalyLocationIds: safeJsonArray(row.anomaly_location_ids_json),
+      requirements: safeJsonArray(row.requirements_json),
+      enabled: Number(row.enabled || 0) === 1,
+      createdAt: String(row.created_at || ""),
+      updatedAt: String(row.updated_at || "")
+    }));
+}
+
+function safeJsonArray(value) {
+  if (Array.isArray(value)) {
+    return value;
   }
-  return username;
+  try {
+    const parsed = JSON.parse(String(value || "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function withTransaction(db, task) {
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    const result = task();
+    db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {}
+    throw error;
+  }
+}
+
+function requireExistingUser(db, username) {
+  const user = db
+    .prepare(`
+      SELECT id, username, email, tribe, verified, created_at, updated_at, session_expires_at, session_ip, session_device, last_login_at
+      FROM users
+      WHERE username = ? COLLATE NOCASE
+      LIMIT 1
+    `)
+    .get(username);
+  if (!user) {
+    throw new Error(`Usuario nao encontrado: ${username}`);
+  }
+  return user;
+}
+
+function fetchUserDetail(db, username) {
+  const user = requireExistingUser(db, username);
+  const ownerKey = normalizeUserKey(user.username);
+  const profile = db
+    .prepare(`
+      SELECT owner_key, favorite_tribe, avatar, score, wins, losses, win_rate, most_played_name, admin_scanner_maxed_at, updated_at
+      FROM player_profiles
+      WHERE owner_key = ?
+      LIMIT 1
+    `)
+    .get(ownerKey);
+  return {
+    username: String(user.username || ""),
+    ownerKey,
+    email: String(user.email || ""),
+    tribe: String(user.tribe || ""),
+    verified: Number(user.verified || 0) === 1,
+    createdAt: String(user.created_at || ""),
+    updatedAt: String(user.updated_at || ""),
+    sessionExpiresAt: String(user.session_expires_at || ""),
+    sessionIp: String(user.session_ip || ""),
+    sessionDevice: String(user.session_device || ""),
+    lastLoginAt: String(user.last_login_at || ""),
+    profile: profile
+      ? {
+          favoriteTribe: String(profile.favorite_tribe || ""),
+          avatar: String(profile.avatar || ""),
+          score: Number(profile.score || 0),
+          wins: Number(profile.wins || 0),
+          losses: Number(profile.losses || 0),
+          winRate: Number(profile.win_rate || 0),
+          mostPlayedName: String(profile.most_played_name || ""),
+          adminScannerMaxedAt: String(profile.admin_scanner_maxed_at || ""),
+          updatedAt: String(profile.updated_at || "")
+        }
+      : null
+  };
 }
 
 function run() {
@@ -298,18 +680,237 @@ function run() {
   if (!args.action) {
     throw new Error("Parametro --action e obrigatorio.");
   }
-
   const dbPath = ensureDbPath(args.dbPath);
   const db = new DatabaseSync(dbPath);
   try {
+    const schemaMap = getSchemaMap(db);
+    if (!hasTable(schemaMap, "card_catalog")) {
+      throw new Error("Tabela card_catalog nao encontrada. Rode o importador da biblioteca antes de usar o painel admin.");
+    }
+
     if (args.action === "list-users") {
       jsonOk({ users: listUsers(db), dbPath });
       return;
     }
 
+    if (args.action === "user-detail") {
+      const username = ensureUsername(args.username);
+      jsonOk({ user: fetchUserDetail(db, username) });
+      return;
+    }
+
+    if (args.action === "set-password") {
+      const username = ensureUsername(args.username);
+      const password = String(args.password || "");
+      if (!password) {
+        throw new Error("Parametro --password e obrigatorio.");
+      }
+      const user = requireExistingUser(db, username);
+      const passwordHash = hashPasswordLikeClient(password);
+      const updatedAt = nowIso();
+      const result = withTransaction(db, () =>
+        db
+          .prepare("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?")
+          .run(passwordHash, updatedAt, Number(user.id))
+      );
+      jsonOk({
+        username: String(user.username || ""),
+        changed: Number(result?.changes || 0) > 0
+      });
+      return;
+    }
+
+    if (args.action === "catalog-cards") {
+      const cards = listCatalogCards(db, args.cardType);
+      jsonOk({ cards });
+      return;
+    }
+
+    if (args.action === "events-list") {
+      jsonOk({ events: listDropEvents(db) });
+      return;
+    }
+
+    if (args.action === "event-create") {
+      ensurePerimDropEventTable(db);
+      const payload = decodePayload(args.payloadB64);
+      const sanitized = sanitizeDropEventPayload(db, payload);
+      const createdAt = nowIso();
+      const updatedAt = createdAt;
+      const createdId = withTransaction(db, () => {
+        const res = db
+          .prepare(`
+            INSERT INTO perim_drop_events (
+              event_text, card_type, card_id, location_card_id, chance_percent, start_at, end_at, enabled, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `)
+          .run(
+            sanitized.eventText,
+            sanitized.cardType,
+            sanitized.cardId,
+            sanitized.locationCardId,
+            sanitized.chancePercent,
+            sanitized.startAt,
+            sanitized.endAt,
+            sanitized.enabled,
+            createdAt,
+            updatedAt
+          );
+        return Number(res?.lastInsertRowid || 0);
+      });
+      jsonOk({ createdId, events: listDropEvents(db) });
+      return;
+    }
+
+    if (args.action === "event-update") {
+      ensurePerimDropEventTable(db);
+      const eventId = Number(args.id || 0);
+      if (!Number.isInteger(eventId) || eventId <= 0) {
+        throw new Error("Parametro --id invalido para event-update.");
+      }
+      const existing = db.prepare("SELECT id FROM perim_drop_events WHERE id = ?").get(eventId);
+      if (!existing) {
+        throw new Error(`Evento nao encontrado: ${eventId}`);
+      }
+      const payload = decodePayload(args.payloadB64);
+      const sanitized = sanitizeDropEventPayload(db, payload);
+      const updatedAt = nowIso();
+      withTransaction(db, () => {
+        db
+          .prepare(`
+            UPDATE perim_drop_events
+            SET event_text = ?, card_type = ?, card_id = ?, location_card_id = ?, chance_percent = ?,
+                start_at = ?, end_at = ?, enabled = ?, updated_at = ?
+            WHERE id = ?
+          `)
+          .run(
+            sanitized.eventText,
+            sanitized.cardType,
+            sanitized.cardId,
+            sanitized.locationCardId,
+            sanitized.chancePercent,
+            sanitized.startAt,
+            sanitized.endAt,
+            sanitized.enabled,
+            updatedAt,
+            eventId
+          );
+      });
+      jsonOk({ updatedId: eventId, events: listDropEvents(db) });
+      return;
+    }
+
+    if (args.action === "event-delete") {
+      ensurePerimDropEventTable(db);
+      const eventId = Number(args.id || 0);
+      if (!Number.isInteger(eventId) || eventId <= 0) {
+        throw new Error("Parametro --id invalido para event-delete.");
+      }
+      const removed = withTransaction(db, () =>
+        db.prepare("DELETE FROM perim_drop_events WHERE id = ?").run(eventId)
+      );
+      jsonOk({
+        deletedId: eventId,
+        deleted: Number(removed?.changes || 0) > 0,
+        events: listDropEvents(db)
+      });
+      return;
+    }
+
+    if (args.action === "quests-list") {
+      jsonOk({ quests: listQuests(db) });
+      return;
+    }
+
+    if (args.action === "quest-create") {
+      const payload = decodePayload(args.payloadB64);
+      const quest = sanitizeQuestPayload(db, payload, false);
+      const now = nowIso();
+      withTransaction(db, () => {
+        db
+          .prepare(`
+            INSERT INTO perim_quest_templates (
+              quest_key, title, description, reward_type, reward_card_id, target_location_card_id,
+              anomaly_location_ids_json, requirements_json, enabled, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `)
+          .run(
+            quest.questKey,
+            quest.title,
+            quest.description,
+            quest.rewardType,
+            quest.rewardCardId,
+            quest.targetLocationCardId,
+            JSON.stringify(quest.anomalyLocationIds),
+            JSON.stringify(quest.requirements),
+            quest.enabled,
+            now,
+            now
+          );
+      });
+      jsonOk({ createdQuestKey: quest.questKey, quests: listQuests(db) });
+      return;
+    }
+
+    if (args.action === "quest-update") {
+      const questKey = String(args.questKey || "").trim();
+      if (!questKey) {
+        throw new Error("Parametro --questKey e obrigatorio para quest-update.");
+      }
+      const existing = db
+        .prepare("SELECT quest_key FROM perim_quest_templates WHERE quest_key = ? LIMIT 1")
+        .get(questKey);
+      if (!existing) {
+        throw new Error(`Quest nao encontrada: ${questKey}`);
+      }
+      const payload = decodePayload(args.payloadB64);
+      const quest = sanitizeQuestPayload(db, { ...payload, questKey }, true);
+      const updatedAt = nowIso();
+      withTransaction(db, () => {
+        db
+          .prepare(`
+            UPDATE perim_quest_templates
+            SET title = ?, description = ?, reward_type = ?, reward_card_id = ?, target_location_card_id = ?,
+                anomaly_location_ids_json = ?, requirements_json = ?, enabled = ?, updated_at = ?
+            WHERE quest_key = ?
+          `)
+          .run(
+            quest.title,
+            quest.description,
+            quest.rewardType,
+            quest.rewardCardId,
+            quest.targetLocationCardId,
+            JSON.stringify(quest.anomalyLocationIds),
+            JSON.stringify(quest.requirements),
+            quest.enabled,
+            updatedAt,
+            questKey
+          );
+      });
+      jsonOk({ updatedQuestKey: questKey, quests: listQuests(db) });
+      return;
+    }
+
+    if (args.action === "quest-delete") {
+      const questKey = String(args.questKey || "").trim();
+      if (!questKey) {
+        throw new Error("Parametro --questKey e obrigatorio para quest-delete.");
+      }
+      const deleted = withTransaction(db, () =>
+        db
+          .prepare("DELETE FROM perim_quest_templates WHERE quest_key = ?")
+          .run(questKey)
+      );
+      jsonOk({
+        deletedQuestKey: questKey,
+        deleted: Number(deleted?.changes || 0) > 0,
+        quests: listQuests(db)
+      });
+      return;
+    }
+
     const username = ensureUsername(args.username);
     const ownerKey = normalizeUserKey(username);
-    const schemaMap = getSchemaMap(db);
     const rules = buildTableRules(schemaMap);
     const coverage = getExpectedCoverage(schemaMap, rules);
     const params = { ownerKey, username };
@@ -340,19 +941,7 @@ function run() {
 
     if (args.action === "delete") {
       const before = countPerRule(db, rules, params);
-      let removed = [];
-      try {
-        db.exec("BEGIN IMMEDIATE");
-        removed = deleteByRules(db, rules, params);
-        db.exec("COMMIT");
-      } catch (error) {
-        try {
-          db.exec("ROLLBACK");
-        } catch (_) {
-          // noop
-        }
-        throw error;
-      }
+      const removed = withTransaction(db, () => deleteByRules(db, rules, params));
       const totalRemoved = removed.reduce(
         (sum, line) => sum + Number(line.removed || 0),
         0

@@ -744,6 +744,22 @@ function createSqlV2Tables() {
   `);
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_quest_unlocks_owner ON perim_quest_unlocks(owner_key, unlocked_at DESC);");
   sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_drop_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_text TEXT NOT NULL,
+      card_type TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      location_card_id TEXT NOT NULL,
+      chance_percent REAL NOT NULL DEFAULT 0,
+      start_at TEXT NOT NULL,
+      end_at TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_drop_events_active_window ON perim_drop_events(enabled, location_card_id, start_at, end_at);");
+  sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_location_state (
       location_id TEXT NOT NULL PRIMARY KEY,
       turn_label TEXT NOT NULL,
@@ -5956,6 +5972,44 @@ function getPerimLocationRules() {
   return tables.locationRules || cloneDefaultPerimDropTables().locationRules;
 }
 
+function listActivePerimDropEventsForLocation(locationCardIdRaw, nowDate = new Date()) {
+  if (!isSqlV2Ready()) {
+    return [];
+  }
+  const locationCardId = String(locationCardIdRaw || "").trim();
+  if (!locationCardId) {
+    return [];
+  }
+  const nowIsoText = new Date(nowDate).toISOString();
+  let rows = [];
+  try {
+    rows = sqliteDb
+      .prepare(`
+        SELECT id, event_text, card_type, card_id, location_card_id, chance_percent, start_at, end_at, enabled
+        FROM perim_drop_events
+        WHERE enabled = 1
+          AND location_card_id = ?
+          AND start_at <= ?
+          AND end_at >= ?
+        ORDER BY chance_percent DESC, id ASC
+      `)
+      .all(locationCardId, nowIsoText, nowIsoText);
+  } catch (error) {
+    console.warn(`[PERIM][EVENTS] Falha ao consultar eventos de drop: ${error?.message || error}`);
+    return [];
+  }
+  return rows.map((row) => ({
+    id: Number(row?.id || 0),
+    eventText: String(row?.event_text || ""),
+    cardType: String(row?.card_type || ""),
+    cardId: String(row?.card_id || ""),
+    locationCardId: String(row?.location_card_id || ""),
+    chancePercent: Math.max(0, Math.min(100, Number(row?.chance_percent || 0))),
+    startAt: String(row?.start_at || ""),
+    endAt: String(row?.end_at || ""),
+  }));
+}
+
 function getPerimMaxCreatureDropsPerRun() {
   const tables = getPerimDropTables();
   const limit = Math.floor(Number(tables?.limits?.maxCreatureDropsPerRun || 1));
@@ -7686,6 +7740,59 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     return true;
   };
 
+  const buildDropEventRewardFromEvent = (eventEntry) => {
+    if (!eventEntry || typeof eventEntry !== "object") {
+      return null;
+    }
+    const type = String(eventEntry.cardType || "").trim();
+    const cardId = String(eventEntry.cardId || "").trim();
+    if (!DECK_CARD_TYPES.includes(type) || !cardId) {
+      return null;
+    }
+    if (excludedRewardCardKeys.has(`${type}:${cardId}`)) {
+      return null;
+    }
+    const cardsByType = Array.isArray(library?.cardsByType?.[type]) ? library.cardsByType[type] : [];
+    const card = cardsByType.find((entry) => String(entry?.id || "") === cardId) || null;
+    if (!card) {
+      return null;
+    }
+    if (!isPerimDropSetAllowed(card?.set || "")) {
+      return null;
+    }
+    const lowerName = String(card?.name || "").toLowerCase();
+    if (lowerName.includes("unused") || lowerName.includes("alpha")) {
+      return null;
+    }
+    const stockKey = `${type}:${cardId}`;
+    const currentAmount = Math.max(0, Number(inventoryCounts.get(stockKey) || 0));
+    if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
+      return null;
+    }
+    if (type === "locations") {
+      const ownedTotal = resolveOwnedLocationTotal(cardId);
+      if (ownedTotal >= PERIM_LOCATION_DROP_COPY_CAP) {
+        return null;
+      }
+    }
+    const reward = {
+      type,
+      cardId,
+      cardName: String(card?.name || cardId),
+      rarity: String(card?.rarity || "Unknown"),
+      image: String(card?.image || ""),
+      source: "perim_drop_event",
+      eventText: String(eventEntry.eventText || ""),
+      eventId: Number(eventEntry.id || 0),
+    };
+    if (type === "creatures" && includeCreatureVariant) {
+      const variant = buildCreatureScanVariant();
+      reward.variant = variant;
+      reward.cardDisplayName = `${reward.cardName} (${creatureVariantBadge(variant)})`;
+    }
+    return reward;
+  };
+
   const pickGuaranteedLocalReward = () => {
     const linked = Array.isArray(locationEntry?.linkedLocationIds) ? locationEntry.linkedLocationIds : [];
     const pickedLocation = pickLocationCardWithBias(linked, true);
@@ -7866,6 +7973,23 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       });
     if (!topUp || !appendReward(topUp)) {
       break;
+    }
+  }
+  if (rewards.length < maxTotalDropsPerRun) {
+    const locationCardId = String(locationEntry?.cardId || locationEntry?.id || "").trim();
+    const activeEvents = listActivePerimDropEventsForLocation(locationCardId, new Date());
+    for (const eventEntry of activeEvents) {
+      if (rewards.length >= maxTotalDropsPerRun) {
+        break;
+      }
+      const chance = Math.max(0, Math.min(1, Number(eventEntry?.chancePercent || 0) / 100));
+      if (chance <= 0 || Math.random() > chance) {
+        continue;
+      }
+      const bonusReward = buildDropEventRewardFromEvent(eventEntry);
+      if (bonusReward && appendReward(bonusReward)) {
+        break;
+      }
     }
   }
   if (rewards.length > maxTotalDropsPerRun) {
