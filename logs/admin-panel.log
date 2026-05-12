@@ -5,3 +5,12 @@
 2026-05-11 21:40:16 | op=quest-update | target=quest:quest_v1_zoth_locations_zoth_carnival_of_confusion_1153 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260511-214015.db.gz | operator=local-admin
 2026-05-11 23:02:57 | op=delete-user | target=ramon | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260511-230256.db.gz | operator=local-admin
 2026-05-12 08:25:17 | op=set-password | target=o_dimello | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-082516.db.gz | operator=local-admin
+2026-05-12 20:35:00 | op=location-tribe-set | target=location-tribe:locations:pe1:iron-pillar:1022 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-203459.db.gz | operator=local-admin
+2026-05-12 20:37:00 | op=location-tribe-delete | target=location-tribe:locations:pe1:iron-pillar:1022 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-203700.db.gz | operator=local-admin
+2026-05-12 20:37:44 | op=location-tribe-set | target=location-tribe:locations:dop:everrain:1176 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-203743.db.gz | operator=local-admin
+2026-05-12 20:41:31 | op=set-password | target=admin | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-204131.db.gz | operator=local-admin
+2026-05-12 20:43:40 | op=location-tribe-delete | target=location-tribe:locations:dop:everrain:1176 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-204339.db.gz | operator=local-admin
+2026-05-12 20:44:45 | op=event-create | target=event:new | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-204445.db.gz | operator=local-admin
+2026-05-12 20:46:29 | op=event-update | target=event:2 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-204629.db.gz | operator=local-admin
+2026-05-12 20:48:27 | op=location-tribe-delete | target=location-tribe:locations:dop:everrain:1176 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-204827.db.gz | operator=local-admin
+2026-05-12 20:48:42 | op=event-delete | target=event:2 | backup=C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\backups\chaotic-20260512-204842.db.gz | operator=local-admin

@@ -446,80 +446,100 @@ $chkEventEnabled.Size = New-Object System.Drawing.Size(100, 26)
 $chkEventEnabled.Checked = $true
 $eventsPanel.Controls.Add($chkEventEnabled)
 
+$chkEventNotifyAll = New-Object System.Windows.Forms.CheckBox
+$chkEventNotifyAll.Text = "Enviar notificacao para todos"
+$chkEventNotifyAll.Location = New-Object System.Drawing.Point(130, 366)
+$chkEventNotifyAll.Size = New-Object System.Drawing.Size(230, 26)
+$chkEventNotifyAll.Checked = $false
+$eventsPanel.Controls.Add($chkEventNotifyAll)
+
+$lblEventNotifyText = New-Object System.Windows.Forms.Label
+$lblEventNotifyText.Text = "Texto da notificacao global:"
+$lblEventNotifyText.Location = New-Object System.Drawing.Point(12, 394)
+$lblEventNotifyText.Size = New-Object System.Drawing.Size(220, 20)
+$eventsPanel.Controls.Add($lblEventNotifyText)
+
+$txtEventNotifyText = New-Object System.Windows.Forms.TextBox
+$txtEventNotifyText.Location = New-Object System.Drawing.Point(12, 416)
+$txtEventNotifyText.Size = New-Object System.Drawing.Size(520, 42)
+$txtEventNotifyText.Multiline = $true
+$txtEventNotifyText.Enabled = $false
+$eventsPanel.Controls.Add($txtEventNotifyText)
+
 $btnEventNew = New-Object System.Windows.Forms.Button
 $btnEventNew.Text = "Novo"
-$btnEventNew.Location = New-Object System.Drawing.Point(12, 404)
+$btnEventNew.Location = New-Object System.Drawing.Point(12, 464)
 $btnEventNew.Size = New-Object System.Drawing.Size(80, 30)
 $eventsPanel.Controls.Add($btnEventNew)
 
 $btnEventSave = New-Object System.Windows.Forms.Button
 $btnEventSave.Text = "Salvar"
-$btnEventSave.Location = New-Object System.Drawing.Point(98, 404)
+$btnEventSave.Location = New-Object System.Drawing.Point(98, 464)
 $btnEventSave.Size = New-Object System.Drawing.Size(80, 30)
 $eventsPanel.Controls.Add($btnEventSave)
 
 $btnEventDelete = New-Object System.Windows.Forms.Button
 $btnEventDelete.Text = "Excluir"
-$btnEventDelete.Location = New-Object System.Drawing.Point(184, 404)
+$btnEventDelete.Location = New-Object System.Drawing.Point(184, 464)
 $btnEventDelete.Size = New-Object System.Drawing.Size(80, 30)
 $eventsPanel.Controls.Add($btnEventDelete)
 
 $btnEventRefresh = New-Object System.Windows.Forms.Button
 $btnEventRefresh.Text = "Atualizar"
-$btnEventRefresh.Location = New-Object System.Drawing.Point(270, 404)
+$btnEventRefresh.Location = New-Object System.Drawing.Point(270, 464)
 $btnEventRefresh.Size = New-Object System.Drawing.Size(90, 30)
 $eventsPanel.Controls.Add($btnEventRefresh)
 
 $lblLocationTribeTitle = New-Object System.Windows.Forms.Label
 $lblLocationTribeTitle.Text = "Tribo dos Locais (PERIM)"
-$lblLocationTribeTitle.Location = New-Object System.Drawing.Point(12, 446)
+$lblLocationTribeTitle.Location = New-Object System.Drawing.Point(12, 506)
 $lblLocationTribeTitle.Size = New-Object System.Drawing.Size(220, 22)
 $eventsPanel.Controls.Add($lblLocationTribeTitle)
 
 $lblLocationTribeLoc = New-Object System.Windows.Forms.Label
 $lblLocationTribeLoc.Text = "Local:"
-$lblLocationTribeLoc.Location = New-Object System.Drawing.Point(12, 470)
+$lblLocationTribeLoc.Location = New-Object System.Drawing.Point(12, 530)
 $lblLocationTribeLoc.Size = New-Object System.Drawing.Size(80, 20)
 $eventsPanel.Controls.Add($lblLocationTribeLoc)
 
 $comboLocationTribeLocation = New-Object System.Windows.Forms.ComboBox
 $comboLocationTribeLocation.DropDownStyle = "DropDownList"
-$comboLocationTribeLocation.Location = New-Object System.Drawing.Point(12, 492)
+$comboLocationTribeLocation.Location = New-Object System.Drawing.Point(12, 552)
 $comboLocationTribeLocation.Size = New-Object System.Drawing.Size(520, 28)
 $eventsPanel.Controls.Add($comboLocationTribeLocation)
 
 $lblLocationTribeKey = New-Object System.Windows.Forms.Label
 $lblLocationTribeKey.Text = "Tribo:"
-$lblLocationTribeKey.Location = New-Object System.Drawing.Point(12, 526)
+$lblLocationTribeKey.Location = New-Object System.Drawing.Point(12, 586)
 $lblLocationTribeKey.Size = New-Object System.Drawing.Size(80, 20)
 $eventsPanel.Controls.Add($lblLocationTribeKey)
 
 $comboLocationTribeKey = New-Object System.Windows.Forms.ComboBox
 $comboLocationTribeKey.DropDownStyle = "DropDownList"
-$comboLocationTribeKey.Location = New-Object System.Drawing.Point(12, 548)
+$comboLocationTribeKey.Location = New-Object System.Drawing.Point(12, 608)
 $comboLocationTribeKey.Size = New-Object System.Drawing.Size(220, 28)
 $eventsPanel.Controls.Add($comboLocationTribeKey)
 
 $btnLocationTribeSave = New-Object System.Windows.Forms.Button
 $btnLocationTribeSave.Text = "Salvar tribo"
-$btnLocationTribeSave.Location = New-Object System.Drawing.Point(242, 546)
+$btnLocationTribeSave.Location = New-Object System.Drawing.Point(242, 606)
 $btnLocationTribeSave.Size = New-Object System.Drawing.Size(96, 30)
 $eventsPanel.Controls.Add($btnLocationTribeSave)
 
 $btnLocationTribeDelete = New-Object System.Windows.Forms.Button
 $btnLocationTribeDelete.Text = "Remover"
-$btnLocationTribeDelete.Location = New-Object System.Drawing.Point(344, 546)
+$btnLocationTribeDelete.Location = New-Object System.Drawing.Point(344, 606)
 $btnLocationTribeDelete.Size = New-Object System.Drawing.Size(88, 30)
 $eventsPanel.Controls.Add($btnLocationTribeDelete)
 
 $btnLocationTribeRefresh = New-Object System.Windows.Forms.Button
 $btnLocationTribeRefresh.Text = "Atualizar"
-$btnLocationTribeRefresh.Location = New-Object System.Drawing.Point(438, 546)
+$btnLocationTribeRefresh.Location = New-Object System.Drawing.Point(438, 606)
 $btnLocationTribeRefresh.Size = New-Object System.Drawing.Size(94, 30)
 $eventsPanel.Controls.Add($btnLocationTribeRefresh)
 
 $locationTribesGrid = New-Object System.Windows.Forms.DataGridView
-$locationTribesGrid.Location = New-Object System.Drawing.Point(12, 582)
+$locationTribesGrid.Location = New-Object System.Drawing.Point(12, 642)
 $locationTribesGrid.Size = New-Object System.Drawing.Size(520, 146)
 $locationTribesGrid.ReadOnly = $true
 $locationTribesGrid.AllowUserToAddRows = $false
@@ -883,6 +903,9 @@ function Reset-EventForm {
   $script:CurrentEventId = 0
   $eventIdLabel.Text = "Evento selecionado: novo"
   $txtEventText.Text = ""
+  $txtEventNotifyText.Text = ""
+  $chkEventNotifyAll.Checked = $false
+  $txtEventNotifyText.Enabled = $false
   $numEventChance.Value = 0
   $dtEventStart.Value = [datetime]::Now
   $dtEventEnd.Value = [datetime]::Now.AddDays(1)
@@ -924,11 +947,16 @@ function Fill-EventFormById {
   try { $dtEventStart.Value = [datetime]::Parse([string]$event.startAt) } catch {}
   try { $dtEventEnd.Value = [datetime]::Parse([string]$event.endAt) } catch {}
   $chkEventEnabled.Checked = [bool]$event.enabled
+  $chkEventNotifyAll.Checked = $false
+  $txtEventNotifyText.Text = ""
+  $txtEventNotifyText.Enabled = $false
 }
 
 function Build-EventPayload {
   return @{
     eventText = $txtEventText.Text.Trim()
+    notifyAllPlayers = [bool]$chkEventNotifyAll.Checked
+    notificationText = $txtEventNotifyText.Text.Trim()
     cardType = Get-SelectedValue -Combo $comboEventType
     cardId = Get-SelectedValue -Combo $comboEventCard
     locationCardId = Get-SelectedValue -Combo $comboEventLocation
@@ -1153,6 +1181,13 @@ $eventsGrid.Add_SelectionChanged({
   if ([int]::TryParse($idText, [ref]$id)) { Fill-EventFormById -EventId $id }
 })
 
+$chkEventNotifyAll.Add_CheckedChanged({
+  $txtEventNotifyText.Enabled = [bool]$chkEventNotifyAll.Checked
+  if (-not $chkEventNotifyAll.Checked) {
+    $txtEventNotifyText.Text = ""
+  }
+})
+
 $locationTribesGrid.Add_SelectionChanged({
   if ($locationTribesGrid.SelectedRows.Count -lt 1) { return }
   $locationCardId = [string]$locationTribesGrid.SelectedRows[0].Cells[1].Value
@@ -1171,16 +1206,26 @@ $locationTribesGrid.Add_SelectionChanged({
 $btnEventSave.Add_Click({
   try {
     $payload = Build-EventPayload
+    if ($payload.notifyAllPlayers -and [string]::IsNullOrWhiteSpace([string]$payload.notificationText)) {
+      [System.Windows.Forms.MessageBox]::Show("Digite o texto da notificacao global antes de enviar para todos.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
     if ($script:CurrentEventId -gt 0) {
       $op = Invoke-MutatingOperation -OperationName "event-update" -Target ("event:" + $script:CurrentEventId) -ActionBlock {
         Invoke-AdminEngine -Action "event-update" -Id ([string]$script:CurrentEventId) -Payload $payload
       }
-      [System.Windows.Forms.MessageBox]::Show("Evento atualizado.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+      $notifiedCount = 0
+      try { $notifiedCount = [int]($op.result.notifiedCount) } catch {}
+      $notifyLine = if ($notifiedCount -gt 0) { "`r`nNotificacoes enviadas: $notifiedCount" } else { "" }
+      [System.Windows.Forms.MessageBox]::Show("Evento atualizado.$notifyLine`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
     } else {
       $op = Invoke-MutatingOperation -OperationName "event-create" -Target "event:new" -ActionBlock {
         Invoke-AdminEngine -Action "event-create" -Payload $payload
       }
-      [System.Windows.Forms.MessageBox]::Show("Evento criado.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+      $notifiedCount = 0
+      try { $notifiedCount = [int]($op.result.notifiedCount) } catch {}
+      $notifyLine = if ($notifiedCount -gt 0) { "`r`nNotificacoes enviadas: $notifiedCount" } else { "" }
+      [System.Windows.Forms.MessageBox]::Show("Evento criado.$notifyLine`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
     }
     Load-Events
     Reset-EventForm

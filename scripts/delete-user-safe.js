@@ -511,6 +511,8 @@ function parseDateIsoRequired(value, fieldName) {
 
 function sanitizeDropEventPayload(db, raw) {
   const eventText = String(raw?.eventText || raw?.text || "").trim();
+  const notifyAllPlayers = Boolean(raw?.notifyAllPlayers);
+  const notificationText = String(raw?.notificationText || "").trim();
   const cardType = normalizeCardType(raw?.cardType || "");
   const cardId = String(raw?.cardId || "").trim();
   const locationCardId = String(raw?.locationCardId || "").trim();
@@ -537,6 +539,9 @@ function sanitizeDropEventPayload(db, raw) {
   if (Date.parse(startAt) > Date.parse(endAt)) {
     throw new Error("startAt deve ser menor ou igual a endAt.");
   }
+  if (notifyAllPlayers && !notificationText) {
+    throw new Error("Preencha o texto da notificacao global para enviar aos jogadores.");
+  }
 
   const eventCard = getCatalogCardById(db, cardId);
   if (!eventCard) {
@@ -552,6 +557,8 @@ function sanitizeDropEventPayload(db, raw) {
 
   return {
     eventText,
+    notifyAllPlayers,
+    notificationText,
     cardType,
     cardId,
     locationCardId,
@@ -560,6 +567,66 @@ function sanitizeDropEventPayload(db, raw) {
     endAt,
     enabled: enabled ? 1 : 0
   };
+}
+
+function ensureProfileNotificationsTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS profile_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_key TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      payload_json TEXT NOT NULL DEFAULT '{}',
+      is_read INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      read_at TEXT
+    );
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_profile_notifications_owner_read_created ON profile_notifications(owner_key, is_read, created_at DESC);");
+}
+
+function listNotificationRecipientOwnerKeys(db) {
+  const owners = new Set();
+  const userRows = db.prepare("SELECT username FROM users").all();
+  userRows.forEach((row) => {
+    const ownerKey = normalizeUserKey(row?.username || "");
+    if (ownerKey) {
+      owners.add(ownerKey);
+    }
+  });
+  const profileRows = db
+    .prepare("SELECT owner_key FROM player_profiles WHERE owner_key IS NOT NULL AND TRIM(owner_key) <> ''")
+    .all();
+  profileRows.forEach((row) => {
+    const ownerKey = normalizeUserKey(row?.owner_key || "");
+    if (ownerKey) {
+      owners.add(ownerKey);
+    }
+  });
+  return [...owners];
+}
+
+function createGlobalEventNotification(db, notificationText, payload = {}) {
+  const message = String(notificationText || "").trim();
+  if (!message) {
+    return { sent: 0 };
+  }
+  ensureProfileNotificationsTable(db);
+  const recipients = listNotificationRecipientOwnerKeys(db);
+  if (!recipients.length) {
+    return { sent: 0 };
+  }
+  const createdAt = nowIso();
+  const payloadJson = JSON.stringify(payload && typeof payload === "object" ? payload : {});
+  const insert = db.prepare(`
+    INSERT INTO profile_notifications (owner_key, type, title, message, payload_json, is_read, created_at, read_at)
+    VALUES (?, ?, ?, ?, ?, 0, ?, NULL)
+  `);
+  recipients.forEach((ownerKey) => {
+    insert.run(ownerKey, "admin_event_broadcast", "Evento do sistema", message, payloadJson, createdAt);
+  });
+  return { sent: recipients.length };
 }
 
 function listDropEvents(db) {
@@ -843,7 +910,7 @@ function run() {
       const sanitized = sanitizeDropEventPayload(db, payload);
       const createdAt = nowIso();
       const updatedAt = createdAt;
-      const createdId = withTransaction(db, () => {
+      const outcome = withTransaction(db, () => {
         const res = db
           .prepare(`
             INSERT INTO perim_drop_events (
@@ -862,9 +929,21 @@ function run() {
             createdAt,
             updatedAt
           );
-        return Number(res?.lastInsertRowid || 0);
+        const createdId = Number(res?.lastInsertRowid || 0);
+        const notify = sanitized.notifyAllPlayers
+          ? createGlobalEventNotification(db, sanitized.notificationText, {
+              source: "admin_event_create",
+              eventId: createdId,
+              eventText: sanitized.eventText,
+            })
+          : { sent: 0 };
+        return { createdId, notifiedCount: Number(notify?.sent || 0) };
       });
-      jsonOk({ createdId, events: listDropEvents(db) });
+      jsonOk({
+        createdId: Number(outcome?.createdId || 0),
+        notifiedCount: Number(outcome?.notifiedCount || 0),
+        events: listDropEvents(db)
+      });
       return;
     }
 
@@ -881,7 +960,7 @@ function run() {
       const payload = decodePayload(args.payloadB64);
       const sanitized = sanitizeDropEventPayload(db, payload);
       const updatedAt = nowIso();
-      withTransaction(db, () => {
+      const notifyResult = withTransaction(db, () => {
         db
           .prepare(`
             UPDATE perim_drop_events
@@ -901,8 +980,20 @@ function run() {
             updatedAt,
             eventId
           );
+        const notify = sanitized.notifyAllPlayers
+          ? createGlobalEventNotification(db, sanitized.notificationText, {
+              source: "admin_event_update",
+              eventId,
+              eventText: sanitized.eventText,
+            })
+          : { sent: 0 };
+        return { sent: Number(notify?.sent || 0) };
       });
-      jsonOk({ updatedId: eventId, events: listDropEvents(db) });
+      jsonOk({
+        updatedId: eventId,
+        notifiedCount: Number(notifyResult?.sent || 0),
+        events: listDropEvents(db)
+      });
       return;
     }
 
