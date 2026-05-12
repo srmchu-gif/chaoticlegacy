@@ -8806,6 +8806,29 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
   const dailyPlacements = [];
   const seenLoki = new Set();
   let duplicateLokiCount = 0;
+  const { locationsByNormalizedName } = getLibraryIndexes();
+  const locationTribeKeyByNameKey = new Map();
+  let tribeFilteredLocationCandidates = 0;
+  let tribeBlockedCreatureRows = 0;
+
+  const resolveEffectiveLocationTribeForNameKey = (locationNameKeyRaw) => {
+    const locationNameKey = normalizePerimText(locationNameKeyRaw);
+    if (!locationNameKey) {
+      return "";
+    }
+    if (locationTribeKeyByNameKey.has(locationNameKey)) {
+      return locationTribeKeyByNameKey.get(locationNameKey) || "";
+    }
+    const locationCard = locationsByNormalizedName.get(locationNameKey) || null;
+    const locationCardId = String(locationCard?.id || resolveLocationCardId(locationNameKey) || "").trim();
+    const tribeKey = resolvePerimLocationEffectiveTribeKey({
+      cardId: locationCardId,
+      id: locationCardId,
+      tribe: locationCard?.tribe || "",
+    });
+    locationTribeKeyByNameKey.set(locationNameKey, tribeKey || "");
+    return tribeKey || "";
+  };
 
   creatureRows.forEach((creature) => {
     const creatureLoki = Number(creature?.loki || 0);
@@ -8828,9 +8851,22 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
       return;
     }
 
+    const filteredPossibleLocations = possibleLocations.filter((locationNameKey) => {
+      const locationTribeKey = resolveEffectiveLocationTribeForNameKey(locationNameKey);
+      return isPerimTribeMatchForCard(creature, locationTribeKey);
+    });
+    const filteredOutCount = Math.max(0, possibleLocations.length - filteredPossibleLocations.length);
+    if (filteredOutCount > 0) {
+      tribeFilteredLocationCandidates += filteredOutCount;
+    }
+    if (!filteredPossibleLocations.length) {
+      tribeBlockedCreatureRows += 1;
+      return;
+    }
+
     const rng = createSeededRng(`${key}:${creature.loki}:${creature.name}`);
-    const possibleSet = new Set(possibleLocations);
-    const somenteSet = new Set(somenteLocations);
+    const possibleSet = new Set(filteredPossibleLocations);
+    const somenteSet = new Set(somenteLocations.filter((locationNameKey) => possibleSet.has(locationNameKey)));
     const previousPlacement = previousByLoki.get(Number(creature.loki || 0));
     const previousLocationKey = normalizePerimText(previousPlacement?.locationNameKey || "");
 
@@ -8852,7 +8888,7 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
     }
 
     if (!candidates.length) {
-      candidates = possibleLocations.map((locKey) => ({
+      candidates = filteredPossibleLocations.map((locKey) => ({
         locationKey: locKey,
         weight: ((somenteSet.has(locKey) ? 8 : 2.5) + Number(scoreByLocation?.get(locKey) || 0)) * rarityFactor,
       }));
@@ -8899,6 +8935,11 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
   );
   if (duplicateLokiCount > 0) {
     console.log(`[PERIM] Skipped ${duplicateLokiCount} duplicate creature rows with repeated loki in criaturas.xlsx.`);
+  }
+  if (tribeFilteredLocationCandidates > 0 || tribeBlockedCreatureRows > 0) {
+    console.log(
+      `[PERIM] Tribe-by-location filter (${key}): filteredCandidates=${tribeFilteredLocationCandidates}, blockedCreatures=${tribeBlockedCreatureRows}.`
+    );
   }
   console.log(`[PERIM] Generated ${dailyPlacements.length} creature placements for ${key}.`);
   return payload;
@@ -15080,7 +15121,8 @@ function resolvePerimLocationEffectiveTribeKey(locationEntry) {
   if (override) {
     return override;
   }
-  return normalizePerimLocationTribeKey(locationEntry?.tribe || "");
+  // No override means no restriction for this location.
+  return "";
 }
 
 function isPerimTribeMatchForCard(card, expectedTribeKeyRaw) {
@@ -15088,14 +15130,11 @@ function isPerimTribeMatchForCard(card, expectedTribeKeyRaw) {
   if (!expectedTribeKey) {
     return true;
   }
+  if (expectedTribeKey === "tribeless") {
+    return true;
+  }
   const rawTribe = String(card?.tribe || "").trim();
   const normalizedCardTribe = normalizePerimLocationTribeKey(rawTribe);
-  if (expectedTribeKey === "tribeless") {
-    if (!rawTribe || rawTribe === "?") {
-      return true;
-    }
-    return normalizedCardTribe === "tribeless";
-  }
   return normalizedCardTribe === expectedTribeKey;
 }
 
