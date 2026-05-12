@@ -1567,10 +1567,12 @@ const tradeCardLocks = new Map();
 const tradeInvites = new Map();
 const perimLocationChatClients = new Map();
 const globalChatClients = new Set();
+const activePresenceByOwner = new Map();
 const casualBattleInvites = new Map();
 const rankedQueueByDrome = new Map();
 const rankedQueueByOwner = new Map();
 const rankedQueueMatches = new Map();
+const PRESENCE_HEARTBEAT_TTL_MS = 90 * 1000;
 
 const runtimeMetrics = {
   requestSamplesByRoute: new Map(),
@@ -1669,6 +1671,105 @@ function countActiveValidSessions() {
   } catch {
     return 0;
   }
+}
+
+function pruneActivePresence(nowValue = nowMs()) {
+  const nowTimestamp = Number(nowValue || 0);
+  if (!Number.isFinite(nowTimestamp)) {
+    return;
+  }
+  activePresenceByOwner.forEach((entry, ownerKey) => {
+    const lastSeenMs = Number(entry?.lastSeenMs || 0);
+    if (!lastSeenMs || (nowTimestamp - lastSeenMs) > PRESENCE_HEARTBEAT_TTL_MS) {
+      activePresenceByOwner.delete(ownerKey);
+    }
+  });
+}
+
+function markUserPresenceActive(usernameRaw = "") {
+  const ownerKey = normalizeUserKey(usernameRaw || "", "");
+  if (!ownerKey) {
+    return null;
+  }
+  const currentMs = nowMs();
+  activePresenceByOwner.set(ownerKey, {
+    ownerKey,
+    username: String(usernameRaw || ownerKey),
+    lastSeenMs: currentMs,
+    lastSeenAt: isoFromMs(currentMs),
+  });
+  pruneActivePresence(currentMs);
+  return activePresenceByOwner.get(ownerKey) || null;
+}
+
+function clearUserPresence(usernameRaw = "") {
+  const ownerKey = normalizeUserKey(usernameRaw || "", "");
+  if (!ownerKey) {
+    return;
+  }
+  activePresenceByOwner.delete(ownerKey);
+}
+
+function listActivePresenceOwnerKeys(candidateKeysRaw = null) {
+  pruneActivePresence(nowMs());
+  const keys = Array.from(activePresenceByOwner.keys());
+  if (!Array.isArray(candidateKeysRaw) || !candidateKeysRaw.length) {
+    return keys;
+  }
+  const allowed = new Set(
+    candidateKeysRaw
+      .map((value) => normalizeUserKey(value || "", ""))
+      .filter(Boolean)
+  );
+  return keys.filter((key) => allowed.has(key));
+}
+
+function listOnlinePresencePlayers(limitRaw = 50) {
+  if (!sqliteDb) {
+    return [];
+  }
+  const limit = Math.max(1, Math.min(100, Number.isFinite(Number(limitRaw)) ? Number(limitRaw) : 50));
+  const activeKeys = listActivePresenceOwnerKeys();
+  if (!activeKeys.length) {
+    return [];
+  }
+  const placeholders = activeKeys.map(() => "?").join(", ");
+  const seasonKey = seasonKeyFromDate(new Date());
+  const rows = sqliteDb
+    .prepare(`
+      SELECT
+        lower(u.username) AS owner_key,
+        u.username AS username,
+        COALESCE(p.avatar, '') AS avatar,
+        COALESCE(p.score, 1200) AS score,
+        sel.drome_id AS drome_id
+      FROM users u
+      LEFT JOIN player_profiles p
+        ON p.owner_key = lower(u.username)
+      LEFT JOIN ranked_drome_selection sel
+        ON sel.owner_key = lower(u.username) AND sel.season_key = ?
+      WHERE COALESCE(u.verified, 0) = 1
+        AND lower(u.username) IN (${placeholders})
+      ORDER BY COALESCE(p.score, 1200) DESC, lower(u.username) ASC
+      LIMIT ?
+    `)
+    .all(seasonKey, ...activeKeys, limit);
+  return rows.map((row, index) => {
+    const ownerKey = normalizeUserKey(row?.owner_key || "", "");
+    const presenceEntry = activePresenceByOwner.get(ownerKey) || null;
+    return {
+      rank: index + 1,
+      username: String(row?.username || ownerKey || ""),
+      ownerKey,
+      avatar: String(row?.avatar || ""),
+      score: Math.max(0, Number(row?.score || 0)),
+      currentDrome: {
+        id: normalizeDromeId(row?.drome_id || ""),
+        name: dromeNameById(row?.drome_id || ""),
+      },
+      lastSeenAt: presenceEntry?.lastSeenAt || nowIso(),
+    };
+  });
 }
 
 function buildRuntimeMetricsSnapshot() {
@@ -12396,20 +12497,7 @@ function getFriendPresenceMap(ownerKeyRaw, friendKeysRaw) {
     return out;
   }
   const placeholders = friendKeys.map(() => "?").join(", ");
-  const now = nowIso();
-
-  const onlineRows = sqliteDb
-    .prepare(`
-      SELECT lower(username) AS owner_key
-      FROM users
-      WHERE lower(username) IN (${placeholders})
-        AND session_token IS NOT NULL
-        AND session_token != ''
-        AND session_expires_at IS NOT NULL
-        AND session_expires_at > ?
-    `)
-    .all(...friendKeys, now);
-  const onlineSet = new Set(onlineRows.map((row) => normalizeUserKey(row?.owner_key || "", "")));
+  const activePresenceSet = new Set(listActivePresenceOwnerKeys(friendKeys));
 
   const perimRows = sqliteDb
     .prepare(`
@@ -12448,12 +12536,12 @@ function getFriendPresenceMap(ownerKeyRaw, friendKeysRaw) {
   });
 
   friendKeys.forEach((key) => {
-    if (tradeSet.has(key)) {
+    if (tradeSet.has(key) && activePresenceSet.has(key)) {
       out[key] = { status: "em_troca" };
       return;
     }
     const perim = perimByOwner.get(key);
-    if (perim) {
+    if (perim && activePresenceSet.has(key)) {
       out[key] = {
         status: "em_perim",
         locationName: perim.locationName,
@@ -12462,7 +12550,7 @@ function getFriendPresenceMap(ownerKeyRaw, friendKeysRaw) {
       };
       return;
     }
-    if (onlineSet.has(key)) {
+    if (activePresenceSet.has(key)) {
       out[key] = { status: "online" };
       return;
     }
@@ -15232,6 +15320,44 @@ async function handleRequest(request, response) {
       tribe: user.tribe,
       sessionExpiresAt: user.session_expires_at || null,
     });
+    markUserPresenceActive(user.username || "");
+    return;
+  }
+
+  if (pathname === "/api/presence/ping" && request.method === "POST") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    const entry = markUserPresenceActive(authUser.username || "");
+    sendJson(response, 200, {
+      ok: true,
+      ownerKey: normalizeUserKey(authUser.username || "", ""),
+      lastSeenAt: entry?.lastSeenAt || nowIso(),
+      ttlMs: PRESENCE_HEARTBEAT_TTL_MS,
+    });
+    return;
+  }
+
+  if (pathname === "/api/presence/online" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Presenca online indisponivel sem banco SQL." });
+      return;
+    }
+    markUserPresenceActive(authUser.username || "");
+    const limitRaw = Number(parsedUrl.searchParams.get("limit") || 50);
+    const players = listOnlinePresencePlayers(limitRaw);
+    sendJson(response, 200, {
+      ok: true,
+      total: players.length,
+      players,
+      ttlMs: PRESENCE_HEARTBEAT_TTL_MS,
+      generatedAt: nowIso(),
+    });
     return;
   }
 
@@ -15240,8 +15366,12 @@ async function handleRequest(request, response) {
     try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
     const payload = safeJsonParse(payloadText, null);
     const token = getRequestSessionToken(request) || payload?.sessionToken || "";
+    const userBeforeLogout = token ? loadUserByValidSessionToken(token) : null;
     if (token && sqliteDb) {
       clearSessionToken(token);
+    }
+    if (userBeforeLogout?.username) {
+      clearUserPresence(userBeforeLogout.username);
     }
     response.setHeader("Set-Cookie", clearSessionCookieHeader(request));
     sendJson(response, 200, { ok: true });

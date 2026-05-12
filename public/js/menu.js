@@ -26,6 +26,8 @@ const NETWORK_TIMEOUT_MS = {
   perimState: 25000,
   default: 12000,
 };
+const PRESENCE_HEARTBEAT_VISIBLE_MS = 25000;
+const PRESENCE_HEARTBEAT_HIDDEN_MS = 90000;
 
 initMatrixEffect();
 
@@ -1290,6 +1292,76 @@ async function bindProfile(username, sessionData) {
   }
 }
 
+function startMenuPresenceHeartbeat() {
+  let timerId = null;
+  let stopped = false;
+  let inFlight = false;
+
+  const clearTimer = () => {
+    if (timerId) {
+      clearTimeout(timerId);
+      timerId = null;
+    }
+  };
+
+  const nextDelay = () => (
+    document.visibilityState === "hidden"
+      ? PRESENCE_HEARTBEAT_HIDDEN_MS
+      : PRESENCE_HEARTBEAT_VISIBLE_MS
+  );
+
+  const schedule = (delayMs = nextDelay()) => {
+    clearTimer();
+    if (stopped) {
+      return;
+    }
+    timerId = setTimeout(() => {
+      void tick();
+    }, Math.max(1000, Number(delayMs || PRESENCE_HEARTBEAT_VISIBLE_MS)));
+  };
+
+  const tick = async () => {
+    if (stopped || inFlight) {
+      return;
+    }
+    if (document.visibilityState === "hidden") {
+      schedule(PRESENCE_HEARTBEAT_HIDDEN_MS);
+      return;
+    }
+    inFlight = true;
+    try {
+      await fetchJsonWithTimeout("/api/presence/ping", { method: "POST" }, 8000);
+    } catch (_) {
+      // noop: heartbeat failure deve ser silencioso para nao poluir UX
+    } finally {
+      inFlight = false;
+      schedule(nextDelay());
+    }
+  };
+
+  const onVisibility = () => {
+    if (stopped) {
+      return;
+    }
+    if (document.visibilityState === "visible") {
+      void tick();
+      return;
+    }
+    schedule(PRESENCE_HEARTBEAT_HIDDEN_MS);
+  };
+
+  document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("focus", onVisibility);
+  void tick();
+
+  return () => {
+    stopped = true;
+    clearTimer();
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("focus", onVisibility);
+  };
+}
+
 function bindSidePanels(username) {
   const top50Sidebar = qs("top50-sidebar");
   const top50PinBtn = qs("top50-pin");
@@ -1297,11 +1369,15 @@ function bindSidePanels(username) {
   const top50ScoreListEl = qs("top50-list");
   const top50ScansStateEl = qs("top50-scans-state");
   const top50ScansListEl = qs("top50-scans-list");
+  const top50OnlineStateEl = qs("top50-online-state");
+  const top50OnlineListEl = qs("top50-online-list");
   const top50TabScore = qs("top50-tab-score");
   const top50TabScans = qs("top50-tab-scans");
+  const top50TabOnline = qs("top50-tab-online");
   const top50TabChat = qs("top50-tab-chat");
   const top50ScorePanel = qs("top50-panel-score");
   const top50ScansPanel = qs("top50-panel-scans");
+  const top50OnlinePanel = qs("top50-panel-online");
   const top50ChatPanel = qs("top50-panel-chat");
   const globalChatStateEl = qs("global-chat-state");
   const globalChatMessagesEl = qs("global-chat-messages");
@@ -1583,6 +1659,25 @@ function bindSidePanels(username) {
     `).join("");
   };
 
+  const renderOnlinePlayers = (players) => {
+    if (!top50OnlineListEl) return;
+    const list = Array.isArray(players) ? players : [];
+    if (!list.length) {
+      top50OnlineListEl.innerHTML = '<div class="trades-empty">Nenhum jogador online agora.</div>';
+      return;
+    }
+    top50OnlineListEl.innerHTML = list.map((entry) => `
+      <article class="top50-row">
+        <img src="${escapeAttr(entry?.avatar || "/fundo%20cartas.png")}" alt="${escapeAttr(entry?.username || "Jogador")}" />
+        <div>
+          <strong>#${Number(entry?.rank || 0)} ${escapeHtml(entry?.username || "-")}</strong>
+          <span>Score: ${Number(entry?.score || 0)}</span>
+          <span>Dromo: ${escapeHtml(entry?.currentDrome?.name || "-")}</span>
+        </div>
+      </article>
+    `).join("");
+  };
+
   const refreshTop50 = async (metric) => {
     const targetState = metric === "scans" ? top50ScansStateEl : top50ScoreStateEl;
     if (!targetState) return;
@@ -1594,6 +1689,21 @@ function bindSidePanels(username) {
       targetState.textContent = error?.message || "Falha ao carregar top 50.";
       const targetList = metric === "scans" ? top50ScansListEl : top50ScoreListEl;
       if (targetList) targetList.innerHTML = "";
+    }
+  };
+
+  const refreshOnlinePlayers = async () => {
+    if (!top50OnlineStateEl) return;
+    try {
+      const payload = await fetchJsonWithTimeout("/api/presence/online?limit=50", { method: "GET" });
+      const players = Array.isArray(payload?.players) ? payload.players : [];
+      renderOnlinePlayers(players);
+      top50OnlineStateEl.textContent = `${players.length} jogador(es) online agora.`;
+    } catch (error) {
+      top50OnlineStateEl.textContent = error?.message || "Falha ao carregar jogadores online.";
+      if (top50OnlineListEl) {
+        top50OnlineListEl.innerHTML = "";
+      }
     }
   };
 
@@ -1611,7 +1721,7 @@ function bindSidePanels(username) {
 
   const setActiveTab = (nextTabRaw, persist = true) => {
     const requested = String(nextTabRaw || "score").toLowerCase();
-    const valid = requested === "scans" || requested === "chat" ? requested : "score";
+    const valid = requested === "scans" || requested === "chat" || requested === "online" ? requested : "score";
     const nextTab = (valid === "chat" && !state.chatEnabled) ? "score" : valid;
     state.activeTab = nextTab;
     if (persist) {
@@ -1619,9 +1729,11 @@ function bindSidePanels(username) {
     }
     if (top50TabScore) top50TabScore.classList.toggle("active", nextTab === "score");
     if (top50TabScans) top50TabScans.classList.toggle("active", nextTab === "scans");
+    if (top50TabOnline) top50TabOnline.classList.toggle("active", nextTab === "online");
     if (top50TabChat) top50TabChat.classList.toggle("active", nextTab === "chat");
     if (top50ScorePanel) top50ScorePanel.classList.toggle("active", nextTab === "score");
     if (top50ScansPanel) top50ScansPanel.classList.toggle("active", nextTab === "scans");
+    if (top50OnlinePanel) top50OnlinePanel.classList.toggle("active", nextTab === "online");
     if (top50ChatPanel) top50ChatPanel.classList.toggle("active", nextTab === "chat");
     if (!isSidebarEffectivelyOpen()) {
       return;
@@ -1631,6 +1743,10 @@ function bindSidePanels(username) {
       return;
     }
     closeGlobalChatStream();
+    if (nextTab === "online") {
+      void refreshOnlinePlayers();
+      return;
+    }
     void refreshTop50(nextTab);
   };
 
@@ -1643,6 +1759,8 @@ function bindSidePanels(username) {
     if (isSidebarEffectivelyOpen()) {
       if (state.activeTab === "chat") {
         void refreshGlobalChat(true);
+      } else if (state.activeTab === "online") {
+        void refreshOnlinePlayers();
       } else {
         void refreshTop50(state.activeTab);
       }
@@ -1766,6 +1884,8 @@ function bindSidePanels(username) {
     if (isSidebarEffectivelyOpen() && !wasVisible) {
       if (state.activeTab === "chat") {
         void refreshGlobalChat(true);
+      } else if (state.activeTab === "online") {
+        void refreshOnlinePlayers();
       } else {
         void refreshTop50(state.activeTab);
       }
@@ -1775,7 +1895,7 @@ function bindSidePanels(username) {
   state.isOpen = readBool(TOP50_OPEN_KEY, readLegacyOpenFromCollapsed(TOP50_UI_KEY, false));
   state.isPinned = readBool(TOP50_PIN_KEY, false);
   state.activeTab = String(localStorage.getItem(TOP50_ACTIVE_TAB_KEY) || "score").toLowerCase();
-  if (!["score", "scans", "chat"].includes(state.activeTab)) {
+  if (!["score", "scans", "online", "chat"].includes(state.activeTab)) {
     state.activeTab = "score";
   }
   if (!state.chatEnabled && state.activeTab === "chat") {
@@ -1794,6 +1914,8 @@ function bindSidePanels(username) {
   if (isSidebarEffectivelyOpen()) {
     if (state.activeTab === "chat") {
       void refreshGlobalChat(true);
+    } else if (state.activeTab === "online") {
+      void refreshOnlinePlayers();
     } else {
       void refreshTop50(state.activeTab);
     }
@@ -1832,6 +1954,11 @@ function bindSidePanels(username) {
   if (top50TabScans) {
     top50TabScans.addEventListener("click", () => {
       setActiveTab("scans", true);
+    });
+  }
+  if (top50TabOnline) {
+    top50TabOnline.addEventListener("click", () => {
+      setActiveTab("online", true);
     });
   }
   if (top50TabChat) {
@@ -1873,6 +2000,8 @@ function bindSidePanels(username) {
       if (isSidebarEffectivelyOpen()) {
         if (state.activeTab === "chat") {
           void refreshGlobalChat(true);
+        } else if (state.activeTab === "online") {
+          void refreshOnlinePlayers();
         } else {
           void refreshTop50(state.activeTab);
         }
@@ -5146,6 +5275,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       token: Date.now(),
     })
   );
+  const stopMenuPresenceHeartbeat = startMenuPresenceHeartbeat();
+  window.addEventListener("beforeunload", () => {
+    try {
+      stopMenuPresenceHeartbeat();
+    } catch (_) {}
+  });
   const username = sessionData.username || "Jogador";
   refreshMenuHomePanelSettingsFromStorage();
   try {

@@ -46,6 +46,8 @@ const STATUS_PREVIEW_LABELS = {
 const SETTINGS_STORAGE_KEY = "chaotic.settings.v1";
 const SETTINGS_SCHEMA_VERSION = 1;
 const DEBUG_FLUSH_INTERVAL_MS = 4000;
+const PRESENCE_HEARTBEAT_VISIBLE_MS = 25000;
+const PRESENCE_HEARTBEAT_HIDDEN_MS = 90000;
 const KEYBIND_ACTIONS = [
   "confirmAction",
   "confirmAttack",
@@ -700,6 +702,76 @@ async function apiJson(url, options = {}) {
     throw new Error(payload.error || `HTTP ${response.status}`);
   }
   return payload;
+}
+
+function startAppPresenceHeartbeat() {
+  let timerId = null;
+  let stopped = false;
+  let inFlight = false;
+
+  const clearTimer = () => {
+    if (timerId) {
+      clearTimeout(timerId);
+      timerId = null;
+    }
+  };
+
+  const nextDelay = () => (
+    document.visibilityState === "hidden"
+      ? PRESENCE_HEARTBEAT_HIDDEN_MS
+      : PRESENCE_HEARTBEAT_VISIBLE_MS
+  );
+
+  const schedule = (delayMs = nextDelay()) => {
+    clearTimer();
+    if (stopped) {
+      return;
+    }
+    timerId = setTimeout(() => {
+      void tick();
+    }, Math.max(1000, Number(delayMs || PRESENCE_HEARTBEAT_VISIBLE_MS)));
+  };
+
+  const tick = async () => {
+    if (stopped || inFlight) {
+      return;
+    }
+    if (document.visibilityState === "hidden") {
+      schedule(PRESENCE_HEARTBEAT_HIDDEN_MS);
+      return;
+    }
+    inFlight = true;
+    try {
+      await apiJson("/api/presence/ping", { method: "POST" });
+    } catch (_) {
+      // noop: falhas de heartbeat nao devem quebrar UI
+    } finally {
+      inFlight = false;
+      schedule(nextDelay());
+    }
+  };
+
+  const onVisibility = () => {
+    if (stopped) {
+      return;
+    }
+    if (document.visibilityState === "visible") {
+      void tick();
+      return;
+    }
+    schedule(PRESENCE_HEARTBEAT_HIDDEN_MS);
+  };
+
+  document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("focus", onVisibility);
+  void tick();
+
+  return () => {
+    stopped = true;
+    clearTimer();
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("focus", onVisibility);
+  };
 }
 
 function safeJsonParse(value, fallback = null) {
@@ -6645,6 +6717,12 @@ async function init() {
     sessionToken: getSessionToken(),
     token: Date.now(),
   }));
+  const stopPresenceHeartbeat = startAppPresenceHeartbeat();
+  window.addEventListener("beforeunload", () => {
+    try {
+      stopPresenceHeartbeat();
+    } catch (_) {}
+  });
 
   bindEvents();
   syncAdminObservabilityVisibility();

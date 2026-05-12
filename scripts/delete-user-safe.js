@@ -90,23 +90,25 @@ function parseArgs(argv) {
 }
 
 function jsonOk(payload) {
-  process.stdout.write(
-    `${JSON.stringify({ ok: true, ...payload }, null, 2)}\n`
-  );
+  const jsonText = JSON.stringify({ ok: true, ...payload }, null, 2);
+  const b64 = Buffer.from(jsonText, "utf8").toString("base64");
+  process.stdout.write(`${jsonText}\n`);
+  process.stdout.write(`__DELETE_USER_SAFE_JSON_B64__:${b64}\n`);
 }
 
 function jsonErr(message, details) {
-  process.stdout.write(
-    `${JSON.stringify(
-      {
-        ok: false,
-        error: String(message || "unknown_error"),
-        details: details || null
-      },
-      null,
-      2
-    )}\n`
+  const jsonText = JSON.stringify(
+    {
+      ok: false,
+      error: String(message || "unknown_error"),
+      details: details || null
+    },
+    null,
+    2
   );
+  const b64 = Buffer.from(jsonText, "utf8").toString("base64");
+  process.stdout.write(`${jsonText}\n`);
+  process.stdout.write(`__DELETE_USER_SAFE_JSON_B64__:${b64}\n`);
 }
 
 function quoteIdent(name) {

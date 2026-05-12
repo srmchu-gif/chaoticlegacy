@@ -22,6 +22,18 @@ if (!(Test-Path $backupScript)) {
   throw "Script de backup nao encontrado em: $backupScript"
 }
 
+function ConvertFrom-JsonCompat {
+  param(
+    [Parameter(Mandatory = $true)][string]$Text
+  )
+
+  $cmd = Get-Command ConvertFrom-Json
+  if ($cmd -and $cmd.Parameters -and $cmd.Parameters.ContainsKey("Depth")) {
+    return ($Text | ConvertFrom-Json -Depth 100)
+  }
+  return ($Text | ConvertFrom-Json)
+}
+
 function Invoke-DeleteEngine {
   param(
     [Parameter(Mandatory = $true)][string]$Action,
@@ -51,7 +63,15 @@ function Invoke-DeleteEngine {
 
     $payload = $null
     try {
-      $payload = $raw | ConvertFrom-Json -Depth 100
+      $lines = @($output | ForEach-Object { [string]$_ })
+      $markerLine = $lines | Where-Object { $_ -like "__DELETE_USER_SAFE_JSON_B64__:*" } | Select-Object -Last 1
+      if ($markerLine) {
+        $b64 = $markerLine.Substring("__DELETE_USER_SAFE_JSON_B64__:".Length)
+        $jsonText = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b64))
+        $payload = ConvertFrom-JsonCompat -Text $jsonText
+      } else {
+        $payload = ConvertFrom-JsonCompat -Text $raw
+      }
     } catch {
       throw "Falha ao interpretar retorno do motor: $raw"
     }

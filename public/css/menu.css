@@ -222,7 +222,7 @@ body.menu-sidebars-hidden .side-panel.is-open {
 
 .side-panel-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.35rem;
 }
 
