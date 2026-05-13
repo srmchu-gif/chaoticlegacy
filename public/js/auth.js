@@ -1,5 +1,5 @@
 import { initMatrixEffect } from "./matrix.js";
-import { clearSessionToken, getRuntimeConfig, getSessionToken, setSessionToken, toPage } from "./runtime-config.js";
+import { clearSessionToken, getRuntimeConfig, toPage } from "./runtime-config.js";
 
 const DB_SESSION = "chaotic_session";
 const DB_REMEMBER = "chaotic_remember";
@@ -175,7 +175,6 @@ document.addEventListener("DOMContentLoaded", () => {
           DB_SESSION,
           JSON.stringify({
             username: String(data.username),
-            sessionToken: getSessionToken(),
             token: Date.now(),
           })
         );
@@ -221,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const remembered = localStorage.getItem(DB_REMEMBER);
   const savedSession = safeJsonParse(localStorage.getItem(DB_SESSION), null);
   if (savedSession?.sessionToken) {
-    setSessionToken(savedSession.sessionToken);
+    clearSessionToken();
   }
   if (remembered) {
     const rememberInput = document.getElementById("login-remember");
@@ -291,15 +290,10 @@ document.addEventListener("DOMContentLoaded", () => {
           DB_SESSION,
           JSON.stringify({
             username: String(data.username || userInp),
-            sessionToken: String(data.sessionToken || ""),
             token: Date.now(),
           })
         );
-        if (data.sessionToken) {
-          setSessionToken(data.sessionToken);
-        } else {
-          clearSessionToken();
-        }
+        clearSessionToken();
         window.location.href = toPage("menu.html");
       } catch (error) {
         errorEl.textContent = error?.message || "Falha ao fazer login.";
@@ -420,15 +414,10 @@ document.addEventListener("DOMContentLoaded", () => {
           DB_SESSION,
           JSON.stringify({
             username: String(data.username || verificationData.username),
-            sessionToken: String(data.sessionToken || ""),
             token: Date.now(),
           })
         );
-        if (data.sessionToken) {
-          setSessionToken(data.sessionToken);
-        } else {
-          clearSessionToken();
-        }
+        clearSessionToken();
 
         try {
           await apiJsonWithTimeout("/api/profile/bootstrap", {

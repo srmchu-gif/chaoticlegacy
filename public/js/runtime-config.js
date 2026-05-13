@@ -1,4 +1,7 @@
-const SESSION_TOKEN_KEY = "chaotic_session_token";
+const LEGACY_SESSION_TOKEN_KEY = "chaotic_session_token";
+try {
+  localStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
+} catch (_) {}
 
 function ensureLeadingSlash(value) {
   const trimmed = String(value || "").trim();
@@ -78,23 +81,19 @@ function rewriteRequestUrl(inputUrl) {
 }
 
 export function setSessionToken(token) {
-  const value = String(token || "").trim();
-  if (!value) {
-    localStorage.removeItem(SESSION_TOKEN_KEY);
-    return;
-  }
-  localStorage.setItem(SESSION_TOKEN_KEY, value);
+  // Legacy no-op: auth now relies on HttpOnly session cookie only.
+  void token;
 }
 
 export function getSessionToken() {
-  return String(localStorage.getItem(SESSION_TOKEN_KEY) || "").trim();
+  return "";
 }
 
 export function clearSessionToken() {
-  localStorage.removeItem(SESSION_TOKEN_KEY);
+  // Legacy no-op: no client-side session token is persisted anymore.
 }
 
-// Install once: rewrites relative API/music/download URLs and injects Bearer token.
+// Install once: rewrites relative API/music/download URLs.
 if (!window.__chaoticFetchPatched) {
   const nativeFetch = window.fetch.bind(window);
   window.fetch = (input, init = {}) => {
@@ -120,23 +119,6 @@ if (!window.__chaoticFetchPatched) {
         signal: input.signal,
         ...init,
       };
-    }
-
-    try {
-      const parsed = new URL(String(requestUrl), window.location.origin);
-      const token = getSessionToken();
-      if (token && shouldUseApiBase(parsed.pathname)) {
-        const headers = new Headers(nextInit?.headers || {});
-        if (!headers.has("Authorization")) {
-          headers.set("Authorization", `Bearer ${token}`);
-        }
-        nextInit = {
-          ...(nextInit || {}),
-          headers,
-        };
-      }
-    } catch (_) {
-      // Ignore URL parse errors and defer to native fetch.
     }
 
     return nativeFetch(requestUrl, nextInit);

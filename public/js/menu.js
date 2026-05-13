@@ -1,5 +1,5 @@
 ﻿import { initMatrixEffect } from "./matrix.js";
-import { apiUrl, clearSessionToken, getSessionToken, setSessionToken, toPage } from "./runtime-config.js";
+import { apiUrl, clearSessionToken, toPage } from "./runtime-config.js";
 
 const DB_SESSION = "chaotic_session";
 const SETTINGS_KEY = "chaotic.settings.v1";
@@ -5652,7 +5652,7 @@ async function initMenuMusic() {
 document.addEventListener("DOMContentLoaded", async () => {
   const localSession = safeJsonParse(localStorage.getItem(DB_SESSION), null);
   if (localSession?.sessionToken) {
-    setSessionToken(String(localSession.sessionToken));
+    clearSessionToken();
   }
   let sessionData = null;
   try {
@@ -5667,14 +5667,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  if (sessionData.sessionToken) {
-    setSessionToken(String(sessionData.sessionToken));
-  }
+  clearSessionToken();
   localStorage.setItem(
     DB_SESSION,
     JSON.stringify({
       username: String(sessionData.username),
-      sessionToken: getSessionToken(),
       token: Date.now(),
     })
   );

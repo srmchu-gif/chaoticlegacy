@@ -1,4 +1,4 @@
-﻿const http = require("http");
+const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -119,6 +119,11 @@ const TRADE_MONTHLY_COMPLETED_LIMIT = 2;
 const MATCH_TYPE_CASUAL_MULTIPLAYER = "casual_multiplayer";
 const MATCH_TYPE_RANKED_DROME = "ranked_drome";
 const MATCH_TYPE_CODEMASTER_CHALLENGE = "codemaster_challenge";
+const TRUST_PROXY_HOPS = Math.max(0, Number(process.env.TRUST_PROXY_HOPS || 0));
+const USERNAME_MIN_LENGTH = 3;
+const USERNAME_MAX_LENGTH = 30;
+const STRICT_USERNAME_REGEX = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
+const USERNAME_ALIAS_NAMESPACE = "auth_username_alias";
 const DROME_BASE_SCORE = 1200;
 const DROME_RANKED_WIN_SCORE = 24;
 const DROME_RANKED_LOSS_SCORE = -8;
@@ -1533,7 +1538,7 @@ let effectPendingStats = writeBasePendingEffectsReport();
 let creaturePendingStats = writeBaseCreaturePendingEffectsReport();
 migrateDeckFilesToSqlIfNeeded();
 
-// â”€â”€â”€ Seed admin account â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Seed admin account ───────────────────────────────────────────────
 function seedAdminAccount() {
   if (!sqliteDb) return;
   const ADMIN_USER = "admin";
@@ -1586,10 +1591,9 @@ function seedAdminAccount() {
   writeScansData(scans, "admin_seed");
   console.log(`[SEED] Admin scans: ${allCards.length} cartas x${COPIES} copias = ${allCards.length * COPIES} entradas`);
 }
-// â”€â”€â”€ End seed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── End seed ─────────────────────────────────────────────────────────
 
 const multiplayerRooms = new Map();
-let nextRoomId = 1000;
 let engineModulePromise = null;
 const tradeRooms = new Map();
 const TRADE_ROOM_CODE_LENGTH = 6;
@@ -2081,8 +2085,15 @@ function parseIsoToMs(value) {
 
 function getClientIp(request) {
   const forwarded = String(request.headers["x-forwarded-for"] || "");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
+  if (forwarded && TRUST_PROXY_HOPS > 0) {
+    const chain = forwarded
+      .split(",")
+      .map((entry) => String(entry || "").trim())
+      .filter(Boolean);
+    if (chain.length) {
+      const index = Math.max(0, chain.length - TRUST_PROXY_HOPS - 1);
+      return chain[index] || chain[0];
+    }
   }
   const rawSocket = request.socket?.remoteAddress;
   return String(rawSocket || "unknown");
@@ -2133,7 +2144,7 @@ function isHttpsRequest(request) {
 }
 
 function buildSessionCookieHeader(request, token, expiresAtIso) {
-  const secure = isHttpsRequest(request);
+  const secure = IS_PRODUCTION_ENV ? true : isHttpsRequest(request);
   const parts = [
     `${SESSION_COOKIE_NAME}=${encodeURIComponent(String(token || ""))}`,
     "Path=/",
@@ -2150,7 +2161,7 @@ function buildSessionCookieHeader(request, token, expiresAtIso) {
 }
 
 function clearSessionCookieHeader(request) {
-  const secure = isHttpsRequest(request);
+  const secure = IS_PRODUCTION_ENV ? true : isHttpsRequest(request);
   const parts = [
     `${SESSION_COOKIE_NAME}=`,
     "Path=/",
@@ -2451,6 +2462,41 @@ function requireAdminUser(request, response) {
   return user;
 }
 
+function normalizeStrictUsernameCandidate(valueRaw = "") {
+  return String(valueRaw || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/[._-]{2,}/g, "-")
+    .replace(/^[._-]+|[._-]+$/g, "");
+}
+
+function isStrictUsernameValid(valueRaw = "") {
+  const value = String(valueRaw || "").trim().toLowerCase();
+  if (value.length < USERNAME_MIN_LENGTH || value.length > USERNAME_MAX_LENGTH) {
+    return false;
+  }
+  return STRICT_USERNAME_REGEX.test(value);
+}
+
+function toStrictUsernameOrFallback(valueRaw = "", fallbackSeed = "player") {
+  let base = normalizeStrictUsernameCandidate(valueRaw);
+  if (base.length > USERNAME_MAX_LENGTH) {
+    base = base.slice(0, USERNAME_MAX_LENGTH);
+  }
+  if (isStrictUsernameValid(base)) {
+    return base;
+  }
+  const fallback = normalizeStrictUsernameCandidate(fallbackSeed);
+  if (isStrictUsernameValid(fallback)) {
+    return fallback;
+  }
+  const generated = `u${crypto.randomBytes(4).toString("hex")}`;
+  return generated.slice(0, USERNAME_MAX_LENGTH);
+}
+
 function normalizeUserKey(value, fallback = "local-player") {
   const clean = String(value || "")
     .trim()
@@ -2461,8 +2507,168 @@ function normalizeUserKey(value, fallback = "local-player") {
   return clean || fallback;
 }
 
+function updateOwnerKeyReferences(oldOwnerKeyRaw, newOwnerKeyRaw) {
+  if (!sqliteDb) {
+    return;
+  }
+  const oldOwnerKey = normalizeUserKey(oldOwnerKeyRaw || "", "");
+  const newOwnerKey = normalizeUserKey(newOwnerKeyRaw || "", "");
+  if (!oldOwnerKey || !newOwnerKey || oldOwnerKey === newOwnerKey) {
+    return;
+  }
+  const keyColumns = new Set([
+    "owner_key",
+    "owner_key_shadow",
+    "from_owner_key",
+    "to_owner_key",
+    "friend_key",
+    "host_key",
+    "guest_key",
+    "codemaster_key",
+    "challenger_key",
+    "winner_key",
+    "loser_key",
+    "player_key",
+    "user_key",
+    "sender_key",
+    "recipient_key",
+  ]);
+  const tables = sqliteDb.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all();
+  for (const tableRow of tables) {
+    const tableName = String(tableRow?.name || "").trim();
+    if (!tableName || tableName.startsWith("sqlite_")) {
+      continue;
+    }
+    const columns = sqliteDb.prepare(`PRAGMA table_info("${tableName.replace(/"/g, "\"\"")}")`).all();
+    for (const columnRow of columns) {
+      const columnName = String(columnRow?.name || "").trim();
+      if (!keyColumns.has(columnName)) {
+        continue;
+      }
+      sqliteDb
+        .prepare(`UPDATE "${tableName.replace(/"/g, "\"\"")}" SET "${columnName.replace(/"/g, "\"\"")}" = ? WHERE "${columnName.replace(/"/g, "\"\"")}" = ?`)
+        .run(newOwnerKey, oldOwnerKey);
+    }
+  }
+}
+
+function resolveAuthUsernameInput(rawUsername, options = {}) {
+  const strict = Boolean(options.strict);
+  const typedUsername = String(rawUsername || "").trim().toLowerCase();
+  if (!typedUsername) {
+    return { ok: false, username: "", error: "Username obrigatorio." };
+  }
+  if (strict && !isStrictUsernameValid(typedUsername)) {
+    return {
+      ok: false,
+      username: "",
+      error: `Username invalido. Use ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} caracteres [a-z0-9._-] sem separadores repetidos.`,
+    };
+  }
+  if (!strict && isStrictUsernameValid(typedUsername)) {
+    return { ok: true, username: typedUsername };
+  }
+  const aliasPayload = sqlGet(USERNAME_ALIAS_NAMESPACE, typedUsername);
+  const mappedUsername = String(aliasPayload?.username || "").trim().toLowerCase();
+  if (mappedUsername && isStrictUsernameValid(mappedUsername)) {
+    return { ok: true, username: mappedUsername, aliasedFrom: typedUsername };
+  }
+  if (!strict) {
+    return {
+      ok: false,
+      username: "",
+      error: `Username invalido. Use ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} caracteres [a-z0-9._-].`,
+    };
+  }
+  return { ok: true, username: typedUsername };
+}
+
+function migrateExistingUsernamesToStrictPolicy() {
+  if (!sqliteDb) {
+    return { changed: 0, aliases: 0 };
+  }
+  const rows = sqliteDb
+    .prepare("SELECT id, username FROM users ORDER BY id ASC")
+    .all();
+  if (!rows.length) {
+    return { changed: 0, aliases: 0 };
+  }
+  const used = new Set();
+  const plans = [];
+  for (const row of rows) {
+    const current = String(row?.username || "").trim();
+    const currentLower = current.toLowerCase();
+    let candidate = toStrictUsernameOrFallback(currentLower, `player${Number(row?.id || 0)}`);
+    if (candidate.length > USERNAME_MAX_LENGTH) {
+      candidate = candidate.slice(0, USERNAME_MAX_LENGTH);
+    }
+    if (!isStrictUsernameValid(candidate)) {
+      candidate = toStrictUsernameOrFallback(`user${Number(row?.id || 0)}`, `player${Number(row?.id || 0)}`);
+    }
+    if (used.has(candidate)) {
+      const suffix = `-${Number(row?.id || 0)}`.slice(0, 8);
+      const head = candidate.slice(0, Math.max(USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH - suffix.length));
+      candidate = `${head}${suffix}`.slice(0, USERNAME_MAX_LENGTH);
+      if (!isStrictUsernameValid(candidate)) {
+        candidate = `u${Number(row?.id || 0)}`.slice(0, USERNAME_MAX_LENGTH);
+      }
+    }
+    while (used.has(candidate) || !isStrictUsernameValid(candidate)) {
+      candidate = `u${crypto.randomBytes(4).toString("hex")}`.slice(0, USERNAME_MAX_LENGTH);
+    }
+    used.add(candidate);
+    if (candidate !== currentLower) {
+      plans.push({
+        id: Number(row?.id || 0),
+        from: current,
+        fromLower: currentLower,
+        to: candidate,
+        oldOwnerKey: normalizeUserKey(current, ""),
+        newOwnerKey: normalizeUserKey(candidate, ""),
+      });
+    }
+  }
+  if (!plans.length) {
+    return { changed: 0, aliases: 0 };
+  }
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    let aliasCount = 0;
+    for (const plan of plans) {
+      sqliteDb
+        .prepare("UPDATE users SET username = ?, updated_at = ? WHERE id = ?")
+        .run(plan.to, nowIso(), plan.id);
+      updateOwnerKeyReferences(plan.oldOwnerKey, plan.newOwnerKey);
+      sqlSet(USERNAME_ALIAS_NAMESPACE, plan.fromLower, {
+        username: plan.to,
+        migratedAt: nowIso(),
+      });
+      aliasCount += 1;
+    }
+    sqliteDb.exec("COMMIT");
+    console.warn(`[AUTH] Migracao de usernames aplicada para politica estrita. usuarios=${plans.length}`);
+    return { changed: plans.length, aliases: aliasCount };
+  } catch (error) {
+    try {
+      sqliteDb.exec("ROLLBACK");
+    } catch {}
+    console.error(`[AUTH] Falha ao migrar usernames para politica estrita: ${error?.message || error}`);
+    return { changed: 0, aliases: 0 };
+  }
+}
+
 function generateSeatToken() {
   return crypto.randomBytes(16).toString("hex");
+}
+
+function generateMultiplayerRoomId() {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const candidate = `rm_${crypto.randomBytes(10).toString("hex")}`;
+    if (!multiplayerRooms.has(candidate)) {
+      return candidate;
+    }
+  }
+  return `rm_${Date.now().toString(36)}_${crypto.randomBytes(4).toString("hex")}`;
 }
 
 function generateScanEntryId() {
@@ -2988,7 +3194,7 @@ function creatureVariantStarsLabel(rawVariant) {
 }
 
 function creatureVariantBadge(rawVariant) {
-  return `${creatureVariantStarsLabel(rawVariant)}★`;
+  return `${creatureVariantStarsLabel(rawVariant)}?`;
 }
 
 function normalizeCreatureVariant(rawVariant) {
@@ -4762,10 +4968,10 @@ const PERIM_ACTIONS = [
 
 const PERIM_EVENTS_BY_CLIMATE = {
   ensolarado: { id: "sun_burst", label: "Surto Solar", effect: "+8% drops de Battlegear e Mugic", bonus: { battlegear: 0.08, mugic: 0.08 } },
-  chuvoso: { id: "rain_echo", label: "Eco Chuvoso", effect: "+10% drops de Attacks aquáticos", bonus: { attacks: 0.1 } },
-  ventania: { id: "wind_paths", label: "Trilhas de Ventania", effect: "+7% chance de local adjacente em exploração", bonus: { locations: 0.07 } },
-  tempestade: { id: "storm_hunt", label: "Caçada da Tempestade", effect: "+10% chance de criatura em rastreio", bonus: { creatures: 0.1 } },
-  nublado: { id: "mist_watch", label: "Vigília Nebulosa", effect: "Sem bônus extremo; leitura estável de sinais", bonus: {} },
+  chuvoso: { id: "rain_echo", label: "Eco Chuvoso", effect: "+10% drops de Attacks aqu�ticos", bonus: { attacks: 0.1 } },
+  ventania: { id: "wind_paths", label: "Trilhas de Ventania", effect: "+7% chance de local adjacente em explora��o", bonus: { locations: 0.07 } },
+  tempestade: { id: "storm_hunt", label: "Ca�ada da Tempestade", effect: "+10% chance de criatura em rastreio", bonus: { creatures: 0.1 } },
+  nublado: { id: "mist_watch", label: "Vig�lia Nebulosa", effect: "Sem b�nus extremo; leitura est�vel de sinais", bonus: {} },
 };
 
 function normalizePerimPlayerKey(value) {
@@ -8171,9 +8377,9 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   return rewards.filter(Boolean);
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ────────────────────────────────────────────────────────────────
 // Creature Daily Location System
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ────────────────────────────────────────────────────────────────
 
 const PERIM_CLIMATE_SLOTS = [0, 6, 12, 18];
 
@@ -13582,7 +13788,7 @@ function assertMonthlyTradeQuota(ownerKeyRaw) {
     return {
       ok: false,
       usage,
-      error: `Limite mensal de trocas concluídas atingido (${usage.used}/${usage.limit}). Novo ciclo em ${usage.resetsAt}.`,
+      error: `Limite mensal de trocas conclu�das atingido (${usage.used}/${usage.limit}). Novo ciclo em ${usage.resetsAt}.`,
     };
   }
   return { ok: true, usage };
@@ -13714,6 +13920,44 @@ function getRoomSeatByToken(room, seatToken) {
     return { seat: "guest", playerIndex: 1 };
   }
   return { seat: "spectator", playerIndex: null };
+}
+
+function requireAuthenticatedRoomAccess(request, response, room, options = {}) {
+  const authUser = requireAuthenticatedUser(request, response);
+  if (!authUser) {
+    return null;
+  }
+  const ownerKey = normalizeUserKey(authUser.username || "", "");
+  if (!ownerKey) {
+    sendJson(response, 403, { error: "Sessao invalida para acessar sala multiplayer." });
+    return null;
+  }
+
+  const allowSpectator = Boolean(options.allowSpectator);
+  const seatToken = String(options.seatToken || "").trim();
+  const seatInfo = getRoomSeatByToken(room, seatToken);
+  const hostKey = normalizeUserKey(room?.players?.host?.username || "", "");
+  const guestKey = normalizeUserKey(room?.players?.guest?.username || "", "");
+
+  if (seatInfo.seat === "host" || seatInfo.seat === "guest") {
+    const seatOwner = seatInfo.seat === "host" ? hostKey : guestKey;
+    if (!seatOwner || seatOwner !== ownerKey) {
+      sendJson(response, 403, { error: "Seat token nao pertence ao usuario autenticado." });
+      return null;
+    }
+    return { authUser, ownerKey, seatInfo };
+  }
+
+  if (allowSpectator) {
+    return {
+      authUser,
+      ownerKey,
+      seatInfo: { seat: "spectator", playerIndex: null },
+    };
+  }
+
+  sendJson(response, 403, { error: "Seat token obrigatorio para esta operacao." });
+  return null;
 }
 
 function seatPresence(room, seatName) {
@@ -14085,7 +14329,7 @@ function createMultiplayerRoomRecord({
   reservedGuestKey = "",
 }) {
   const hostToken = generateSeatToken();
-  const roomId = String(nextRoomId++);
+  const roomId = generateMultiplayerRoomId();
   const normalizedMatchType = normalizeMatchType(matchType);
   const normalizedDromeId = normalizeDromeId(dromeId);
   const room = {
@@ -15397,7 +15641,7 @@ async function handleRequest(request, response) {
   }
   if (request.method === "GET" && pathname === "/health") {
     const dbOk = Boolean(sqliteDb);
-    sendJson(response, 200, {
+    const healthPayload = {
       ok: true,
       timestamp: nowIso(),
       uptimeSeconds: Math.round(process.uptime()),
@@ -15410,13 +15654,16 @@ async function handleRequest(request, response) {
         dbSchemaVersion: Number(sqlSchemaVersion || 0),
         storageMode: String(sqlStorageMode || "unknown"),
       },
-      smtpConfigured: isSmtpConfigured(),
-      turnstileConfigured: Boolean(TURNSTILE_SECRET_KEY),
-      jobs: {
+    };
+    if (!IS_PRODUCTION_ENV) {
+      healthPayload.smtpConfigured = isSmtpConfigured();
+      healthPayload.turnstileConfigured = Boolean(TURNSTILE_SECRET_KEY);
+      healthPayload.jobs = {
         perim: { ...runtimeMetrics.perimJobs },
         backup: { ...runtimeMetrics.backups },
-      },
-    });
+      };
+    }
+    sendJson(response, 200, healthPayload);
     return;
   }
 
@@ -15624,13 +15871,19 @@ async function handleRequest(request, response) {
     return;
   }
 
-  // â”€â”€â”€ Auth API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Auth API ───────────────────────────────────────────────────────
   if (pathname === "/api/auth/register" && request.method === "POST") {
     let payloadText;
     try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
     const payload = safeJsonParse(payloadText, null);
     if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
-    const username = String(payload.username || "").trim();
+    const usernameInput = String(payload.username || "").trim();
+    const usernameResolution = resolveAuthUsernameInput(usernameInput, { strict: true });
+    if (!usernameResolution.ok) {
+      sendJson(response, 400, { error: usernameResolution.error || "Username invalido." });
+      return;
+    }
+    const username = usernameResolution.username;
     const email = String(payload.email || "").trim();
     const passwordPlain = String(payload.password || "").trim();
     const legacyProvidedHash = String(payload.passwordHash || "").trim();
@@ -15675,12 +15928,17 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: captchaError });
       return;
     }
-    if (username.length < 3 || username.length > 30) {
-      sendJson(response, 400, { error: "Nome de usuario deve ter entre 3 e 30 caracteres." });
-      return;
-    }
     if (!sqliteDb) {
       sendJson(response, 500, { error: "Banco de dados indisponivel." });
+      return;
+    }
+    const usernameOwnerKey = normalizeUserKey(username, "");
+    const ownerKeyCollision = sqliteDb
+      .prepare("SELECT username FROM users WHERE username <> ? COLLATE NOCASE")
+      .all(username)
+      .find((row) => normalizeUserKey(row?.username || "", "") === usernameOwnerKey);
+    if (ownerKeyCollision) {
+      sendJson(response, 409, { error: "Nome de acesso conflita com outro usuario existente. Escolha outro username." });
       return;
     }
     // Check existing and resume pending registrations when possible
@@ -15763,7 +16021,13 @@ async function handleRequest(request, response) {
     try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
     const payload = safeJsonParse(payloadText, null);
     if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
-    const username = String(payload.username || "").trim();
+    const usernameInput = String(payload.username || "").trim();
+    const usernameResolution = resolveAuthUsernameInput(usernameInput, { strict: false });
+    if (!usernameResolution.ok) {
+      sendJson(response, 400, { error: usernameResolution.error || "Username invalido." });
+      return;
+    }
+    const username = usernameResolution.username;
     const code = String(payload.code || "").trim();
     if (!username || !code) {
       sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
@@ -15821,7 +16085,13 @@ async function handleRequest(request, response) {
     try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
     const payload = safeJsonParse(payloadText, null);
     if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
-    const username = String(payload.username || "").trim();
+    const usernameInput = String(payload.username || "").trim();
+    const usernameResolution = resolveAuthUsernameInput(usernameInput, { strict: false });
+    if (!usernameResolution.ok) {
+      sendJson(response, 400, { error: usernameResolution.error || "Username invalido." });
+      return;
+    }
+    const username = usernameResolution.username;
     if (!username) {
       sendJson(response, 400, { error: "Username obrigatorio." });
       return;
@@ -15880,7 +16150,13 @@ async function handleRequest(request, response) {
     try { payloadText = await readBody(request); } catch (e) { sendJson(response, 413, { error: e.message }); return; }
     const payload = safeJsonParse(payloadText, null);
     if (!payload) { sendJson(response, 400, { error: "JSON invalido." }); return; }
-    const username = String(payload.username || "").trim();
+    const usernameInput = String(payload.username || "").trim();
+    const usernameResolution = resolveAuthUsernameInput(usernameInput, { strict: false });
+    if (!usernameResolution.ok) {
+      sendJson(response, 400, { error: usernameResolution.error || "Username invalido." });
+      return;
+    }
+    const username = usernameResolution.username;
     const passwordPlain = String(payload.password || "").trim();
     const legacyProvidedHash = String(payload.passwordHash || "").trim();
     const resolvedPassword = passwordPlain || decodeLegacyPasswordHash(legacyProvidedHash);
@@ -16052,7 +16328,7 @@ async function handleRequest(request, response) {
     sendJson(response, 200, { ok: true });
     return;
   }
-  // â”€â”€â”€ End Auth API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── End Auth API ───────────────────────────────────────────────────
 
   if (request.method === "GET" && pathname === "/api/library") {
     sendJson(response, 200, library);
@@ -19337,6 +19613,10 @@ async function handleRequest(request, response) {
     }
 
     if (request.method === "GET" && pathname === "/api/multiplayer/rooms") {
+      const authUser = requireAuthenticatedUser(request, response);
+      if (!authUser) {
+        return;
+      }
       cleanupFinishedMultiplayerRooms(Date.now());
       const activeRooms = Array.from(multiplayerRooms.values())
         .filter((room) => {
@@ -19423,6 +19703,10 @@ async function handleRequest(request, response) {
       if (!room) {
         return;
       }
+      const joinAuth = requireAuthenticatedUser(request, response);
+      if (!joinAuth) {
+        return;
+      }
 
       let payloadText;
       try {
@@ -19452,10 +19736,6 @@ async function handleRequest(request, response) {
       const roomMatchType = normalizeMatchType(room?.matchType || "");
       const roomDromeId = normalizeDromeId(room?.dromeId || room?.challengeMeta?.dromeId || "");
 
-      const joinAuth = requireAuthenticatedUser(request, response);
-      if (!joinAuth) {
-        return;
-      }
       let guestUsername = normalizeUserKey(joinAuth.username || "", "");
       if (!guestUsername) {
         return sendJson(response, 403, { error: "Sessao invalida para entrar na sala." });
@@ -19516,6 +19796,13 @@ async function handleRequest(request, response) {
         return;
       }
       const seatToken = parsedUrl.searchParams.get("seatToken") || "";
+      const access = requireAuthenticatedRoomAccess(request, response, room, {
+        seatToken,
+        allowSpectator: true,
+      });
+      if (!access) {
+        return;
+      }
       sendJson(response, 200, buildRoomStatePayload(room, seatToken));
       return;
     }
@@ -19540,10 +19827,14 @@ async function handleRequest(request, response) {
         return sendJson(response, 400, { error: "JSON invalido" });
       }
       const seatToken = String(payload.seatToken || "");
-      const seatInfo = getRoomSeatByToken(room, seatToken);
-      if (seatInfo.seat !== "host" && seatInfo.seat !== "guest") {
-        return sendJson(response, 403, { error: "Seat token invalido." });
+      const access = requireAuthenticatedRoomAccess(request, response, room, {
+        seatToken,
+        allowSpectator: false,
+      });
+      if (!access) {
+        return;
       }
+      const seatInfo = access.seatInfo;
       const ownerKey = normalizeUserKey(room.players?.[seatInfo.seat]?.username || "", "");
       const deckName = String(payload.deckName || "").trim();
       let deckSnapshot = payload.deckSnapshot && typeof payload.deckSnapshot === "object"
@@ -19600,10 +19891,14 @@ async function handleRequest(request, response) {
         return sendJson(response, 400, { error: "JSON invalido" });
       }
       const seatToken = String(payload.seatToken || "");
-      const seatInfo = getRoomSeatByToken(room, seatToken);
-      if (seatInfo.seat !== "host" && seatInfo.seat !== "guest") {
-        return sendJson(response, 403, { error: "Seat token invalido." });
+      const access = requireAuthenticatedRoomAccess(request, response, room, {
+        seatToken,
+        allowSpectator: false,
+      });
+      if (!access) {
+        return;
       }
+      const seatInfo = access.seatInfo;
       const ready = Boolean(payload.ready);
       if (!room.deckSelect || typeof room.deckSelect !== "object") {
         resetRoomDeckSelectState(room);
@@ -19659,7 +19954,14 @@ async function handleRequest(request, response) {
         return sendJson(response, 400, { error: "JSON invalido" });
       }
       const seatToken = String(payload.seatToken || "");
-      const seatInfo = getRoomSeatByToken(room, seatToken);
+      const access = requireAuthenticatedRoomAccess(request, response, room, {
+        seatToken,
+        allowSpectator: false,
+      });
+      if (!access) {
+        return;
+      }
+      const seatInfo = access.seatInfo;
       if (seatInfo.playerIndex === null) {
         return sendJson(response, 403, { error: "Seat token invalido." });
       }
@@ -19720,6 +20022,13 @@ async function handleRequest(request, response) {
         return;
       }
       const seatToken = parsedUrl.searchParams.get("seatToken") || "";
+      const access = requireAuthenticatedRoomAccess(request, response, room, {
+        seatToken,
+        allowSpectator: true,
+      });
+      if (!access) {
+        return;
+      }
 
       response.writeHead(200, {
         "Content-Type": "text/event-stream",
@@ -19729,7 +20038,7 @@ async function handleRequest(request, response) {
 
       const client = { res: response, seatToken };
       room.clients.add(client);
-      const seat = getRoomSeatByToken(room, seatToken).seat;
+      const seat = access.seatInfo.seat;
       if (seat === "host" || seat === "guest") {
         markSeatConnected(room, seat);
       }
@@ -20171,6 +20480,7 @@ ensurePerimQuestTemplatesSeed();
 loadPerimDropTables(true);
 hydrateCreatureDropSqlMetadata();
 writePerimActionsDropsReport();
+migrateExistingUsernamesToStrictPolicy();
 seedAdminAccount();
 ensureDailyCreatureLocations(todayDateKey());
 queuePerimDailyGeneration("startup", todayDateKey());

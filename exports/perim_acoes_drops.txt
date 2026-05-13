@@ -1,5 +1,5 @@
 PERIM - Acoes e Regras de Drops
-Gerado em: 2026-05-13T01:00:31.000Z
+Gerado em: 2026-05-13T03:06:32.480Z
 
 Acoes:
 - Explorar a Area (explore)

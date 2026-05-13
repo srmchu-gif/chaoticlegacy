@@ -1,6 +1,6 @@
 import { getAliveSlots } from "./battle/board-state.js";
 import { explodeIntoCode } from "./matrix.js";
-import { clearSessionToken, getSessionToken, setSessionToken, toPage } from "./runtime-config.js";
+import { clearSessionToken, toPage } from "./runtime-config.js";
 import {
   PHASE_LABEL,
   advanceBattle,
@@ -7195,7 +7195,7 @@ function bindEvents() {
 async function init() {
   const localSession = safeJsonParse(localStorage.getItem("chaotic_session"), null);
   if (localSession?.sessionToken) {
-    setSessionToken(String(localSession.sessionToken));
+    clearSessionToken();
   }
   let sessionPayload = null;
   try {
@@ -7209,14 +7209,11 @@ async function init() {
     window.location.href = toPage("auth.html");
     return;
   }
-  if (sessionPayload.sessionToken) {
-    setSessionToken(String(sessionPayload.sessionToken));
-  }
+  clearSessionToken();
   appState.user.username = normalizeUsername(sessionPayload.username || "local-player");
   appState.user.isAdmin = appState.user.username === "admin";
   localStorage.setItem("chaotic_session", JSON.stringify({
     username: appState.user.username,
-    sessionToken: getSessionToken(),
     token: Date.now(),
   }));
   const stopPresenceHeartbeat = startAppPresenceHeartbeat();
