@@ -3004,6 +3004,25 @@ async function syncDeckBuilderScansState(options = {}) {
   renderLibraryCards();
 }
 
+function resetDeckBuilderEditorState(options = {}) {
+  const {
+    mode = (el.deckMode?.value || appState.deck?.mode || "competitive"),
+    clearDeckSelection = true,
+  } = options;
+  const clearedDeck = createEmptyDeck();
+  clearedDeck.mode = mode;
+  appState.deck = clearedDeck;
+  appState.editingDeckAnchor = "";
+  if (el.deckName) {
+    el.deckName.value = "";
+  }
+  if (clearDeckSelection && el.deckList) {
+    el.deckList.value = "";
+  }
+  hideHoverPreview();
+  syncModeSelectors(mode);
+}
+
 async function loadLibrary() {
   const library = await apiJson("/api/library");
   appState.library = library;
@@ -3128,8 +3147,8 @@ async function saveDeck() {
       cards: appState.deck.cards,
     }),
   });
-  appState.deck.name = name;
-  appState.editingDeckAnchor = name;
+  resetDeckBuilderEditorState({ mode, clearDeckSelection: true });
+
   await refreshDeckList();
   await syncDeckBuilderScansState({ rebuildFromDeck: true, renderDeckAfterSync: true });
   alert("Deck salvo.");
@@ -3182,10 +3201,10 @@ async function deleteDeck(deckName) {
   const shouldResetBuilder = loadedDeckName === deckName || nameInput === deckName;
 
   if (shouldResetBuilder) {
-    appState.deck = createEmptyDeck();
-    appState.editingDeckAnchor = "";
-    syncModeSelectors(appState.deck.mode);
-    el.deckName.value = "";
+    resetDeckBuilderEditorState({
+      mode: appState.deck?.mode || "competitive",
+      clearDeckSelection: true,
+    });
   }
 
   await refreshDeckList();
@@ -7065,10 +7084,10 @@ function bindEvents() {
     });
   }
   el.clearDeck.addEventListener("click", () => {
-    appState.deck = createEmptyDeck();
-    appState.editingDeckAnchor = "";
-    syncModeSelectors(appState.deck.mode);
-    el.deckName.value = "";
+    resetDeckBuilderEditorState({
+      mode: appState.deck?.mode || "competitive",
+      clearDeckSelection: true,
+    });
     void syncDeckBuilderScansState({ rebuildFromDeck: true, renderDeckAfterSync: true });
   });
 
