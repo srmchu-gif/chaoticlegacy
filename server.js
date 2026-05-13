@@ -4879,6 +4879,9 @@ function loadPerimStateFile() {
           actionName: baseRun.actionName,
           completedAt: String(row?.completed_at || row?.end_at || nowIso()),
           claimedAt: row?.claimed_at ? String(row.claimed_at) : null,
+          contextSnapshot: pendingContext && typeof pendingContext === "object"
+            ? { ...pendingContext }
+            : {},
           choiceSelections: normalizePerimChoiceSelections(pendingContext?.choiceSelections || {}),
           rewards: rewards,
         });
@@ -5023,6 +5026,10 @@ function writePerimStateFile(state) {
         (playerState.pendingRewards || []).forEach((pending) => {
           const runId = String(pending?.runId || crypto.randomBytes(8).toString("hex"));
           const rewards = Array.isArray(pending?.rewards) ? pending.rewards : [];
+          const pendingContext = pending?.contextSnapshot && typeof pending.contextSnapshot === "object"
+            ? { ...pending.contextSnapshot }
+            : {};
+          pendingContext.choiceSelections = normalizePerimChoiceSelections(pending?.choiceSelections || {});
           insertPerimRun.run(
             runId,
             ownerKey,
@@ -5035,9 +5042,7 @@ function writePerimStateFile(state) {
             String(pending?.completedAt || nowIso()),
             0,
             JSON.stringify({}),
-            JSON.stringify({
-              choiceSelections: normalizePerimChoiceSelections(pending?.choiceSelections || {}),
-            }),
+            JSON.stringify(pendingContext),
             JSON.stringify(rewards),
             pending?.claimedAt ? "claimed" : "pending",
             String(pending?.completedAt || nowIso()),
@@ -6749,6 +6754,10 @@ function isPerimRarityAtMost(rarityRaw, maxRarityRaw) {
   return perimRarityRank(rarityRaw) <= maxRank;
 }
 
+function isPerimSuperRareOrHigherRarity(rarityRaw) {
+  return perimRarityRank(rarityRaw) >= perimRarityRank("super rare");
+}
+
 function locationDropChanceByRarity(rarityRaw) {
   const rarityKey = normalizePerimText(rarityRaw);
   return getPerimLocationRarityDropChance(rarityKey);
@@ -7242,6 +7251,53 @@ function pickCreatureRewardFromLocation(locationEntry, options = {}) {
   const locationName = String(locationEntry?.name || "");
   const creaturePoolRaw = getCreaturesAtLocation(locationId || locationName);
   return pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options);
+}
+
+function hasCampSuperRarePlusEligibleAtLocation(locationEntry, options = {}) {
+  const locationId = String(locationEntry?.id || locationEntry?.cardId || "");
+  const locationName = String(locationEntry?.name || "");
+  const creaturePoolRaw = getCreaturesAtLocation(locationId || locationName);
+  if (!Array.isArray(creaturePoolRaw) || !creaturePoolRaw.length) {
+    return false;
+  }
+  const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : new Map();
+  const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const locationTribeKey = normalizePerimLocationTribeKey(options.locationTribeKey || "");
+  const excludedRewardCardKeys = options.excludedRewardCardKeys instanceof Set ? options.excludedRewardCardKeys : new Set();
+  const { creaturesById: libraryById, creaturesByNormalizedName } = getLibraryIndexes();
+  for (let idx = 0; idx < creaturePoolRaw.length; idx += 1) {
+    const entry = creaturePoolRaw[idx];
+    const cardId = String(entry?.cardId || entry?.card_id || "");
+    let card = cardId ? libraryById.get(cardId) : null;
+    if (!card && entry?.name) {
+      card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
+    }
+    if (!card || !card.id) {
+      continue;
+    }
+    if (locationTribeKey && !isPerimTribeMatchForCard(card, locationTribeKey)) {
+      continue;
+    }
+    if (!isPerimDropSetAllowed(card?.set || "")) {
+      continue;
+    }
+    if (excludedRewardCardKeys.has(`creatures:${String(card.id)}`)) {
+      continue;
+    }
+    const cardNameLower = String(card.name || "").toLowerCase();
+    if (cardNameLower.includes("unused") || cardNameLower.includes("alpha")) {
+      continue;
+    }
+    const stockKey = `creatures:${String(card.id)}`;
+    const currentAmount = inventoryCounts.get(stockKey) || 0;
+    if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
+      continue;
+    }
+    if (isPerimSuperRareOrHigherRarity(card?.rarity || entry?.rarity || "")) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function pickCreatureRewardFromPool(creaturePoolRaw, locationEntry, options = {}) {
@@ -9688,6 +9744,9 @@ function promotePerimFinishedRuns(playerState, timestampMs = Date.now()) {
       actionName: active.actionLabel,
       completedAt: new Date(timestampMs).toISOString(),
       rewards: Array.isArray(active.rewards) ? active.rewards : [],
+      contextSnapshot: active.contextSnapshot && typeof active.contextSnapshot === "object"
+        ? { ...active.contextSnapshot }
+        : {},
       choiceSelections: {},
       claimedAt: null,
     });
@@ -9770,6 +9829,41 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
     cards: ignoreInventoryCap ? nextCards : trimCardsToInventoryCap(nextCards, INVENTORY_MAX_COPIES),
   };
   writeScansData(scans, "perim_claim_reward");
+  if (String(target?.actionId || "") === "camp") {
+    const hasCreatureReward = collected.some((reward) => String(reward?.type || "") === "creatures");
+    let campHasSuperRarePlusEligible = null;
+    const snapshotFlag = target?.contextSnapshot?.campHasSuperRarePlusEligible;
+    if (typeof snapshotFlag === "boolean") {
+      campHasSuperRarePlusEligible = snapshotFlag;
+    } else {
+      const locationId = String(target?.locationId || "").trim();
+      const locationCard = (library?.cardsByType?.locations || []).find((card) => String(card?.id || "") === locationId) || null;
+      campHasSuperRarePlusEligible = hasCampSuperRarePlusEligibleAtLocation({
+        cardId: locationId,
+        id: locationId,
+        name: String(target?.locationName || locationCard?.name || ""),
+        tribe: String(locationCard?.tribe || ""),
+      }, {
+        inventoryCounts,
+        ignoreInventoryCap,
+        locationTribeKey: resolvePerimLocationEffectiveTribeKey({
+          cardId: locationId,
+          id: locationId,
+          tribe: String(locationCard?.tribe || ""),
+        }),
+      });
+    }
+    if (!hasCreatureReward) {
+      incrementPerimCampWaitCount(playerState, target?.locationId || "");
+    } else {
+      const hasSuperRarePlusDrop = collected.some(
+        (reward) => String(reward?.type || "") === "creatures" && isPerimSuperRareOrHigherRarity(reward?.rarity || "")
+      );
+      if (!campHasSuperRarePlusEligible || hasSuperRarePlusDrop) {
+        setPerimCampWaitCount(playerState, target?.locationId || "", 0);
+      }
+    }
+  }
   target.claimedAt = nowIso();
   playerState.history = Array.isArray(playerState.history) ? playerState.history : [];
   playerState.history.push({
@@ -16332,9 +16426,18 @@ async function handleRequest(request, response) {
     const inventoryCounts = buildInventoryCountMap(cards);
     const locationOwnedTotalCounts = buildPlayerLocationOwnershipCountMap(playerKeyRaw, cards);
     const lockedQuestRewardCardKeys = getQuestLockedRewardKeySet(playerKeyRaw);
+    const locationTribeKey = resolvePerimLocationEffectiveTribeKey(selectedLocation);
     const campWaitCount = actionId === "camp"
       ? getPerimCampWaitCount(playerState, locationCard.id)
       : 0;
+    const campHasSuperRarePlusEligible = actionId === "camp"
+      ? hasCampSuperRarePlusEligibleAtLocation(selectedLocation, {
+          inventoryCounts,
+          ignoreInventoryCap: instantPerim,
+          locationTribeKey,
+          excludedRewardCardKeys: lockedQuestRewardCardKeys,
+        })
+      : false;
     const rewards = buildPerimRewards(selectedLocation, actionId, {
       inventoryCounts,
       locationOwnedTotalCounts,
@@ -16360,22 +16463,16 @@ async function handleRequest(request, response) {
         ignoreInventoryCap: instantPerim,
       }
     );
-    if (actionId === "camp") {
-      const hasCreatureReward = rewards.some((reward) => String(reward?.type || "") === "creatures");
-      const campWaitChanged = hasCreatureReward
-        ? setPerimCampWaitCount(playerState, locationCard.id, 0)
-        : incrementPerimCampWaitCount(playerState, locationCard.id);
-      if (campWaitChanged) {
-        playerState.updatedAt = nowIso();
-      }
-    }
     const clues = buildPerimCluesForRun(actionId, selectedLocation, rewards, {
       inventoryCounts,
       scannerEffect: scannerState.effect,
       ignoreInventoryCap: instantPerim,
-      locationTribeKey: resolvePerimLocationEffectiveTribeKey(selectedLocation),
+      locationTribeKey,
     });
     const contextSnapshot = buildPerimContextSnapshot(selectedLocation, actionId, scannerState.effect, startAt, clues);
+    if (actionId === "camp") {
+      contextSnapshot.campHasSuperRarePlusEligible = Boolean(campHasSuperRarePlusEligible);
+    }
     playerState.activeRun = {
       runId,
       locationEntryId,
