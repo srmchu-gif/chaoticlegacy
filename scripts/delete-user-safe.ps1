@@ -214,6 +214,8 @@ $form.Text = "Painel Admin Local - Usuarios / Eventos / Quests"
 $form.Size = New-Object System.Drawing.Size(1260, 820)
 $form.StartPosition = "CenterScreen"
 $form.MinimumSize = New-Object System.Drawing.Size(1160, 760)
+$form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::Dpi
+$form.Padding = New-Object System.Windows.Forms.Padding(8)
 
 $tab = New-Object System.Windows.Forms.TabControl
 $tab.Dock = "Fill"
@@ -231,6 +233,15 @@ function Set-Status {
   param([string]$Text)
   $status.Text = $Text
   $status.Refresh()
+}
+
+function Apply-GridResponsiveStyle {
+  param([Parameter(Mandatory = $true)]$Grid)
+  $Grid.ColumnHeadersVisible = $true
+  $Grid.ColumnHeadersHeightSizeMode = [System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode]::AutoSize
+  $Grid.ColumnHeadersHeight = [Math]::Max(30, [int]$Grid.ColumnHeadersHeight)
+  $Grid.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
+  $Grid.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 }
 
 $tabUsers = New-Object System.Windows.Forms.TabPage
@@ -265,12 +276,17 @@ $tab.Controls.Add($tabLogs)
 $usersTop = New-Object System.Windows.Forms.Panel
 $usersTop.Dock = "Top"
 $usersTop.Height = 56
+$usersTop.Padding = New-Object System.Windows.Forms.Padding(6)
 $tabUsers.Controls.Add($usersTop)
 
 $usersBody = New-Object System.Windows.Forms.SplitContainer
 $usersBody.Dock = "Fill"
 $usersBody.Orientation = "Horizontal"
 $usersBody.SplitterDistance = 330
+try {
+  $usersBody.Panel1MinSize = 220
+  $usersBody.Panel2MinSize = 180
+} catch {}
 $tabUsers.Controls.Add($usersBody)
 
 $userLabel = New-Object System.Windows.Forms.Label
@@ -316,12 +332,12 @@ $usersPreviewGrid.AllowUserToAddRows = $false
 $usersPreviewGrid.AllowUserToDeleteRows = $false
 $usersPreviewGrid.RowHeadersVisible = $false
 $usersPreviewGrid.SelectionMode = "FullRowSelect"
-$usersPreviewGrid.AutoSizeColumnsMode = "Fill"
 $usersPreviewGrid.ColumnCount = 3
 $usersPreviewGrid.Columns[0].Name = "Tabela"
 $usersPreviewGrid.Columns[1].Name = "Registros"
 $usersPreviewGrid.Columns[2].Name = "Detalhe"
 $usersBody.Panel1.Controls.Add($usersPreviewGrid)
+Apply-GridResponsiveStyle -Grid $usersPreviewGrid
 
 $usersDetail = New-Object System.Windows.Forms.TextBox
 $usersDetail.Multiline = $true
@@ -335,6 +351,10 @@ $eventsSplit = New-Object System.Windows.Forms.SplitContainer
 $eventsSplit.Dock = "Fill"
 $eventsSplit.Orientation = "Vertical"
 $eventsSplit.SplitterDistance = 620
+try {
+  $eventsSplit.Panel1MinSize = 460
+  $eventsSplit.Panel2MinSize = 420
+} catch {}
 $tabEvents.Controls.Add($eventsSplit)
 
 $eventsGrid = New-Object System.Windows.Forms.DataGridView
@@ -344,7 +364,6 @@ $eventsGrid.AllowUserToAddRows = $false
 $eventsGrid.AllowUserToDeleteRows = $false
 $eventsGrid.RowHeadersVisible = $false
 $eventsGrid.SelectionMode = "FullRowSelect"
-$eventsGrid.AutoSizeColumnsMode = "Fill"
 $eventsGrid.ColumnCount = 8
 $eventsGrid.Columns[0].Name = "ID"
 $eventsGrid.Columns[1].Name = "Texto"
@@ -368,9 +387,12 @@ $chkEventsOnlyActive.Checked = $false
 $eventsGridToolbar.Controls.Add($chkEventsOnlyActive)
 
 $eventsSplit.Panel1.Controls.Add($eventsGrid)
+Apply-GridResponsiveStyle -Grid $eventsGrid
+$eventsGridToolbar.BringToFront()
 
 $eventsPanel = New-Object System.Windows.Forms.Panel
 $eventsPanel.Dock = "Fill"
+$eventsPanel.AutoScroll = $true
 $eventsSplit.Panel2.Controls.Add($eventsPanel)
 
 $eventIdLabel = New-Object System.Windows.Forms.Label
@@ -388,6 +410,7 @@ $eventsPanel.Controls.Add($lblEventText)
 $txtEventText = New-Object System.Windows.Forms.TextBox
 $txtEventText.Location = New-Object System.Drawing.Point(12, 62)
 $txtEventText.Size = New-Object System.Drawing.Size(520, 24)
+$txtEventText.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $eventsPanel.Controls.Add($txtEventText)
 
 $lblEventType = New-Object System.Windows.Forms.Label
@@ -412,6 +435,7 @@ $comboEventCard = New-Object System.Windows.Forms.ComboBox
 $comboEventCard.DropDownStyle = "DropDownList"
 $comboEventCard.Location = New-Object System.Drawing.Point(12, 170)
 $comboEventCard.Size = New-Object System.Drawing.Size(520, 28)
+$comboEventCard.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $eventsPanel.Controls.Add($comboEventCard)
 
 $lblEventLoc = New-Object System.Windows.Forms.Label
@@ -424,6 +448,7 @@ $comboEventLocation = New-Object System.Windows.Forms.ComboBox
 $comboEventLocation.DropDownStyle = "DropDownList"
 $comboEventLocation.Location = New-Object System.Drawing.Point(12, 226)
 $comboEventLocation.Size = New-Object System.Drawing.Size(520, 28)
+$comboEventLocation.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $eventsPanel.Controls.Add($comboEventLocation)
 
 $lblEventChance = New-Object System.Windows.Forms.Label
@@ -465,6 +490,7 @@ $dtEventEnd.Location = New-Object System.Drawing.Point(282, 334)
 $dtEventEnd.Size = New-Object System.Drawing.Size(250, 24)
 $dtEventEnd.Format = "Custom"
 $dtEventEnd.CustomFormat = "yyyy-MM-dd HH:mm:ss"
+$dtEventEnd.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $eventsPanel.Controls.Add($dtEventEnd)
 
 $chkEventEnabled = New-Object System.Windows.Forms.CheckBox
@@ -492,6 +518,7 @@ $txtEventNotifyText.Location = New-Object System.Drawing.Point(12, 416)
 $txtEventNotifyText.Size = New-Object System.Drawing.Size(520, 42)
 $txtEventNotifyText.Multiline = $true
 $txtEventNotifyText.Enabled = $false
+$txtEventNotifyText.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $eventsPanel.Controls.Add($txtEventNotifyText)
 
 $lblEventNotifyStatus = New-Object System.Windows.Forms.Label
@@ -541,6 +568,7 @@ $comboLocationTribeLocation = New-Object System.Windows.Forms.ComboBox
 $comboLocationTribeLocation.DropDownStyle = "DropDownList"
 $comboLocationTribeLocation.Location = New-Object System.Drawing.Point(12, 576)
 $comboLocationTribeLocation.Size = New-Object System.Drawing.Size(520, 28)
+$comboLocationTribeLocation.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $eventsPanel.Controls.Add($comboLocationTribeLocation)
 
 $lblLocationTribeKey = New-Object System.Windows.Forms.Label
@@ -571,6 +599,7 @@ $btnLocationTribeRefresh = New-Object System.Windows.Forms.Button
 $btnLocationTribeRefresh.Text = "Atualizar"
 $btnLocationTribeRefresh.Location = New-Object System.Drawing.Point(438, 630)
 $btnLocationTribeRefresh.Size = New-Object System.Drawing.Size(94, 30)
+$btnLocationTribeRefresh.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $eventsPanel.Controls.Add($btnLocationTribeRefresh)
 
 $locationTribesGrid = New-Object System.Windows.Forms.DataGridView
@@ -581,19 +610,24 @@ $locationTribesGrid.AllowUserToAddRows = $false
 $locationTribesGrid.AllowUserToDeleteRows = $false
 $locationTribesGrid.RowHeadersVisible = $false
 $locationTribesGrid.SelectionMode = "FullRowSelect"
-$locationTribesGrid.AutoSizeColumnsMode = "Fill"
 $locationTribesGrid.ColumnCount = 4
 $locationTribesGrid.Columns[0].Name = "Local"
 $locationTribesGrid.Columns[1].Name = "ID"
 $locationTribesGrid.Columns[2].Name = "Tribo"
 $locationTribesGrid.Columns[3].Name = "Atualizado"
+$locationTribesGrid.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $eventsPanel.Controls.Add($locationTribesGrid)
+Apply-GridResponsiveStyle -Grid $locationTribesGrid
 
 # Quests tab
 $questSplit = New-Object System.Windows.Forms.SplitContainer
 $questSplit.Dock = "Fill"
 $questSplit.Orientation = "Vertical"
 $questSplit.SplitterDistance = 620
+try {
+  $questSplit.Panel1MinSize = 440
+  $questSplit.Panel2MinSize = 420
+} catch {}
 $tabQuests.Controls.Add($questSplit)
 
 $questsGrid = New-Object System.Windows.Forms.DataGridView
@@ -603,7 +637,6 @@ $questsGrid.AllowUserToAddRows = $false
 $questsGrid.AllowUserToDeleteRows = $false
 $questsGrid.RowHeadersVisible = $false
 $questsGrid.SelectionMode = "FullRowSelect"
-$questsGrid.AutoSizeColumnsMode = "Fill"
 $questsGrid.ColumnCount = 6
 $questsGrid.Columns[0].Name = "QuestKey"
 $questsGrid.Columns[1].Name = "Titulo"
@@ -612,9 +645,11 @@ $questsGrid.Columns[3].Name = "Local resgate"
 $questsGrid.Columns[4].Name = "Ativa"
 $questsGrid.Columns[5].Name = "Reqs"
 $questSplit.Panel1.Controls.Add($questsGrid)
+Apply-GridResponsiveStyle -Grid $questsGrid
 
 $questPanel = New-Object System.Windows.Forms.Panel
 $questPanel.Dock = "Fill"
+$questPanel.AutoScroll = $true
 $questSplit.Panel2.Controls.Add($questPanel)
 
 $lblQuestKey = New-Object System.Windows.Forms.Label
@@ -637,6 +672,7 @@ $questPanel.Controls.Add($lblQuestTitle)
 $txtQuestTitle = New-Object System.Windows.Forms.TextBox
 $txtQuestTitle.Location = New-Object System.Drawing.Point(238, 34)
 $txtQuestTitle.Size = New-Object System.Drawing.Size(294, 24)
+$txtQuestTitle.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $questPanel.Controls.Add($txtQuestTitle)
 
 $lblQuestDesc = New-Object System.Windows.Forms.Label
@@ -649,6 +685,7 @@ $txtQuestDesc = New-Object System.Windows.Forms.TextBox
 $txtQuestDesc.Location = New-Object System.Drawing.Point(12, 86)
 $txtQuestDesc.Size = New-Object System.Drawing.Size(520, 50)
 $txtQuestDesc.Multiline = $true
+$txtQuestDesc.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $questPanel.Controls.Add($txtQuestDesc)
 
 $lblRewardType = New-Object System.Windows.Forms.Label
@@ -673,6 +710,7 @@ $comboRewardCard = New-Object System.Windows.Forms.ComboBox
 $comboRewardCard.DropDownStyle = "DropDownList"
 $comboRewardCard.Location = New-Object System.Drawing.Point(198, 162)
 $comboRewardCard.Size = New-Object System.Drawing.Size(334, 28)
+$comboRewardCard.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $questPanel.Controls.Add($comboRewardCard)
 
 $lblTargetLocation = New-Object System.Windows.Forms.Label
@@ -685,6 +723,7 @@ $comboQuestTargetLocation = New-Object System.Windows.Forms.ComboBox
 $comboQuestTargetLocation.DropDownStyle = "DropDownList"
 $comboQuestTargetLocation.Location = New-Object System.Drawing.Point(12, 216)
 $comboQuestTargetLocation.Size = New-Object System.Drawing.Size(520, 28)
+$comboQuestTargetLocation.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $questPanel.Controls.Add($comboQuestTargetLocation)
 
 $lblAnomalyIds = New-Object System.Windows.Forms.Label
@@ -696,6 +735,7 @@ $questPanel.Controls.Add($lblAnomalyIds)
 $txtAnomalyIds = New-Object System.Windows.Forms.TextBox
 $txtAnomalyIds.Location = New-Object System.Drawing.Point(12, 270)
 $txtAnomalyIds.Size = New-Object System.Drawing.Size(520, 24)
+$txtAnomalyIds.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $questPanel.Controls.Add($txtAnomalyIds)
 
 $chkQuestEnabled = New-Object System.Windows.Forms.CheckBox
@@ -721,6 +761,7 @@ $comboReqCard = New-Object System.Windows.Forms.ComboBox
 $comboReqCard.DropDownStyle = "DropDownList"
 $comboReqCard.Location = New-Object System.Drawing.Point(198, 350)
 $comboReqCard.Size = New-Object System.Drawing.Size(246, 28)
+$comboReqCard.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $questPanel.Controls.Add($comboReqCard)
 
 $numReqAmount = New-Object System.Windows.Forms.NumericUpDown
@@ -753,6 +794,7 @@ $reqList.GridLines = $true
 [void]$reqList.Columns.Add("CardId", 150)
 [void]$reqList.Columns.Add("Carta", 190)
 [void]$reqList.Columns.Add("Qtd", 60)
+$reqList.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $questPanel.Controls.Add($reqList)
 
 $btnQuestNew = New-Object System.Windows.Forms.Button
@@ -780,64 +822,95 @@ $btnQuestRefresh.Size = New-Object System.Drawing.Size(90, 30)
 $questPanel.Controls.Add($btnQuestRefresh)
 
 # Inventario/Scans tab
+$scansSplit = New-Object System.Windows.Forms.SplitContainer
+$scansSplit.Dock = "Fill"
+$scansSplit.Orientation = "Vertical"
+$scansSplit.SplitterDistance = 860
+try {
+  $scansSplit.Panel1MinSize = 620
+  $scansSplit.Panel2MinSize = 300
+} catch {}
+$tabScans.Controls.Add($scansSplit)
+
+$scansLeft = New-Object System.Windows.Forms.Panel
+$scansLeft.Dock = "Fill"
+$scansSplit.Panel1.Controls.Add($scansLeft)
+
 $scansTop = New-Object System.Windows.Forms.Panel
 $scansTop.Dock = "Top"
-$scansTop.Height = 90
-$tabScans.Controls.Add($scansTop)
+$scansTop.Height = 110
+$scansTop.AutoScroll = $true
+$scansTop.Padding = New-Object System.Windows.Forms.Padding(6, 4, 6, 4)
+$scansLeft.Controls.Add($scansTop)
+
+$scansFiltersLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$scansFiltersLayout.Dock = "Fill"
+$scansFiltersLayout.AutoSize = $false
+$scansFiltersLayout.ColumnCount = 4
+$scansFiltersLayout.RowCount = 4
+[void]$scansFiltersLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 22)))
+[void]$scansFiltersLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 18)))
+[void]$scansFiltersLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 14)))
+[void]$scansFiltersLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 46)))
+[void]$scansFiltersLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 20)))
+[void]$scansFiltersLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 30)))
+[void]$scansFiltersLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 8)))
+[void]$scansFiltersLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 34)))
+$scansTop.Controls.Add($scansFiltersLayout)
 
 $lblScansUser = New-Object System.Windows.Forms.Label
 $lblScansUser.Text = "Usuario:"
-$lblScansUser.Location = New-Object System.Drawing.Point(12, 12)
-$scansTop.Controls.Add($lblScansUser)
+$lblScansUser.Dock = "Fill"
+$lblScansUser.TextAlign = [System.Drawing.ContentAlignment]::BottomLeft
+$scansFiltersLayout.Controls.Add($lblScansUser, 0, 0)
 
 $comboScansUser = New-Object System.Windows.Forms.ComboBox
 $comboScansUser.DropDownStyle = "DropDownList"
-$comboScansUser.Location = New-Object System.Drawing.Point(12, 34)
-$comboScansUser.Size = New-Object System.Drawing.Size(180, 28)
-$scansTop.Controls.Add($comboScansUser)
+$comboScansUser.Dock = "Fill"
+$scansFiltersLayout.Controls.Add($comboScansUser, 0, 1)
 
 $lblScansType = New-Object System.Windows.Forms.Label
 $lblScansType.Text = "Tipo:"
-$lblScansType.Location = New-Object System.Drawing.Point(204, 12)
-$scansTop.Controls.Add($lblScansType)
+$lblScansType.Dock = "Fill"
+$lblScansType.TextAlign = [System.Drawing.ContentAlignment]::BottomLeft
+$scansFiltersLayout.Controls.Add($lblScansType, 1, 0)
 
 $comboScansType = New-Object System.Windows.Forms.ComboBox
 $comboScansType.DropDownStyle = "DropDownList"
-$comboScansType.Location = New-Object System.Drawing.Point(204, 34)
-$comboScansType.Size = New-Object System.Drawing.Size(140, 28)
-$scansTop.Controls.Add($comboScansType)
+$comboScansType.Dock = "Fill"
+$scansFiltersLayout.Controls.Add($comboScansType, 1, 1)
 
 $lblScansSet = New-Object System.Windows.Forms.Label
 $lblScansSet.Text = "Set:"
-$lblScansSet.Location = New-Object System.Drawing.Point(356, 12)
-$scansTop.Controls.Add($lblScansSet)
+$lblScansSet.Dock = "Fill"
+$lblScansSet.TextAlign = [System.Drawing.ContentAlignment]::BottomLeft
+$scansFiltersLayout.Controls.Add($lblScansSet, 2, 0)
 
 $txtScansSet = New-Object System.Windows.Forms.TextBox
-$txtScansSet.Location = New-Object System.Drawing.Point(356, 34)
-$txtScansSet.Size = New-Object System.Drawing.Size(90, 26)
-$scansTop.Controls.Add($txtScansSet)
+$txtScansSet.Dock = "Fill"
+$scansFiltersLayout.Controls.Add($txtScansSet, 2, 1)
 
 $lblScansQuery = New-Object System.Windows.Forms.Label
 $lblScansQuery.Text = "Busca:"
-$lblScansQuery.Location = New-Object System.Drawing.Point(458, 12)
-$scansTop.Controls.Add($lblScansQuery)
+$lblScansQuery.Dock = "Fill"
+$lblScansQuery.TextAlign = [System.Drawing.ContentAlignment]::BottomLeft
+$scansFiltersLayout.Controls.Add($lblScansQuery, 3, 0)
 
 $txtScansQuery = New-Object System.Windows.Forms.TextBox
-$txtScansQuery.Location = New-Object System.Drawing.Point(458, 34)
-$txtScansQuery.Size = New-Object System.Drawing.Size(220, 26)
-$scansTop.Controls.Add($txtScansQuery)
+$txtScansQuery.Dock = "Fill"
+$scansFiltersLayout.Controls.Add($txtScansQuery, 3, 1)
 
 $btnScansLoad = New-Object System.Windows.Forms.Button
 $btnScansLoad.Text = "Atualizar lista"
-$btnScansLoad.Location = New-Object System.Drawing.Point(692, 30)
-$btnScansLoad.Size = New-Object System.Drawing.Size(110, 30)
-$scansTop.Controls.Add($btnScansLoad)
+$btnScansLoad.Dock = "Left"
+$btnScansLoad.Width = 120
+$scansFiltersLayout.Controls.Add($btnScansLoad, 0, 3)
 
 $btnScansDeleteSelected = New-Object System.Windows.Forms.Button
 $btnScansDeleteSelected.Text = "Remover selecionados"
-$btnScansDeleteSelected.Location = New-Object System.Drawing.Point(810, 30)
-$btnScansDeleteSelected.Size = New-Object System.Drawing.Size(170, 30)
-$scansTop.Controls.Add($btnScansDeleteSelected)
+$btnScansDeleteSelected.Dock = "Fill"
+$scansFiltersLayout.Controls.Add($btnScansDeleteSelected, 1, 3)
+$scansFiltersLayout.SetColumnSpan($btnScansDeleteSelected, 2)
 
 $scansGrid = New-Object System.Windows.Forms.DataGridView
 $scansGrid.Dock = "Fill"
@@ -846,7 +919,6 @@ $scansGrid.AllowUserToDeleteRows = $false
 $scansGrid.SelectionMode = "FullRowSelect"
 $scansGrid.MultiSelect = $true
 $scansGrid.ReadOnly = $true
-$scansGrid.AutoSizeColumnsMode = "Fill"
 [void]$scansGrid.Columns.Add("scanEntryId", "scan_entry_id")
 [void]$scansGrid.Columns.Add("cardType", "Tipo")
 [void]$scansGrid.Columns.Add("cardName", "Carta")
@@ -855,74 +927,112 @@ $scansGrid.AutoSizeColumnsMode = "Fill"
 [void]$scansGrid.Columns.Add("obtainedAt", "Obtido em")
 [void]$scansGrid.Columns.Add("source", "Source")
 [void]$scansGrid.Columns.Add("variant", "variant_json")
-$tabScans.Controls.Add($scansGrid)
+$scansGrid.Columns["scanEntryId"].MinimumWidth = 210
+$scansGrid.Columns["cardId"].MinimumWidth = 220
+$scansGrid.Columns["obtainedAt"].MinimumWidth = 165
+$scansGrid.Columns["cardName"].FillWeight = 150
+$scansGrid.Columns["scanEntryId"].FillWeight = 130
+$scansGrid.Columns["cardId"].FillWeight = 130
+$scansGrid.Columns["obtainedAt"].FillWeight = 110
+$scansGrid.Columns["variant"].FillWeight = 120
+$scansLeft.Controls.Add($scansGrid)
+Apply-GridResponsiveStyle -Grid $scansGrid
 
 $scansGrantPanel = New-Object System.Windows.Forms.Panel
-$scansGrantPanel.Dock = "Bottom"
-$scansGrantPanel.Height = 84
-$tabScans.Controls.Add($scansGrantPanel)
+$scansGrantPanel.Dock = "Fill"
+$scansGrantPanel.AutoScroll = $true
+$scansGrantPanel.Padding = New-Object System.Windows.Forms.Padding(10)
+$scansSplit.Panel2.Controls.Add($scansGrantPanel)
+
+$grantTitle = New-Object System.Windows.Forms.Label
+$grantTitle.Text = "Grant Manual"
+$grantTitle.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$grantTitle.Location = New-Object System.Drawing.Point(12, 10)
+$grantTitle.Size = New-Object System.Drawing.Size(220, 24)
+$scansGrantPanel.Controls.Add($grantTitle)
 
 $lblGrantType = New-Object System.Windows.Forms.Label
 $lblGrantType.Text = "Grant tipo:"
-$lblGrantType.Location = New-Object System.Drawing.Point(12, 10)
+$lblGrantType.Location = New-Object System.Drawing.Point(12, 42)
+$lblGrantType.Size = New-Object System.Drawing.Size(100, 20)
 $scansGrantPanel.Controls.Add($lblGrantType)
 
 $comboGrantCardType = New-Object System.Windows.Forms.ComboBox
 $comboGrantCardType.DropDownStyle = "DropDownList"
-$comboGrantCardType.Location = New-Object System.Drawing.Point(12, 34)
-$comboGrantCardType.Size = New-Object System.Drawing.Size(140, 28)
+$comboGrantCardType.Location = New-Object System.Drawing.Point(12, 64)
+$comboGrantCardType.Size = New-Object System.Drawing.Size(250, 28)
+$comboGrantCardType.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $scansGrantPanel.Controls.Add($comboGrantCardType)
+
+$lblGrantCard = New-Object System.Windows.Forms.Label
+$lblGrantCard.Text = "Carta:"
+$lblGrantCard.Location = New-Object System.Drawing.Point(12, 96)
+$lblGrantCard.Size = New-Object System.Drawing.Size(80, 20)
+$scansGrantPanel.Controls.Add($lblGrantCard)
 
 $comboGrantCard = New-Object System.Windows.Forms.ComboBox
 $comboGrantCard.DropDownStyle = "DropDownList"
-$comboGrantCard.Location = New-Object System.Drawing.Point(162, 34)
-$comboGrantCard.Size = New-Object System.Drawing.Size(420, 28)
+$comboGrantCard.Location = New-Object System.Drawing.Point(12, 118)
+$comboGrantCard.Size = New-Object System.Drawing.Size(250, 28)
+$comboGrantCard.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $scansGrantPanel.Controls.Add($comboGrantCard)
 
 $lblGrantQty = New-Object System.Windows.Forms.Label
 $lblGrantQty.Text = "Qtd"
-$lblGrantQty.Location = New-Object System.Drawing.Point(592, 10)
+$lblGrantQty.Location = New-Object System.Drawing.Point(12, 152)
+$lblGrantQty.Size = New-Object System.Drawing.Size(80, 20)
 $scansGrantPanel.Controls.Add($lblGrantQty)
 
 $numGrantQty = New-Object System.Windows.Forms.NumericUpDown
-$numGrantQty.Location = New-Object System.Drawing.Point(592, 34)
+$numGrantQty.Location = New-Object System.Drawing.Point(12, 174)
 $numGrantQty.Minimum = 1
 $numGrantQty.Maximum = 100
 $numGrantQty.Value = 1
-$numGrantQty.Size = New-Object System.Drawing.Size(60, 26)
+$numGrantQty.Size = New-Object System.Drawing.Size(80, 26)
 $scansGrantPanel.Controls.Add($numGrantQty)
 
 $lblGrantStars = New-Object System.Windows.Forms.Label
 $lblGrantStars.Text = "Estrelas"
-$lblGrantStars.Location = New-Object System.Drawing.Point(660, 10)
+$lblGrantStars.Location = New-Object System.Drawing.Point(110, 152)
+$lblGrantStars.Size = New-Object System.Drawing.Size(80, 20)
 $scansGrantPanel.Controls.Add($lblGrantStars)
 
 $numGrantStars = New-Object System.Windows.Forms.NumericUpDown
-$numGrantStars.Location = New-Object System.Drawing.Point(660, 34)
+$numGrantStars.Location = New-Object System.Drawing.Point(110, 174)
 $numGrantStars.Minimum = 1
 $numGrantStars.Maximum = 3
 $numGrantStars.DecimalPlaces = 1
 $numGrantStars.Increment = [decimal]0.5
 $numGrantStars.Value = [decimal]2.0
-$numGrantStars.Size = New-Object System.Drawing.Size(70, 26)
+$numGrantStars.Size = New-Object System.Drawing.Size(80, 26)
 $scansGrantPanel.Controls.Add($numGrantStars)
 
+$lblGrantSource = New-Object System.Windows.Forms.Label
+$lblGrantSource.Text = "Source:"
+$lblGrantSource.Location = New-Object System.Drawing.Point(12, 206)
+$lblGrantSource.Size = New-Object System.Drawing.Size(100, 20)
+$scansGrantPanel.Controls.Add($lblGrantSource)
+
 $txtGrantSource = New-Object System.Windows.Forms.TextBox
-$txtGrantSource.Location = New-Object System.Drawing.Point(738, 34)
-$txtGrantSource.Size = New-Object System.Drawing.Size(170, 26)
+$txtGrantSource.Location = New-Object System.Drawing.Point(12, 228)
+$txtGrantSource.Size = New-Object System.Drawing.Size(250, 26)
 $txtGrantSource.Text = "admin_manual_grant"
+$txtGrantSource.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $scansGrantPanel.Controls.Add($txtGrantSource)
 
 $btnScansGrant = New-Object System.Windows.Forms.Button
 $btnScansGrant.Text = "Grant carta"
-$btnScansGrant.Location = New-Object System.Drawing.Point(916, 32)
-$btnScansGrant.Size = New-Object System.Drawing.Size(110, 30)
+$btnScansGrant.Location = New-Object System.Drawing.Point(12, 268)
+$btnScansGrant.Size = New-Object System.Drawing.Size(250, 34)
+$btnScansGrant.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $scansGrantPanel.Controls.Add($btnScansGrant)
 
 # Perfil/Ranked tab
 $profileTop = New-Object System.Windows.Forms.Panel
 $profileTop.Dock = "Top"
 $profileTop.Height = 74
+$profileTop.AutoScroll = $true
+$profileTop.Padding = New-Object System.Windows.Forms.Padding(6, 4, 6, 4)
 $tabProfileRanked.Controls.Add($profileTop)
 
 $lblProfileUser = New-Object System.Windows.Forms.Label
@@ -985,10 +1095,15 @@ $profileBody = New-Object System.Windows.Forms.SplitContainer
 $profileBody.Dock = "Fill"
 $profileBody.Orientation = "Vertical"
 $profileBody.SplitterDistance = 640
+try {
+  $profileBody.Panel1MinSize = 460
+  $profileBody.Panel2MinSize = 320
+} catch {}
 $tabProfileRanked.Controls.Add($profileBody)
 
 $profileEditorPanel = New-Object System.Windows.Forms.Panel
 $profileEditorPanel.Dock = "Fill"
+$profileEditorPanel.AutoScroll = $true
 $profileBody.Panel1.Controls.Add($profileEditorPanel)
 
 $profileGridStats = New-Object System.Windows.Forms.DataGridView
@@ -998,7 +1113,6 @@ $profileGridStats.AllowUserToAddRows = $false
 $profileGridStats.AllowUserToDeleteRows = $false
 $profileGridStats.ReadOnly = $true
 $profileGridStats.SelectionMode = "FullRowSelect"
-$profileGridStats.AutoSizeColumnsMode = "Fill"
 [void]$profileGridStats.Columns.Add("drome", "Dromo")
 [void]$profileGridStats.Columns.Add("score", "Score")
 [void]$profileGridStats.Columns.Add("wins", "Wins")
@@ -1006,6 +1120,7 @@ $profileGridStats.AutoSizeColumnsMode = "Fill"
 [void]$profileGridStats.Columns.Add("streak", "Streak atual")
 [void]$profileGridStats.Columns.Add("best", "Melhor streak")
 $profileBody.Panel1.Controls.Add($profileGridStats)
+Apply-GridResponsiveStyle -Grid $profileGridStats
 
 $lblPScore = New-Object System.Windows.Forms.Label
 $lblPScore.Text = "Perfil score/wins/losses"
@@ -1097,6 +1212,8 @@ $profileBody.Panel2.Controls.Add($profileSnapshotBox)
 $perimTop = New-Object System.Windows.Forms.Panel
 $perimTop.Dock = "Top"
 $perimTop.Height = 72
+$perimTop.AutoScroll = $true
+$perimTop.Padding = New-Object System.Windows.Forms.Padding(6, 4, 6, 4)
 $tabPerimState.Controls.Add($perimTop)
 
 $lblPerimUser = New-Object System.Windows.Forms.Label
@@ -1150,12 +1267,20 @@ $perimBody = New-Object System.Windows.Forms.SplitContainer
 $perimBody.Dock = "Fill"
 $perimBody.Orientation = "Horizontal"
 $perimBody.SplitterDistance = 330
+try {
+  $perimBody.Panel1MinSize = 220
+  $perimBody.Panel2MinSize = 160
+} catch {}
 $tabPerimState.Controls.Add($perimBody)
 
 $perimUpperSplit = New-Object System.Windows.Forms.SplitContainer
 $perimUpperSplit.Dock = "Fill"
 $perimUpperSplit.Orientation = "Vertical"
 $perimUpperSplit.SplitterDistance = 600
+try {
+  $perimUpperSplit.Panel1MinSize = 360
+  $perimUpperSplit.Panel2MinSize = 320
+} catch {}
 $perimBody.Panel1.Controls.Add($perimUpperSplit)
 
 $perimRunsGrid = New-Object System.Windows.Forms.DataGridView
@@ -1165,13 +1290,13 @@ $perimRunsGrid.AllowUserToDeleteRows = $false
 $perimRunsGrid.ReadOnly = $true
 $perimRunsGrid.SelectionMode = "FullRowSelect"
 $perimRunsGrid.MultiSelect = $false
-$perimRunsGrid.AutoSizeColumnsMode = "Fill"
 [void]$perimRunsGrid.Columns.Add("runId", "run_id")
 [void]$perimRunsGrid.Columns.Add("action", "Acao")
 [void]$perimRunsGrid.Columns.Add("status", "Status")
 [void]$perimRunsGrid.Columns.Add("location", "Local")
 [void]$perimRunsGrid.Columns.Add("startAt", "Inicio")
 $perimUpperSplit.Panel1.Controls.Add($perimRunsGrid)
+Apply-GridResponsiveStyle -Grid $perimRunsGrid
 
 $perimRewardsGrid = New-Object System.Windows.Forms.DataGridView
 $perimRewardsGrid.Dock = "Fill"
@@ -1180,13 +1305,13 @@ $perimRewardsGrid.AllowUserToDeleteRows = $false
 $perimRewardsGrid.ReadOnly = $true
 $perimRewardsGrid.SelectionMode = "FullRowSelect"
 $perimRewardsGrid.MultiSelect = $true
-$perimRewardsGrid.AutoSizeColumnsMode = "Fill"
 [void]$perimRewardsGrid.Columns.Add("rewardId", "reward_id")
 [void]$perimRewardsGrid.Columns.Add("runId", "run_id")
 [void]$perimRewardsGrid.Columns.Add("rewardType", "Tipo")
 [void]$perimRewardsGrid.Columns.Add("cardId", "card_id")
 [void]$perimRewardsGrid.Columns.Add("isNew", "Novo")
 $perimUpperSplit.Panel2.Controls.Add($perimRewardsGrid)
+Apply-GridResponsiveStyle -Grid $perimRewardsGrid
 
 $perimCampGrid = New-Object System.Windows.Forms.DataGridView
 $perimCampGrid.Dock = "Fill"
@@ -1195,29 +1320,35 @@ $perimCampGrid.AllowUserToDeleteRows = $false
 $perimCampGrid.ReadOnly = $true
 $perimCampGrid.SelectionMode = "FullRowSelect"
 $perimCampGrid.MultiSelect = $false
-$perimCampGrid.AutoSizeColumnsMode = "Fill"
 [void]$perimCampGrid.Columns.Add("locationCardId", "location_card_id")
 [void]$perimCampGrid.Columns.Add("progress", "Camp progress")
 $perimBody.Panel2.Controls.Add($perimCampGrid)
+Apply-GridResponsiveStyle -Grid $perimCampGrid
 
 # Logs tab
 $logsPanel = New-Object System.Windows.Forms.Panel
 $logsPanel.Dock = "Fill"
 $tabLogs.Controls.Add($logsPanel)
 
+$logsTop = New-Object System.Windows.Forms.Panel
+$logsTop.Dock = "Top"
+$logsTop.Height = 44
+$logsTop.Padding = New-Object System.Windows.Forms.Padding(6)
+$logsPanel.Controls.Add($logsTop)
+
 $btnLogsRefresh = New-Object System.Windows.Forms.Button
 $btnLogsRefresh.Text = "Atualizar logs"
-$btnLogsRefresh.Location = New-Object System.Drawing.Point(12, 12)
+$btnLogsRefresh.Location = New-Object System.Drawing.Point(12, 6)
 $btnLogsRefresh.Size = New-Object System.Drawing.Size(110, 30)
-$logsPanel.Controls.Add($btnLogsRefresh)
+$logsTop.Controls.Add($btnLogsRefresh)
 
 $logsBox = New-Object System.Windows.Forms.TextBox
-$logsBox.Location = New-Object System.Drawing.Point(12, 48)
-$logsBox.Size = New-Object System.Drawing.Size(1200, 680)
+$logsBox.Dock = "Fill"
 $logsBox.Multiline = $true
 $logsBox.ReadOnly = $true
 $logsBox.ScrollBars = "Vertical"
 $logsPanel.Controls.Add($logsBox)
+$logsTop.BringToFront()
 
 function Load-Catalog {
   $payload = Invoke-AdminEngine -Action "catalog-cards"
