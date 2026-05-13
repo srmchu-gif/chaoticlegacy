@@ -111,6 +111,7 @@ const UI_LANGUAGE_LABELS = {
     tabBuilder: "Deck Builder",
     tabBattle: "Battlefield",
     tabSettings: "Configuracoes",
+    mobileViewerToggle: "Visualizacao",
     libraryTitle: "Scans",
     libraryViewLibrary: "Biblioteca",
     libraryViewScans: "Scans",
@@ -151,6 +152,7 @@ const UI_LANGUAGE_LABELS = {
     tabBuilder: "Deck Builder",
     tabBattle: "Battlefield",
     tabSettings: "Settings",
+    mobileViewerToggle: "Viewer",
     libraryTitle: "Scans",
     libraryViewLibrary: "Library",
     libraryViewScans: "Scans",
@@ -191,6 +193,7 @@ const UI_LANGUAGE_LABELS = {
     tabBuilder: "Deck Builder",
     tabBattle: "Battlefield",
     tabSettings: "Configuracion",
+    mobileViewerToggle: "Vista",
     libraryTitle: "Scans",
     libraryViewLibrary: "Biblioteca",
     libraryViewScans: "Scans",
@@ -499,6 +502,12 @@ const appState = {
     speed: 0,
   },
   libraryView: "scans",
+  mobileViewer: {
+    active: false,
+    index: 0,
+    touchStartX: null,
+    touchStartY: null,
+  },
   scans: {
     cards: {
       creatures: [],
@@ -634,6 +643,7 @@ const el = {
   battleRematch: document.querySelector("#battle-rematch"),
   battleForfeit: document.querySelector("#battle-forfeit"),
   battleMenuBtn: document.querySelector("#battle-menu-btn"),
+  mobileScanViewerToggle: document.querySelector("#mobile-scan-viewer-toggle"),
   reloadLibrary: document.querySelector("#reload-library"),
   cardTypeFilter: document.querySelector("#card-type-filter"),
   setFilter: document.querySelector("#set-filter"),
@@ -656,6 +666,13 @@ const el = {
   speedMin: document.querySelector("#speed-min"),
   cardSearch: document.querySelector("#card-search"),
   cardLibrary: document.querySelector("#card-library"),
+  mobileScanViewer: document.querySelector("#mobile-scan-viewer"),
+  mobileScanViewerImage: document.querySelector("#mobile-scan-viewer-image"),
+  mobileScanViewerEmpty: document.querySelector("#mobile-scan-viewer-empty"),
+  mobileScanViewerName: document.querySelector("#mobile-scan-viewer-name"),
+  mobileScanViewerMeta: document.querySelector("#mobile-scan-viewer-meta"),
+  mobileScanViewerStars: document.querySelector("#mobile-scan-viewer-stars"),
+  mobileScanViewerIndex: document.querySelector("#mobile-scan-viewer-index"),
   deckMode: document.querySelector("#deck-mode"),
   deckName: document.querySelector("#deck-name"),
   saveDeck: document.querySelector("#save-deck"),
@@ -2629,6 +2646,7 @@ function renderLibraryCards() {
     el.cardLibrary.innerHTML = hasSelectedSpecialFlag
       ? `<p>${uiText("noCardsInventoryFiltered")}</p>`
       : `<p>${uiText("markFlagsPrompt")}</p>`;
+    renderMobileScanViewer();
     return;
   }
 
@@ -2673,6 +2691,7 @@ function renderLibraryCards() {
       : null;
     el.cardLibrary.appendChild(cardNode(card, [addButton], { scanTimestamp }));
   });
+  renderMobileScanViewer();
 }
 
 function createDeckRow(card, text, onRemove = null, options = {}) {
@@ -3411,6 +3430,9 @@ function applyInterfaceLanguage() {
   if (el.tabSettings) {
     el.tabSettings.textContent = dictionary.tabSettings;
   }
+  if (el.mobileScanViewerToggle) {
+    el.mobileScanViewerToggle.textContent = dictionary.mobileViewerToggle;
+  }
   if (el.reloadLibrary) {
     el.reloadLibrary.textContent = dictionary.reload;
   }
@@ -4143,6 +4165,119 @@ function switchTab(target = "builder") {
   }
   if (tab === "battle") {
     updateMultiplayerBattleView();
+  }
+  if (tab !== "builder") {
+    appState.mobileViewer.active = false;
+  }
+  syncTopbarButtons();
+  renderMobileScanViewer();
+}
+
+function isMobileViewport() {
+  try {
+    return window.matchMedia("(max-width: 900px)").matches;
+  } catch (_error) {
+    return window.innerWidth <= 900;
+  }
+}
+
+function syncTopbarButtons() {
+  const isBuilderTab = appState.currentTab === "builder";
+  const canUseMobileViewer = isBuilderTab && isMobileViewport();
+  if (el.battleForfeit) {
+    el.battleForfeit.classList.toggle("hidden", !appState.currentTab || appState.currentTab !== "battle");
+  }
+  if (el.mobileScanViewerToggle) {
+    el.mobileScanViewerToggle.classList.toggle("hidden", !canUseMobileViewer);
+    el.mobileScanViewerToggle.classList.toggle("active", Boolean(appState.mobileViewer.active && canUseMobileViewer));
+  }
+}
+
+function setMobileScanViewerActive(active) {
+  const canActivate = isMobileViewport() && appState.currentTab === "builder";
+  appState.mobileViewer.active = Boolean(active && canActivate);
+  if (!appState.mobileViewer.active) {
+    appState.mobileViewer.touchStartX = null;
+    appState.mobileViewer.touchStartY = null;
+  }
+  syncTopbarButtons();
+  renderMobileScanViewer();
+}
+
+function mobileViewerCards() {
+  return getFilteredLibraryCards();
+}
+
+function navigateMobileScanViewer(direction) {
+  const cards = mobileViewerCards();
+  if (!cards.length) {
+    appState.mobileViewer.index = 0;
+    renderMobileScanViewer();
+    return;
+  }
+  const step = direction === "prev" ? -1 : 1;
+  const nextIndex = (appState.mobileViewer.index + step + cards.length) % cards.length;
+  appState.mobileViewer.index = nextIndex;
+  renderMobileScanViewer();
+}
+
+function renderMobileScanViewer() {
+  if (!el.mobileScanViewer || !el.mobileScanViewerImage) {
+    return;
+  }
+  const enabled = Boolean(appState.mobileViewer.active && isMobileViewport() && appState.currentTab === "builder");
+  el.mobileScanViewer.classList.toggle("hidden", !enabled);
+  el.mobileScanViewer.classList.toggle("is-active", enabled);
+  document.body.classList.toggle("mobile-scan-viewer-mode", enabled);
+  if (!enabled) {
+    return;
+  }
+  const cards = mobileViewerCards();
+  if (!cards.length) {
+    appState.mobileViewer.index = 0;
+    if (el.mobileScanViewerImage) {
+      el.mobileScanViewerImage.classList.add("hidden");
+      el.mobileScanViewerImage.removeAttribute("src");
+    }
+    if (el.mobileScanViewerEmpty) {
+      el.mobileScanViewerEmpty.classList.remove("hidden");
+    }
+    if (el.mobileScanViewerName) el.mobileScanViewerName.textContent = "-";
+    if (el.mobileScanViewerMeta) el.mobileScanViewerMeta.textContent = "-";
+    if (el.mobileScanViewerStars) el.mobileScanViewerStars.textContent = "Estrelas: -";
+    if (el.mobileScanViewerIndex) el.mobileScanViewerIndex.textContent = "0/0";
+    return;
+  }
+  const safeIndex = Math.min(Math.max(0, appState.mobileViewer.index), cards.length - 1);
+  appState.mobileViewer.index = safeIndex;
+  const card = cards[safeIndex];
+  const imageSrc = imageOf(card);
+  if (el.mobileScanViewerImage) {
+    if (imageSrc) {
+      el.mobileScanViewerImage.src = imageSrc;
+      el.mobileScanViewerImage.classList.remove("hidden");
+    } else {
+      el.mobileScanViewerImage.classList.add("hidden");
+    }
+    el.mobileScanViewerImage.alt = card?.name || "Carta";
+  }
+  if (el.mobileScanViewerEmpty) {
+    el.mobileScanViewerEmpty.classList.add("hidden");
+  }
+  const starsLabel = card?.type === "creatures"
+    ? creatureStarsLabelFromVariant(normalizeVariant(card?._scanVariant))
+    : "-";
+  if (el.mobileScanViewerName) {
+    el.mobileScanViewerName.textContent = card?.name || "-";
+  }
+  if (el.mobileScanViewerMeta) {
+    el.mobileScanViewerMeta.textContent = `${TYPE_LABEL[card?.type] || card?.type || "-"} | ${card?.set || "-"} | ${card?.rarity || "-"}`;
+  }
+  if (el.mobileScanViewerStars) {
+    el.mobileScanViewerStars.textContent = `Estrelas: ${starsLabel || "-"}`;
+  }
+  if (el.mobileScanViewerIndex) {
+    el.mobileScanViewerIndex.textContent = `${safeIndex + 1}/${cards.length}`;
   }
 }
 
@@ -6525,6 +6660,51 @@ function bindEvents() {
       void handleBattleMenuExit();
     });
   }
+  if (el.mobileScanViewerToggle) {
+    el.mobileScanViewerToggle.addEventListener("click", () => {
+      setMobileScanViewerActive(!appState.mobileViewer.active);
+    });
+  }
+  if (el.mobileScanViewer) {
+    el.mobileScanViewer.addEventListener("touchstart", (event) => {
+      const touch = event.changedTouches?.[0];
+      if (!touch) {
+        return;
+      }
+      appState.mobileViewer.touchStartX = touch.clientX;
+      appState.mobileViewer.touchStartY = touch.clientY;
+    }, { passive: true });
+    el.mobileScanViewer.addEventListener("touchend", (event) => {
+      const touch = event.changedTouches?.[0];
+      const startX = appState.mobileViewer.touchStartX;
+      const startY = appState.mobileViewer.touchStartY;
+      appState.mobileViewer.touchStartX = null;
+      appState.mobileViewer.touchStartY = null;
+      if (!touch || !Number.isFinite(startX) || !Number.isFinite(startY)) {
+        return;
+      }
+      const deltaX = touch.clientX - startX;
+      const deltaY = touch.clientY - startY;
+      if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) {
+        return;
+      }
+      navigateMobileScanViewer(deltaX > 0 ? "prev" : "next");
+    }, { passive: true });
+    el.mobileScanViewer.addEventListener("click", (event) => {
+      if (!appState.mobileViewer.active) {
+        return;
+      }
+      const rect = el.mobileScanViewer.getBoundingClientRect();
+      const clickX = event.clientX - rect.left;
+      if (clickX < rect.width * 0.35) {
+        navigateMobileScanViewer("prev");
+        return;
+      }
+      if (clickX > rect.width * 0.65) {
+        navigateMobileScanViewer("next");
+      }
+    });
+  }
   if (el.deckName) {
     el.deckName.addEventListener("input", () => {
       // Nome do deck nao altera disponibilidade de scans em tempo real.
@@ -7044,6 +7224,14 @@ async function init() {
     try {
       stopPresenceHeartbeat();
     } catch (_) {}
+  });
+
+  window.addEventListener("resize", () => {
+    if (!isMobileViewport() && appState.mobileViewer.active) {
+      appState.mobileViewer.active = false;
+    }
+    syncTopbarButtons();
+    renderMobileScanViewer();
   });
 
   bindEvents();

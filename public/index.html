@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=8" />
+    <link rel="stylesheet" href="css/styles.css?v=9" />
     <link rel="stylesheet" href="css/music.css?v=7" />
     <script src="config.js"></script>
     <script>
@@ -34,6 +34,7 @@
       </div>
       <div class="topbar-actions">
         <button id="battle-menu-btn" class="ghost-btn">Menu</button>
+        <button id="mobile-scan-viewer-toggle" class="ghost-btn hidden" type="button">Visualizacao</button>
         <button id="battle-forfeit" class="ghost-btn">Desistir</button>
       </div>
     </header>
@@ -154,6 +155,20 @@
               </div>
             </div>
             <div id="card-library" class="card-list"></div>
+            <section id="mobile-scan-viewer" class="mobile-scan-viewer hidden" aria-live="polite">
+              <article class="mobile-scan-viewer-frame">
+                <img id="mobile-scan-viewer-image" alt="Carta selecionada" />
+                <div id="mobile-scan-viewer-empty" class="mobile-scan-viewer-empty hidden">
+                  Sem cartas para os filtros atuais. Ajuste os filtros para visualizar seus scans.
+                </div>
+                <div class="mobile-scan-viewer-strip">
+                  <strong id="mobile-scan-viewer-name">-</strong>
+                  <span id="mobile-scan-viewer-meta">-</span>
+                  <small id="mobile-scan-viewer-stars">Estrelas: -</small>
+                  <small id="mobile-scan-viewer-index">0/0</small>
+                </div>
+              </article>
+            </section>
           </article>
 
           <article class="card-panel deck-panel">
@@ -546,7 +561,7 @@
     <div id="hover-preview" class="hover-preview"></div>
     <div id="fps-counter" class="fps-counter hidden" aria-live="polite">FPS: --</div>
 
-    <script type="module" src="js/app.js?v=9"></script>
+    <script type="module" src="js/app.js?v=10"></script>
   </body>
 </html>
 

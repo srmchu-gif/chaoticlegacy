@@ -80,6 +80,11 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
   font-size:.66rem;
   letter-spacing:.04em;
 }
+.topbar-actions{
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+}
 
 /* Settings view - unified cyber clean */
 .settings-shell{
@@ -342,5 +347,91 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
   }
   .builder-flag-grid{
     grid-template-columns:1fr;
+  }
+}
+
+/* Mobile scans viewer */
+.mobile-scan-viewer{
+  display:none;
+}
+@media (max-width:900px){
+  .topbar-actions{
+    gap:.35rem;
+  }
+  .topbar-actions button{
+    padding:.28rem .55rem;
+    font-size:.78rem;
+  }
+  .mobile-scan-viewer.is-active{
+    display:block;
+  }
+  body.mobile-scan-viewer-mode #card-library,
+  body.mobile-scan-viewer-mode .builder-filters,
+  body.mobile-scan-viewer-mode .deck-panel{
+    display:none!important;
+  }
+  body.mobile-scan-viewer-mode .library-panel{
+    width:100%;
+  }
+  body.mobile-scan-viewer-mode .library-panel > .row{
+    margin-bottom:.35rem;
+  }
+  .mobile-scan-viewer-frame{
+    position:relative;
+    border:1px solid #2a4a67;
+    border-radius:12px;
+    overflow:hidden;
+    background:#040a12;
+    min-height:68vh;
+    touch-action:pan-y;
+    user-select:none;
+  }
+  .mobile-scan-viewer-frame img{
+    width:100%;
+    height:68vh;
+    object-fit:contain;
+    display:block;
+    background:#040a12;
+  }
+  .mobile-scan-viewer-strip{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    display:grid;
+    gap:.15rem;
+    padding:.45rem .55rem .5rem;
+    background:linear-gradient(180deg,rgba(2,8,16,.1),rgba(2,8,16,.95) 45%,rgba(2,8,16,.98));
+    color:#d5ecff;
+    backdrop-filter:blur(2px);
+  }
+  .mobile-scan-viewer-strip strong{
+    font-size:.83rem;
+    line-height:1.2;
+  }
+  .mobile-scan-viewer-strip span,
+  .mobile-scan-viewer-strip small{
+    font-size:.7rem;
+    color:#9ec7e8;
+  }
+  .mobile-scan-viewer-empty{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:1rem;
+    color:#b9d8f2;
+    font-size:.82rem;
+    background:rgba(3,10,18,.85);
+  }
+}
+@media (max-width:480px){
+  .mobile-scan-viewer-frame{
+    min-height:72vh;
+  }
+  .mobile-scan-viewer-frame img{
+    height:72vh;
   }
 }

@@ -1,5 +1,5 @@
 Chaotic - Efeitos Pendentes (Creatures)
-generatedAt=2026-05-13T00:48:15.561Z
+generatedAt=2026-05-13T01:00:28.204Z
 total=4
 ---
 [BASE] kind_pendente | Tipo: creatures | Carta: Erak'tabb | Kind: conditionalDamage | Trecho: Challenge Wisdom 50: Deal 10 damage
