@@ -253,7 +253,94 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
   .battle-setup-grid{grid-template-columns:1fr}
 }
 
-/* Builder filter quality-of-life for multi-select controls */
-.builder-filters .filter-title-inline{font-size:.68rem;opacity:.9}
-.builder-filters #set-filter,.builder-filters #stars-filter{min-width:8.5rem;max-width:11rem;min-height:5.2rem}
-.builder-filters #sort-field-filter,.builder-filters #sort-direction-filter{min-width:9rem}
+/* Builder filters (scans-only) */
+.builder-filters{
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:.55rem;
+}
+.builder-filter-card{
+  border:1px solid #2a4a67;
+  border-radius:10px;
+  background:linear-gradient(165deg,#0b1627d8,#0a1422db);
+  padding:.5rem;
+  display:grid;
+  gap:.45rem;
+}
+.builder-filter-card h3{
+  margin:0;
+  font-size:.72rem;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#9fd8ff;
+}
+.builder-filter-row{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:.4rem;
+  align-items:center;
+}
+.builder-filter-row > *{
+  min-width:0;
+}
+.builder-filter-grid-2{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.45rem;
+}
+.builder-filter-field{
+  display:grid;
+  gap:.3rem;
+}
+.builder-filters .filter-title-inline{
+  font-size:.68rem;
+  opacity:.9;
+}
+.builder-filters #set-filter,
+.builder-filters #stars-filter{
+  min-height:6rem;
+  width:100%;
+}
+.builder-filters #sort-field-filter,
+.builder-filters #sort-direction-filter{
+  min-width:0;
+}
+.builder-flag-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.35rem .45rem;
+}
+.builder-filter-stats{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+#scans-stock-summary{
+  margin-left:auto;
+  padding:.2rem .45rem;
+  border:1px solid #2b4f70;
+  border-radius:999px;
+  background:#081321;
+  color:#9fd7ff;
+  font-size:.72rem;
+}
+@media (max-width:1100px){
+  .builder-filter-row{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .builder-filter-row #clear-library-filters{
+    grid-column:1 / -1;
+  }
+}
+@media (max-width:700px){
+  .builder-filters{
+    grid-template-columns:1fr;
+  }
+  .builder-filter-row,
+  .builder-filter-grid-2,
+  .builder-filter-stats{
+    grid-template-columns:1fr;
+  }
+  .builder-flag-grid{
+    grid-template-columns:1fr;
+  }
+}

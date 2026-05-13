@@ -111,7 +111,7 @@ const UI_LANGUAGE_LABELS = {
     tabBuilder: "Deck Builder",
     tabBattle: "Battlefield",
     tabSettings: "Configuracoes",
-    libraryTitle: "Biblioteca",
+    libraryTitle: "Scans",
     libraryViewLibrary: "Biblioteca",
     libraryViewScans: "Scans",
     scansSummaryPrefix: "Scans disponiveis",
@@ -151,7 +151,7 @@ const UI_LANGUAGE_LABELS = {
     tabBuilder: "Deck Builder",
     tabBattle: "Battlefield",
     tabSettings: "Settings",
-    libraryTitle: "Library",
+    libraryTitle: "Scans",
     libraryViewLibrary: "Library",
     libraryViewScans: "Scans",
     scansSummaryPrefix: "Available scans",
@@ -191,7 +191,7 @@ const UI_LANGUAGE_LABELS = {
     tabBuilder: "Deck Builder",
     tabBattle: "Battlefield",
     tabSettings: "Configuracion",
-    libraryTitle: "Biblioteca",
+    libraryTitle: "Scans",
     libraryViewLibrary: "Biblioteca",
     libraryViewScans: "Scans",
     scansSummaryPrefix: "Scans disponibles",
@@ -2421,14 +2421,10 @@ async function refreshScansData() {
   updateScansStockSummaryFromAvailable();
 }
 
-function setLibraryView(view) {
-  const normalized = view === "scans" ? "scans" : "library";
-  appState.libraryView = normalized;
-  if (el.libraryViewLibrary) {
-    el.libraryViewLibrary.classList.toggle("active", normalized === "library");
-  }
+function setLibraryView(_view = "scans") {
+  appState.libraryView = "scans";
   if (el.libraryViewScans) {
-    el.libraryViewScans.classList.toggle("active", normalized === "scans");
+    el.libraryViewScans.classList.add("active");
   }
   renderLibraryCards();
 }
@@ -2521,20 +2517,17 @@ function getFilteredLibraryCards() {
   };
 
   const source = (() => {
-    if (appState.libraryView === "scans") {
-      const scanCards = appState.scans?.available || {};
-      if (appState.filterType === "all") {
-        return CARD_TYPES.flatMap((type) =>
-          (Array.isArray(scanCards[type]) ? scanCards[type] : [])
-            .map((entry) => attachEntryRef(getCardById(entry), entry))
-            .filter(Boolean)
-        );
-      }
-      return (Array.isArray(scanCards[appState.filterType]) ? scanCards[appState.filterType] : [])
-        .map((entry) => attachEntryRef(getCardById(entry), entry))
-        .filter(Boolean);
+    const scanCards = appState.scans?.available || {};
+    if (appState.filterType === "all") {
+      return CARD_TYPES.flatMap((type) =>
+        (Array.isArray(scanCards[type]) ? scanCards[type] : [])
+          .map((entry) => attachEntryRef(getCardById(entry), entry))
+          .filter(Boolean)
+      );
     }
-    return appState.filterType === "all" ? appState.library.cards : appState.library.cardsByType[appState.filterType] || [];
+    return (Array.isArray(scanCards[appState.filterType]) ? scanCards[appState.filterType] : [])
+      .map((entry) => attachEntryRef(getCardById(entry), entry))
+      .filter(Boolean);
   })();
   const query = appState.filterText.trim().toLowerCase();
 
@@ -2630,12 +2623,11 @@ function renderLibraryCards() {
   const limit = 180;
   const hasSelectedSpecialFlag = Object.keys(appState.filterFlags).some((flag) => appState.filterFlags[flag]);
   const availableMap = scansAvailabilityMap();
-  const isScansView = appState.libraryView === "scans";
   el.cardLibrary.innerHTML = "";
 
   if (!cards.length) {
     el.cardLibrary.innerHTML = hasSelectedSpecialFlag
-      ? (isScansView ? `<p>${uiText("noCardsInventoryFiltered")}</p>` : `<p>${uiText("noCardsFound")}</p>`)
+      ? `<p>${uiText("noCardsInventoryFiltered")}</p>`
       : `<p>${uiText("markFlagsPrompt")}</p>`;
     return;
   }
@@ -2676,8 +2668,8 @@ function renderLibraryCards() {
     });
     addButton.disabled = availableCopies <= 0;
     addButton.textContent = availableCopies > 0 ? `+ Deck (${availableCopies})` : "Esgotado";
-    const scanTimestamp = isScansView
-      ? (card?._deckEntryRef && typeof card._deckEntryRef === "object" ? card._deckEntryRef.obtainedAt || null : null)
+    const scanTimestamp = card?._deckEntryRef && typeof card._deckEntryRef === "object"
+      ? card._deckEntryRef.obtainedAt || null
       : null;
     el.cardLibrary.appendChild(cardNode(card, [addButton], { scanTimestamp }));
   });
@@ -6532,12 +6524,6 @@ function bindEvents() {
     el.battleMenuBtn.addEventListener("click", () => {
       void handleBattleMenuExit();
     });
-  }
-  if (el.libraryViewLibrary) {
-    el.libraryViewLibrary.addEventListener("click", () => setLibraryView("library"));
-  }
-  if (el.libraryViewScans) {
-    el.libraryViewScans.addEventListener("click", () => setLibraryView("scans"));
   }
   if (el.deckName) {
     el.deckName.addEventListener("input", () => {
