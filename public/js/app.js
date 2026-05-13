@@ -2246,6 +2246,19 @@ function clearScansReservations() {
   };
 }
 
+function rebuildScansReservationsFromDeck(deck = appState.deck) {
+  clearScansReservations();
+  CARD_TYPES.forEach((type) => {
+    const entries = Array.isArray(deck?.cards?.[type]) ? deck.cards[type] : [];
+    entries.forEach((entry) => {
+      if (!entry) {
+        return;
+      }
+      reserveScansEntry(type, cloneDeckEntryRef(entry));
+    });
+  });
+}
+
 function ensureScansReservationBucket(type) {
   if (!appState.scansReservations || typeof appState.scansReservations !== "object") {
     clearScansReservations();
@@ -3130,6 +3143,7 @@ async function loadDeck(deckName) {
     },
   };
   appState.editingDeckAnchor = appState.deck.name || deckName;
+  rebuildScansReservationsFromDeck(appState.deck);
   syncModeSelectors(appState.deck.mode);
   el.deckName.value = appState.deck.name;
   renderDeck();
