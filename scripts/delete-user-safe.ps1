@@ -55,6 +55,7 @@ function Invoke-AdminEngine {
 
   $oldWarnings = $env:NODE_NO_WARNINGS
   $env:NODE_NO_WARNINGS = "1"
+  $tempPayloadPath = ""
   try {
     $args = @($enginePath, "--action", $Action, "--db", $dbPath)
     if ($Username) { $args += @("--username", $Username) }
@@ -64,8 +65,14 @@ function Invoke-AdminEngine {
     if ($CardType) { $args += @("--cardType", $CardType) }
     if ($null -ne $Payload) {
       $json = ConvertTo-Json $Payload -Depth 20 -Compress
-      $payloadB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
-      $args += @("--payloadB64", $payloadB64)
+      if ($json.Length -gt 7000) {
+        $tempPayloadPath = [IO.Path]::GetTempFileName()
+        [IO.File]::WriteAllText($tempPayloadPath, $json, [Text.Encoding]::UTF8)
+        $args += @("--payloadFile", $tempPayloadPath)
+      } else {
+        $payloadB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
+        $args += @("--payloadB64", $payloadB64)
+      }
     }
 
     $output = & node @args 2>&1
@@ -97,6 +104,9 @@ function Invoke-AdminEngine {
 
     return $payload
   } finally {
+    if ($tempPayloadPath -and (Test-Path $tempPayloadPath)) {
+      Remove-Item -LiteralPath $tempPayloadPath -Force -ErrorAction SilentlyContinue
+    }
     if ($null -eq $oldWarnings) {
       Remove-Item Env:NODE_NO_WARNINGS -ErrorAction SilentlyContinue
     } else {

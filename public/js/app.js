@@ -3178,13 +3178,7 @@ async function deleteDeck(deckName) {
   }
   await refreshScansData();
   renderLibraryCards();
-  const returnedCount = Math.max(0, Number(deletion?.returnedCount || 0));
-  const skippedByCapCount = Math.max(0, Number(deletion?.skippedByCapCount || 0));
-  if (skippedByCapCount > 0) {
-    alert(`Deck excluido. Cartas devolvidas: ${returnedCount}. Ignoradas por limite de 3 copias: ${skippedByCapCount}.`);
-    return;
-  }
-  alert(`Deck excluido. Cartas devolvidas: ${returnedCount}.`);
+  alert("Deck excluido.");
 }
 
 function toBattleDeck(deck) {

@@ -100,6 +100,7 @@ function parseArgs(argv) {
     id: String(out.id || "").trim(),
     questKey: String(out.questKey || "").trim(),
     payloadB64: String(out.payloadB64 || "").trim(),
+    payloadFile: String(out.payloadFile || "").trim(),
     cardType: String(out.cardType || "").trim()
   };
 }
@@ -197,13 +198,34 @@ function ensureUsername(usernameArg) {
   return username;
 }
 
-function decodePayload(payloadB64) {
-  const raw = String(payloadB64 || "").trim();
-  if (!raw) {
+function decodePayload(input) {
+  let payloadFile = "";
+  let payloadB64 = "";
+
+  if (input && typeof input === "object" && !Buffer.isBuffer(input)) {
+    payloadFile = String(input.payloadFile || "").trim();
+    payloadB64 = String(input.payloadB64 || "").trim();
+  } else {
+    payloadB64 = String(input || "").trim();
+  }
+
+  let text = "";
+  if (payloadFile) {
+    const resolved = path.resolve(payloadFile);
+    if (!fs.existsSync(resolved)) {
+      throw new Error(`Arquivo de payload nao encontrado: ${resolved}`);
+    }
+    text = fs.readFileSync(resolved, "utf8").trim();
+    if (!text) {
+      return {};
+    }
+  } else if (payloadB64) {
+    text = Buffer.from(payloadB64, "base64").toString("utf8");
+  } else {
     return {};
   }
+
   try {
-    const text = Buffer.from(raw, "base64").toString("utf8");
     const parsed = JSON.parse(text);
     if (!parsed || typeof parsed !== "object") {
       throw new Error("payload_not_object");
@@ -1347,7 +1369,7 @@ function run() {
 
     if (args.action === "event-create") {
       ensurePerimDropEventTable(db);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const sanitized = sanitizeDropEventPayload(db, payload);
       const createdAt = nowIso();
       const updatedAt = createdAt;
@@ -1398,7 +1420,7 @@ function run() {
       if (!existing) {
         throw new Error(`Evento nao encontrado: ${eventId}`);
       }
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const sanitized = sanitizeDropEventPayload(db, payload);
       const updatedAt = nowIso();
       const notifyResult = withTransaction(db, () => {
@@ -1462,7 +1484,7 @@ function run() {
 
     if (args.action === "location-tribe-set") {
       ensurePerimLocationTribesTable(db);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const sanitized = sanitizeLocationTribePayload(db, payload);
       const updatedAt = nowIso();
       withTransaction(db, () => {
@@ -1486,7 +1508,7 @@ function run() {
 
     if (args.action === "location-tribe-delete") {
       ensurePerimLocationTribesTable(db);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const sanitized = sanitizeLocationTribeDeletePayload(db, payload);
       const removed = withTransaction(db, () =>
         db.prepare("DELETE FROM perim_location_tribes WHERE location_card_id = ?").run(sanitized.locationCardId)
@@ -1505,7 +1527,7 @@ function run() {
     }
 
     if (args.action === "quest-create") {
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const quest = sanitizeQuestPayload(db, payload, false);
       const now = nowIso();
       withTransaction(db, () => {
@@ -1545,7 +1567,7 @@ function run() {
       if (!existing) {
         throw new Error(`Quest nao encontrada: ${questKey}`);
       }
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const quest = sanitizeQuestPayload(db, { ...payload, questKey }, true);
       const updatedAt = nowIso();
       withTransaction(db, () => {
@@ -1593,7 +1615,7 @@ function run() {
 
     if (args.action === "scans-list") {
       const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const scans = listScanEntriesByOwner(db, ownerKey, payload);
       jsonOk({ username, ownerKey, scans });
       return;
@@ -1601,7 +1623,7 @@ function run() {
 
     if (args.action === "scans-grant") {
       const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const grant = sanitizeScansGrantPayload(db, payload);
       const now = nowIso();
       const inserted = withTransaction(db, () => {
@@ -1647,7 +1669,7 @@ function run() {
 
     if (args.action === "scans-delete") {
       const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const scanEntryIds = sanitizeScanEntryIds(payload);
       const deleted = withTransaction(db, () => {
         const existingRows = db.prepare(`
@@ -1686,7 +1708,7 @@ function run() {
 
     if (args.action === "profile-ranked-fetch") {
       const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const seasonKey = String(payload?.seasonKey || "").trim() || currentSeasonKey();
       const snapshot = fetchProfileRankedState(db, ownerKey, seasonKey);
       jsonOk({ username, ownerKey, ...snapshot });
@@ -1695,7 +1717,7 @@ function run() {
 
     if (args.action === "profile-ranked-update") {
       const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const update = sanitizeProfileRankedUpdatePayload(payload);
       withTransaction(db, () => {
         if (update.profile) {
@@ -1752,7 +1774,7 @@ function run() {
 
     if (args.action === "profile-ranked-reset") {
       const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const mode = String(payload?.mode || "").trim().toLowerCase();
       const seasonKey = String(payload?.seasonKey || "").trim() || currentSeasonKey();
       const dromeId = normalizeDromeId(payload?.dromeId || "");
@@ -1808,7 +1830,7 @@ function run() {
 
     if (args.action === "perim-fix-run") {
       const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const runId = String(payload?.runId || "").trim();
       const now = nowIso();
       const result = withTransaction(db, () => {
@@ -1847,7 +1869,7 @@ function run() {
 
     if (args.action === "perim-clear-rewards") {
       const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const rewardIds = Array.isArray(payload?.rewardIds)
         ? [...new Set(payload.rewardIds.map((entry) => Number(entry)).filter((entry) => Number.isInteger(entry) && entry > 0))]
         : [];
@@ -1877,7 +1899,7 @@ function run() {
 
     if (args.action === "perim-update-camp-progress") {
       const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
-      const payload = decodePayload(args.payloadB64);
+      const payload = decodePayload(args);
       const locationCardId = String(payload?.locationCardId || "").trim();
       const progressRaw = Number(payload?.progress || 0);
       const progress = Number.isFinite(progressRaw) ? Math.max(0, Math.floor(progressRaw)) : 0;
@@ -1981,3 +2003,4 @@ try {
   jsonErr(error.message || String(error), { stack: error.stack || null });
   process.exitCode = 1;
 }
+

@@ -3967,32 +3967,6 @@ function buildAvailableScansForDeck(editingDeckName = "", username = "local-play
     );
   });
 
-  // Subtract cards already allocated to OTHER decks (but not the one being edited)
-  const allocationData = buildDeckAllocationByKey(editingDeckName, ownerKey);
-  const allocated = allocationData.allocated;
-  const allocatedCreatureScanEntryIds = allocationData.creatureScanEntryIds;
-  const allocatedClone = new Map(allocated);
-  DECK_CARD_TYPES.forEach((type) => {
-    const filtered = [];
-    for (const entry of available[type]) {
-      if (type === "creatures") {
-        const scanEntryId = deckCreatureScanEntryId(entry);
-        if (scanEntryId && allocatedCreatureScanEntryIds.has(scanEntryId)) {
-          continue;
-        }
-      }
-      const cardId = scanEntryToCardId(type, entry);
-      const key = `${type}:${cardId}`;
-      const remaining = allocatedClone.get(key) || 0;
-      if (remaining > 0) {
-        allocatedClone.set(key, remaining - 1);
-      } else {
-        filtered.push(entry);
-      }
-    }
-    available[type] = filtered;
-  });
-
   // Build a flat availableCounts map keyed as "type:cardId"
   const availableCounts = new Map();
   DECK_CARD_TYPES.forEach((type) => {
@@ -4005,12 +3979,12 @@ function buildAvailableScansForDeck(editingDeckName = "", username = "local-play
 }
 
 function validateDeckAgainstScans(deckData, editingDeckName = "", username = "local-player") {
-  const { availableCounts } = buildAvailableScansForDeck(editingDeckName, username);
-  const editingNormalized = normalizeDeckName(editingDeckName || "");
-  const previousDeck = editingNormalized ? readDeckFileByName(`${editingNormalized}.json`) : null;
-  const { consume } = buildDeckDiffCounts(previousDeck || { cards: {} }, deckData);
+  const scans = loadScansData();
+  const { cards: userCards } = getScansCardsForUser(scans, username, true);
+  const availableCounts = buildInventoryCountMap(userCards);
+  const requiredCounts = countDeckCardsByKey(deckData);
   const errors = [];
-  consume.forEach((candidateAmount, key) => {
+  requiredCounts.forEach((candidateAmount, key) => {
     const availableAmount = availableCounts.get(key) || 0;
     if (candidateAmount > availableAmount) {
       const separator = key.indexOf(":");
@@ -4803,17 +4777,6 @@ function saveDeckForOwnerUsingOfficialFlow(ownerKey, deckName, deckData) {
       error: `deck_excede_inventario: ${scansValidation.errors.slice(0, 4).join(" | ")}`,
     };
   }
-  const scans = loadScansData();
-  const ownerData = getScansCardsForUser(scans, owner, true);
-  const transfer = applyDeckInventoryTransfer(ownerData.cards, existingDeck || { cards: {} }, deckData);
-  if (!transfer.ok) {
-    return {
-      ok: false,
-      error: `inventario_sem_espaco: ${transfer.errors.slice(0, 4).join(" | ")}`,
-    };
-  }
-  scans.players[ownerData.key] = { cards: transfer.cards };
-  writeScansData(scans, "admin_mechanics_deck_save");
   writeDeckStored(normalizedDeckName, deckData);
   invalidateUserCaches(owner);
   return { ok: true };
@@ -20536,24 +20499,6 @@ async function handleRequest(request, response) {
         return;
       }
 
-      const scans = loadScansData();
-      const { key: ownerKey, cards: currentInventoryCards } = getScansCardsForUser(scans, owner, true);
-      const transferResult = applyDeckInventoryTransfer(
-        currentInventoryCards,
-        existingDeck || { cards: {} },
-        deckData
-      );
-      if (!transferResult.ok) {
-        sendJson(response, 400, {
-          error: `Inventario sem espaco para atualizar deck: ${transferResult.errors.slice(0, 4).join(" | ")}`,
-        });
-        return;
-      }
-      scans.players[ownerKey] = {
-        cards: transferResult.cards,
-      };
-      writeScansData(scans, "deck_save_inventory_transfer");
-
       writeDeckStored(requestedDeckName, deckData);
       if (editingDeckAnchor && editingDeckAnchor !== requestedDeckName && existingDeck) {
         deleteDeckStored(editingDeckAnchor);
@@ -20580,20 +20525,13 @@ async function handleRequest(request, response) {
         }
       }
       const owner = requesterKey || deckOwnerKey(existingDeck || {}) || "local-player";
-      const scans = loadScansData();
-      const { key: ownerKey, cards: currentInventoryCards } = getScansCardsForUser(scans, owner, true);
-      const releaseResult = releaseDeckCardsToInventoryWithCap(currentInventoryCards, existingDeck || { cards: {} }, INVENTORY_MAX_COPIES);
-      scans.players[ownerKey] = {
-        cards: releaseResult.cards,
-      };
-      writeScansData(scans, "deck_delete_inventory_return");
       deleteDeckStored(normalizeDeckName(rawName));
       invalidateUserCaches(owner);
       sendJson(response, 200, {
         ok: true,
-        returnedCount: Number(releaseResult.returnedCount || 0),
-        skippedByCapCount: Number(releaseResult.skippedByCapCount || 0),
-        breakdown: releaseResult.breakdown || {},
+        returnedCount: 0,
+        skippedByCapCount: 0,
+        breakdown: {},
       });
       return;
     }
