@@ -2989,6 +2989,21 @@ function refreshScansUi() {
     });
 }
 
+async function syncDeckBuilderScansState(options = {}) {
+  const {
+    rebuildFromDeck = true,
+    renderDeckAfterSync = true,
+  } = options;
+  if (rebuildFromDeck) {
+    rebuildScansReservationsFromDeck(appState.deck);
+  }
+  await refreshScansData();
+  if (renderDeckAfterSync) {
+    renderDeck();
+  }
+  renderLibraryCards();
+}
+
 async function loadLibrary() {
   const library = await apiJson("/api/library");
   appState.library = library;
@@ -3115,10 +3130,8 @@ async function saveDeck() {
   });
   appState.deck.name = name;
   appState.editingDeckAnchor = name;
-  clearScansReservations();
   await refreshDeckList();
-  await refreshScansData();
-  renderLibraryCards();
+  await syncDeckBuilderScansState({ rebuildFromDeck: true, renderDeckAfterSync: true });
   alert("Deck salvo.");
 }
 
@@ -3143,12 +3156,9 @@ async function loadDeck(deckName) {
     },
   };
   appState.editingDeckAnchor = appState.deck.name || deckName;
-  rebuildScansReservationsFromDeck(appState.deck);
   syncModeSelectors(appState.deck.mode);
   el.deckName.value = appState.deck.name;
-  renderDeck();
-  await refreshScansData();
-  renderLibraryCards();
+  await syncDeckBuilderScansState({ rebuildFromDeck: true, renderDeckAfterSync: true });
 }
 
 async function deleteDeck(deckName) {
@@ -3174,10 +3184,8 @@ async function deleteDeck(deckName) {
   if (shouldResetBuilder) {
     appState.deck = createEmptyDeck();
     appState.editingDeckAnchor = "";
-    clearScansReservations();
     syncModeSelectors(appState.deck.mode);
     el.deckName.value = "";
-    renderDeck();
   }
 
   await refreshDeckList();
@@ -3190,8 +3198,10 @@ async function deleteDeck(deckName) {
       : deckNamesAfterDelete[deckNamesAfterDelete.length - 1];
     el.deckList.value = nextDeckName;
   }
-  await refreshScansData();
-  renderLibraryCards();
+  await syncDeckBuilderScansState({
+    rebuildFromDeck: shouldResetBuilder,
+    renderDeckAfterSync: shouldResetBuilder,
+  });
   alert("Deck excluido.");
 }
 
@@ -7057,11 +7067,9 @@ function bindEvents() {
   el.clearDeck.addEventListener("click", () => {
     appState.deck = createEmptyDeck();
     appState.editingDeckAnchor = "";
-    clearScansReservations();
     syncModeSelectors(appState.deck.mode);
     el.deckName.value = "";
-    renderDeck();
-    refreshScansUi();
+    void syncDeckBuilderScansState({ rebuildFromDeck: true, renderDeckAfterSync: true });
   });
 
   if (el.reloadLibrary) el.reloadLibrary.addEventListener("click", async () => {
