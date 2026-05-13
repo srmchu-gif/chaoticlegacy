@@ -205,6 +205,9 @@ $script:Users = @()
 $script:EventsCache = @()
 $script:QuestsCache = @()
 $script:LocationTribesCache = @()
+$script:ScansCache = @()
+$script:ProfileRankedSnapshot = $null
+$script:PerimSnapshot = $null
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Painel Admin Local - Usuarios / Eventos / Quests"
@@ -241,6 +244,18 @@ $tab.Controls.Add($tabEvents)
 $tabQuests = New-Object System.Windows.Forms.TabPage
 $tabQuests.Text = "Quests"
 $tab.Controls.Add($tabQuests)
+
+$tabScans = New-Object System.Windows.Forms.TabPage
+$tabScans.Text = "Inventario/Scans"
+$tab.Controls.Add($tabScans)
+
+$tabProfileRanked = New-Object System.Windows.Forms.TabPage
+$tabProfileRanked.Text = "Perfil/Ranked"
+$tab.Controls.Add($tabProfileRanked)
+
+$tabPerimState = New-Object System.Windows.Forms.TabPage
+$tabPerimState.Text = "Estado PERIM"
+$tab.Controls.Add($tabPerimState)
 
 $tabLogs = New-Object System.Windows.Forms.TabPage
 $tabLogs.Text = "Logs"
@@ -339,6 +354,19 @@ $eventsGrid.Columns[4].Name = "Local"
 $eventsGrid.Columns[5].Name = "Chance%"
 $eventsGrid.Columns[6].Name = "Inicio"
 $eventsGrid.Columns[7].Name = "Fim"
+
+$eventsGridToolbar = New-Object System.Windows.Forms.Panel
+$eventsGridToolbar.Dock = "Top"
+$eventsGridToolbar.Height = 34
+$eventsSplit.Panel1.Controls.Add($eventsGridToolbar)
+
+$chkEventsOnlyActive = New-Object System.Windows.Forms.CheckBox
+$chkEventsOnlyActive.Text = "Somente ativos agora"
+$chkEventsOnlyActive.Location = New-Object System.Drawing.Point(10, 8)
+$chkEventsOnlyActive.Size = New-Object System.Drawing.Size(180, 22)
+$chkEventsOnlyActive.Checked = $false
+$eventsGridToolbar.Controls.Add($chkEventsOnlyActive)
+
 $eventsSplit.Panel1.Controls.Add($eventsGrid)
 
 $eventsPanel = New-Object System.Windows.Forms.Panel
@@ -466,80 +494,87 @@ $txtEventNotifyText.Multiline = $true
 $txtEventNotifyText.Enabled = $false
 $eventsPanel.Controls.Add($txtEventNotifyText)
 
+$lblEventNotifyStatus = New-Object System.Windows.Forms.Label
+$lblEventNotifyStatus.Text = "Notificacao global: nao enviada neste formulario."
+$lblEventNotifyStatus.Location = New-Object System.Drawing.Point(12, 460)
+$lblEventNotifyStatus.Size = New-Object System.Drawing.Size(520, 22)
+$lblEventNotifyStatus.ForeColor = [System.Drawing.Color]::FromArgb(130, 150, 170)
+$eventsPanel.Controls.Add($lblEventNotifyStatus)
+
 $btnEventNew = New-Object System.Windows.Forms.Button
 $btnEventNew.Text = "Novo"
-$btnEventNew.Location = New-Object System.Drawing.Point(12, 464)
+$btnEventNew.Location = New-Object System.Drawing.Point(12, 488)
 $btnEventNew.Size = New-Object System.Drawing.Size(80, 30)
 $eventsPanel.Controls.Add($btnEventNew)
 
 $btnEventSave = New-Object System.Windows.Forms.Button
 $btnEventSave.Text = "Salvar"
-$btnEventSave.Location = New-Object System.Drawing.Point(98, 464)
+$btnEventSave.Location = New-Object System.Drawing.Point(98, 488)
 $btnEventSave.Size = New-Object System.Drawing.Size(80, 30)
 $eventsPanel.Controls.Add($btnEventSave)
 
 $btnEventDelete = New-Object System.Windows.Forms.Button
 $btnEventDelete.Text = "Excluir"
-$btnEventDelete.Location = New-Object System.Drawing.Point(184, 464)
+$btnEventDelete.Location = New-Object System.Drawing.Point(184, 488)
 $btnEventDelete.Size = New-Object System.Drawing.Size(80, 30)
 $eventsPanel.Controls.Add($btnEventDelete)
 
 $btnEventRefresh = New-Object System.Windows.Forms.Button
 $btnEventRefresh.Text = "Atualizar"
-$btnEventRefresh.Location = New-Object System.Drawing.Point(270, 464)
+$btnEventRefresh.Location = New-Object System.Drawing.Point(270, 488)
 $btnEventRefresh.Size = New-Object System.Drawing.Size(90, 30)
 $eventsPanel.Controls.Add($btnEventRefresh)
 
 $lblLocationTribeTitle = New-Object System.Windows.Forms.Label
 $lblLocationTribeTitle.Text = "Tribo dos Locais (PERIM)"
-$lblLocationTribeTitle.Location = New-Object System.Drawing.Point(12, 506)
+$lblLocationTribeTitle.Location = New-Object System.Drawing.Point(12, 530)
 $lblLocationTribeTitle.Size = New-Object System.Drawing.Size(220, 22)
 $eventsPanel.Controls.Add($lblLocationTribeTitle)
 
 $lblLocationTribeLoc = New-Object System.Windows.Forms.Label
 $lblLocationTribeLoc.Text = "Local:"
-$lblLocationTribeLoc.Location = New-Object System.Drawing.Point(12, 530)
+$lblLocationTribeLoc.Location = New-Object System.Drawing.Point(12, 554)
 $lblLocationTribeLoc.Size = New-Object System.Drawing.Size(80, 20)
 $eventsPanel.Controls.Add($lblLocationTribeLoc)
 
 $comboLocationTribeLocation = New-Object System.Windows.Forms.ComboBox
 $comboLocationTribeLocation.DropDownStyle = "DropDownList"
-$comboLocationTribeLocation.Location = New-Object System.Drawing.Point(12, 552)
+$comboLocationTribeLocation.Location = New-Object System.Drawing.Point(12, 576)
 $comboLocationTribeLocation.Size = New-Object System.Drawing.Size(520, 28)
 $eventsPanel.Controls.Add($comboLocationTribeLocation)
 
 $lblLocationTribeKey = New-Object System.Windows.Forms.Label
 $lblLocationTribeKey.Text = "Tribo:"
-$lblLocationTribeKey.Location = New-Object System.Drawing.Point(12, 586)
+$lblLocationTribeKey.Location = New-Object System.Drawing.Point(12, 610)
 $lblLocationTribeKey.Size = New-Object System.Drawing.Size(80, 20)
 $eventsPanel.Controls.Add($lblLocationTribeKey)
 
 $comboLocationTribeKey = New-Object System.Windows.Forms.ComboBox
 $comboLocationTribeKey.DropDownStyle = "DropDownList"
-$comboLocationTribeKey.Location = New-Object System.Drawing.Point(12, 608)
+$comboLocationTribeKey.Location = New-Object System.Drawing.Point(12, 632)
 $comboLocationTribeKey.Size = New-Object System.Drawing.Size(220, 28)
 $eventsPanel.Controls.Add($comboLocationTribeKey)
 
 $btnLocationTribeSave = New-Object System.Windows.Forms.Button
 $btnLocationTribeSave.Text = "Salvar tribo"
-$btnLocationTribeSave.Location = New-Object System.Drawing.Point(242, 606)
+$btnLocationTribeSave.Location = New-Object System.Drawing.Point(242, 630)
 $btnLocationTribeSave.Size = New-Object System.Drawing.Size(96, 30)
 $eventsPanel.Controls.Add($btnLocationTribeSave)
 
 $btnLocationTribeDelete = New-Object System.Windows.Forms.Button
 $btnLocationTribeDelete.Text = "Remover"
-$btnLocationTribeDelete.Location = New-Object System.Drawing.Point(344, 606)
+$btnLocationTribeDelete.Location = New-Object System.Drawing.Point(344, 630)
 $btnLocationTribeDelete.Size = New-Object System.Drawing.Size(88, 30)
 $eventsPanel.Controls.Add($btnLocationTribeDelete)
 
 $btnLocationTribeRefresh = New-Object System.Windows.Forms.Button
 $btnLocationTribeRefresh.Text = "Atualizar"
-$btnLocationTribeRefresh.Location = New-Object System.Drawing.Point(438, 606)
+$btnLocationTribeRefresh.Location = New-Object System.Drawing.Point(438, 630)
 $btnLocationTribeRefresh.Size = New-Object System.Drawing.Size(94, 30)
 $eventsPanel.Controls.Add($btnLocationTribeRefresh)
 
 $locationTribesGrid = New-Object System.Windows.Forms.DataGridView
-$locationTribesGrid.Location = New-Object System.Drawing.Point(12, 642)
+$locationTribesGrid.Location = New-Object System.Drawing.Point(12, 666)
 $locationTribesGrid.Size = New-Object System.Drawing.Size(520, 146)
 $locationTribesGrid.ReadOnly = $true
 $locationTribesGrid.AllowUserToAddRows = $false
@@ -744,6 +779,427 @@ $btnQuestRefresh.Location = New-Object System.Drawing.Point(270, 596)
 $btnQuestRefresh.Size = New-Object System.Drawing.Size(90, 30)
 $questPanel.Controls.Add($btnQuestRefresh)
 
+# Inventario/Scans tab
+$scansTop = New-Object System.Windows.Forms.Panel
+$scansTop.Dock = "Top"
+$scansTop.Height = 90
+$tabScans.Controls.Add($scansTop)
+
+$lblScansUser = New-Object System.Windows.Forms.Label
+$lblScansUser.Text = "Usuario:"
+$lblScansUser.Location = New-Object System.Drawing.Point(12, 12)
+$scansTop.Controls.Add($lblScansUser)
+
+$comboScansUser = New-Object System.Windows.Forms.ComboBox
+$comboScansUser.DropDownStyle = "DropDownList"
+$comboScansUser.Location = New-Object System.Drawing.Point(12, 34)
+$comboScansUser.Size = New-Object System.Drawing.Size(180, 28)
+$scansTop.Controls.Add($comboScansUser)
+
+$lblScansType = New-Object System.Windows.Forms.Label
+$lblScansType.Text = "Tipo:"
+$lblScansType.Location = New-Object System.Drawing.Point(204, 12)
+$scansTop.Controls.Add($lblScansType)
+
+$comboScansType = New-Object System.Windows.Forms.ComboBox
+$comboScansType.DropDownStyle = "DropDownList"
+$comboScansType.Location = New-Object System.Drawing.Point(204, 34)
+$comboScansType.Size = New-Object System.Drawing.Size(140, 28)
+$scansTop.Controls.Add($comboScansType)
+
+$lblScansSet = New-Object System.Windows.Forms.Label
+$lblScansSet.Text = "Set:"
+$lblScansSet.Location = New-Object System.Drawing.Point(356, 12)
+$scansTop.Controls.Add($lblScansSet)
+
+$txtScansSet = New-Object System.Windows.Forms.TextBox
+$txtScansSet.Location = New-Object System.Drawing.Point(356, 34)
+$txtScansSet.Size = New-Object System.Drawing.Size(90, 26)
+$scansTop.Controls.Add($txtScansSet)
+
+$lblScansQuery = New-Object System.Windows.Forms.Label
+$lblScansQuery.Text = "Busca:"
+$lblScansQuery.Location = New-Object System.Drawing.Point(458, 12)
+$scansTop.Controls.Add($lblScansQuery)
+
+$txtScansQuery = New-Object System.Windows.Forms.TextBox
+$txtScansQuery.Location = New-Object System.Drawing.Point(458, 34)
+$txtScansQuery.Size = New-Object System.Drawing.Size(220, 26)
+$scansTop.Controls.Add($txtScansQuery)
+
+$btnScansLoad = New-Object System.Windows.Forms.Button
+$btnScansLoad.Text = "Atualizar lista"
+$btnScansLoad.Location = New-Object System.Drawing.Point(692, 30)
+$btnScansLoad.Size = New-Object System.Drawing.Size(110, 30)
+$scansTop.Controls.Add($btnScansLoad)
+
+$btnScansDeleteSelected = New-Object System.Windows.Forms.Button
+$btnScansDeleteSelected.Text = "Remover selecionados"
+$btnScansDeleteSelected.Location = New-Object System.Drawing.Point(810, 30)
+$btnScansDeleteSelected.Size = New-Object System.Drawing.Size(170, 30)
+$scansTop.Controls.Add($btnScansDeleteSelected)
+
+$scansGrid = New-Object System.Windows.Forms.DataGridView
+$scansGrid.Dock = "Fill"
+$scansGrid.AllowUserToAddRows = $false
+$scansGrid.AllowUserToDeleteRows = $false
+$scansGrid.SelectionMode = "FullRowSelect"
+$scansGrid.MultiSelect = $true
+$scansGrid.ReadOnly = $true
+$scansGrid.AutoSizeColumnsMode = "Fill"
+[void]$scansGrid.Columns.Add("scanEntryId", "scan_entry_id")
+[void]$scansGrid.Columns.Add("cardType", "Tipo")
+[void]$scansGrid.Columns.Add("cardName", "Carta")
+[void]$scansGrid.Columns.Add("cardId", "card_id")
+[void]$scansGrid.Columns.Add("setName", "Set")
+[void]$scansGrid.Columns.Add("obtainedAt", "Obtido em")
+[void]$scansGrid.Columns.Add("source", "Source")
+[void]$scansGrid.Columns.Add("variant", "variant_json")
+$tabScans.Controls.Add($scansGrid)
+
+$scansGrantPanel = New-Object System.Windows.Forms.Panel
+$scansGrantPanel.Dock = "Bottom"
+$scansGrantPanel.Height = 84
+$tabScans.Controls.Add($scansGrantPanel)
+
+$lblGrantType = New-Object System.Windows.Forms.Label
+$lblGrantType.Text = "Grant tipo:"
+$lblGrantType.Location = New-Object System.Drawing.Point(12, 10)
+$scansGrantPanel.Controls.Add($lblGrantType)
+
+$comboGrantCardType = New-Object System.Windows.Forms.ComboBox
+$comboGrantCardType.DropDownStyle = "DropDownList"
+$comboGrantCardType.Location = New-Object System.Drawing.Point(12, 34)
+$comboGrantCardType.Size = New-Object System.Drawing.Size(140, 28)
+$scansGrantPanel.Controls.Add($comboGrantCardType)
+
+$comboGrantCard = New-Object System.Windows.Forms.ComboBox
+$comboGrantCard.DropDownStyle = "DropDownList"
+$comboGrantCard.Location = New-Object System.Drawing.Point(162, 34)
+$comboGrantCard.Size = New-Object System.Drawing.Size(420, 28)
+$scansGrantPanel.Controls.Add($comboGrantCard)
+
+$lblGrantQty = New-Object System.Windows.Forms.Label
+$lblGrantQty.Text = "Qtd"
+$lblGrantQty.Location = New-Object System.Drawing.Point(592, 10)
+$scansGrantPanel.Controls.Add($lblGrantQty)
+
+$numGrantQty = New-Object System.Windows.Forms.NumericUpDown
+$numGrantQty.Location = New-Object System.Drawing.Point(592, 34)
+$numGrantQty.Minimum = 1
+$numGrantQty.Maximum = 100
+$numGrantQty.Value = 1
+$numGrantQty.Size = New-Object System.Drawing.Size(60, 26)
+$scansGrantPanel.Controls.Add($numGrantQty)
+
+$lblGrantStars = New-Object System.Windows.Forms.Label
+$lblGrantStars.Text = "Estrelas"
+$lblGrantStars.Location = New-Object System.Drawing.Point(660, 10)
+$scansGrantPanel.Controls.Add($lblGrantStars)
+
+$numGrantStars = New-Object System.Windows.Forms.NumericUpDown
+$numGrantStars.Location = New-Object System.Drawing.Point(660, 34)
+$numGrantStars.Minimum = 1
+$numGrantStars.Maximum = 3
+$numGrantStars.DecimalPlaces = 1
+$numGrantStars.Increment = [decimal]0.5
+$numGrantStars.Value = [decimal]2.0
+$numGrantStars.Size = New-Object System.Drawing.Size(70, 26)
+$scansGrantPanel.Controls.Add($numGrantStars)
+
+$txtGrantSource = New-Object System.Windows.Forms.TextBox
+$txtGrantSource.Location = New-Object System.Drawing.Point(738, 34)
+$txtGrantSource.Size = New-Object System.Drawing.Size(170, 26)
+$txtGrantSource.Text = "admin_manual_grant"
+$scansGrantPanel.Controls.Add($txtGrantSource)
+
+$btnScansGrant = New-Object System.Windows.Forms.Button
+$btnScansGrant.Text = "Grant carta"
+$btnScansGrant.Location = New-Object System.Drawing.Point(916, 32)
+$btnScansGrant.Size = New-Object System.Drawing.Size(110, 30)
+$scansGrantPanel.Controls.Add($btnScansGrant)
+
+# Perfil/Ranked tab
+$profileTop = New-Object System.Windows.Forms.Panel
+$profileTop.Dock = "Top"
+$profileTop.Height = 74
+$tabProfileRanked.Controls.Add($profileTop)
+
+$lblProfileUser = New-Object System.Windows.Forms.Label
+$lblProfileUser.Text = "Usuario:"
+$lblProfileUser.Location = New-Object System.Drawing.Point(12, 10)
+$profileTop.Controls.Add($lblProfileUser)
+
+$comboProfileUser = New-Object System.Windows.Forms.ComboBox
+$comboProfileUser.DropDownStyle = "DropDownList"
+$comboProfileUser.Location = New-Object System.Drawing.Point(12, 32)
+$comboProfileUser.Size = New-Object System.Drawing.Size(200, 28)
+$profileTop.Controls.Add($comboProfileUser)
+
+$lblProfileSeason = New-Object System.Windows.Forms.Label
+$lblProfileSeason.Text = "Temporada (YYYY-MM):"
+$lblProfileSeason.Location = New-Object System.Drawing.Point(224, 10)
+$profileTop.Controls.Add($lblProfileSeason)
+
+$txtProfileSeason = New-Object System.Windows.Forms.TextBox
+$txtProfileSeason.Location = New-Object System.Drawing.Point(224, 32)
+$txtProfileSeason.Size = New-Object System.Drawing.Size(120, 26)
+$profileTop.Controls.Add($txtProfileSeason)
+
+$lblProfileDrome = New-Object System.Windows.Forms.Label
+$lblProfileDrome.Text = "Dromo:"
+$lblProfileDrome.Location = New-Object System.Drawing.Point(356, 10)
+$profileTop.Controls.Add($lblProfileDrome)
+
+$comboProfileDrome = New-Object System.Windows.Forms.ComboBox
+$comboProfileDrome.DropDownStyle = "DropDownList"
+$comboProfileDrome.Location = New-Object System.Drawing.Point(356, 32)
+$comboProfileDrome.Size = New-Object System.Drawing.Size(140, 28)
+$profileTop.Controls.Add($comboProfileDrome)
+
+$btnProfileLoad = New-Object System.Windows.Forms.Button
+$btnProfileLoad.Text = "Carregar"
+$btnProfileLoad.Location = New-Object System.Drawing.Point(508, 30)
+$btnProfileLoad.Size = New-Object System.Drawing.Size(96, 30)
+$profileTop.Controls.Add($btnProfileLoad)
+
+$btnProfileSave = New-Object System.Windows.Forms.Button
+$btnProfileSave.Text = "Salvar ajustes"
+$btnProfileSave.Location = New-Object System.Drawing.Point(610, 30)
+$btnProfileSave.Size = New-Object System.Drawing.Size(120, 30)
+$profileTop.Controls.Add($btnProfileSave)
+
+$btnProfileResetMonthly = New-Object System.Windows.Forms.Button
+$btnProfileResetMonthly.Text = "Reset mensal dromo"
+$btnProfileResetMonthly.Location = New-Object System.Drawing.Point(736, 30)
+$btnProfileResetMonthly.Size = New-Object System.Drawing.Size(150, 30)
+$profileTop.Controls.Add($btnProfileResetMonthly)
+
+$btnProfileResetStreak = New-Object System.Windows.Forms.Button
+$btnProfileResetStreak.Text = "Reset streak dromo"
+$btnProfileResetStreak.Location = New-Object System.Drawing.Point(892, 30)
+$btnProfileResetStreak.Size = New-Object System.Drawing.Size(130, 30)
+$profileTop.Controls.Add($btnProfileResetStreak)
+
+$profileBody = New-Object System.Windows.Forms.SplitContainer
+$profileBody.Dock = "Fill"
+$profileBody.Orientation = "Vertical"
+$profileBody.SplitterDistance = 640
+$tabProfileRanked.Controls.Add($profileBody)
+
+$profileEditorPanel = New-Object System.Windows.Forms.Panel
+$profileEditorPanel.Dock = "Fill"
+$profileBody.Panel1.Controls.Add($profileEditorPanel)
+
+$profileGridStats = New-Object System.Windows.Forms.DataGridView
+$profileGridStats.Dock = "Bottom"
+$profileGridStats.Height = 280
+$profileGridStats.AllowUserToAddRows = $false
+$profileGridStats.AllowUserToDeleteRows = $false
+$profileGridStats.ReadOnly = $true
+$profileGridStats.SelectionMode = "FullRowSelect"
+$profileGridStats.AutoSizeColumnsMode = "Fill"
+[void]$profileGridStats.Columns.Add("drome", "Dromo")
+[void]$profileGridStats.Columns.Add("score", "Score")
+[void]$profileGridStats.Columns.Add("wins", "Wins")
+[void]$profileGridStats.Columns.Add("losses", "Losses")
+[void]$profileGridStats.Columns.Add("streak", "Streak atual")
+[void]$profileGridStats.Columns.Add("best", "Melhor streak")
+$profileBody.Panel1.Controls.Add($profileGridStats)
+
+$lblPScore = New-Object System.Windows.Forms.Label
+$lblPScore.Text = "Perfil score/wins/losses"
+$lblPScore.Location = New-Object System.Drawing.Point(12, 14)
+$profileEditorPanel.Controls.Add($lblPScore)
+
+$numProfileScore = New-Object System.Windows.Forms.NumericUpDown
+$numProfileScore.Location = New-Object System.Drawing.Point(12, 38)
+$numProfileScore.Maximum = 999999
+$numProfileScore.Size = New-Object System.Drawing.Size(100, 26)
+$profileEditorPanel.Controls.Add($numProfileScore)
+
+$numProfileWins = New-Object System.Windows.Forms.NumericUpDown
+$numProfileWins.Location = New-Object System.Drawing.Point(118, 38)
+$numProfileWins.Maximum = 999999
+$numProfileWins.Size = New-Object System.Drawing.Size(80, 26)
+$profileEditorPanel.Controls.Add($numProfileWins)
+
+$numProfileLosses = New-Object System.Windows.Forms.NumericUpDown
+$numProfileLosses.Location = New-Object System.Drawing.Point(204, 38)
+$numProfileLosses.Maximum = 999999
+$numProfileLosses.Size = New-Object System.Drawing.Size(80, 26)
+$profileEditorPanel.Controls.Add($numProfileLosses)
+
+$txtProfileFavoriteTribe = New-Object System.Windows.Forms.TextBox
+$txtProfileFavoriteTribe.Location = New-Object System.Drawing.Point(290, 38)
+$txtProfileFavoriteTribe.Size = New-Object System.Drawing.Size(130, 26)
+$profileEditorPanel.Controls.Add($txtProfileFavoriteTribe)
+
+$txtProfileAvatar = New-Object System.Windows.Forms.TextBox
+$txtProfileAvatar.Location = New-Object System.Drawing.Point(426, 38)
+$txtProfileAvatar.Size = New-Object System.Drawing.Size(190, 26)
+$profileEditorPanel.Controls.Add($txtProfileAvatar)
+
+$lblGlobal = New-Object System.Windows.Forms.Label
+$lblGlobal.Text = "Ranked global (ELO/wins/losses)"
+$lblGlobal.Location = New-Object System.Drawing.Point(12, 74)
+$profileEditorPanel.Controls.Add($lblGlobal)
+
+$numGlobalElo = New-Object System.Windows.Forms.NumericUpDown
+$numGlobalElo.Location = New-Object System.Drawing.Point(12, 98)
+$numGlobalElo.Maximum = 6000
+$numGlobalElo.Size = New-Object System.Drawing.Size(100, 26)
+$profileEditorPanel.Controls.Add($numGlobalElo)
+
+$numGlobalWins = New-Object System.Windows.Forms.NumericUpDown
+$numGlobalWins.Location = New-Object System.Drawing.Point(118, 98)
+$numGlobalWins.Maximum = 999999
+$numGlobalWins.Size = New-Object System.Drawing.Size(80, 26)
+$profileEditorPanel.Controls.Add($numGlobalWins)
+
+$numGlobalLosses = New-Object System.Windows.Forms.NumericUpDown
+$numGlobalLosses.Location = New-Object System.Drawing.Point(204, 98)
+$numGlobalLosses.Maximum = 999999
+$numGlobalLosses.Size = New-Object System.Drawing.Size(80, 26)
+$profileEditorPanel.Controls.Add($numGlobalLosses)
+
+$lblDromeEdit = New-Object System.Windows.Forms.Label
+$lblDromeEdit.Text = "Ranked mensal dromo (score/wins/losses)"
+$lblDromeEdit.Location = New-Object System.Drawing.Point(12, 134)
+$profileEditorPanel.Controls.Add($lblDromeEdit)
+
+$numDromeScore = New-Object System.Windows.Forms.NumericUpDown
+$numDromeScore.Location = New-Object System.Drawing.Point(12, 158)
+$numDromeScore.Maximum = 999999
+$numDromeScore.Size = New-Object System.Drawing.Size(100, 26)
+$profileEditorPanel.Controls.Add($numDromeScore)
+
+$numDromeWins = New-Object System.Windows.Forms.NumericUpDown
+$numDromeWins.Location = New-Object System.Drawing.Point(118, 158)
+$numDromeWins.Maximum = 999999
+$numDromeWins.Size = New-Object System.Drawing.Size(80, 26)
+$profileEditorPanel.Controls.Add($numDromeWins)
+
+$numDromeLosses = New-Object System.Windows.Forms.NumericUpDown
+$numDromeLosses.Location = New-Object System.Drawing.Point(204, 158)
+$numDromeLosses.Maximum = 999999
+$numDromeLosses.Size = New-Object System.Drawing.Size(80, 26)
+$profileEditorPanel.Controls.Add($numDromeLosses)
+
+$profileSnapshotBox = New-Object System.Windows.Forms.TextBox
+$profileSnapshotBox.Dock = "Fill"
+$profileSnapshotBox.Multiline = $true
+$profileSnapshotBox.ReadOnly = $true
+$profileSnapshotBox.ScrollBars = "Vertical"
+$profileBody.Panel2.Controls.Add($profileSnapshotBox)
+
+# Estado PERIM tab
+$perimTop = New-Object System.Windows.Forms.Panel
+$perimTop.Dock = "Top"
+$perimTop.Height = 72
+$tabPerimState.Controls.Add($perimTop)
+
+$lblPerimUser = New-Object System.Windows.Forms.Label
+$lblPerimUser.Text = "Usuario:"
+$lblPerimUser.Location = New-Object System.Drawing.Point(12, 10)
+$perimTop.Controls.Add($lblPerimUser)
+
+$comboPerimUser = New-Object System.Windows.Forms.ComboBox
+$comboPerimUser.DropDownStyle = "DropDownList"
+$comboPerimUser.Location = New-Object System.Drawing.Point(12, 32)
+$comboPerimUser.Size = New-Object System.Drawing.Size(200, 28)
+$perimTop.Controls.Add($comboPerimUser)
+
+$btnPerimLoad = New-Object System.Windows.Forms.Button
+$btnPerimLoad.Text = "Carregar estado"
+$btnPerimLoad.Location = New-Object System.Drawing.Point(220, 30)
+$btnPerimLoad.Size = New-Object System.Drawing.Size(120, 30)
+$perimTop.Controls.Add($btnPerimLoad)
+
+$btnPerimFixRun = New-Object System.Windows.Forms.Button
+$btnPerimFixRun.Text = "Encerrar run ativa"
+$btnPerimFixRun.Location = New-Object System.Drawing.Point(348, 30)
+$btnPerimFixRun.Size = New-Object System.Drawing.Size(130, 30)
+$perimTop.Controls.Add($btnPerimFixRun)
+
+$btnPerimClearRewards = New-Object System.Windows.Forms.Button
+$btnPerimClearRewards.Text = "Limpar recompensas"
+$btnPerimClearRewards.Location = New-Object System.Drawing.Point(486, 30)
+$btnPerimClearRewards.Size = New-Object System.Drawing.Size(135, 30)
+$perimTop.Controls.Add($btnPerimClearRewards)
+
+$comboPerimCampLocation = New-Object System.Windows.Forms.ComboBox
+$comboPerimCampLocation.DropDownStyle = "DropDownList"
+$comboPerimCampLocation.Location = New-Object System.Drawing.Point(628, 32)
+$comboPerimCampLocation.Size = New-Object System.Drawing.Size(280, 28)
+$perimTop.Controls.Add($comboPerimCampLocation)
+
+$numPerimCampProgress = New-Object System.Windows.Forms.NumericUpDown
+$numPerimCampProgress.Location = New-Object System.Drawing.Point(914, 33)
+$numPerimCampProgress.Maximum = 9999
+$numPerimCampProgress.Size = New-Object System.Drawing.Size(70, 26)
+$perimTop.Controls.Add($numPerimCampProgress)
+
+$btnPerimCampSave = New-Object System.Windows.Forms.Button
+$btnPerimCampSave.Text = "Salvar camp"
+$btnPerimCampSave.Location = New-Object System.Drawing.Point(990, 30)
+$btnPerimCampSave.Size = New-Object System.Drawing.Size(96, 30)
+$perimTop.Controls.Add($btnPerimCampSave)
+
+$perimBody = New-Object System.Windows.Forms.SplitContainer
+$perimBody.Dock = "Fill"
+$perimBody.Orientation = "Horizontal"
+$perimBody.SplitterDistance = 330
+$tabPerimState.Controls.Add($perimBody)
+
+$perimUpperSplit = New-Object System.Windows.Forms.SplitContainer
+$perimUpperSplit.Dock = "Fill"
+$perimUpperSplit.Orientation = "Vertical"
+$perimUpperSplit.SplitterDistance = 600
+$perimBody.Panel1.Controls.Add($perimUpperSplit)
+
+$perimRunsGrid = New-Object System.Windows.Forms.DataGridView
+$perimRunsGrid.Dock = "Fill"
+$perimRunsGrid.AllowUserToAddRows = $false
+$perimRunsGrid.AllowUserToDeleteRows = $false
+$perimRunsGrid.ReadOnly = $true
+$perimRunsGrid.SelectionMode = "FullRowSelect"
+$perimRunsGrid.MultiSelect = $false
+$perimRunsGrid.AutoSizeColumnsMode = "Fill"
+[void]$perimRunsGrid.Columns.Add("runId", "run_id")
+[void]$perimRunsGrid.Columns.Add("action", "Acao")
+[void]$perimRunsGrid.Columns.Add("status", "Status")
+[void]$perimRunsGrid.Columns.Add("location", "Local")
+[void]$perimRunsGrid.Columns.Add("startAt", "Inicio")
+$perimUpperSplit.Panel1.Controls.Add($perimRunsGrid)
+
+$perimRewardsGrid = New-Object System.Windows.Forms.DataGridView
+$perimRewardsGrid.Dock = "Fill"
+$perimRewardsGrid.AllowUserToAddRows = $false
+$perimRewardsGrid.AllowUserToDeleteRows = $false
+$perimRewardsGrid.ReadOnly = $true
+$perimRewardsGrid.SelectionMode = "FullRowSelect"
+$perimRewardsGrid.MultiSelect = $true
+$perimRewardsGrid.AutoSizeColumnsMode = "Fill"
+[void]$perimRewardsGrid.Columns.Add("rewardId", "reward_id")
+[void]$perimRewardsGrid.Columns.Add("runId", "run_id")
+[void]$perimRewardsGrid.Columns.Add("rewardType", "Tipo")
+[void]$perimRewardsGrid.Columns.Add("cardId", "card_id")
+[void]$perimRewardsGrid.Columns.Add("isNew", "Novo")
+$perimUpperSplit.Panel2.Controls.Add($perimRewardsGrid)
+
+$perimCampGrid = New-Object System.Windows.Forms.DataGridView
+$perimCampGrid.Dock = "Fill"
+$perimCampGrid.AllowUserToAddRows = $false
+$perimCampGrid.AllowUserToDeleteRows = $false
+$perimCampGrid.ReadOnly = $true
+$perimCampGrid.SelectionMode = "FullRowSelect"
+$perimCampGrid.MultiSelect = $false
+$perimCampGrid.AutoSizeColumnsMode = "Fill"
+[void]$perimCampGrid.Columns.Add("locationCardId", "location_card_id")
+[void]$perimCampGrid.Columns.Add("progress", "Camp progress")
+$perimBody.Panel2.Controls.Add($perimCampGrid)
+
 # Logs tab
 $logsPanel = New-Object System.Windows.Forms.Panel
 $logsPanel.Dock = "Fill"
@@ -814,6 +1270,30 @@ function Build-LocationTribeKeyItems {
   )
 }
 
+function Build-DromeItems {
+  return @(
+    (New-DisplayItem -Label "Crellan" -Value "crellan")
+    (New-DisplayItem -Label "Hotekk" -Value "hotekk")
+    (New-DisplayItem -Label "Amzen" -Value "amzen")
+    (New-DisplayItem -Label "Oron" -Value "oron")
+    (New-DisplayItem -Label "Tirasis" -Value "tirasis")
+    (New-DisplayItem -Label "Imthor" -Value "imthor")
+    (New-DisplayItem -Label "Chirrul" -Value "chirrul")
+    (New-DisplayItem -Label "Beta" -Value "beta")
+  )
+}
+
+function Build-ScansTypeItems {
+  return @(
+    (New-DisplayItem -Label "Todos" -Value "")
+    (New-DisplayItem -Label "Creatures" -Value "creatures")
+    (New-DisplayItem -Label "Attacks" -Value "attacks")
+    (New-DisplayItem -Label "Battlegear" -Value "battlegear")
+    (New-DisplayItem -Label "Locations" -Value "locations")
+    (New-DisplayItem -Label "Mugic" -Value "mugic")
+  )
+}
+
 function Refresh-TypeCardCombos {
   $eventType = Get-SelectedValue -Combo $comboEventType
   Set-ComboItems -Combo $comboEventCard -Items (Build-CardItems -Type $eventType)
@@ -848,6 +1328,9 @@ function Load-Users {
   $script:Users = @($payload.users)
   $items = @($script:Users | ForEach-Object { New-DisplayItem -Label ([string]$_) -Value ([string]$_) })
   Set-ComboItems -Combo $userCombo -Items $items
+  Set-ComboItems -Combo $comboScansUser -Items $items
+  Set-ComboItems -Combo $comboProfileUser -Items $items
+  Set-ComboItems -Combo $comboPerimUser -Items $items
   Set-Status "Usuarios carregados."
 }
 
@@ -899,6 +1382,25 @@ Most played: $($p.mostPlayedName)
 }
 
 $script:CurrentEventId = 0
+function Set-EventNotifyStatus {
+  param(
+    [int]$Count = 0,
+    [bool]$Enabled = $false
+  )
+  if ($Enabled -and $Count -gt 0) {
+    $lblEventNotifyStatus.Text = "BROADCAST: notificacao global enviada para $Count jogador(es)."
+    $lblEventNotifyStatus.ForeColor = [System.Drawing.Color]::FromArgb(80, 180, 110)
+    return
+  }
+  if ($Enabled) {
+    $lblEventNotifyStatus.Text = "BROADCAST: envio solicitado, mas nenhum jogador elegivel foi encontrado."
+    $lblEventNotifyStatus.ForeColor = [System.Drawing.Color]::FromArgb(220, 170, 90)
+    return
+  }
+  $lblEventNotifyStatus.Text = "Notificacao global: nao enviada neste formulario."
+  $lblEventNotifyStatus.ForeColor = [System.Drawing.Color]::FromArgb(130, 150, 170)
+}
+
 function Reset-EventForm {
   $script:CurrentEventId = 0
   $eventIdLabel.Text = "Evento selecionado: novo"
@@ -910,17 +1412,30 @@ function Reset-EventForm {
   $dtEventStart.Value = [datetime]::Now
   $dtEventEnd.Value = [datetime]::Now.AddDays(1)
   $chkEventEnabled.Checked = $true
+  Set-EventNotifyStatus -Count 0 -Enabled $false
 }
 
 function Load-Events {
   Set-Status "Carregando eventos..."
   $payload = Invoke-AdminEngine -Action "events-list"
   $script:EventsCache = @($payload.events)
+  $onlyActiveNow = [bool]$chkEventsOnlyActive.Checked
+  $nowUtc = [DateTime]::UtcNow
   $eventsGrid.Rows.Clear()
   foreach ($ev in $script:EventsCache) {
+    $enabled = [bool]$ev.enabled
+    $startUtc = [datetime]::MinValue
+    $endUtc = [datetime]::MinValue
+    $hasStart = [datetime]::TryParse([string]$ev.startAt, [ref]$startUtc)
+    $hasEnd = [datetime]::TryParse([string]$ev.endAt, [ref]$endUtc)
+    $isActiveNow = $enabled -and $hasStart -and $hasEnd -and ($startUtc.ToUniversalTime() -le $nowUtc) -and ($endUtc.ToUniversalTime() -ge $nowUtc)
+    if ($onlyActiveNow -and (-not $isActiveNow)) {
+      continue
+    }
+    $textLabel = if ($isActiveNow) { "[ATIVO] " + [string]$ev.eventText } else { [string]$ev.eventText }
     [void]$eventsGrid.Rows.Add(
       [string]$ev.id,
-      [string]$ev.eventText,
+      $textLabel,
       [string]$ev.cardId,
       [string]$ev.cardType,
       [string]$ev.locationCardId,
@@ -950,6 +1465,7 @@ function Fill-EventFormById {
   $chkEventNotifyAll.Checked = $false
   $txtEventNotifyText.Text = ""
   $txtEventNotifyText.Enabled = $false
+  Set-EventNotifyStatus -Count 0 -Enabled $false
 }
 
 function Build-EventPayload {
@@ -1048,6 +1564,236 @@ function Build-QuestPayload {
     requirements = $reqs
     enabled = [bool]$chkQuestEnabled.Checked
   }
+}
+
+function Get-PreferredSelectedUsername {
+  foreach ($combo in @($comboScansUser, $comboProfileUser, $comboPerimUser, $userCombo)) {
+    if ($null -ne $combo) {
+      $value = Get-SelectedValue -Combo $combo
+      if (-not [string]::IsNullOrWhiteSpace($value)) {
+        return $value
+      }
+    }
+  }
+  return ""
+}
+
+function Confirm-StrictDestructiveAction {
+  param(
+    [string]$Title,
+    [string]$Message,
+    [string]$Phrase = "CONFIRMAR"
+  )
+  $confirm = [System.Windows.Forms.MessageBox]::Show($Message, $Title, [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
+  if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) {
+    return $false
+  }
+  $typed = Show-TextPrompt -Title $Title -Message "Digite $Phrase para confirmar:"
+  if ([string]::IsNullOrWhiteSpace($typed) -or $typed.Trim() -cne $Phrase) {
+    [System.Windows.Forms.MessageBox]::Show("Confirmacao invalida. Operacao cancelada.", "Cancelado", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    return $false
+  }
+  return $true
+}
+
+function Build-ScansFilterPayload {
+  return @{
+    cardType = Get-SelectedValue -Combo $comboScansType
+    setKey = $txtScansSet.Text.Trim()
+    query = $txtScansQuery.Text.Trim()
+    limit = 2000
+  }
+}
+
+function Load-Scans {
+  $username = Get-SelectedValue -Combo $comboScansUser
+  if (-not $username) {
+    $scansGrid.Rows.Clear()
+    return
+  }
+  Set-Status "Carregando scans de '$username'..."
+  $payload = Invoke-AdminEngine -Action "scans-list" -Username $username -Payload (Build-ScansFilterPayload)
+  $script:ScansCache = @($payload.scans)
+  $scansGrid.Rows.Clear()
+  foreach ($entry in $script:ScansCache) {
+    [void]$scansGrid.Rows.Add(
+      [string]$entry.scanEntryId,
+      [string]$entry.cardType,
+      [string]$entry.cardName,
+      [string]$entry.cardId,
+      [string]$entry.setName,
+      [string]$entry.obtainedAt,
+      [string]$entry.source,
+      [string]$entry.variantJson
+    )
+  }
+  Set-Status "Scans carregados para '$username'."
+}
+
+function Refresh-GrantCardCombo {
+  $grantType = Get-SelectedValue -Combo $comboGrantCardType
+  Set-ComboItems -Combo $comboGrantCard -Items (Build-CardItems -Type $grantType)
+}
+
+function Build-ProfileRankedPayload {
+  return @{
+    seasonKey = $txtProfileSeason.Text.Trim()
+    dromeId = Get-SelectedValue -Combo $comboProfileDrome
+    profile = @{
+      score = [int]$numProfileScore.Value
+      wins = [int]$numProfileWins.Value
+      losses = [int]$numProfileLosses.Value
+      favoriteTribe = $txtProfileFavoriteTribe.Text.Trim()
+      avatar = $txtProfileAvatar.Text.Trim()
+    }
+    rankedGlobal = @{
+      elo = [int]$numGlobalElo.Value
+      wins = [int]$numGlobalWins.Value
+      losses = [int]$numGlobalLosses.Value
+    }
+    drome = @{
+      dromeId = Get-SelectedValue -Combo $comboProfileDrome
+      score = [int]$numDromeScore.Value
+      wins = [int]$numDromeWins.Value
+      losses = [int]$numDromeLosses.Value
+    }
+  }
+}
+
+function Render-ProfileRankedSnapshot {
+  param([object]$Snapshot)
+  if ($null -eq $Snapshot) {
+    $profileSnapshotBox.Text = "Sem dados."
+    return
+  }
+  $profile = $Snapshot.profile
+  if (-not $profile) {
+    $profile = @{ score = 0; wins = 0; losses = 0; favoriteTribe = ""; avatar = "" }
+  }
+  $global = $Snapshot.rankedGlobal
+  if (-not $global) {
+    $global = @{ elo = 1200; wins = 0; losses = 0 }
+  }
+  $selection = $Snapshot.rankedSelection
+  if (-not $selection) {
+    $selection = @{ dromeId = ""; lockedAt = "" }
+  }
+  $avatarPreview = [string]$profile.avatar
+  if ($avatarPreview.Length -gt 96) {
+    $avatarPreview = $avatarPreview.Substring(0, 96) + "... (truncado)"
+  }
+  $profileSnapshotBox.Text = @"
+Usuario: $($Snapshot.username)
+owner_key: $($Snapshot.ownerKey)
+Temporada: $($Snapshot.seasonKey)
+Selecao Dromo: $($selection.dromeId) (lock: $($selection.lockedAt))
+
+Perfil:
+  score: $($profile.score)
+  wins/losses: $($profile.wins)/$($profile.losses)
+  favorite_tribe: $($profile.favoriteTribe)
+  avatar: $avatarPreview
+
+Ranked Global:
+  elo: $($global.elo)
+  wins/losses: $($global.wins)/$($global.losses)
+"@
+  $profileGridStats.Rows.Clear()
+  $streakMap = @{}
+  foreach ($s in @($Snapshot.rankedDromeStreaks)) {
+    $streakMap[[string]$s.dromeId] = $s
+  }
+  foreach ($row in @($Snapshot.rankedDromeStats)) {
+    $streak = $streakMap[[string]$row.dromeId]
+    $currentStreak = if ($streak) { [string]$streak.currentStreak } else { "0" }
+    $bestStreak = if ($streak) { [string]$streak.bestStreak } else { "0" }
+    [void]$profileGridStats.Rows.Add(
+      [string]$row.dromeId,
+      [string]$row.score,
+      [string]$row.wins,
+      [string]$row.losses,
+      $currentStreak,
+      $bestStreak
+    )
+  }
+}
+
+function Load-ProfileRanked {
+  $username = Get-SelectedValue -Combo $comboProfileUser
+  if (-not $username) { return }
+  $seasonKey = $txtProfileSeason.Text.Trim()
+  if (-not $seasonKey) {
+    $seasonKey = (Get-Date).ToUniversalTime().ToString("yyyy-MM")
+    $txtProfileSeason.Text = $seasonKey
+  }
+  Set-Status "Carregando perfil/ranked de '$username'..."
+  $payload = Invoke-AdminEngine -Action "profile-ranked-fetch" -Username $username -Payload @{ seasonKey = $seasonKey }
+  $script:ProfileRankedSnapshot = $payload
+  $profile = $payload.profile
+  $global = $payload.rankedGlobal
+  if ($profile) {
+    $numProfileScore.Value = [decimal]([Math]::Max(0, [int]$profile.score))
+    $numProfileWins.Value = [decimal]([Math]::Max(0, [int]$profile.wins))
+    $numProfileLosses.Value = [decimal]([Math]::Max(0, [int]$profile.losses))
+    $txtProfileFavoriteTribe.Text = [string]$profile.favoriteTribe
+    $txtProfileAvatar.Text = [string]$profile.avatar
+  }
+  if ($global) {
+    $numGlobalElo.Value = [decimal]([Math]::Max(0, [int]$global.elo))
+    $numGlobalWins.Value = [decimal]([Math]::Max(0, [int]$global.wins))
+    $numGlobalLosses.Value = [decimal]([Math]::Max(0, [int]$global.losses))
+  }
+  $selectedDrome = Get-SelectedValue -Combo $comboProfileDrome
+  $dromeRow = @($payload.rankedDromeStats | Where-Object { [string]$_.dromeId -eq $selectedDrome } | Select-Object -First 1)
+  if ($dromeRow.Count -gt 0) {
+    $numDromeScore.Value = [decimal]([Math]::Max(0, [int]$dromeRow[0].score))
+    $numDromeWins.Value = [decimal]([Math]::Max(0, [int]$dromeRow[0].wins))
+    $numDromeLosses.Value = [decimal]([Math]::Max(0, [int]$dromeRow[0].losses))
+  }
+  Render-ProfileRankedSnapshot -Snapshot $payload
+  Set-Status "Perfil/ranked carregado para '$username'."
+}
+
+function Render-PerimSnapshot {
+  param([object]$Snapshot)
+  $perimRunsGrid.Rows.Clear()
+  foreach ($run in @($Snapshot.activeRuns)) {
+    [void]$perimRunsGrid.Rows.Add(
+      [string]$run.runId,
+      [string]$run.actionId,
+      [string]$run.status,
+      [string]$run.locationName,
+      [string]$run.startAt
+    )
+  }
+  $perimRewardsGrid.Rows.Clear()
+  foreach ($reward in @($Snapshot.pendingRewards)) {
+    [void]$perimRewardsGrid.Rows.Add(
+      [string]$reward.id,
+      [string]$reward.runId,
+      [string]$reward.rewardType,
+      [string]$reward.cardId,
+      [string]$reward.isNew
+    )
+  }
+  $perimCampGrid.Rows.Clear()
+  $camp = @{}
+  if ($Snapshot.state -and $Snapshot.state.campWaitJson) {
+    $camp = $Snapshot.state.campWaitJson
+  }
+  foreach ($key in @($camp.Keys | Sort-Object)) {
+    [void]$perimCampGrid.Rows.Add([string]$key, [string]$camp[$key])
+  }
+}
+
+function Load-PerimState {
+  $username = Get-SelectedValue -Combo $comboPerimUser
+  if (-not $username) { return }
+  Set-Status "Carregando estado PERIM de '$username'..."
+  $payload = Invoke-AdminEngine -Action "perim-state-fetch" -Username $username
+  $script:PerimSnapshot = $payload
+  Render-PerimSnapshot -Snapshot $payload
+  Set-Status "Estado PERIM carregado para '$username'."
 }
 
 function Load-Logs {
@@ -1185,7 +1931,14 @@ $chkEventNotifyAll.Add_CheckedChanged({
   $txtEventNotifyText.Enabled = [bool]$chkEventNotifyAll.Checked
   if (-not $chkEventNotifyAll.Checked) {
     $txtEventNotifyText.Text = ""
+    Set-EventNotifyStatus -Count 0 -Enabled $false
   }
+})
+
+$chkEventsOnlyActive.Add_CheckedChanged({
+  try {
+    Load-Events
+  } catch {}
 })
 
 $locationTribesGrid.Add_SelectionChanged({
@@ -1206,6 +1959,8 @@ $locationTribesGrid.Add_SelectionChanged({
 $btnEventSave.Add_Click({
   try {
     $payload = Build-EventPayload
+    $savedEventId = 0
+    $savedNotifiedCount = 0
     if ($payload.notifyAllPlayers -and [string]::IsNullOrWhiteSpace([string]$payload.notificationText)) {
       [System.Windows.Forms.MessageBox]::Show("Digite o texto da notificacao global antes de enviar para todos.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
       return
@@ -1216,6 +1971,12 @@ $btnEventSave.Add_Click({
       }
       $notifiedCount = 0
       try { $notifiedCount = [int]($op.result.notifiedCount) } catch {}
+      $savedNotifiedCount = $notifiedCount
+      $savedEventId = [int]$script:CurrentEventId
+      Set-EventNotifyStatus -Count $notifiedCount -Enabled $payload.notifyAllPlayers
+      if ($payload.notifyAllPlayers -and $notifiedCount -gt 0) {
+        $eventIdLabel.Text = "Evento selecionado: ID $($script:CurrentEventId) [BROADCAST]"
+      }
       $notifyLine = if ($notifiedCount -gt 0) { "`r`nNotificacoes enviadas: $notifiedCount" } else { "" }
       [System.Windows.Forms.MessageBox]::Show("Evento atualizado.$notifyLine`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
     } else {
@@ -1224,11 +1985,25 @@ $btnEventSave.Add_Click({
       }
       $notifiedCount = 0
       try { $notifiedCount = [int]($op.result.notifiedCount) } catch {}
+      $savedNotifiedCount = $notifiedCount
+      try { $savedEventId = [int]($op.result.createdId) } catch { $savedEventId = 0 }
+      Set-EventNotifyStatus -Count $notifiedCount -Enabled $payload.notifyAllPlayers
+      if ($payload.notifyAllPlayers -and $notifiedCount -gt 0) {
+        $eventIdLabel.Text = "Evento selecionado: novo [BROADCAST]"
+      }
       $notifyLine = if ($notifiedCount -gt 0) { "`r`nNotificacoes enviadas: $notifiedCount" } else { "" }
       [System.Windows.Forms.MessageBox]::Show("Evento criado.$notifyLine`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
     }
     Load-Events
-    Reset-EventForm
+    if ($savedEventId -gt 0) {
+      Fill-EventFormById -EventId $savedEventId
+      Set-EventNotifyStatus -Count $savedNotifiedCount -Enabled $payload.notifyAllPlayers
+      if ($payload.notifyAllPlayers -and $savedNotifiedCount -gt 0) {
+        $eventIdLabel.Text = "Evento selecionado: ID $savedEventId [BROADCAST]"
+      }
+    } else {
+      Reset-EventForm
+    }
   } catch {
     [System.Windows.Forms.MessageBox]::Show("Falha ao salvar evento: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
   }
@@ -1376,6 +2151,241 @@ $btnQuestDelete.Add_Click({
   }
 })
 
+$comboGrantCardType.Add_SelectedIndexChanged({ Refresh-GrantCardCombo })
+
+$btnScansLoad.Add_Click({
+  try { Load-Scans } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao carregar scans: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnScansGrant.Add_Click({
+  try {
+    $username = Get-SelectedValue -Combo $comboScansUser
+    if (-not $username) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um usuario para grant.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $cardId = Get-SelectedValue -Combo $comboGrantCard
+    if (-not $cardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma carta para grant.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $payload = @{
+      cardId = $cardId
+      quantity = [int]$numGrantQty.Value
+      starsPreset = [double]$numGrantStars.Value
+      source = $txtGrantSource.Text.Trim()
+    }
+    $op = Invoke-MutatingOperation -OperationName "scans-grant" -Target ("scans:" + $username) -ActionBlock {
+      Invoke-AdminEngine -Action "scans-grant" -Username $username -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Grant aplicado. Novas entradas: $($op.result.granted)`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-Scans
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao aplicar grant: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnScansDeleteSelected.Add_Click({
+  try {
+    $username = Get-SelectedValue -Combo $comboScansUser
+    if (-not $username) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um usuario.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $ids = @()
+    foreach ($row in @($scansGrid.SelectedRows)) {
+      $id = [string]$row.Cells[0].Value
+      if ($id) { $ids += $id }
+    }
+    if (-not $ids.Count) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma ou mais linhas para remover.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if (-not (Confirm-StrictDestructiveAction -Title "Remover scans" -Message "Remover $($ids.Count) scan(s) selecionados do usuario '$username'?")) { return }
+    $payload = @{ scanEntryIds = $ids }
+    $op = Invoke-MutatingOperation -OperationName "scans-delete" -Target ("scans:" + $username) -ActionBlock {
+      Invoke-AdminEngine -Action "scans-delete" -Username $username -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Remocao concluida. Itens removidos: $($op.result.deleted)`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-Scans
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao remover scans: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnProfileLoad.Add_Click({
+  try { Load-ProfileRanked } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao carregar perfil/ranked: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnProfileSave.Add_Click({
+  try {
+    $username = Get-SelectedValue -Combo $comboProfileUser
+    if (-not $username) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um usuario.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $payload = Build-ProfileRankedPayload
+    $op = Invoke-MutatingOperation -OperationName "profile-ranked-update" -Target ("profile-ranked:" + $username) -ActionBlock {
+      Invoke-AdminEngine -Action "profile-ranked-update" -Username $username -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Perfil/ranked atualizado.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    $script:ProfileRankedSnapshot = $op.result
+    Render-ProfileRankedSnapshot -Snapshot $op.result
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao salvar perfil/ranked: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnProfileResetMonthly.Add_Click({
+  try {
+    $username = Get-SelectedValue -Combo $comboProfileUser
+    $dromeId = Get-SelectedValue -Combo $comboProfileDrome
+    $seasonKey = $txtProfileSeason.Text.Trim()
+    if (-not $username -or -not $dromeId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione usuario e dromo para reset mensal.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if (-not (Confirm-StrictDestructiveAction -Title "Reset mensal do dromo" -Message "Resetar score/wins/losses mensal de '$username' em '$dromeId'?")) { return }
+    $payload = @{ mode = "drome-monthly"; seasonKey = $seasonKey; dromeId = $dromeId }
+    $op = Invoke-MutatingOperation -OperationName "profile-ranked-reset-monthly" -Target ("profile-ranked:" + $username) -ActionBlock {
+      Invoke-AdminEngine -Action "profile-ranked-reset" -Username $username -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Reset mensal aplicado.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    $script:ProfileRankedSnapshot = $op.result
+    Render-ProfileRankedSnapshot -Snapshot $op.result
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha no reset mensal: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnProfileResetStreak.Add_Click({
+  try {
+    $username = Get-SelectedValue -Combo $comboProfileUser
+    $dromeId = Get-SelectedValue -Combo $comboProfileDrome
+    $seasonKey = $txtProfileSeason.Text.Trim()
+    if (-not $username -or -not $dromeId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione usuario e dromo para reset de streak.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if (-not (Confirm-StrictDestructiveAction -Title "Reset streak do dromo" -Message "Resetar streak mensal de '$username' em '$dromeId'?")) { return }
+    $payload = @{ mode = "drome-streak"; seasonKey = $seasonKey; dromeId = $dromeId }
+    $op = Invoke-MutatingOperation -OperationName "profile-ranked-reset-streak" -Target ("profile-ranked:" + $username) -ActionBlock {
+      Invoke-AdminEngine -Action "profile-ranked-reset" -Username $username -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Reset de streak aplicado.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    $script:ProfileRankedSnapshot = $op.result
+    Render-ProfileRankedSnapshot -Snapshot $op.result
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha no reset de streak: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnPerimLoad.Add_Click({
+  try { Load-PerimState } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao carregar PERIM: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnPerimFixRun.Add_Click({
+  try {
+    $username = Get-SelectedValue -Combo $comboPerimUser
+    if (-not $username) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um usuario.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $runId = ""
+    if ($perimRunsGrid.SelectedRows.Count -gt 0) {
+      $runId = [string]$perimRunsGrid.SelectedRows[0].Cells[0].Value
+    }
+    if (-not (Confirm-StrictDestructiveAction -Title "Encerrar run ativa" -Message "Encerrar run ativa de '$username'?" )) { return }
+    $payload = @{ runId = $runId }
+    $op = Invoke-MutatingOperation -OperationName "perim-fix-run" -Target ("perim:" + $username) -ActionBlock {
+      Invoke-AdminEngine -Action "perim-fix-run" -Username $username -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Runs ajustadas: $($op.result.fixedRuns)`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    $script:PerimSnapshot = $op.result
+    Render-PerimSnapshot -Snapshot $op.result
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao ajustar run PERIM: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnPerimClearRewards.Add_Click({
+  try {
+    $username = Get-SelectedValue -Combo $comboPerimUser
+    if (-not $username) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um usuario.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $ids = @()
+    foreach ($row in @($perimRewardsGrid.SelectedRows)) {
+      $id = [int]$row.Cells[0].Value
+      if ($id -gt 0) { $ids += $id }
+    }
+    if (-not $ids.Count) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione recompensas para limpar.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if (-not (Confirm-StrictDestructiveAction -Title "Limpar recompensas PERIM" -Message "Limpar $($ids.Count) recompensa(s) pendentes de '$username'?")) { return }
+    $payload = @{ rewardIds = $ids }
+    $op = Invoke-MutatingOperation -OperationName "perim-clear-rewards" -Target ("perim:" + $username) -ActionBlock {
+      Invoke-AdminEngine -Action "perim-clear-rewards" -Username $username -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Recompensas removidas: $($op.result.deletedRewards)`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    $script:PerimSnapshot = $op.result
+    Render-PerimSnapshot -Snapshot $op.result
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao limpar recompensas PERIM: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnPerimCampSave.Add_Click({
+  try {
+    $username = Get-SelectedValue -Combo $comboPerimUser
+    $locationCardId = Get-SelectedValue -Combo $comboPerimCampLocation
+    if (-not $username -or -not $locationCardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione usuario e local para atualizar camp.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $payload = @{
+      locationCardId = $locationCardId
+      progress = [int]$numPerimCampProgress.Value
+    }
+    $op = Invoke-MutatingOperation -OperationName "perim-update-camp-progress" -Target ("perim-camp:" + $username) -ActionBlock {
+      Invoke-AdminEngine -Action "perim-update-camp-progress" -Username $username -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Camp progress atualizado.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    $script:PerimSnapshot = $op.result
+    Render-PerimSnapshot -Snapshot $op.result
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao atualizar camp progress: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$perimCampGrid.Add_SelectionChanged({
+  if ($perimCampGrid.SelectedRows.Count -lt 1) { return }
+  $locationCardId = [string]$perimCampGrid.SelectedRows[0].Cells[0].Value
+  $progress = [int]$perimCampGrid.SelectedRows[0].Cells[1].Value
+  if ($locationCardId) { $comboPerimCampLocation.SelectedValue = $locationCardId }
+  if ($progress -ge 0) { $numPerimCampProgress.Value = [decimal]$progress }
+})
+
+$profileGridStats.Add_SelectionChanged({
+  if ($profileGridStats.SelectedRows.Count -lt 1) { return }
+  $dromeId = [string]$profileGridStats.SelectedRows[0].Cells[0].Value
+  $score = [int]$profileGridStats.SelectedRows[0].Cells[1].Value
+  $wins = [int]$profileGridStats.SelectedRows[0].Cells[2].Value
+  $losses = [int]$profileGridStats.SelectedRows[0].Cells[3].Value
+  if ($dromeId) { $comboProfileDrome.SelectedValue = $dromeId }
+  $numDromeScore.Value = [decimal]([Math]::Max(0, $score))
+  $numDromeWins.Value = [decimal]([Math]::Max(0, $wins))
+  $numDromeLosses.Value = [decimal]([Math]::Max(0, $losses))
+})
+
 $btnLogsRefresh.Add_Click({
   try { Load-Logs } catch {
     [System.Windows.Forms.MessageBox]::Show("Falha ao carregar logs: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
@@ -1400,12 +2410,23 @@ try {
   Set-ComboItems -Combo $comboQuestTargetLocation -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboLocationTribeLocation -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboLocationTribeKey -Items (Build-LocationTribeKeyItems)
+  Set-ComboItems -Combo $comboScansType -Items (Build-ScansTypeItems)
+  Set-ComboItems -Combo $comboGrantCardType -Items $typeItems
+  Set-ComboItems -Combo $comboProfileDrome -Items (Build-DromeItems)
+  Set-ComboItems -Combo $comboPerimCampLocation -Items (Build-LocationItems)
+  $txtProfileSeason.Text = (Get-Date).ToUniversalTime().ToString("yyyy-MM")
   Refresh-TypeCardCombos
+  Refresh-GrantCardCombo
   Reset-EventForm
   Reset-QuestForm
 
   Load-Users
-  if ($userCombo.Items.Count -gt 0) { Load-UserPreview }
+  if ($userCombo.Items.Count -gt 0) {
+    Load-UserPreview
+    Load-Scans
+    Load-ProfileRanked
+    Load-PerimState
+  }
   Load-Events
   Load-LocationTribes
   Load-Quests

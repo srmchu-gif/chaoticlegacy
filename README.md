@@ -126,3 +126,11 @@ O build gera um executavel versionado (`Chaotic-YYYYMMDD-HHmmss.exe`) com o icon
 - `public/`: interface web (deck builder + camada visual da batalha).
 - `decks/`: decks salvos.
 - `tests/`: testes automatizados.
+
+## Pre-deploy Security Checklist
+
+- Confirmar que `actions-runner/`, `logs/`, `debug-logs/` e `chaotic.db` nao estao versionados.
+- Rotacionar segredos antes de publicar (`SMTP_*`, `TURNSTILE_SECRET_KEY`, tokens de deploy/runner/tunnel).
+- Validar acesso admin por `role` (nao apenas por username).
+- Executar `node --check server.js`, `node --check public/js/menu.js`, `node --check public/js/app.js`.
+- Executar `npm test` e `npm audit --omit=dev` antes de cada deploy.

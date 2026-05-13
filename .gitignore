@@ -5,3 +5,9 @@
 /caddy_data
 /caddy_config
 /duckdns
+/actions-runner
+/logs
+/debug-logs
+/chaotic.db
+/public/js/menu_temp.txt
+*.log

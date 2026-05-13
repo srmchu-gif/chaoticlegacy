@@ -2790,7 +2790,9 @@ function bindMultiplayer(username) {
           : room.phase === "deck_select"
             ? "Pre-combate"
             : "Aguardando";
-        textDiv.innerHTML = `<strong>ID: ${room.id}${isOwnRoom ? " (Sua sala)" : ""}</strong><br><small>Host: ${room.hostName} | Regra: ${modeLabel} | ${statusLabel} | ${phaseLabel}</small>`;
+        const roomIdLabel = String(room.id || "");
+        const hostLabel = String(room.hostName || room.hostUsername || room.hostKey || "Jogador");
+        textDiv.innerHTML = `<strong>ID: ${escapeHtml(roomIdLabel)}${isOwnRoom ? " (Sua sala)" : ""}</strong><br><small>Host: ${escapeHtml(hostLabel)} | Regra: ${escapeHtml(modeLabel)} | ${escapeHtml(statusLabel)} | ${escapeHtml(phaseLabel)}</small>`;
         roomDiv.appendChild(textDiv);
 
         const actionBtn = document.createElement("button");
@@ -3964,21 +3966,56 @@ function pickPresencePhrase(locationEntry, count) {
     eventsList.innerHTML = '<div style="font-size:0.72rem;color:#8ea8bf;">Carregando eventos...</div>';
     try {
       const payload = await fetchJsonWithTimeout("/api/perim/events", { method: "GET" }, NETWORK_TIMEOUT_MS.perimState);
-      const events = Array.isArray(payload?.events) ? payload.events : [];
-      if (!events.length) {
+      const climateEvents = Array.isArray(payload?.climateEvents) ? payload.climateEvents : [];
+      const dropEvents = Array.isArray(payload?.dropEvents) ? payload.dropEvents : [];
+      const legacyEvents = Array.isArray(payload?.events) ? payload.events : [];
+      const fallbackClimate = !climateEvents.length
+        ? legacyEvents.filter((entry) => String(entry?.source || "").toLowerCase() === "climate")
+        : [];
+      const fallbackDrop = !dropEvents.length
+        ? legacyEvents.filter((entry) => String(entry?.source || "").toLowerCase() === "drop_admin")
+        : [];
+      const finalClimateEvents = climateEvents.length ? climateEvents : fallbackClimate;
+      const finalDropEvents = dropEvents.length ? dropEvents : fallbackDrop;
+
+      if (!finalClimateEvents.length && !finalDropEvents.length) {
         eventsList.innerHTML = '<div style="font-size:0.72rem;color:#8ea8bf;">Nenhum evento ativo no momento.</div>';
       } else {
-        eventsList.innerHTML = events
-          .map((entry) => `
-            <article class="perim-reward-item">
-              <div style="grid-column:1 / -1;">
-                <strong>${escapeHtml(entry?.name || "Evento")}</strong>
-                <span>${escapeHtml(entry?.description || "-")}</span>
-                <span>Inicio: ${escapeHtml(entry?.startAt || "-")} | Fim: ${escapeHtml(entry?.endAt || "-")}</span>
-              </div>
-            </article>
-          `)
-          .join("");
+        const renderClimateItems = finalClimateEvents.length
+          ? finalClimateEvents
+              .map((entry) => `
+                <article class="perim-reward-item">
+                  <div style="grid-column:1 / -1;">
+                    <strong>${escapeHtml(entry?.title || entry?.name || "Evento climatico")}</strong>
+                    <span>${escapeHtml(entry?.description || "-")}</span>
+                    <span>Clima: ${escapeHtml(entry?.climate || "-")}</span>
+                  </div>
+                </article>
+              `)
+              .join("")
+          : '<div style="font-size:0.72rem;color:#8ea8bf;">Nenhum evento de clima ativo.</div>';
+        const renderDropItems = finalDropEvents.length
+          ? finalDropEvents
+              .map((entry) => `
+                <article class="perim-reward-item">
+                  <div style="grid-column:1 / -1;">
+                    <strong>${escapeHtml(entry?.title || entry?.name || "Evento de drop")}</strong>
+                    <span>${escapeHtml(entry?.description || "-")}</span>
+                    <span>Local: ${escapeHtml(entry?.locationName || "-")} | Chance: ${escapeHtml(String(entry?.chancePercent ?? "-"))}%</span>
+                    <span>Carta: ${escapeHtml(entry?.cardName || entry?.cardId || "-")}</span>
+                    <span>Inicio: ${escapeHtml(entry?.startAt || "-")} | Fim: ${escapeHtml(entry?.endAt || "-")}</span>
+                  </div>
+                </article>
+              `)
+              .join("")
+          : '<div style="font-size:0.72rem;color:#8ea8bf;">Nenhum evento de drop admin ativo.</div>';
+        eventsList.innerHTML = `
+          <div style="grid-column:1 / -1;font-size:0.72rem;color:#9ec3ff;font-weight:600;">Eventos de Clima</div>
+          ${renderClimateItems}
+          <div style="grid-column:1 / -1;height:1px;background:rgba(140,170,200,0.25);margin:0.15rem 0 0.25rem 0;"></div>
+          <div style="grid-column:1 / -1;font-size:0.72rem;color:#9ec3ff;font-weight:600;">Eventos de Drop Ativos</div>
+          ${renderDropItems}
+        `;
       }
     } catch (error) {
       eventsList.innerHTML = `<div style="font-size:0.72rem;color:#ff8d8d;">${escapeHtml(error?.message || "Falha ao carregar eventos.")}</div>`;

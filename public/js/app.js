@@ -232,6 +232,15 @@ const UI_LANGUAGE_LABELS = {
   },
 };
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 const DECK_RULESETS = {
   casual: {
     label: "Casual",

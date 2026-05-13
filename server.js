@@ -135,6 +135,7 @@ const CHAT_TRANSLATION_CACHE_TTL_MS = Math.max(60 * 1000, Number(process.env.CHA
 const CHAT_TRANSLATION_HTTP_TIMEOUT_MS = Math.max(1500, Number(process.env.CHAT_TRANSLATION_HTTP_TIMEOUT_MS || 6500));
 const LIBRETRANSLATE_URL = String(process.env.LIBRETRANSLATE_URL || "https://libretranslate.com/translate").trim();
 const LIBRETRANSLATE_API_KEY = String(process.env.LIBRETRANSLATE_API_KEY || "").trim();
+const XLSX_MAX_FILE_BYTES = Math.max(64 * 1024, Number(process.env.XLSX_MAX_FILE_BYTES || 8 * 1024 * 1024));
 const CASUAL_INVITE_TTL_MS = 5 * 60 * 1000;
 const RANKED_QUEUE_STALE_MS = 6 * 60 * 1000;
 const RANKED_QUEUE_BASE_RANGE = 40;
@@ -372,6 +373,7 @@ try {
       email TEXT NOT NULL UNIQUE COLLATE NOCASE,
       password_hash TEXT NOT NULL,
       tribe TEXT NOT NULL DEFAULT '',
+      role TEXT NOT NULL DEFAULT 'player',
       verified INTEGER NOT NULL DEFAULT 0,
       session_token TEXT,
       session_expires_at TEXT,
@@ -396,6 +398,11 @@ try {
   if (!userColumnSet.has("last_login_at")) {
     sqliteDb.exec("ALTER TABLE users ADD COLUMN last_login_at TEXT;");
   }
+  if (!userColumnSet.has("role")) {
+    sqliteDb.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'player';");
+  }
+  sqliteDb.prepare("UPDATE users SET role = 'admin' WHERE lower(username) = 'admin'").run();
+  sqliteDb.prepare("UPDATE users SET role = 'player' WHERE role IS NULL OR trim(role) = ''").run();
 } catch (error) {
   console.warn(`[DB] SQLite indisponivel, fallback JSON ativo: ${error.message}`);
 }
@@ -1551,11 +1558,13 @@ function seedAdminAccount() {
     const now = nowIso();
     const adminHash = hashPasswordSecure(ADMIN_BOOTSTRAP_PASSWORD);
     sqliteDb.prepare(`
-      INSERT INTO users (username, email, password_hash, tribe, verified, session_token, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+      INSERT INTO users (username, email, password_hash, tribe, role, verified, session_token, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'admin', 1, ?, ?, ?)
     `).run(ADMIN_USER, "admin@chaotic.local", adminHash, "", null, now, now);
     console.log("[SEED] Conta admin criada via bootstrap seguro (ADMIN_BOOTSTRAP_PASSWORD).");
   }
+  sqliteDb.prepare("UPDATE users SET role = 'admin', updated_at = ? WHERE username = ? COLLATE NOCASE")
+    .run(nowIso(), ADMIN_USER);
   // Give admin 3 copies of every card in the library
   const adminKey = normalizeUserKey(ADMIN_USER);
   const scans = loadScansData();
@@ -1984,6 +1993,28 @@ function applyCorsHeaders(request, response) {
   return true;
 }
 
+function applySecurityHeaders(request, response) {
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  response.setHeader("Content-Security-Policy", [
+    "default-src 'self'",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' data: blob: https:",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "connect-src 'self' https://challenges.cloudflare.com https://libretranslate.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; "));
+  if (isHttpsRequest(request)) {
+    response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+}
+
 function normalizeDeckName(name) {
   const trimmed = String(name || "").trim();
   return trimmed.replace(/[^a-zA-Z0-9 _-]+/g, "").replace(/\s+/g, "-").toLowerCase();
@@ -2060,6 +2091,28 @@ function nowIso() {
 
 function nowMs() {
   return Date.now();
+}
+
+function safeReadWorkbookFromFile(filePath) {
+  const resolved = path.resolve(String(filePath || ""));
+  if (!isPathInside(ROOT_DIR, resolved)) {
+    throw new Error("xlsx_path_forbidden");
+  }
+  if (!resolved.toLowerCase().endsWith(".xlsx")) {
+    throw new Error("xlsx_extension_invalid");
+  }
+  const stat = fs.statSync(resolved);
+  if (!stat.isFile()) {
+    throw new Error("xlsx_not_file");
+  }
+  if (stat.size > XLSX_MAX_FILE_BYTES) {
+    throw new Error(`xlsx_too_large:${stat.size}`);
+  }
+  return XLSX.readFile(resolved, {
+    cellDates: false,
+    dense: true,
+    WTF: false,
+  });
 }
 
 function isoFromMs(value) {
@@ -2324,7 +2377,7 @@ function loadUserByValidSessionToken(token) {
     return null;
   }
   const user = sqliteDb
-    .prepare("SELECT id, username, email, tribe, session_expires_at, session_ip, session_device, last_login_at FROM users WHERE session_token = ?")
+    .prepare("SELECT id, username, email, tribe, role, session_expires_at, session_ip, session_device, last_login_at FROM users WHERE session_token = ?")
     .get(token);
   if (!user) {
     return null;
@@ -2455,9 +2508,19 @@ function requireAdminUser(request, response) {
   if (!user) {
     return null;
   }
-  if (normalizeUserKey(user.username) !== "admin") {
+  const role = String(user.role || "").trim().toLowerCase();
+  const legacyAdmin = normalizeUserKey(user.username) === "admin";
+  if (role !== "admin" && !legacyAdmin) {
     sendJson(response, 403, { error: "Acesso restrito ao administrador." });
     return null;
+  }
+  if (role !== "admin" && legacyAdmin) {
+    appendAuditLog("auth_admin_legacy_fallback", {
+      severity: "warn",
+      ownerKey: user.username,
+      ipAddress: getClientIp(request),
+      message: "Acesso admin permitido por fallback legado baseado em username.",
+    });
   }
   return user;
 }
@@ -6510,7 +6573,7 @@ function loadPerimLocationsMatrix() {
     return rows;
   }
   try {
-    const workbook = XLSX.readFile(PERIM_LOCATIONS_FILE, { cellDates: false });
+    const workbook = safeReadWorkbookFromFile(PERIM_LOCATIONS_FILE);
     const sheet = workbook.Sheets.Planilha1 || workbook.Sheets[workbook.SheetNames[0]];
     if (!sheet) {
       perimLocationsMatrixCache = { mtimeMs: fileMtimeMs, rows };
@@ -8397,7 +8460,7 @@ function loadPerimCreaturesMatrix() {
     return rows;
   }
   try {
-    const workbook = XLSX.readFile(PERIM_CREATURES_FILE, { cellDates: false });
+    const workbook = safeReadWorkbookFromFile(PERIM_CREATURES_FILE);
     const sheet = workbook.Sheets.Sheet1 || workbook.Sheets[workbook.SheetNames[0]];
     if (!sheet) {
       perimCreaturesMatrixCache = { mtimeMs: fileMtimeMs, rows };
@@ -10276,6 +10339,77 @@ function listPerimGlobalEvents(locationEntries = []) {
     }];
   }
   return [...eventsById.values()];
+}
+
+function buildPerimClimateEventCards(locationEntries = []) {
+  return listPerimGlobalEvents(locationEntries).map((event) => ({
+    id: `climate:${String(event?.id || "")}`,
+    source: "climate",
+    climate: String(event?.climate || ""),
+    title: String(event?.label || "Evento climatico"),
+    description: String(event?.effect || ""),
+    startAt: "",
+    endAt: "",
+    locationId: "",
+    locationName: "",
+    chancePercent: null,
+    cardId: "",
+    cardName: "",
+    cardType: "",
+  }));
+}
+
+function listPerimDropEventCards(locationEntries = [], nowDate = new Date()) {
+  const entries = Array.isArray(locationEntries) ? locationEntries : [];
+  if (!entries.length) {
+    return [];
+  }
+  const indexes = getLibraryCardIndexes();
+  const eventsById = new Map();
+  entries.forEach((entry) => {
+    const locationId = String(entry?.cardId || entry?.id || "").trim();
+    if (!locationId) {
+      return;
+    }
+    const activeEvents = listActivePerimDropEventsForLocation(locationId, nowDate);
+    activeEvents.forEach((eventEntry) => {
+      const eventId = Number(eventEntry?.id || 0);
+      const mapKey = eventId > 0
+        ? `drop:${eventId}`
+        : `drop:${locationId}:${String(eventEntry?.cardId || "")}:${String(eventEntry?.startAt || "")}`;
+      if (eventsById.has(mapKey)) {
+        return;
+      }
+      const cardId = String(eventEntry?.cardId || "").trim();
+      const card = cardId ? indexes.byId.get(cardId) : null;
+      const locationName = String(entry?.name || eventEntry?.locationCardId || locationId);
+      eventsById.set(mapKey, {
+        id: mapKey,
+        source: "drop_admin",
+        climate: "",
+        title: card?.name
+          ? `Drop especial: ${card.name}`
+          : `Drop especial: ${cardId || "Carta do evento"}`,
+        description: String(eventEntry?.eventText || "Evento de drop especial ativo."),
+        startAt: String(eventEntry?.startAt || ""),
+        endAt: String(eventEntry?.endAt || ""),
+        locationId: String(eventEntry?.locationCardId || locationId),
+        locationName,
+        chancePercent: Number(eventEntry?.chancePercent || 0),
+        cardId,
+        cardName: String(card?.name || cardId),
+        cardType: String(eventEntry?.cardType || ""),
+      });
+    });
+  });
+  return [...eventsById.values()].sort((a, b) => {
+    const chanceA = Number(a?.chancePercent || 0);
+    const chanceB = Number(b?.chancePercent || 0);
+    if (chanceB !== chanceA) {
+      return chanceB - chanceA;
+    }
+    return String(a?.title || "").localeCompare(String(b?.title || ""), "pt-BR");
+  });
 }
 
 function getGlobalDailyCreatures(dateKey = null) {
@@ -15633,6 +15767,7 @@ function serveStatic(requestPath, response) {
 async function handleRequest(request, response) {
   const parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
   const pathname = parsedUrl.pathname;
+  applySecurityHeaders(request, response);
   applyCorsHeaders(request, response);
   if (request.method === "OPTIONS" && pathname.startsWith("/api/")) {
     response.writeHead(204);
@@ -15894,6 +16029,14 @@ async function handleRequest(request, response) {
     if (!username || !email || !resolvedPassword) {
       sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
       return;
+    }
+    if (!passwordPlain && legacyProvidedHash) {
+      appendAuditLog("auth_register_legacy_passwordhash_used", {
+        severity: "warn",
+        ownerKey: username,
+        ipAddress: requestIp,
+        message: "Cadastro recebido com passwordHash legado.",
+      });
     }
     if (resolvedPassword.length < 6) {
       sendJson(response, 400, { error: "Senha deve ter no minimo 6 caracteres." });
@@ -16166,6 +16309,14 @@ async function handleRequest(request, response) {
       sendJson(response, 400, { error: "Campos obrigatorios ausentes." });
       return;
     }
+    if (!passwordPlain && legacyProvidedHash) {
+      appendAuditLog("auth_login_legacy_passwordhash_used", {
+        severity: "warn",
+        ownerKey: username,
+        ipAddress: requestIp,
+        message: "Login recebido com passwordHash legado.",
+      });
+    }
     const lockState = getLoginLockState(requestIp, username);
     if (lockState.blocked) {
       response.setHeader("Retry-After", String(lockState.retryAfterSeconds));
@@ -16272,6 +16423,7 @@ async function handleRequest(request, response) {
       username: user.username,
       email: user.email,
       tribe: user.tribe,
+      role: user.role || "player",
       sessionExpiresAt: user.session_expires_at || null,
     });
     markUserPresenceActive(user.username || "");
@@ -16442,9 +16594,31 @@ async function handleRequest(request, response) {
       ...entry,
       contextPreview: buildPerimContextSnapshot(entry, "explore"),
     }));
+    const climateEvents = buildPerimClimateEventCards(locations);
+    const dropEvents = listPerimDropEventCards(locations, new Date());
+    const legacyEvents = [
+      ...climateEvents.map((entry) => ({
+        id: String(entry.id || ""),
+        name: String(entry.title || "Evento climatico"),
+        description: String(entry.description || ""),
+        startAt: "",
+        endAt: "",
+        source: "climate",
+      })),
+      ...dropEvents.map((entry) => ({
+        id: String(entry.id || ""),
+        name: String(entry.title || "Evento de drop"),
+        description: String(entry.description || ""),
+        startAt: String(entry.startAt || ""),
+        endAt: String(entry.endAt || ""),
+        source: "drop_admin",
+      })),
+    ];
     sendJson(response, 200, {
       ok: true,
-      events: listPerimGlobalEvents(locations),
+      climateEvents,
+      dropEvents,
+      events: legacyEvents,
       updatedAt: nowIso(),
     });
     return;

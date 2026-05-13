@@ -8,6 +8,7 @@ const { DatabaseSync } = require("node:sqlite");
 const CARD_TYPES = ["creatures", "attacks", "battlegear", "locations", "mugic"];
 const LOCATION_TRIBE_KEYS = ["overworld", "underworld", "danian", "mipedian", "marrillian", "tribeless"];
 const QUEST_ALLOWED_SET_KEYS = new Set(["dop", "zoth", "ss"]);
+const DROME_IDS = ["crellan", "hotekk", "amzen", "oron", "tirasis", "imthor", "chirrul", "beta"];
 
 const USER_KEY_COLUMNS = [
   "owner_key",
@@ -848,6 +849,446 @@ function fetchUserDetail(db, username) {
   };
 }
 
+function ensureOwnerKeyFromUsername(db, usernameRaw) {
+  const username = ensureUsername(usernameRaw);
+  const user = requireExistingUser(db, username);
+  const ownerKey = normalizeUserKey(user.username);
+  if (!ownerKey) {
+    throw new Error(`owner_key invalido para usuario: ${username}`);
+  }
+  return { username: String(user.username || username), ownerKey };
+}
+
+function makeScanEntryId() {
+  const randomPart = Math.random().toString(36).slice(2, 10);
+  return `scan_${Date.now().toString(36)}_${randomPart}`;
+}
+
+function normalizeStarsPreset(valueRaw) {
+  const value = Number(valueRaw);
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+  return Math.round(value * 10) / 10;
+}
+
+function buildCreatureVariantFromStars(starsRaw) {
+  const stars = normalizeStarsPreset(starsRaw);
+  if (stars === null) {
+    return null;
+  }
+  const energyDeltaByStars = new Map([
+    [1.0, -5],
+    [1.5, -3],
+    [2.0, 0],
+    [2.5, 3],
+    [3.0, 5],
+  ]);
+  const energyDelta = energyDeltaByStars.has(stars) ? energyDeltaByStars.get(stars) : 0;
+  return {
+    energyDelta,
+    courageDelta: 0,
+    powerDelta: 0,
+    wisdomDelta: 0,
+    speedDelta: 0,
+    perfect: false,
+    starsPreset: stars,
+  };
+}
+
+function parseVariantJsonOrNull(raw) {
+  if (raw === null || typeof raw === "undefined") {
+    return null;
+  }
+  if (typeof raw === "object" && !Array.isArray(raw)) {
+    return raw;
+  }
+  const text = String(raw || "").trim();
+  if (!text) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("variant_json deve ser objeto.");
+    }
+    return parsed;
+  } catch (error) {
+    throw new Error(`variant_json invalido: ${error.message || error}`);
+  }
+}
+
+function touchUserCaches(db, ownerKey) {
+  const now = nowIso();
+  db.prepare("UPDATE player_profiles SET updated_at = ? WHERE owner_key = ?").run(now, ownerKey);
+  db.prepare("UPDATE perim_player_state SET updated_at = ? WHERE owner_key = ?").run(now, ownerKey);
+}
+
+function ensureAuditLogTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_type TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      owner_key TEXT,
+      ip_address TEXT,
+      message TEXT NOT NULL,
+      payload_json TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    );
+  `);
+}
+
+function appendAuditLogEntry(db, eventType, ownerKey, message, payload = {}) {
+  ensureAuditLogTable(db);
+  const event = String(eventType || "").trim() || "admin_local_tool";
+  const targetOwner = String(ownerKey || "").trim();
+  const msg = String(message || "").trim() || "Acao administrativa local";
+  const payloadJson = JSON.stringify(payload && typeof payload === "object" ? payload : {});
+  db.prepare(`
+    INSERT INTO audit_log (event_type, severity, owner_key, ip_address, message, payload_json, created_at)
+    VALUES (?, 'info', ?, 'local-admin', ?, ?, ?)
+  `).run(event, targetOwner, msg, payloadJson, nowIso());
+}
+
+function listScanEntriesByOwner(db, ownerKey, filters = {}) {
+  const cardType = normalizeCardType(filters.cardType || "");
+  const setKey = normalizeSetKey(filters.setKey || filters.setName || "");
+  const query = String(filters.query || "").trim().toLowerCase();
+  const limitRaw = Number(filters.limit || 500);
+  const limit = Number.isFinite(limitRaw) ? Math.max(50, Math.min(2000, Math.floor(limitRaw))) : 500;
+  const rows = db.prepare(`
+    SELECT
+      s.scan_entry_id,
+      s.owner_key,
+      s.card_type,
+      s.card_id,
+      s.variant_json,
+      s.obtained_at,
+      s.source,
+      s.created_at,
+      c.name AS card_name,
+      c.set_name,
+      c.rarity
+    FROM scan_entries s
+    LEFT JOIN card_catalog c ON c.id = s.card_id
+    WHERE s.owner_key = ?
+    ORDER BY datetime(COALESCE(s.obtained_at, s.created_at)) DESC, s.scan_entry_id DESC
+    LIMIT ?
+  `).all(ownerKey, limit);
+  return rows
+    .filter((row) => {
+      if (cardType && normalizeCardType(row.card_type || "") !== cardType) {
+        return false;
+      }
+      if (setKey && normalizeSetKey(row.set_name || "") !== setKey) {
+        return false;
+      }
+      if (query) {
+        const haystack = [
+          row.scan_entry_id,
+          row.card_id,
+          row.card_name,
+          row.set_name,
+          row.rarity,
+        ]
+          .map((value) => String(value || "").toLowerCase())
+          .join(" ");
+        return haystack.includes(query);
+      }
+      return true;
+    })
+    .map((row) => ({
+      scanEntryId: String(row.scan_entry_id || ""),
+      ownerKey: String(row.owner_key || ""),
+      cardType: normalizeCardType(row.card_type || ""),
+      cardId: String(row.card_id || ""),
+      cardName: String(row.card_name || row.card_id || ""),
+      setName: String(row.set_name || ""),
+      rarity: String(row.rarity || ""),
+      variantJson: String(row.variant_json || ""),
+      obtainedAt: String(row.obtained_at || ""),
+      source: String(row.source || ""),
+      createdAt: String(row.created_at || ""),
+    }));
+}
+
+function sanitizeScansGrantPayload(db, raw) {
+  const cardId = String(raw?.cardId || "").trim();
+  if (!cardId) {
+    throw new Error("cardId e obrigatorio para grant.");
+  }
+  const card = getCatalogCardById(db, cardId);
+  if (!card) {
+    throw new Error(`Carta nao encontrada: ${cardId}`);
+  }
+  const quantityRaw = Number(raw?.quantity || 1);
+  const quantity = Number.isFinite(quantityRaw) ? Math.max(1, Math.min(100, Math.floor(quantityRaw))) : 1;
+  const source = String(raw?.source || "admin_manual_grant").trim() || "admin_manual_grant";
+  const starsPreset = normalizeStarsPreset(raw?.starsPreset);
+  const variantFromText = parseVariantJsonOrNull(raw?.variantJson);
+  const variant =
+    variantFromText
+    || (card.type === "creatures" ? buildCreatureVariantFromStars(starsPreset) : null);
+  return {
+    card,
+    quantity,
+    source,
+    variant,
+  };
+}
+
+function sanitizeScanEntryIds(raw) {
+  const source = Array.isArray(raw?.scanEntryIds) ? raw.scanEntryIds : [];
+  const ids = [...new Set(source.map((entry) => String(entry || "").trim()).filter(Boolean))];
+  if (!ids.length) {
+    throw new Error("Selecione ao menos 1 scan_entry_id.");
+  }
+  return ids;
+}
+
+function ensurePlayerProfileRow(db, ownerKey) {
+  const existing = db.prepare("SELECT owner_key FROM player_profiles WHERE owner_key = ? LIMIT 1").get(ownerKey);
+  if (existing) {
+    return;
+  }
+  const now = nowIso();
+  db.prepare(`
+    INSERT INTO player_profiles (
+      owner_key, favorite_tribe, starter_pack_granted_at, starter_pack_tribe, admin_scanner_maxed_at,
+      avatar, score, wins, losses, win_rate, most_played_card_id, most_played_name, most_played_count, created_at, updated_at
+    ) VALUES (?, '', '', '', '', '', 0, 0, 0, 0, '', '', 0, ?, ?)
+  `).run(ownerKey, now, now);
+}
+
+function currentSeasonKey() {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
+}
+
+function normalizeDromeId(valueRaw) {
+  const token = String(valueRaw || "").trim().toLowerCase();
+  return DROME_IDS.includes(token) ? token : "";
+}
+
+function sanitizeProfileRankedUpdatePayload(raw) {
+  const payload = raw && typeof raw === "object" ? raw : {};
+  const profile = payload.profile && typeof payload.profile === "object" ? payload.profile : null;
+  const rankedGlobal = payload.rankedGlobal && typeof payload.rankedGlobal === "object" ? payload.rankedGlobal : null;
+  const drome = payload.drome && typeof payload.drome === "object" ? payload.drome : null;
+  const seasonKey = String(payload.seasonKey || drome?.seasonKey || currentSeasonKey()).trim() || currentSeasonKey();
+  const dromeId = normalizeDromeId(payload.dromeId || drome?.dromeId || "");
+  return { profile, rankedGlobal, drome, seasonKey, dromeId };
+}
+
+function upsertRankedGlobal(db, ownerKey, values = {}) {
+  const now = nowIso();
+  const existing = db.prepare("SELECT owner_key FROM ranked_global WHERE owner_key = ? LIMIT 1").get(ownerKey);
+  const elo = Number.isFinite(Number(values.elo)) ? Math.max(0, Math.min(6000, Math.floor(Number(values.elo)))) : 1200;
+  const wins = Number.isFinite(Number(values.wins)) ? Math.max(0, Math.floor(Number(values.wins))) : 0;
+  const losses = Number.isFinite(Number(values.losses)) ? Math.max(0, Math.floor(Number(values.losses))) : 0;
+  if (existing) {
+    db.prepare("UPDATE ranked_global SET elo = ?, wins = ?, losses = ?, updated_at = ? WHERE owner_key = ?")
+      .run(elo, wins, losses, now, ownerKey);
+  } else {
+    db.prepare("INSERT INTO ranked_global (owner_key, elo, wins, losses, updated_at) VALUES (?, ?, ?, ?, ?)")
+      .run(ownerKey, elo, wins, losses, now);
+  }
+}
+
+function upsertRankedDromeStats(db, ownerKey, seasonKey, dromeId, values = {}) {
+  if (!dromeId) {
+    throw new Error("dromeId invalido para atualizacao mensal.");
+  }
+  const now = nowIso();
+  const score = Number.isFinite(Number(values.score)) ? Math.max(0, Math.min(99999, Math.floor(Number(values.score)))) : 1200;
+  const wins = Number.isFinite(Number(values.wins)) ? Math.max(0, Math.floor(Number(values.wins))) : 0;
+  const losses = Number.isFinite(Number(values.losses)) ? Math.max(0, Math.floor(Number(values.losses))) : 0;
+  const existing = db
+    .prepare("SELECT owner_key FROM ranked_drome_stats WHERE season_key = ? AND drome_id = ? AND owner_key = ? LIMIT 1")
+    .get(seasonKey, dromeId, ownerKey);
+  if (existing) {
+    db.prepare(`
+      UPDATE ranked_drome_stats
+      SET score = ?, wins = ?, losses = ?, updated_at = ?
+      WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+    `).run(score, wins, losses, now, seasonKey, dromeId, ownerKey);
+  } else {
+    db.prepare(`
+      INSERT INTO ranked_drome_stats (season_key, drome_id, owner_key, score, wins, losses, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(seasonKey, dromeId, ownerKey, score, wins, losses, now);
+  }
+}
+
+function fetchProfileRankedState(db, ownerKey, seasonKeyRaw = "") {
+  const seasonKey = String(seasonKeyRaw || "").trim() || currentSeasonKey();
+  const profile = db.prepare(`
+    SELECT owner_key, favorite_tribe, avatar, score, wins, losses, win_rate, updated_at
+    FROM player_profiles WHERE owner_key = ? LIMIT 1
+  `).get(ownerKey);
+  const rankedGlobal = db.prepare(`
+    SELECT owner_key, elo, wins, losses, updated_at
+    FROM ranked_global WHERE owner_key = ? LIMIT 1
+  `).get(ownerKey);
+  const rankedSelection = db.prepare(`
+    SELECT season_key, drome_id, locked_at
+    FROM ranked_drome_selection
+    WHERE owner_key = ? AND season_key = ?
+    LIMIT 1
+  `).get(ownerKey, seasonKey);
+  const rankedDromeStats = db.prepare(`
+    SELECT season_key, drome_id, owner_key, score, wins, losses, updated_at
+    FROM ranked_drome_stats
+    WHERE owner_key = ? AND season_key = ?
+    ORDER BY drome_id
+  `).all(ownerKey, seasonKey);
+  const rankedDromeStreaks = db.prepare(`
+    SELECT season_key, drome_id, owner_key, current_streak, best_streak, updated_at
+    FROM ranked_drome_streaks
+    WHERE owner_key = ? AND season_key = ?
+    ORDER BY drome_id
+  `).all(ownerKey, seasonKey);
+  return {
+    seasonKey,
+    profile: profile
+      ? {
+          ownerKey: String(profile.owner_key || ""),
+          favoriteTribe: String(profile.favorite_tribe || ""),
+          avatar: String(profile.avatar || ""),
+          score: Number(profile.score || 0),
+          wins: Number(profile.wins || 0),
+          losses: Number(profile.losses || 0),
+          winRate: Number(profile.win_rate || 0),
+          updatedAt: String(profile.updated_at || ""),
+        }
+      : null,
+    rankedGlobal: rankedGlobal
+      ? {
+          ownerKey: String(rankedGlobal.owner_key || ""),
+          elo: Number(rankedGlobal.elo || 0),
+          wins: Number(rankedGlobal.wins || 0),
+          losses: Number(rankedGlobal.losses || 0),
+          updatedAt: String(rankedGlobal.updated_at || ""),
+        }
+      : null,
+    rankedSelection: rankedSelection
+      ? {
+          seasonKey: String(rankedSelection.season_key || ""),
+          dromeId: String(rankedSelection.drome_id || ""),
+          lockedAt: String(rankedSelection.locked_at || ""),
+        }
+      : null,
+    rankedDromeStats: rankedDromeStats.map((row) => ({
+      seasonKey: String(row.season_key || ""),
+      dromeId: String(row.drome_id || ""),
+      ownerKey: String(row.owner_key || ""),
+      score: Number(row.score || 0),
+      wins: Number(row.wins || 0),
+      losses: Number(row.losses || 0),
+      updatedAt: String(row.updated_at || ""),
+    })),
+    rankedDromeStreaks: rankedDromeStreaks.map((row) => ({
+      seasonKey: String(row.season_key || ""),
+      dromeId: String(row.drome_id || ""),
+      ownerKey: String(row.owner_key || ""),
+      currentStreak: Number(row.current_streak || 0),
+      bestStreak: Number(row.best_streak || 0),
+      updatedAt: String(row.updated_at || ""),
+    })),
+  };
+}
+
+function safeJsonObject(valueRaw) {
+  if (!valueRaw) {
+    return {};
+  }
+  if (typeof valueRaw === "object" && !Array.isArray(valueRaw)) {
+    return valueRaw;
+  }
+  try {
+    const parsed = JSON.parse(String(valueRaw || "{}"));
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+function fetchPerimStateForOwner(db, ownerKey) {
+  const stateRow = db.prepare(`
+    SELECT owner_key, history_json, camp_wait_json, updated_at
+    FROM perim_player_state
+    WHERE owner_key = ?
+    LIMIT 1
+  `).get(ownerKey);
+  const activeRuns = db.prepare(`
+    SELECT run_id, action_id, action_label, status, location_card_id, location_name, start_at, end_at, updated_at
+    FROM perim_runs
+    WHERE owner_key = ? AND status = 'active'
+    ORDER BY datetime(start_at) ASC
+  `).all(ownerKey);
+  const recentRuns = db.prepare(`
+    SELECT run_id, action_id, action_label, status, location_card_id, location_name, start_at, end_at, claimed_at, updated_at
+    FROM perim_runs
+    WHERE owner_key = ?
+    ORDER BY datetime(created_at) DESC
+    LIMIT 30
+  `).all(ownerKey);
+  const pendingRewards = db.prepare(`
+    SELECT id, run_id, reward_type, card_id, is_new, payload_json
+    FROM perim_rewards
+    WHERE owner_key = ?
+    ORDER BY id DESC
+    LIMIT 200
+  `).all(ownerKey);
+  return {
+    state: stateRow
+      ? {
+          ownerKey: String(stateRow.owner_key || ""),
+          historyJson: safeJsonObject(stateRow.history_json),
+          campWaitJson: safeJsonObject(stateRow.camp_wait_json),
+          updatedAt: String(stateRow.updated_at || ""),
+        }
+      : null,
+    activeRuns: activeRuns.map((row) => ({
+      runId: String(row.run_id || ""),
+      actionId: String(row.action_id || ""),
+      actionLabel: String(row.action_label || ""),
+      status: String(row.status || ""),
+      locationCardId: String(row.location_card_id || ""),
+      locationName: String(row.location_name || ""),
+      startAt: String(row.start_at || ""),
+      endAt: String(row.end_at || ""),
+      updatedAt: String(row.updated_at || ""),
+    })),
+    recentRuns: recentRuns.map((row) => ({
+      runId: String(row.run_id || ""),
+      actionId: String(row.action_id || ""),
+      actionLabel: String(row.action_label || ""),
+      status: String(row.status || ""),
+      locationCardId: String(row.location_card_id || ""),
+      locationName: String(row.location_name || ""),
+      startAt: String(row.start_at || ""),
+      endAt: String(row.end_at || ""),
+      claimedAt: String(row.claimed_at || ""),
+      updatedAt: String(row.updated_at || ""),
+    })),
+    pendingRewards: pendingRewards.map((row) => ({
+      id: Number(row.id || 0),
+      runId: String(row.run_id || ""),
+      rewardType: String(row.reward_type || ""),
+      cardId: String(row.card_id || ""),
+      isNew: Number(row.is_new || 0) === 1,
+      payloadJson: safeJsonObject(row.payload_json),
+    })),
+  };
+}
+
 function run() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.action) {
@@ -1147,6 +1588,336 @@ function run() {
         deleted: Number(deleted?.changes || 0) > 0,
         quests: listQuests(db)
       });
+      return;
+    }
+
+    if (args.action === "scans-list") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const payload = decodePayload(args.payloadB64);
+      const scans = listScanEntriesByOwner(db, ownerKey, payload);
+      jsonOk({ username, ownerKey, scans });
+      return;
+    }
+
+    if (args.action === "scans-grant") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const payload = decodePayload(args.payloadB64);
+      const grant = sanitizeScansGrantPayload(db, payload);
+      const now = nowIso();
+      const inserted = withTransaction(db, () => {
+        const insert = db.prepare(`
+          INSERT INTO scan_entries (
+            scan_entry_id, owner_key, card_type, card_id, variant_json, obtained_at, source, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        const out = [];
+        for (let i = 0; i < grant.quantity; i += 1) {
+          const scanEntryId = makeScanEntryId();
+          insert.run(
+            scanEntryId,
+            ownerKey,
+            grant.card.type,
+            grant.card.id,
+            grant.variant ? JSON.stringify(grant.variant) : null,
+            now,
+            grant.source,
+            now
+          );
+          out.push(scanEntryId);
+        }
+        touchUserCaches(db, ownerKey);
+        appendAuditLogEntry(
+          db,
+          "admin_scans_grant",
+          ownerKey,
+          `Grant manual de ${grant.quantity}x ${grant.card.id}`,
+          { username, cardId: grant.card.id, cardType: grant.card.type, quantity: grant.quantity, source: grant.source }
+        );
+        return out;
+      });
+      jsonOk({
+        username,
+        ownerKey,
+        granted: inserted.length,
+        scanEntryIds: inserted,
+        scans: listScanEntriesByOwner(db, ownerKey, payload),
+      });
+      return;
+    }
+
+    if (args.action === "scans-delete") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const payload = decodePayload(args.payloadB64);
+      const scanEntryIds = sanitizeScanEntryIds(payload);
+      const deleted = withTransaction(db, () => {
+        const existingRows = db.prepare(`
+          SELECT scan_entry_id
+          FROM scan_entries
+          WHERE owner_key = ? AND scan_entry_id = ?
+        `);
+        const removeStmt = db.prepare("DELETE FROM scan_entries WHERE owner_key = ? AND scan_entry_id = ?");
+        let count = 0;
+        for (const scanEntryId of scanEntryIds) {
+          const exists = existingRows.get(ownerKey, scanEntryId);
+          if (!exists) {
+            continue;
+          }
+          const result = removeStmt.run(ownerKey, scanEntryId);
+          count += Number(result?.changes || 0);
+        }
+        touchUserCaches(db, ownerKey);
+        appendAuditLogEntry(
+          db,
+          "admin_scans_delete",
+          ownerKey,
+          `Remocao manual de scans (${count})`,
+          { username, removedCount: count, scanEntryIds }
+        );
+        return count;
+      });
+      jsonOk({
+        username,
+        ownerKey,
+        deleted,
+        scans: listScanEntriesByOwner(db, ownerKey, payload),
+      });
+      return;
+    }
+
+    if (args.action === "profile-ranked-fetch") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const payload = decodePayload(args.payloadB64);
+      const seasonKey = String(payload?.seasonKey || "").trim() || currentSeasonKey();
+      const snapshot = fetchProfileRankedState(db, ownerKey, seasonKey);
+      jsonOk({ username, ownerKey, ...snapshot });
+      return;
+    }
+
+    if (args.action === "profile-ranked-update") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const payload = decodePayload(args.payloadB64);
+      const update = sanitizeProfileRankedUpdatePayload(payload);
+      withTransaction(db, () => {
+        if (update.profile) {
+          ensurePlayerProfileRow(db, ownerKey);
+          const score = Number.isFinite(Number(update.profile.score)) ? Math.max(0, Math.floor(Number(update.profile.score))) : 0;
+          const wins = Number.isFinite(Number(update.profile.wins)) ? Math.max(0, Math.floor(Number(update.profile.wins))) : 0;
+          const losses = Number.isFinite(Number(update.profile.losses)) ? Math.max(0, Math.floor(Number(update.profile.losses))) : 0;
+          const totalMatches = wins + losses;
+          const winRate = totalMatches > 0 ? (wins / totalMatches) * 100 : 0;
+          db.prepare(`
+            UPDATE player_profiles
+            SET score = ?, wins = ?, losses = ?, win_rate = ?, favorite_tribe = ?, avatar = ?, updated_at = ?
+            WHERE owner_key = ?
+          `).run(
+            score,
+            wins,
+            losses,
+            Math.round(winRate * 100) / 100,
+            String(update.profile.favoriteTribe || "").trim(),
+            String(update.profile.avatar || "").trim(),
+            nowIso(),
+            ownerKey
+          );
+        }
+        if (update.rankedGlobal) {
+          upsertRankedGlobal(db, ownerKey, update.rankedGlobal);
+        }
+        if (update.drome) {
+          if (!update.dromeId) {
+            throw new Error("Selecione um drome valido para atualizar ranking mensal.");
+          }
+          upsertRankedDromeStats(db, ownerKey, update.seasonKey, update.dromeId, update.drome);
+        }
+        touchUserCaches(db, ownerKey);
+        appendAuditLogEntry(
+          db,
+          "admin_profile_ranked_update",
+          ownerKey,
+          "Atualizacao manual de perfil/ranked.",
+          {
+            username,
+            seasonKey: update.seasonKey,
+            dromeId: update.dromeId || null,
+            updatedProfile: Boolean(update.profile),
+            updatedRankedGlobal: Boolean(update.rankedGlobal),
+            updatedRankedDrome: Boolean(update.drome),
+          }
+        );
+      });
+      const snapshot = fetchProfileRankedState(db, ownerKey, update.seasonKey);
+      jsonOk({ username, ownerKey, ...snapshot });
+      return;
+    }
+
+    if (args.action === "profile-ranked-reset") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const payload = decodePayload(args.payloadB64);
+      const mode = String(payload?.mode || "").trim().toLowerCase();
+      const seasonKey = String(payload?.seasonKey || "").trim() || currentSeasonKey();
+      const dromeId = normalizeDromeId(payload?.dromeId || "");
+      if (!mode || !["drome-monthly", "drome-streak", "global"].includes(mode)) {
+        throw new Error("mode invalido para reset. Use drome-monthly, drome-streak ou global.");
+      }
+      withTransaction(db, () => {
+        if (mode === "drome-monthly") {
+          if (!dromeId) {
+            throw new Error("dromeId e obrigatorio para reset mensal.");
+          }
+          db.prepare(`
+            UPDATE ranked_drome_stats
+            SET score = 1200, wins = 0, losses = 0, updated_at = ?
+            WHERE owner_key = ? AND season_key = ? AND drome_id = ?
+          `).run(nowIso(), ownerKey, seasonKey, dromeId);
+        } else if (mode === "drome-streak") {
+          if (!dromeId) {
+            throw new Error("dromeId e obrigatorio para reset de streak.");
+          }
+          db.prepare(`
+            UPDATE ranked_drome_streaks
+            SET current_streak = 0, best_streak = 0, updated_at = ?
+            WHERE owner_key = ? AND season_key = ? AND drome_id = ?
+          `).run(nowIso(), ownerKey, seasonKey, dromeId);
+        } else if (mode === "global") {
+          db.prepare(`
+            UPDATE ranked_global
+            SET wins = 0, losses = 0, updated_at = ?
+            WHERE owner_key = ?
+          `).run(nowIso(), ownerKey);
+        }
+        touchUserCaches(db, ownerKey);
+        appendAuditLogEntry(
+          db,
+          "admin_profile_ranked_reset",
+          ownerKey,
+          "Reset manual de ranking.",
+          { username, mode, seasonKey, dromeId: dromeId || null }
+        );
+      });
+      const snapshot = fetchProfileRankedState(db, ownerKey, seasonKey);
+      jsonOk({ username, ownerKey, ...snapshot });
+      return;
+    }
+
+    if (args.action === "perim-state-fetch") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const snapshot = fetchPerimStateForOwner(db, ownerKey);
+      jsonOk({ username, ownerKey, ...snapshot });
+      return;
+    }
+
+    if (args.action === "perim-fix-run") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const payload = decodePayload(args.payloadB64);
+      const runId = String(payload?.runId || "").trim();
+      const now = nowIso();
+      const result = withTransaction(db, () => {
+        let fixed = 0;
+        if (runId) {
+          fixed = Number(
+            db.prepare(`
+              UPDATE perim_runs
+              SET status = 'cancelled', completed_at = COALESCE(completed_at, ?), updated_at = ?
+              WHERE owner_key = ? AND run_id = ? AND status = 'active'
+            `).run(now, now, ownerKey, runId)?.changes || 0
+          );
+        } else {
+          fixed = Number(
+            db.prepare(`
+              UPDATE perim_runs
+              SET status = 'cancelled', completed_at = COALESCE(completed_at, ?), updated_at = ?
+              WHERE owner_key = ? AND status = 'active'
+            `).run(now, now, ownerKey)?.changes || 0
+          );
+        }
+        touchUserCaches(db, ownerKey);
+        appendAuditLogEntry(
+          db,
+          "admin_perim_fix_run",
+          ownerKey,
+          "Correcao manual de run ativa PERIM.",
+          { username, runId: runId || null, fixed }
+        );
+        return fixed;
+      });
+      const snapshot = fetchPerimStateForOwner(db, ownerKey);
+      jsonOk({ username, ownerKey, fixedRuns: result, ...snapshot });
+      return;
+    }
+
+    if (args.action === "perim-clear-rewards") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const payload = decodePayload(args.payloadB64);
+      const rewardIds = Array.isArray(payload?.rewardIds)
+        ? [...new Set(payload.rewardIds.map((entry) => Number(entry)).filter((entry) => Number.isInteger(entry) && entry > 0))]
+        : [];
+      if (!rewardIds.length) {
+        throw new Error("Selecione ao menos 1 recompensa pendente.");
+      }
+      const deleted = withTransaction(db, () => {
+        const delStmt = db.prepare("DELETE FROM perim_rewards WHERE owner_key = ? AND id = ?");
+        let count = 0;
+        for (const id of rewardIds) {
+          count += Number(delStmt.run(ownerKey, id)?.changes || 0);
+        }
+        touchUserCaches(db, ownerKey);
+        appendAuditLogEntry(
+          db,
+          "admin_perim_clear_rewards",
+          ownerKey,
+          "Limpeza manual de recompensas PERIM.",
+          { username, rewardIds, deleted: count }
+        );
+        return count;
+      });
+      const snapshot = fetchPerimStateForOwner(db, ownerKey);
+      jsonOk({ username, ownerKey, deletedRewards: deleted, ...snapshot });
+      return;
+    }
+
+    if (args.action === "perim-update-camp-progress") {
+      const { username, ownerKey } = ensureOwnerKeyFromUsername(db, args.username);
+      const payload = decodePayload(args.payloadB64);
+      const locationCardId = String(payload?.locationCardId || "").trim();
+      const progressRaw = Number(payload?.progress || 0);
+      const progress = Number.isFinite(progressRaw) ? Math.max(0, Math.floor(progressRaw)) : 0;
+      if (!locationCardId) {
+        throw new Error("locationCardId e obrigatorio.");
+      }
+      const locationCard = getCatalogCardById(db, locationCardId);
+      if (!locationCard || locationCard.type !== "locations") {
+        throw new Error(`Local invalido: ${locationCardId}`);
+      }
+      withTransaction(db, () => {
+        const existing = db
+          .prepare("SELECT owner_key, history_json, camp_wait_json FROM perim_player_state WHERE owner_key = ? LIMIT 1")
+          .get(ownerKey);
+        const campWait = safeJsonObject(existing?.camp_wait_json);
+        campWait[locationCardId] = progress;
+        const now = nowIso();
+        if (existing) {
+          db.prepare(`
+            UPDATE perim_player_state
+            SET camp_wait_json = ?, updated_at = ?
+            WHERE owner_key = ?
+          `).run(JSON.stringify(campWait), now, ownerKey);
+        } else {
+          db.prepare(`
+            INSERT INTO perim_player_state (owner_key, history_json, camp_wait_json, updated_at)
+            VALUES (?, '{}', ?, ?)
+          `).run(ownerKey, JSON.stringify(campWait), now);
+        }
+        touchUserCaches(db, ownerKey);
+        appendAuditLogEntry(
+          db,
+          "admin_perim_update_camp_progress",
+          ownerKey,
+          "Atualizacao manual de progresso de acampamento.",
+          { username, locationCardId, progress }
+        );
+      });
+      const snapshot = fetchPerimStateForOwner(db, ownerKey);
+      jsonOk({ username, ownerKey, ...snapshot });
       return;
     }
 
