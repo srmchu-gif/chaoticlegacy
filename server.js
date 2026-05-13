@@ -7592,7 +7592,7 @@ function buildPerimContextSnapshot(locationEntry, actionId, scannerEffect = null
   const creatureChancePercent = clampPercent(
     creatureChanceByAction[chosenAction] ?? locationEntry?.creatureChancePercent ?? getPerimCreatureBaseChanceByAction("explore")
   );
-  const creaturesTodayCount = getCreatureCountAtLocation(
+  const creaturesTodayCount = getDroppableCreatureCountAtLocation(
     String(locationEntry?.cardId || locationEntry?.id || locationEntry?.name || ""),
     todayDateKey(nowDate)
   );
@@ -9076,6 +9076,36 @@ function getCreatureCountAtLocation(locationNameOrId, dateKey = null) {
   return getCreaturesAtLocation(locationNameOrId, dateKey).length;
 }
 
+function isPerimDailyCreatureEntryDroppable(entry, indexes = null) {
+  const libraryIndexes = indexes || getLibraryIndexes();
+  const creaturesById = libraryIndexes?.creaturesById || new Map();
+  const creaturesByNormalizedName = libraryIndexes?.creaturesByNormalizedName || new Map();
+  const cardId = String(entry?.cardId || entry?.card_id || "").trim();
+  let card = cardId ? creaturesById.get(cardId) : null;
+  if (!card && entry?.name) {
+    card = creaturesByNormalizedName.get(normalizePerimText(entry.name)) || null;
+  }
+  if (!card || !card.id) {
+    return false;
+  }
+  return isPerimDropSetAllowed(card?.set || "");
+}
+
+function getDroppableCreatureCountAtLocation(locationNameOrId, dateKey = null) {
+  const pool = getCreaturesAtLocation(locationNameOrId, dateKey);
+  if (!pool.length) {
+    return 0;
+  }
+  const indexes = getLibraryIndexes();
+  let total = 0;
+  pool.forEach((entry) => {
+    if (isPerimDailyCreatureEntryDroppable(entry, indexes)) {
+      total += 1;
+    }
+  });
+  return total;
+}
+
 function getCreaturesForWorldType(worldType, dateKey = null) {
   const index = getDailyCreatureIndex(dateKey);
   const expected = normalizePerimText(worldType);
@@ -9916,8 +9946,7 @@ function buildPerimStatePayload(playerKeyRaw) {
     : [];
   const locationEntries = collectPerimLocationEntriesForPlayer(playerKey);
   const creatureCountByLocation = new Map();
-  const dailyIndex = getDailyCreatureIndex();
-  const locationCardCountMap = dailyIndex?.byLocationCardId || new Map();
+  const perimCountDateKey = todayDateKey(nowDate);
   const campStackingSettings = getPerimCampCreatureStackingSettings();
   const baseLocations = buildPerimLocationsFromScans(locationEntries);
   const ownedLocationIds = new Set(
@@ -9944,10 +9973,7 @@ function buildPerimStatePayload(playerKeyRaw) {
       : 0;
     let creaturesTodayCount = creatureCountByLocation.get(entry.cardId);
     if (typeof creaturesTodayCount !== "number") {
-      creaturesTodayCount = (locationCardCountMap.get(String(entry.cardId)) || []).length;
-      if (!creaturesTodayCount) {
-        creaturesTodayCount = getCreatureCountAtLocation(entry.cardId || entry.name);
-      }
+      creaturesTodayCount = getDroppableCreatureCountAtLocation(entry.cardId || entry.name, perimCountDateKey);
       creatureCountByLocation.set(entry.cardId, creaturesTodayCount);
     }
     return {
