@@ -1417,7 +1417,7 @@ function Get-LocationTribeDisplayLabel {
     "danian" { return "Danian" }
     "mipedian" { return "Mipedian" }
     "marrillian" { return "Marrillian" }
-    "tribeless" { return "Sem tribo" }
+    "tribeless" { return "Sem tribo (Generic)" }
     default { return [string]$TribeKey }
   }
 }
@@ -1429,7 +1429,7 @@ function Build-LocationTribeKeyItems {
     (New-DisplayItem -Label "Danian" -Value "danian")
     (New-DisplayItem -Label "Mipedian" -Value "mipedian")
     (New-DisplayItem -Label "Marrillian" -Value "marrillian")
-    (New-DisplayItem -Label "Sem tribo" -Value "tribeless")
+    (New-DisplayItem -Label "Sem tribo (Generic)" -Value "tribeless")
   )
 }
 

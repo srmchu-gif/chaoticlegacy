@@ -9098,6 +9098,7 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
   const locationTribeKeyByNameKey = new Map();
   let tribeFilteredLocationCandidates = 0;
   let tribeBlockedCreatureRows = 0;
+  let tribeNoAdjacentStayCount = 0;
 
   const resolveEffectiveLocationTribeForNameKey = (locationNameKeyRaw) => {
     const locationNameKey = normalizePerimText(locationNameKeyRaw);
@@ -9176,10 +9177,19 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
     }
 
     if (!candidates.length) {
-      candidates = filteredPossibleLocations.map((locKey) => ({
-        locationKey: locKey,
-        weight: ((somenteSet.has(locKey) ? 8 : 2.5) + Number(scoreByLocation?.get(locKey) || 0)) * rarityFactor,
-      }));
+      if (previousLocationKey) {
+        sourceRule = "adjacent_hold";
+        tribeNoAdjacentStayCount += 1;
+        candidates = [{
+          locationKey: previousLocationKey,
+          weight: Math.max(0.1, rarityFactor),
+        }];
+      } else {
+        candidates = filteredPossibleLocations.map((locKey) => ({
+          locationKey: locKey,
+          weight: ((somenteSet.has(locKey) ? 8 : 2.5) + Number(scoreByLocation?.get(locKey) || 0)) * rarityFactor,
+        }));
+      }
     }
 
     const selected = weightedRandomChoice(candidates, rng);
@@ -9224,9 +9234,9 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
   if (duplicateLokiCount > 0) {
     console.log(`[PERIM] Skipped ${duplicateLokiCount} duplicate creature rows with repeated loki in criaturas.xlsx.`);
   }
-  if (tribeFilteredLocationCandidates > 0 || tribeBlockedCreatureRows > 0) {
+  if (tribeFilteredLocationCandidates > 0 || tribeBlockedCreatureRows > 0 || tribeNoAdjacentStayCount > 0) {
     console.log(
-      `[PERIM] Tribe-by-location filter (${key}): filteredCandidates=${tribeFilteredLocationCandidates}, blockedCreatures=${tribeBlockedCreatureRows}.`
+      `[PERIM] Tribe-by-location filter (${key}): filteredCandidates=${tribeFilteredLocationCandidates}, blockedCreatures=${tribeBlockedCreatureRows}, heldByNoAdjacent=${tribeNoAdjacentStayCount}.`
     );
   }
   console.log(`[PERIM] Generated ${dailyPlacements.length} creature placements for ${key}.`);
@@ -15591,10 +15601,22 @@ function isPerimTribeMatchForCard(card, expectedTribeKeyRaw) {
   if (!expectedTribeKey) {
     return true;
   }
-  if (expectedTribeKey === "tribeless") {
-    return true;
-  }
   const rawTribe = String(card?.tribe || "").trim();
+  if (expectedTribeKey === "tribeless") {
+    const normalizedCardTribe = normalizePerimLocationTribeKey(rawTribe);
+    if (normalizedCardTribe === "tribeless") {
+      return true;
+    }
+    const fallbackToken = String(rawTribe || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9?]+/g, "");
+    if (!fallbackToken || fallbackToken === "?" || fallbackToken === "unknown") {
+      return true;
+    }
+    return false;
+  }
   const normalizedCardTribe = normalizePerimLocationTribeKey(rawTribe);
   return normalizedCardTribe === expectedTribeKey;
 }
