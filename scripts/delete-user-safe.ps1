@@ -220,6 +220,7 @@ $script:LocationTribesCache = @()
 $script:ScansCache = @()
 $script:ProfileRankedSnapshot = $null
 $script:PerimSnapshot = $null
+$script:PerimConfigSnapshot = $null
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Painel Admin Local - Usuarios / Eventos / Quests"
@@ -309,6 +310,10 @@ $tab.Controls.Add($tabProfileRanked)
 $tabPerimState = New-Object System.Windows.Forms.TabPage
 $tabPerimState.Text = "Estado PERIM"
 $tab.Controls.Add($tabPerimState)
+
+$tabPerimConfig = New-Object System.Windows.Forms.TabPage
+$tabPerimConfig.Text = "Config PERIM"
+$tab.Controls.Add($tabPerimConfig)
 
 $tabLogs = New-Object System.Windows.Forms.TabPage
 $tabLogs.Text = "Logs"
@@ -1357,6 +1362,88 @@ $perimCampGrid.MultiSelect = $false
 $perimBody.Panel2.Controls.Add($perimCampGrid)
 Apply-GridResponsiveStyle -Grid $perimCampGrid
 
+# Config PERIM tab
+$perimConfigPanel = New-Object System.Windows.Forms.Panel
+$perimConfigPanel.Dock = "Fill"
+$perimConfigPanel.AutoScroll = $true
+$perimConfigPanel.Padding = New-Object System.Windows.Forms.Padding(12)
+$tabPerimConfig.Controls.Add($perimConfigPanel)
+
+$lblPerimConfigTitle = New-Object System.Windows.Forms.Label
+$lblPerimConfigTitle.Text = "Configuracao de Drops e Caminhada (PERIM)"
+$lblPerimConfigTitle.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$lblPerimConfigTitle.Location = New-Object System.Drawing.Point(12, 10)
+$lblPerimConfigTitle.Size = New-Object System.Drawing.Size(640, 24)
+$perimConfigPanel.Controls.Add($lblPerimConfigTitle)
+
+$lblPerimConfigSets = New-Object System.Windows.Forms.Label
+$lblPerimConfigSets.Text = "Sets liberados para drop no PERIM:"
+$lblPerimConfigSets.Location = New-Object System.Drawing.Point(12, 42)
+$lblPerimConfigSets.Size = New-Object System.Drawing.Size(320, 20)
+$perimConfigPanel.Controls.Add($lblPerimConfigSets)
+
+$checkedPerimSets = New-Object System.Windows.Forms.CheckedListBox
+$checkedPerimSets.Location = New-Object System.Drawing.Point(12, 64)
+$checkedPerimSets.Size = New-Object System.Drawing.Size(300, 180)
+$checkedPerimSets.CheckOnClick = $true
+$checkedPerimSets.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
+$perimConfigPanel.Controls.Add($checkedPerimSets)
+
+$lblPerimConfigWalk = New-Object System.Windows.Forms.Label
+$lblPerimConfigWalk.Text = "Horarios de caminhada diaria (HH:mm):"
+$lblPerimConfigWalk.Location = New-Object System.Drawing.Point(340, 42)
+$lblPerimConfigWalk.Size = New-Object System.Drawing.Size(320, 20)
+$perimConfigPanel.Controls.Add($lblPerimConfigWalk)
+
+$listPerimWalkTimes = New-Object System.Windows.Forms.ListBox
+$listPerimWalkTimes.Location = New-Object System.Drawing.Point(340, 64)
+$listPerimWalkTimes.Size = New-Object System.Drawing.Size(220, 180)
+$listPerimWalkTimes.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left
+$perimConfigPanel.Controls.Add($listPerimWalkTimes)
+
+$txtPerimWalkTime = New-Object System.Windows.Forms.TextBox
+$txtPerimWalkTime.Location = New-Object System.Drawing.Point(570, 64)
+$txtPerimWalkTime.Size = New-Object System.Drawing.Size(80, 24)
+$txtPerimWalkTime.Text = "00:00"
+$perimConfigPanel.Controls.Add($txtPerimWalkTime)
+
+$btnPerimWalkAdd = New-Object System.Windows.Forms.Button
+$btnPerimWalkAdd.Text = "Adicionar"
+$btnPerimWalkAdd.Location = New-Object System.Drawing.Point(660, 62)
+$btnPerimWalkAdd.Size = New-Object System.Drawing.Size(90, 28)
+$perimConfigPanel.Controls.Add($btnPerimWalkAdd)
+
+$btnPerimWalkRemove = New-Object System.Windows.Forms.Button
+$btnPerimWalkRemove.Text = "Remover"
+$btnPerimWalkRemove.Location = New-Object System.Drawing.Point(660, 96)
+$btnPerimWalkRemove.Size = New-Object System.Drawing.Size(90, 28)
+$perimConfigPanel.Controls.Add($btnPerimWalkRemove)
+
+$lblPerimWalkCount = New-Object System.Windows.Forms.Label
+$lblPerimWalkCount.Text = "Caminhadas por dia: 0"
+$lblPerimWalkCount.Location = New-Object System.Drawing.Point(340, 252)
+$lblPerimWalkCount.Size = New-Object System.Drawing.Size(260, 22)
+$perimConfigPanel.Controls.Add($lblPerimWalkCount)
+
+$btnPerimConfigLoad = New-Object System.Windows.Forms.Button
+$btnPerimConfigLoad.Text = "Carregar configuracao"
+$btnPerimConfigLoad.Location = New-Object System.Drawing.Point(12, 286)
+$btnPerimConfigLoad.Size = New-Object System.Drawing.Size(170, 32)
+$perimConfigPanel.Controls.Add($btnPerimConfigLoad)
+
+$btnPerimConfigSave = New-Object System.Windows.Forms.Button
+$btnPerimConfigSave.Text = "Salvar configuracao"
+$btnPerimConfigSave.Location = New-Object System.Drawing.Point(188, 286)
+$btnPerimConfigSave.Size = New-Object System.Drawing.Size(170, 32)
+$perimConfigPanel.Controls.Add($btnPerimConfigSave)
+
+$lblPerimConfigHint = New-Object System.Windows.Forms.Label
+$lblPerimConfigHint.Text = "Ao salvar, a configuracao passa a valer imediatamente no servidor."
+$lblPerimConfigHint.Location = New-Object System.Drawing.Point(12, 324)
+$lblPerimConfigHint.Size = New-Object System.Drawing.Size(560, 22)
+$lblPerimConfigHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
+$perimConfigPanel.Controls.Add($lblPerimConfigHint)
+
 # Logs tab
 $logsPanel = New-Object System.Windows.Forms.Panel
 $logsPanel.Dock = "Fill"
@@ -1959,6 +2046,97 @@ function Load-PerimState {
   Set-Status "Estado PERIM carregado para '$username'."
 }
 
+function Normalize-WalkTimeToken {
+  param([string]$Raw)
+  $text = [string]$Raw
+  if ([string]::IsNullOrWhiteSpace($text)) { return "" }
+  $match = [regex]::Match($text.Trim(), "^(\d{1,2}):(\d{1,2})$")
+  if (-not $match.Success) { return "" }
+  $hour = 0
+  $minute = 0
+  if (-not [int]::TryParse($match.Groups[1].Value, [ref]$hour)) { return "" }
+  if (-not [int]::TryParse($match.Groups[2].Value, [ref]$minute)) { return "" }
+  if ($hour -lt 0 -or $hour -gt 23 -or $minute -lt 0 -or $minute -gt 59) { return "" }
+  return ("{0:D2}:{1:D2}" -f $hour, $minute)
+}
+
+function Sort-WalkTimes {
+  param([string[]]$Times)
+  return @($Times | Sort-Object {
+    $parts = [string]$_ -split ":"
+    if ($parts.Count -lt 2) { return 0 }
+    return (([int]$parts[0]) * 60) + ([int]$parts[1])
+  })
+}
+
+function Update-PerimWalkCountLabel {
+  $count = $listPerimWalkTimes.Items.Count
+  $lblPerimWalkCount.Text = "Caminhadas por dia: $count"
+}
+
+function Collect-PerimConfigPayload {
+  $allowedSets = @()
+  foreach ($item in $checkedPerimSets.CheckedItems) {
+    $setKey = [string]$item
+    if (-not [string]::IsNullOrWhiteSpace($setKey)) {
+      $allowedSets += $setKey.Trim().ToLower()
+    }
+  }
+  $walkTimes = @()
+  foreach ($item in $listPerimWalkTimes.Items) {
+    $normalized = Normalize-WalkTimeToken -Raw ([string]$item)
+    if ($normalized) {
+      $walkTimes += $normalized
+    }
+  }
+  $walkTimes = @(Sort-WalkTimes -Times @($walkTimes | Select-Object -Unique))
+  return @{
+    allowedDropSets = @($allowedSets | Select-Object -Unique)
+    dailyWalkTimes = $walkTimes
+  }
+}
+
+function Render-PerimConfigSnapshot {
+  param([object]$Snapshot)
+  $script:PerimConfigSnapshot = $Snapshot
+  $availableSetKeys = @()
+  if ($Snapshot -and $Snapshot.availableSetKeys) {
+    $availableSetKeys = @($Snapshot.availableSetKeys | ForEach-Object { [string]$_ })
+  }
+  $checkedPerimSets.Items.Clear()
+  foreach ($setKey in ($availableSetKeys | Sort-Object)) {
+    [void]$checkedPerimSets.Items.Add($setKey)
+  }
+  $activeSetKeys = @()
+  if ($Snapshot -and $Snapshot.config -and $Snapshot.config.allowedDropSets) {
+    $activeSetKeys = @($Snapshot.config.allowedDropSets | ForEach-Object { [string]$_ })
+  }
+  for ($i = 0; $i -lt $checkedPerimSets.Items.Count; $i += 1) {
+    $setKey = [string]$checkedPerimSets.Items[$i]
+    $checkedPerimSets.SetItemChecked($i, $activeSetKeys -contains $setKey)
+  }
+
+  $listPerimWalkTimes.Items.Clear()
+  $walkTimes = @()
+  if ($Snapshot -and $Snapshot.config -and $Snapshot.config.dailyWalkTimes) {
+    $walkTimes = @($Snapshot.config.dailyWalkTimes | ForEach-Object { Normalize-WalkTimeToken -Raw ([string]$_) } | Where-Object { $_ })
+  }
+  foreach ($time in (Sort-WalkTimes -Times @($walkTimes | Select-Object -Unique))) {
+    [void]$listPerimWalkTimes.Items.Add($time)
+  }
+  if ($listPerimWalkTimes.Items.Count -gt 0) {
+    $txtPerimWalkTime.Text = [string]$listPerimWalkTimes.Items[0]
+  }
+  Update-PerimWalkCountLabel
+}
+
+function Load-PerimConfig {
+  Set-Status "Carregando configuracao PERIM..."
+  $payload = Invoke-AdminEngine -Action "perim-config-get"
+  Render-PerimConfigSnapshot -Snapshot $payload
+  Set-Status "Configuracao PERIM carregada."
+}
+
 function Load-Logs {
   Ensure-LogsDir
   $paths = @(
@@ -2529,6 +2707,81 @@ $btnPerimCampSave.Add_Click({
   }
 })
 
+$btnPerimWalkAdd.Add_Click({
+  try {
+    $normalized = Normalize-WalkTimeToken -Raw $txtPerimWalkTime.Text
+    if (-not $normalized) {
+      [System.Windows.Forms.MessageBox]::Show("Horario invalido. Use HH:mm (ex.: 06:30).", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $existing = @()
+    foreach ($item in $listPerimWalkTimes.Items) { $existing += [string]$item }
+    if ($existing -contains $normalized) {
+      return
+    }
+    $existing += $normalized
+    $listPerimWalkTimes.Items.Clear()
+    foreach ($item in (Sort-WalkTimes -Times $existing)) {
+      [void]$listPerimWalkTimes.Items.Add($item)
+    }
+    Update-PerimWalkCountLabel
+    $txtPerimWalkTime.Text = $normalized
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao adicionar horario: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnPerimWalkRemove.Add_Click({
+  try {
+    if ($listPerimWalkTimes.SelectedItems.Count -lt 1) { return }
+    $selected = @($listPerimWalkTimes.SelectedItems | ForEach-Object { [string]$_ })
+    $remaining = @()
+    foreach ($item in $listPerimWalkTimes.Items) {
+      $time = [string]$item
+      if (-not ($selected -contains $time)) {
+        $remaining += $time
+      }
+    }
+    $listPerimWalkTimes.Items.Clear()
+    foreach ($item in (Sort-WalkTimes -Times $remaining)) {
+      [void]$listPerimWalkTimes.Items.Add($item)
+    }
+    Update-PerimWalkCountLabel
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao remover horario: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnPerimConfigLoad.Add_Click({
+  try {
+    Load-PerimConfig
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao carregar configuracao PERIM: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnPerimConfigSave.Add_Click({
+  try {
+    $payload = Collect-PerimConfigPayload
+    if (-not $payload.allowedDropSets -or $payload.allowedDropSets.Count -lt 1) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione ao menos 1 set liberado para drop.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if (-not $payload.dailyWalkTimes -or $payload.dailyWalkTimes.Count -lt 1) {
+      [System.Windows.Forms.MessageBox]::Show("Defina ao menos 1 horario de caminhada.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $op = Invoke-MutatingOperation -OperationName "perim-config-save" -Target "perim:runtime-config" -ActionBlock {
+      Invoke-AdminEngine -Action "perim-config-save" -Payload $payload
+    }
+    Render-PerimConfigSnapshot -Snapshot $op.result
+    [System.Windows.Forms.MessageBox]::Show("Configuracao PERIM salva com sucesso.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Set-Status "Configuracao PERIM salva e aplicada."
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao salvar configuracao PERIM: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
 $perimCampGrid.Add_SelectionChanged({
   if ($perimCampGrid.SelectedRows.Count -lt 1) { return }
   $locationCardId = [string]$perimCampGrid.SelectedRows[0].Cells[0].Value
@@ -2607,6 +2860,7 @@ try {
   Load-Events
   Load-LocationTribes
   Load-Quests
+  Load-PerimConfig
   Load-Logs
   Set-Status "Painel admin pronto."
 } catch {

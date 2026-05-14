@@ -5440,10 +5440,14 @@ const PERIM_ANOMALY_DIRECT_REVEAL_CHANCE = 0.02;
 const PERIM_ANOMALY_QUEST_DROP_CHANCE = 0.1;
 const PERIM_LOCATION_DROP_COPY_CAP = 3;
 const PERIM_LOCATION_DROP_BASE_CHANCE_MULTIPLIER = 0.82;
-const PLAYER_ALLOWED_SET_KEYS = new Set(["dop", "zoth", "ss"]);
-const PERIM_ALLOWED_DROP_SET_KEYS = PLAYER_ALLOWED_SET_KEYS;
+const DEFAULT_PLAYER_ALLOWED_SET_KEYS = ["dop", "zoth", "ss"];
+const PLAYER_ALLOWED_SET_KEYS = new Set(DEFAULT_PLAYER_ALLOWED_SET_KEYS);
 const PERIM_QUEST_REWARD_RARITIES = new Set(["rare", "super rare", "ultra rare"]);
 const PERIM_QUEST_TEMPLATE_TARGET_COUNT = 5;
+const PERIM_RUNTIME_CONFIG_NAMESPACE = "perim_runtime_config";
+const PERIM_RUNTIME_CONFIG_KEY = "state";
+const DEFAULT_PERIM_ALLOWED_DROP_SET_KEYS = [...DEFAULT_PLAYER_ALLOWED_SET_KEYS];
+const DEFAULT_PERIM_DAILY_WALK_TIMES = ["00:00"];
 
 const DEFAULT_PERIM_CAMP_CREATURE_STACKING = {
   enabled: true,
@@ -5523,6 +5527,109 @@ function normalizePerimDropSetKey(setRaw) {
   return normalized;
 }
 
+let perimRuntimeConfigCache = null;
+
+function normalizePerimDailyWalkTime(rawValue) {
+  const text = String(rawValue || "").trim();
+  if (!text) {
+    return "";
+  }
+  const match = text.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (!match) {
+    return "";
+  }
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return "";
+  }
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function sortPerimWalkTimes(times = []) {
+  return [...times].sort((a, b) => {
+    const [ha, ma] = String(a || "").split(":").map((entry) => Number(entry));
+    const [hb, mb] = String(b || "").split(":").map((entry) => Number(entry));
+    return ((ha * 60) + ma) - ((hb * 60) + mb);
+  });
+}
+
+function listPerimCatalogSetKeys() {
+  const setKeys = new Set();
+  const cards = Array.isArray(library?.cards) ? library.cards : [];
+  cards.forEach((card) => {
+    const setKey = normalizePerimDropSetKey(card?.set || "");
+    if (setKey && setKey !== "unknown") {
+      setKeys.add(setKey);
+    }
+  });
+  return [...setKeys].sort((a, b) => String(a).localeCompare(String(b), "en"));
+}
+
+function normalizePerimRuntimeConfig(payload = null) {
+  const source = payload && typeof payload === "object" ? payload : {};
+  const knownSetKeys = new Set(listPerimCatalogSetKeys());
+  const allowedDropSetsSource = Array.isArray(source.allowedDropSets)
+    ? source.allowedDropSets
+    : DEFAULT_PERIM_ALLOWED_DROP_SET_KEYS;
+  let allowedDropSets = [...new Set(
+    allowedDropSetsSource
+      .map((entry) => normalizePerimDropSetKey(entry))
+      .filter((entry) => entry && entry !== "unknown")
+  )];
+  if (knownSetKeys.size) {
+    allowedDropSets = allowedDropSets.filter((entry) => knownSetKeys.has(entry));
+  }
+  if (!allowedDropSets.length) {
+    allowedDropSets = [...DEFAULT_PERIM_ALLOWED_DROP_SET_KEYS];
+  }
+
+  const dailyWalkTimesSource = Array.isArray(source.dailyWalkTimes)
+    ? source.dailyWalkTimes
+    : DEFAULT_PERIM_DAILY_WALK_TIMES;
+  let dailyWalkTimes = [...new Set(
+    dailyWalkTimesSource
+      .map((entry) => normalizePerimDailyWalkTime(entry))
+      .filter(Boolean)
+  )];
+  if (!dailyWalkTimes.length) {
+    dailyWalkTimes = [...DEFAULT_PERIM_DAILY_WALK_TIMES];
+  }
+  dailyWalkTimes = sortPerimWalkTimes(dailyWalkTimes);
+
+  return {
+    allowedDropSets: [...new Set(allowedDropSets)],
+    dailyWalkTimes,
+  };
+}
+
+function getPerimRuntimeConfig(forceReload = false) {
+  const fromDb = (!forceReload && perimRuntimeConfigCache && !sqliteDb)
+    ? perimRuntimeConfigCache
+    : sqlGet(PERIM_RUNTIME_CONFIG_NAMESPACE, PERIM_RUNTIME_CONFIG_KEY);
+  const normalized = normalizePerimRuntimeConfig(fromDb);
+  if (!fromDb || JSON.stringify(fromDb) !== JSON.stringify(normalized)) {
+    sqlSet(PERIM_RUNTIME_CONFIG_NAMESPACE, PERIM_RUNTIME_CONFIG_KEY, normalized);
+  }
+  perimRuntimeConfigCache = normalized;
+  return normalized;
+}
+
+function savePerimRuntimeConfig(payload) {
+  const normalized = normalizePerimRuntimeConfig(payload);
+  sqlSet(PERIM_RUNTIME_CONFIG_NAMESPACE, PERIM_RUNTIME_CONFIG_KEY, normalized);
+  perimRuntimeConfigCache = normalized;
+  return normalized;
+}
+
+function getPerimAllowedDropSetKeys() {
+  return new Set(getPerimRuntimeConfig().allowedDropSets || DEFAULT_PERIM_ALLOWED_DROP_SET_KEYS);
+}
+
+function getPerimDailyWalkTimes() {
+  return getPerimRuntimeConfig().dailyWalkTimes || DEFAULT_PERIM_DAILY_WALK_TIMES;
+}
+
 let librarySetLookupCache = { versionToken: "", byCardId: new Map() };
 
 function resolveLibraryCardSetKey(card) {
@@ -5565,7 +5672,7 @@ function isPlayerCardSetAllowedByCardId(cardIdRaw) {
 
 function isPerimDropSetAllowed(setRaw) {
   const key = normalizePerimDropSetKey(setRaw);
-  return PERIM_ALLOWED_DROP_SET_KEYS.has(key);
+  return getPerimAllowedDropSetKeys().has(key);
 }
 
 function normalizeQuestCardType(value) {
@@ -5599,9 +5706,10 @@ function parseQuestRequirements(value) {
 
 function buildQuestTemplateSeedList() {
   const cards = Array.isArray(library?.cards) ? library.cards : [];
+  const perimAllowedSetKeys = getPerimAllowedDropSetKeys();
   const allowedCards = cards.filter((card) => {
     const setKey = normalizePerimDropSetKey(card?.set || "");
-    if (!PERIM_ALLOWED_DROP_SET_KEYS.has(setKey)) {
+    if (!perimAllowedSetKeys.has(setKey)) {
       return false;
     }
     const name = String(card?.name || "").toLowerCase();
@@ -5896,7 +6004,7 @@ function computePerimQuestProgress(ownerKeyRaw, cards) {
         set: String(template.rewardCard?.set || ""),
         rarity: String(template.rewardCard?.rarity || ""),
         image: String(template.rewardCard?.image || ""),
-        setAllowed: PERIM_ALLOWED_DROP_SET_KEYS.has(rewardSet),
+        setAllowed: getPerimAllowedDropSetKeys().has(rewardSet),
       },
       targetLocation: {
         cardId: template.targetLocationCardId,
@@ -9076,13 +9184,17 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
     }
   }
 
-  const previousDate = new Date(nowDate.getTime());
-  previousDate.setDate(previousDate.getDate() - 1);
-  const previousDateKey = todayDateKey(previousDate);
-  const previousDaily = getDailyCreatureLocationsCanonical(previousDateKey);
   const previousByLoki = new Map();
-  if (previousDaily && Array.isArray(previousDaily.creatures)) {
-    previousDaily.creatures.forEach((entry) => {
+  const previousSource = (existing && Array.isArray(existing.creatures) && existing.creatures.length)
+    ? existing
+    : (() => {
+      const previousDate = new Date(nowDate.getTime());
+      previousDate.setDate(previousDate.getDate() - 1);
+      const previousDateKey = todayDateKey(previousDate);
+      return getDailyCreatureLocationsCanonical(previousDateKey);
+    })();
+  if (previousSource && Array.isArray(previousSource.creatures)) {
+    previousSource.creatures.forEach((entry) => {
       previousByLoki.set(Number(entry.loki || 0), entry);
     });
   }
@@ -9243,7 +9355,7 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
   return payload;
 }
 
-function queuePerimDailyGeneration(reason = "scheduled", forcedDateKey = "") {
+function queuePerimDailyGeneration(reason = "scheduled", forcedDateKey = "", forceRegenerate = false) {
   const dateKey = String(forcedDateKey || todayDateKey());
   if (runtimeMetrics.perimJobs.queued && runtimeMetrics.perimJobs.dateKey === dateKey) {
     return;
@@ -9256,7 +9368,7 @@ function queuePerimDailyGeneration(reason = "scheduled", forcedDateKey = "") {
   }
   perimDailyJobTimer = setTimeout(() => {
     try {
-      const payload = generateDailyCreatureLocations(dateKey);
+      const payload = generateDailyCreatureLocations(dateKey, Boolean(forceRegenerate));
       if (payload && Array.isArray(payload.creatures) && payload.creatures.length) {
         lastKnownDailyCreaturePayload = payload;
         runtimeMetrics.perimJobs.lastSuccessAt = nowIso();
@@ -9358,18 +9470,31 @@ function getCreaturesForWorldType(worldType, dateKey = null) {
 }
 
 let dailyCreatureCheckInterval = null;
+let perimDailyWalkSchedulerState = { dateKey: "", executedSlots: new Set() };
 
 function startDailyCreatureLocationScheduler() {
   ensureDailyCreatureLocations();
-  let lastDateKey = todayDateKey();
-  dailyCreatureCheckInterval = setInterval(() => {
-    const currentKey = todayDateKey();
-    if (currentKey !== lastDateKey) {
-      lastDateKey = currentKey;
-      console.log(`[PERIM] Midnight crossed, scheduling new creature locations for ${currentKey}...`);
-      queuePerimDailyGeneration("midnight", currentKey);
+  const evaluateWalkSchedule = () => {
+    const now = new Date();
+    const dateKey = todayDateKey(now);
+    const slot = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    if (perimDailyWalkSchedulerState.dateKey !== dateKey) {
+      perimDailyWalkSchedulerState = { dateKey, executedSlots: new Set() };
     }
-  }, 5 * 60 * 1000);
+    const walkTimes = getPerimDailyWalkTimes();
+    if (!walkTimes.includes(slot)) {
+      return;
+    }
+    if (perimDailyWalkSchedulerState.executedSlots.has(slot)) {
+      return;
+    }
+    perimDailyWalkSchedulerState.executedSlots.add(slot);
+    console.log(`[PERIM] Scheduled walk slot reached (${slot}), regenerating daily creature locations for ${dateKey}...`);
+    queuePerimDailyGeneration(`walk_schedule_${slot}`, dateKey, true);
+  };
+
+  evaluateWalkSchedule();
+  dailyCreatureCheckInterval = setInterval(evaluateWalkSchedule, 30 * 1000);
 }
 
 function cleanupOldDbBackups(retentionDays = DB_BACKUP_RETENTION_DAYS) {
@@ -20616,6 +20741,7 @@ hydrateCreatureDropSqlMetadata();
 writePerimActionsDropsReport();
 migrateExistingUsernamesToStrictPolicy();
 seedAdminAccount();
+getPerimRuntimeConfig(true);
 ensureDailyCreatureLocations(todayDateKey());
 queuePerimDailyGeneration("startup", todayDateKey());
 startDailyCreatureLocationScheduler();

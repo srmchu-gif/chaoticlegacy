@@ -9,6 +9,10 @@ const CARD_TYPES = ["creatures", "attacks", "battlegear", "locations", "mugic"];
 const LOCATION_TRIBE_KEYS = ["overworld", "underworld", "danian", "mipedian", "marrillian", "tribeless"];
 const QUEST_ALLOWED_SET_KEYS = new Set(["dop", "zoth", "ss"]);
 const DROME_IDS = ["crellan", "hotekk", "amzen", "oron", "tirasis", "imthor", "chirrul", "beta"];
+const PERIM_RUNTIME_CONFIG_NAMESPACE = "perim_runtime_config";
+const PERIM_RUNTIME_CONFIG_KEY = "state";
+const DEFAULT_PERIM_ALLOWED_DROP_SET_KEYS = ["dop", "zoth", "ss"];
+const DEFAULT_PERIM_DAILY_WALK_TIMES = ["00:00"];
 
 const USER_KEY_COLUMNS = [
   "owner_key",
@@ -146,6 +150,34 @@ function normalizeCardType(value) {
 
 function normalizeSetKey(value) {
   return String(value || "").trim().toLowerCase();
+}
+
+function normalizePerimDropSetKey(value) {
+  const key = normalizeSetKey(value);
+  if (!key) return "";
+  if (key === "unknownset") return "unknown";
+  return key;
+}
+
+function normalizeWalkTimeToken(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const match = text.match(/^(\d{1,2}):(\d{1,2})$/);
+  if (!match) return "";
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return "";
+  }
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function sortWalkTimes(times = []) {
+  return [...times].sort((a, b) => {
+    const [ha, ma] = String(a || "").split(":").map((entry) => Number(entry));
+    const [hb, mb] = String(b || "").split(":").map((entry) => Number(entry));
+    return ((ha * 60) + ma) - ((hb * 60) + mb);
+  });
 }
 
 function isQuestCardSetAllowed(card) {
@@ -427,6 +459,144 @@ function ensurePerimLocationTribesTable(db) {
     );
   `);
   db.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_tribes_tribe ON perim_location_tribes(tribe_key, updated_at DESC);");
+}
+
+function ensureKvStoreTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS kv_store (
+      namespace TEXT NOT NULL,
+      entity_key TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (namespace, entity_key)
+    );
+  `);
+}
+
+function readKvPayload(db, namespace, entityKey) {
+  ensureKvStoreTable(db);
+  const row = db
+    .prepare("SELECT payload FROM kv_store WHERE namespace = ? AND entity_key = ? LIMIT 1")
+    .get(String(namespace || ""), String(entityKey || ""));
+  if (!row?.payload) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(String(row.payload || "{}"));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeKvPayload(db, namespace, entityKey, payload) {
+  ensureKvStoreTable(db);
+  const body = payload && typeof payload === "object" ? payload : {};
+  db.prepare(`
+    INSERT INTO kv_store (namespace, entity_key, payload, updated_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(namespace, entity_key)
+    DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at
+  `).run(
+    String(namespace || ""),
+    String(entityKey || ""),
+    JSON.stringify(body),
+    nowIso()
+  );
+}
+
+function listCatalogSetKeys(db) {
+  const rows = db
+    .prepare("SELECT DISTINCT lower(trim(set_name)) AS set_key FROM card_catalog WHERE set_name IS NOT NULL AND trim(set_name) <> '' ORDER BY set_key")
+    .all();
+  return [...new Set(
+    rows
+      .map((row) => normalizePerimDropSetKey(row?.set_key || ""))
+      .filter((entry) => entry && entry !== "unknown")
+  )];
+}
+
+function normalizePerimRuntimeConfig(raw, availableSetKeys = []) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const availableSetKeySet = new Set((Array.isArray(availableSetKeys) ? availableSetKeys : []).map((entry) => normalizePerimDropSetKey(entry)));
+
+  let allowedDropSets = [...new Set(
+    (Array.isArray(source.allowedDropSets) ? source.allowedDropSets : DEFAULT_PERIM_ALLOWED_DROP_SET_KEYS)
+      .map((entry) => normalizePerimDropSetKey(entry))
+      .filter((entry) => entry && entry !== "unknown")
+  )];
+  if (availableSetKeySet.size) {
+    allowedDropSets = allowedDropSets.filter((entry) => availableSetKeySet.has(entry));
+  }
+  if (!allowedDropSets.length) {
+    allowedDropSets = [...DEFAULT_PERIM_ALLOWED_DROP_SET_KEYS].filter((entry) => !availableSetKeySet.size || availableSetKeySet.has(entry));
+  }
+  if (!allowedDropSets.length && availableSetKeySet.size) {
+    allowedDropSets = [availableSetKeys[0]];
+  }
+
+  let dailyWalkTimes = [...new Set(
+    (Array.isArray(source.dailyWalkTimes) ? source.dailyWalkTimes : DEFAULT_PERIM_DAILY_WALK_TIMES)
+      .map((entry) => normalizeWalkTimeToken(entry))
+      .filter(Boolean)
+  )];
+  if (!dailyWalkTimes.length) {
+    dailyWalkTimes = [...DEFAULT_PERIM_DAILY_WALK_TIMES];
+  }
+  dailyWalkTimes = sortWalkTimes(dailyWalkTimes);
+
+  return {
+    allowedDropSets,
+    dailyWalkTimes,
+    walksPerDay: dailyWalkTimes.length,
+  };
+}
+
+function sanitizePerimConfigPayload(db, raw) {
+  const availableSetKeys = listCatalogSetKeys(db);
+  const availableSetKeySet = new Set(availableSetKeys);
+  const source = raw && typeof raw === "object" ? raw : {};
+  const allowedDropSetsRaw = Array.isArray(source.allowedDropSets) ? source.allowedDropSets : [];
+  const dailyWalkTimesRaw = Array.isArray(source.dailyWalkTimes) ? source.dailyWalkTimes : [];
+
+  const allowedDropSets = [...new Set(
+    allowedDropSetsRaw
+      .map((entry) => normalizePerimDropSetKey(entry))
+      .filter((entry) => entry && entry !== "unknown")
+  )];
+  if (!allowedDropSets.length) {
+    throw new Error("Selecione ao menos 1 set liberado para drops.");
+  }
+  if (availableSetKeySet.size) {
+    const invalidSet = allowedDropSets.find((entry) => !availableSetKeySet.has(entry));
+    if (invalidSet) {
+      throw new Error(`Set invalido para drop: ${invalidSet}`);
+    }
+  }
+
+  const dailyWalkTimes = [...new Set(
+    dailyWalkTimesRaw
+      .map((entry) => normalizeWalkTimeToken(entry))
+      .filter(Boolean)
+  )];
+  if (!dailyWalkTimes.length) {
+    throw new Error("Informe ao menos 1 horario de caminhada (HH:mm).");
+  }
+
+  return normalizePerimRuntimeConfig(
+    { allowedDropSets, dailyWalkTimes },
+    availableSetKeys
+  );
+}
+
+function fetchPerimRuntimeConfig(db) {
+  const availableSetKeys = listCatalogSetKeys(db);
+  const stored = readKvPayload(db, PERIM_RUNTIME_CONFIG_NAMESPACE, PERIM_RUNTIME_CONFIG_KEY);
+  const normalized = normalizePerimRuntimeConfig(stored, availableSetKeys);
+  return {
+    config: normalized,
+    availableSetKeys,
+  };
 }
 
 function getCatalogCardById(db, cardIdRaw) {
@@ -1517,6 +1687,43 @@ function run() {
         locationCardId: sanitized.locationCardId,
         deleted: Number(removed?.changes || 0) > 0,
         locationTribes: listLocationTribes(db),
+      });
+      return;
+    }
+
+    if (args.action === "perim-config-get") {
+      const snapshot = fetchPerimRuntimeConfig(db);
+      jsonOk({
+        config: snapshot.config,
+        availableSetKeys: snapshot.availableSetKeys,
+      });
+      return;
+    }
+
+    if (args.action === "perim-config-save") {
+      const payload = decodePayload(args);
+      const sanitized = sanitizePerimConfigPayload(db, payload);
+      withTransaction(db, () => {
+        writeKvPayload(db, PERIM_RUNTIME_CONFIG_NAMESPACE, PERIM_RUNTIME_CONFIG_KEY, {
+          allowedDropSets: sanitized.allowedDropSets,
+          dailyWalkTimes: sanitized.dailyWalkTimes,
+        });
+        appendAuditLogEntry(
+          db,
+          "admin_perim_runtime_config_update",
+          "system",
+          "Atualizacao da configuracao de drops e caminhada do PERIM.",
+          {
+            allowedDropSets: sanitized.allowedDropSets,
+            dailyWalkTimes: sanitized.dailyWalkTimes,
+            walksPerDay: sanitized.walksPerDay,
+          }
+        );
+      });
+      const snapshot = fetchPerimRuntimeConfig(db);
+      jsonOk({
+        config: snapshot.config,
+        availableSetKeys: snapshot.availableSetKeys,
       });
       return;
     }
