@@ -450,6 +450,7 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
     height:72vh;
   }
 }
+@media (max-width:900px){
   #deck-builder .builder-filters-drawer-backdrop{
     position:fixed;
     inset:0;
@@ -522,3 +523,28 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
     pointer-events:auto;
     opacity:1;
   }
+}
+@media (min-width:901px){
+  #deck-builder .builder-filters-drawer{
+    position:static;
+    left:auto;
+    right:auto;
+    bottom:auto;
+    z-index:auto;
+    max-height:none;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+    transform:none;
+    transition:none;
+    padding:0;
+    overflow:visible;
+  }
+  #deck-builder .builder-filters-drawer-backdrop{
+    display:none !important;
+  }
+  #deck-builder .builder-filters{
+    display:grid !important;
+  }
+}

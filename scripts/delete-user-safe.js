@@ -7,13 +7,29 @@ const { DatabaseSync } = require("node:sqlite");
 
 const CARD_TYPES = ["creatures", "attacks", "battlegear", "locations", "mugic"];
 const LOCATION_TRIBE_KEYS = ["overworld", "underworld", "danian", "mipedian", "marrillian", "tribeless"];
-const LOCATION_CLIMATE_KEYS = ["ensolarado", "chuvoso", "ventania", "tempestade", "nublado"];
+const LOCATION_CLIMATE_KEYS = [
+  "ensolarado",
+  "chuvoso",
+  "ventania",
+  "tempestade",
+  "nublado",
+  "umido",
+  "seco",
+  "frio",
+  "quente",
+  "lugar_fechado"
+];
 const LOCATION_CLIMATE_LABELS = {
   ensolarado: "Ensolarado",
   chuvoso: "Chuvoso",
   ventania: "Ventania",
   tempestade: "Tempestade",
   nublado: "Nublado",
+  umido: "Úmido",
+  seco: "Seco",
+  frio: "Frio",
+  quente: "Quente",
+  lugar_fechado: "Lugar Fechado",
 };
 const QUEST_ALLOWED_SET_KEYS = new Set(["dop", "zoth", "ss"]);
 const DROME_IDS = ["crellan", "hotekk", "amzen", "oron", "tirasis", "imthor", "chirrul", "beta"];
@@ -230,6 +246,11 @@ function normalizeLocationClimateKey(value) {
   if (token.includes("vent")) return "ventania";
   if (token.includes("tempest")) return "tempestade";
   if (token.includes("nublad")) return "nublado";
+  if (token.includes("umid") || token.includes("humid")) return "umido";
+  if (token.includes("sec")) return "seco";
+  if (token.includes("fri")) return "frio";
+  if (token.includes("quent") || token.includes("calor") || token.includes("hot")) return "quente";
+  if (token.includes("lugarfechado") || token.includes("fechado") || token.includes("indoor") || token.includes("interno")) return "lugar_fechado";
   return "";
 }
 

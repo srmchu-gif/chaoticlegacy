@@ -1501,11 +1501,22 @@ function normalizeVariant(rawVariant) {
     variant.stars = Math.max(0, Math.min(5, computed));
   }
   if (typeof rawVariant.starsLabel === "string" && rawVariant.starsLabel.trim()) {
-    variant.starsLabel = rawVariant.starsLabel.trim();
+    variant.starsLabel = normalizeStarsLabel(rawVariant.starsLabel.trim());
   } else {
     variant.starsLabel = `${variant.stars.toFixed(1)}★`;
   }
   return variant;
+}
+
+function normalizeStarsLabel(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "";
+  }
+  return text
+    .replaceAll("â˜…", "★")
+    .replaceAll("â­", "★")
+    .replaceAll("*", "★");
 }
 
 function creatureStarsLabelFromVariant(variant) {
@@ -1513,7 +1524,7 @@ function creatureStarsLabelFromVariant(variant) {
     return "";
   }
   if (typeof variant.starsLabel === "string" && variant.starsLabel.trim()) {
-    return variant.starsLabel.trim();
+    return normalizeStarsLabel(variant.starsLabel.trim());
   }
   const stars = Number(variant.stars);
   if (!Number.isFinite(stars)) {
@@ -1522,7 +1533,6 @@ function creatureStarsLabelFromVariant(variant) {
   const normalized = Math.max(0, Math.min(5, Math.round(stars * 2) / 2));
   return `${normalized.toFixed(1)}★`;
 }
-
 function applyCreatureVariantToCard(baseCard, variant) {
   if (!baseCard || baseCard.type !== "creatures" || !variant) {
     return baseCard;

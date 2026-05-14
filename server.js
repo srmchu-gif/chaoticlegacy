@@ -5002,10 +5002,15 @@ const PERIM_ACTIONS = [
 
 const PERIM_EVENTS_BY_CLIMATE = {
   ensolarado: { id: "sun_burst", label: "Surto Solar", effect: "+8% drops de Battlegear e Mugic", bonus: { battlegear: 0.08, mugic: 0.08 } },
-  chuvoso: { id: "rain_echo", label: "Eco Chuvoso", effect: "+10% drops de Attacks aqu�ticos", bonus: { attacks: 0.1 } },
-  ventania: { id: "wind_paths", label: "Trilhas de Ventania", effect: "+7% chance de local adjacente em explora��o", bonus: { locations: 0.07 } },
-  tempestade: { id: "storm_hunt", label: "Ca�ada da Tempestade", effect: "+10% chance de criatura em rastreio", bonus: { creatures: 0.1 } },
-  nublado: { id: "mist_watch", label: "Vig�lia Nebulosa", effect: "Sem b�nus extremo; leitura est�vel de sinais", bonus: {} },
+  chuvoso: { id: "rain_echo", label: "Eco Chuvoso", effect: "+10% drops de Attacks aquaticos", bonus: { attacks: 0.1 } },
+  ventania: { id: "wind_paths", label: "Trilhas de Ventania", effect: "+7% chance de local adjacente em exploracao", bonus: { locations: 0.07 } },
+  tempestade: { id: "storm_hunt", label: "Cacada da Tempestade", effect: "+10% chance de criatura em rastreio", bonus: { creatures: 0.1 } },
+  nublado: { id: "mist_watch", label: "Vigilia Nebulosa", effect: "Sem bonus extremo; leitura estavel de sinais", bonus: {} },
+  umido: { id: "humid_flow", label: "Fluxo Umido", effect: "Clima neutro operacional.", bonus: {} },
+  seco: { id: "dry_flow", label: "Fluxo Seco", effect: "Clima neutro operacional.", bonus: {} },
+  frio: { id: "cold_flow", label: "Fluxo Frio", effect: "Clima neutro operacional.", bonus: {} },
+  quente: { id: "hot_flow", label: "Fluxo Quente", effect: "Clima neutro operacional.", bonus: {} },
+  lugar_fechado: { id: "indoor_flow", label: "Lugar Fechado", effect: "Clima neutro operacional.", bonus: {} },
 };
 
 function normalizePerimPlayerKey(value) {
@@ -5483,6 +5488,11 @@ const DEFAULT_PERIM_DROP_TABLES = Object.freeze({
     ventania: { creatures: 1.03, attacks: 1.05, battlegear: 1.0, mugic: 0.97, locations: 1.0 },
     tempestade: { creatures: 1.06, attacks: 0.95, battlegear: 0.98, mugic: 1.08, locations: 1.0 },
     nublado: { creatures: 1.0, attacks: 1.0, battlegear: 1.0, mugic: 1.0, locations: 1.0 },
+    umido: { creatures: 1.0, attacks: 1.0, battlegear: 1.0, mugic: 1.0, locations: 1.0 },
+    seco: { creatures: 1.0, attacks: 1.0, battlegear: 1.0, mugic: 1.0, locations: 1.0 },
+    frio: { creatures: 1.0, attacks: 1.0, battlegear: 1.0, mugic: 1.0, locations: 1.0 },
+    quente: { creatures: 1.0, attacks: 1.0, battlegear: 1.0, mugic: 1.0, locations: 1.0 },
+    lugar_fechado: { creatures: 1.0, attacks: 1.0, battlegear: 1.0, mugic: 1.0, locations: 1.0 },
   },
   locationRules: {
     adjacentFirstChance: 0.72,
@@ -7817,7 +7827,18 @@ function normalizeClimateText(value) {
     .trim();
 }
 
-const PERIM_LOCATION_ALLOWED_CLIMATE_KEYS = new Set(["ensolarado", "chuvoso", "ventania", "tempestade", "nublado"]);
+const PERIM_LOCATION_ALLOWED_CLIMATE_KEYS = new Set([
+  "ensolarado",
+  "chuvoso",
+  "ventania",
+  "tempestade",
+  "nublado",
+  "umido",
+  "seco",
+  "frio",
+  "quente",
+  "lugar_fechado",
+]);
 
 function normalizePerimClimateKey(rawValue) {
   const key = normalizeClimateText(rawValue)
@@ -7830,6 +7851,11 @@ function normalizePerimClimateKey(rawValue) {
   if (key.includes("vent")) return "ventania";
   if (key.includes("tempest")) return "tempestade";
   if (key.includes("nublad")) return "nublado";
+  if (key.includes("umid") || key.includes("humid")) return "umido";
+  if (key.includes("sec")) return "seco";
+  if (key.includes("fri")) return "frio";
+  if (key.includes("quent") || key.includes("calor") || key.includes("hot")) return "quente";
+  if (key.includes("lugarfechado") || key.includes("fechado") || key.includes("indoor") || key.includes("interno")) return "lugar_fechado";
   return "";
 }
 
@@ -7844,6 +7870,17 @@ function perimClimateLabelFromKey(climateKeyRaw) {
     case "tempestade":
       return "Tempestade";
     case "nublado":
+      return "Nublado";
+    case "umido":
+      return "Umido";
+    case "seco":
+      return "Seco";
+    case "frio":
+      return "Frio";
+    case "quente":
+      return "Quente";
+    case "lugar_fechado":
+      return "Lugar Fechado";
     default:
       return "Nublado";
   }
@@ -8024,6 +8061,13 @@ function perimClimateEventByName(climateRaw) {
   if (key.includes("chuv")) return PERIM_EVENTS_BY_CLIMATE.chuvoso;
   if (key.includes("vent")) return PERIM_EVENTS_BY_CLIMATE.ventania;
   if (key.includes("tempest")) return PERIM_EVENTS_BY_CLIMATE.tempestade;
+  if (key.includes("umid") || key.includes("humid")) return PERIM_EVENTS_BY_CLIMATE.umido;
+  if (key.includes("sec")) return PERIM_EVENTS_BY_CLIMATE.seco;
+  if (key.includes("fri")) return PERIM_EVENTS_BY_CLIMATE.frio;
+  if (key.includes("quent") || key.includes("calor") || key.includes("hot")) return PERIM_EVENTS_BY_CLIMATE.quente;
+  if (key.includes("lugarfechado") || key.includes("fechado") || key.includes("indoor") || key.includes("interno")) {
+    return PERIM_EVENTS_BY_CLIMATE.lugar_fechado;
+  }
   return PERIM_EVENTS_BY_CLIMATE.nublado;
 }
 

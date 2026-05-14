@@ -1628,6 +1628,11 @@ function Get-ClimateDisplayLabel {
     "ventania" { return "Ventania" }
     "tempestade" { return "Tempestade" }
     "nublado" { return "Nublado" }
+    "umido" { return "Umido" }
+    "seco" { return "Seco" }
+    "frio" { return "Frio" }
+    "quente" { return "Quente" }
+    "lugar_fechado" { return "Lugar Fechado" }
     default { return [string]$ClimateKey }
   }
 }
@@ -1639,6 +1644,11 @@ function Build-LocationClimateItems {
     (New-DisplayItem -Label "Ventania" -Value "ventania")
     (New-DisplayItem -Label "Tempestade" -Value "tempestade")
     (New-DisplayItem -Label "Nublado" -Value "nublado")
+    (New-DisplayItem -Label "Umido" -Value "umido")
+    (New-DisplayItem -Label "Seco" -Value "seco")
+    (New-DisplayItem -Label "Frio" -Value "frio")
+    (New-DisplayItem -Label "Quente" -Value "quente")
+    (New-DisplayItem -Label "Lugar Fechado" -Value "lugar_fechado")
   )
 }
 

@@ -408,10 +408,45 @@ body[data-theme="light"] .keybind-row{background:#eef3fb}
   .builder-layout,.battle-main-grid{grid-template-columns:1fr}
   .builder-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
   .builder-filters input[type="number"]{width:100%}
-  #deck-board{padding:.45rem}
-  .stage-card{width:68px}
-  .stage-card.gear{width:50px}
-  .stage-placeholder{width:66px}
+  #deck-builder #deck-board{
+    padding:.6rem;
+    gap:.72rem;
+    border-radius:1rem;
+    min-height:34rem;
+    height:auto;
+    grid-template-columns:1fr;
+    grid-template-rows:auto minmax(22rem,auto) auto;
+  }
+  #deck-builder .stage-panel{padding:.55rem}
+  #deck-builder .stage-center{
+    min-height:26rem;
+    border-radius:.8rem;
+  }
+  #deck-builder .stage-creatures,
+  #deck-builder .stage-gears{margin-top:16px}
+  #deck-builder .deck-slot-stack{
+    width:128px;
+    height:176px;
+  }
+  #deck-builder .stage-card{width:82px}
+  #deck-builder .stage-card.creature{width:102px}
+  #deck-builder .stage-card.gear{
+    top:44px;
+    width:76px;
+  }
+  #deck-builder .stage-card.mugic{width:74px}
+  #deck-builder .stage-placeholder{width:102px}
+  #deck-builder .stage-mugic{
+    padding-right:0;
+    align-items:stretch;
+  }
+  #deck-builder .stage-mugic .stage-card{
+    margin-inline:auto;
+  }
+  #deck-builder .stage-right-rail{
+    grid-template-rows:auto auto;
+    gap:.5rem;
+  }
   .discard-strip{grid-template-columns:repeat(3,1fr)}
   .board-lanes{min-height:280px}
   .board-inner{grid-template-columns:32px 1fr 32px}
