@@ -65,7 +65,7 @@ function Invoke-AdminEngine {
     if ($CardType) { $args += @("--cardType", $CardType) }
     if ($null -ne $Payload) {
       $json = ConvertTo-Json $Payload -Depth 20 -Compress
-      if ($json.Length -gt 7000) {
+      if ($json.Length -gt 1500) {
         $tempPayloadPath = [IO.Path]::GetTempFileName()
         [IO.File]::WriteAllText($tempPayloadPath, $json, [Text.Encoding]::UTF8)
         $args += @("--payloadFile", $tempPayloadPath)
@@ -116,11 +116,13 @@ function Invoke-AdminEngine {
 }
 
 function Run-Backup {
-  $output = & $backupScript -ProjectRoot $ProjectRoot 2>&1
-  $text = ($output | Out-String).Trim()
-  if ($LASTEXITCODE -ne 0) {
-    throw "Falha no backup: $text"
+  try {
+    $output = & $backupScript -ProjectRoot $ProjectRoot 2>&1
+  } catch {
+    $message = if ($_.Exception -and $_.Exception.Message) { $_.Exception.Message } else { "$_" }
+    throw "Falha no backup: $message"
   }
+  $text = ($output | Out-String).Trim()
   if ($text -match "Backup gerado:\s*(.+)$") { return $matches[1].Trim() }
   return "(caminho nao identificado)"
 }
@@ -252,6 +254,36 @@ function Apply-GridResponsiveStyle {
   $Grid.ColumnHeadersHeight = [Math]::Max(30, [int]$Grid.ColumnHeadersHeight)
   $Grid.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
   $Grid.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
+  $Grid.BackgroundColor = [System.Drawing.Color]::White
+  $Grid.EnableHeadersVisualStyles = $false
+  $Grid.GridColor = [System.Drawing.Color]::FromArgb(220, 225, 232)
+  $Grid.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(241, 244, 248)
+  $Grid.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(25, 29, 36)
+  $Grid.ColumnHeadersDefaultCellStyle.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+  $Grid.DefaultCellStyle.BackColor = [System.Drawing.Color]::White
+  $Grid.DefaultCellStyle.ForeColor = [System.Drawing.Color]::FromArgb(25, 29, 36)
+  $Grid.DefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(0, 120, 215)
+  $Grid.DefaultCellStyle.SelectionForeColor = [System.Drawing.Color]::White
+  $Grid.RowTemplate.Height = [Math]::Max(24, [int]$Grid.RowTemplate.Height)
+  $Grid.RowHeadersVisible = $false
+}
+
+function Set-SplitterLayoutSafe {
+  param(
+    [Parameter(Mandatory = $true)]$Splitter,
+    [int]$Panel1Min = 180,
+    [int]$Panel2Min = 140,
+    [int]$PreferredDistance = -1
+  )
+  try { $Splitter.Panel1MinSize = [Math]::Max(0, $Panel1Min) } catch {}
+  try { $Splitter.Panel2MinSize = [Math]::Max(0, $Panel2Min) } catch {}
+  try {
+    $total = if ($Splitter.Orientation -eq [System.Windows.Forms.Orientation]::Vertical) { [int]$Splitter.ClientSize.Width } else { [int]$Splitter.ClientSize.Height }
+    $min = [int]$Splitter.Panel1MinSize
+    $max = [Math]::Max($min, $total - [int]$Splitter.Panel2MinSize)
+    $target = if ($PreferredDistance -gt 0) { $PreferredDistance } else { [int]$Splitter.SplitterDistance }
+    $Splitter.SplitterDistance = [Math]::Max($min, [Math]::Min($max, $target))
+  } catch {}
 }
 
 $tabUsers = New-Object System.Windows.Forms.TabPage
@@ -286,17 +318,14 @@ $tab.Controls.Add($tabLogs)
 $usersTop = New-Object System.Windows.Forms.Panel
 $usersTop.Dock = "Top"
 $usersTop.Height = 56
+$usersTop.AutoScroll = $true
 $usersTop.Padding = New-Object System.Windows.Forms.Padding(6)
 $tabUsers.Controls.Add($usersTop)
 
 $usersBody = New-Object System.Windows.Forms.SplitContainer
 $usersBody.Dock = "Fill"
 $usersBody.Orientation = "Horizontal"
-$usersBody.SplitterDistance = 330
-try {
-  $usersBody.Panel1MinSize = 220
-  $usersBody.Panel2MinSize = 180
-} catch {}
+Set-SplitterLayoutSafe -Splitter $usersBody -Panel1Min 220 -Panel2Min 180 -PreferredDistance 330
 $tabUsers.Controls.Add($usersBody)
 
 $userLabel = New-Object System.Windows.Forms.Label
@@ -360,11 +389,9 @@ $usersBody.Panel2.Controls.Add($usersDetail)
 $eventsSplit = New-Object System.Windows.Forms.SplitContainer
 $eventsSplit.Dock = "Fill"
 $eventsSplit.Orientation = "Vertical"
-$eventsSplit.SplitterDistance = 620
-try {
-  $eventsSplit.Panel1MinSize = 460
-  $eventsSplit.Panel2MinSize = 420
-} catch {}
+Set-SplitterLayoutSafe -Splitter $eventsSplit -Panel1Min 460 -Panel2Min 420 -PreferredDistance 620
+$eventsSplit.Panel1.Padding = New-Object System.Windows.Forms.Padding(4)
+$eventsSplit.Panel2.Padding = New-Object System.Windows.Forms.Padding(4)
 $tabEvents.Controls.Add($eventsSplit)
 
 $eventsGrid = New-Object System.Windows.Forms.DataGridView
@@ -374,6 +401,11 @@ $eventsGrid.AllowUserToAddRows = $false
 $eventsGrid.AllowUserToDeleteRows = $false
 $eventsGrid.RowHeadersVisible = $false
 $eventsGrid.SelectionMode = "FullRowSelect"
+$eventsGrid.ColumnHeadersVisible = $true
+$eventsGrid.ColumnHeadersHeightSizeMode = [System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode]::EnableResizing
+$eventsGrid.ColumnHeadersHeight = 32
+$eventsGrid.AutoSizeRowsMode = [System.Windows.Forms.DataGridViewAutoSizeRowsMode]::None
+$eventsGrid.RowTemplate.Height = 24
 $eventsGrid.ColumnCount = 8
 $eventsGrid.Columns[0].Name = "ID"
 $eventsGrid.Columns[1].Name = "Texto"
@@ -387,18 +419,18 @@ $eventsGrid.Columns[7].Name = "Fim"
 $eventsGridToolbar = New-Object System.Windows.Forms.Panel
 $eventsGridToolbar.Dock = "Top"
 $eventsGridToolbar.Height = 34
-$eventsSplit.Panel1.Controls.Add($eventsGridToolbar)
+$eventsGridToolbar.Padding = New-Object System.Windows.Forms.Padding(6, 6, 6, 0)
 
 $chkEventsOnlyActive = New-Object System.Windows.Forms.CheckBox
 $chkEventsOnlyActive.Text = "Somente ativos agora"
-$chkEventsOnlyActive.Location = New-Object System.Drawing.Point(10, 8)
+$chkEventsOnlyActive.Location = New-Object System.Drawing.Point(4, 8)
 $chkEventsOnlyActive.Size = New-Object System.Drawing.Size(180, 22)
 $chkEventsOnlyActive.Checked = $false
 $eventsGridToolbar.Controls.Add($chkEventsOnlyActive)
 
 $eventsSplit.Panel1.Controls.Add($eventsGrid)
+$eventsSplit.Panel1.Controls.Add($eventsGridToolbar)
 Apply-GridResponsiveStyle -Grid $eventsGrid
-$eventsGridToolbar.BringToFront()
 
 $eventsPanel = New-Object System.Windows.Forms.Panel
 $eventsPanel.Dock = "Fill"
@@ -633,11 +665,9 @@ Apply-GridResponsiveStyle -Grid $locationTribesGrid
 $questSplit = New-Object System.Windows.Forms.SplitContainer
 $questSplit.Dock = "Fill"
 $questSplit.Orientation = "Vertical"
-$questSplit.SplitterDistance = 620
-try {
-  $questSplit.Panel1MinSize = 440
-  $questSplit.Panel2MinSize = 420
-} catch {}
+Set-SplitterLayoutSafe -Splitter $questSplit -Panel1Min 440 -Panel2Min 420 -PreferredDistance 620
+$questSplit.Panel1.Padding = New-Object System.Windows.Forms.Padding(4)
+$questSplit.Panel2.Padding = New-Object System.Windows.Forms.Padding(4)
 $tabQuests.Controls.Add($questSplit)
 
 $questsGrid = New-Object System.Windows.Forms.DataGridView
@@ -835,11 +865,9 @@ $questPanel.Controls.Add($btnQuestRefresh)
 $scansSplit = New-Object System.Windows.Forms.SplitContainer
 $scansSplit.Dock = "Fill"
 $scansSplit.Orientation = "Vertical"
-$scansSplit.SplitterDistance = 860
-try {
-  $scansSplit.Panel1MinSize = 620
-  $scansSplit.Panel2MinSize = 300
-} catch {}
+Set-SplitterLayoutSafe -Splitter $scansSplit -Panel1Min 620 -Panel2Min 300 -PreferredDistance 860
+$scansSplit.Panel1.Padding = New-Object System.Windows.Forms.Padding(4)
+$scansSplit.Panel2.Padding = New-Object System.Windows.Forms.Padding(4)
 $tabScans.Controls.Add($scansSplit)
 
 $scansLeft = New-Object System.Windows.Forms.Panel
@@ -1104,11 +1132,9 @@ $profileTop.Controls.Add($btnProfileResetStreak)
 $profileBody = New-Object System.Windows.Forms.SplitContainer
 $profileBody.Dock = "Fill"
 $profileBody.Orientation = "Vertical"
-$profileBody.SplitterDistance = 640
-try {
-  $profileBody.Panel1MinSize = 460
-  $profileBody.Panel2MinSize = 320
-} catch {}
+Set-SplitterLayoutSafe -Splitter $profileBody -Panel1Min 460 -Panel2Min 320 -PreferredDistance 640
+$profileBody.Panel1.Padding = New-Object System.Windows.Forms.Padding(4)
+$profileBody.Panel2.Padding = New-Object System.Windows.Forms.Padding(4)
 $tabProfileRanked.Controls.Add($profileBody)
 
 $profileEditorPanel = New-Object System.Windows.Forms.Panel
@@ -1276,21 +1302,17 @@ $perimTop.Controls.Add($btnPerimCampSave)
 $perimBody = New-Object System.Windows.Forms.SplitContainer
 $perimBody.Dock = "Fill"
 $perimBody.Orientation = "Horizontal"
-$perimBody.SplitterDistance = 330
-try {
-  $perimBody.Panel1MinSize = 220
-  $perimBody.Panel2MinSize = 160
-} catch {}
+Set-SplitterLayoutSafe -Splitter $perimBody -Panel1Min 220 -Panel2Min 160 -PreferredDistance 330
+$perimBody.Panel1.Padding = New-Object System.Windows.Forms.Padding(4)
+$perimBody.Panel2.Padding = New-Object System.Windows.Forms.Padding(4)
 $tabPerimState.Controls.Add($perimBody)
 
 $perimUpperSplit = New-Object System.Windows.Forms.SplitContainer
 $perimUpperSplit.Dock = "Fill"
 $perimUpperSplit.Orientation = "Vertical"
-$perimUpperSplit.SplitterDistance = 600
-try {
-  $perimUpperSplit.Panel1MinSize = 360
-  $perimUpperSplit.Panel2MinSize = 320
-} catch {}
+Set-SplitterLayoutSafe -Splitter $perimUpperSplit -Panel1Min 360 -Panel2Min 320 -PreferredDistance 600
+$perimUpperSplit.Panel1.Padding = New-Object System.Windows.Forms.Padding(0, 0, 4, 0)
+$perimUpperSplit.Panel2.Padding = New-Object System.Windows.Forms.Padding(4, 0, 0, 0)
 $perimBody.Panel1.Controls.Add($perimUpperSplit)
 
 $perimRunsGrid = New-Object System.Windows.Forms.DataGridView
@@ -2532,6 +2554,20 @@ $btnLogsRefresh.Add_Click({
     [System.Windows.Forms.MessageBox]::Show("Falha ao carregar logs: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
   }
 })
+
+function Apply-TabSplitLayoutDefaults {
+  Set-SplitterLayoutSafe -Splitter $usersBody -Panel1Min 220 -Panel2Min 180 -PreferredDistance 330
+  Set-SplitterLayoutSafe -Splitter $eventsSplit -Panel1Min 460 -Panel2Min 420 -PreferredDistance 620
+  Set-SplitterLayoutSafe -Splitter $questSplit -Panel1Min 440 -Panel2Min 420 -PreferredDistance 620
+  Set-SplitterLayoutSafe -Splitter $scansSplit -Panel1Min 620 -Panel2Min 300 -PreferredDistance 860
+  Set-SplitterLayoutSafe -Splitter $profileBody -Panel1Min 460 -Panel2Min 320 -PreferredDistance 640
+  Set-SplitterLayoutSafe -Splitter $perimBody -Panel1Min 220 -Panel2Min 160 -PreferredDistance 330
+  Set-SplitterLayoutSafe -Splitter $perimUpperSplit -Panel1Min 360 -Panel2Min 320 -PreferredDistance 600
+}
+
+$form.Add_Shown({ Apply-TabSplitLayoutDefaults })
+$form.Add_ResizeEnd({ Apply-TabSplitLayoutDefaults })
+$tab.Add_SelectedIndexChanged({ Apply-TabSplitLayoutDefaults })
 
 try {
   Set-Status "Inicializando painel admin..."
