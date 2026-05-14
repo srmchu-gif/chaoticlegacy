@@ -1,6 +1,6 @@
 {
-  "registry_version": "1.1.0",
-  "updated_at": "2026-05-10",
+  "registry_version": "1.2.0",
+  "updated_at": "2026-05-14",
   "scope": [
     "DOP",
     "ZOTH",
@@ -25,7 +25,39 @@
       "draft",
       "reviewed",
       "ready_to_implement"
+    ],
+    "runtime_contract_fields": [
+      "priority_window",
+      "target_resolution",
+      "target_repeat_policy",
+      "requirements_check_at",
+      "cost_atomicity",
+      "stack_resolution",
+      "simultaneous_trigger_order",
+      "unknown_effect_policy",
+      "partial_failure_policy"
     ]
+  },
+  "runtime_contract_defaults": {
+    "priority_window": "official",
+    "target_resolution": "sequential",
+    "target_repeat_policy": "allow_unless_another_target",
+    "requirements_check_at": "resolution",
+    "cost_atomicity": "full",
+    "stack_resolution": "lifo",
+    "simultaneous_trigger_order": [
+      "location",
+      "battlegear",
+      "creature",
+      "mugic"
+    ],
+    "unknown_effect_policy": "allow_noop_log",
+    "partial_failure_policy_default": "resolve_partial",
+    "partial_failure_policy_by_kind": {
+      "negateMugic": "cancel_card",
+      "negateMugicOrAbilityTargeting": "cancel_card",
+      "disableMugicAndActivated": "cancel_card"
+    }
   },
   "effects": [
     {

@@ -1,0 +1,443 @@
+# DOP/ZOTH/SS Combat Checklist
+
+Status fields: `parser | target | cost | priority | runtime | tested`
+
+## [DOP]
+- Allmageddon | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Aqua Shield | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Arias | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ario | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ario, (Misprint) | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ash Torrent | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Attacat | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Barath Beyond | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Biondu | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Blazier | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Blügon | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Bodal | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Borth-Majar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Brathe | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Canon of Casualty | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Cascade Symphony | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Castle Bodhran | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Castle Pillar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Chaor | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Chorus of the Hive | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Coil Crush | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Cordac Falls | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Cordac Falls Plungepool | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Crawsectus | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Crystal Cave | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Cyclance | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Dardemus | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Decrescendo | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Degenervate | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Delerium | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Diamond of Vlaric | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Discord of Disarming | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Donmar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Doors of the Deepmines | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Dractyl | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Dragon Pulse | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Drakness | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Dranakis Threshold | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ektospasm | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ekuud | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Elixir of Tenacity | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ember Flourish | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ember Swarm | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Evaporize | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Everrain | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Eye of the Maelstrom | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Fanfare of the Vanishing | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Fear Valley | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Fearocity | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Flame Orb | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Flash Kick | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Flash Mend | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Flashwarp | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Flux Bauble | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Forest of Life | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Formicidor | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Fortissimo | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Frafdo | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Frost Blight | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Galin | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Gauntlets of Might | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Geo Flourish | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Gespedan | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ghuul | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Gigantempopolis | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Glacier Plains | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Gloomuck Swamp | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Gothos Tower | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Grook | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- H'earring | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hail Storm | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Heptadd | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Heptadd, (Tin Misprint) | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hive Call | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hota | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hymn of the Elements | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ibiaan | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Incinerase | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Inferno Gust | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Interlude of Consequence | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Intress | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Iron Balls | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Iron Pillar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Junda | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kannen | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kebna | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kerric | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Khybon | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kiru City | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Klasp | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Krekk | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kughar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Laarina | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lake Ken-I-Po | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lava Pond | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lavalanche | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lhad | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lightning Burst | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Liquilizer | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lord Van Bloot | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lore | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lucky Shot | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Maglax | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Magmon | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mallash | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Malvadine | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Marquis Darini | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Maxxor | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Megaroar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Melody of Malady | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Melody of Mirage | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Miklon | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Minor Flourish | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mipedian Cactus | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mipedim Oasis | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mirthquake | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mount Pillar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mowercycle | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mugic Reprise | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mugician's Lyre | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Najarin | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Nauthilax | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Nexus Fuse | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Notes of Neverwhere | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Odu-Bathax | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Orb of Foresight | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- OverWorld Aria | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Owis | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Paral-Eyes | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Pebblestorm | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Phobia Mask | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Power Pulse | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Prince Mudeenu | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Prism of Vacuity | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Psimion | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Pyrithion | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Pyroblaster | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Quick Exit | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Qwun | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Rarran | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ravanaugh Ridge | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Refrain of Denial | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Refrain of Denial, (OverWorld) | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Refrain of Denial, (OverWorld/UnderWorld) | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Rellim | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ring of Na'arin | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Rip Tide | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Riverland Star | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Riverlands | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Rock Wave | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Rothar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Runic Grove | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Rustoxic | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Shadow Strike | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Shimmark | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Shriek Shock | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Siado | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Skartalas | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Skeletal Steed | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Skeletal Strike | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Skithia | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Skreeth | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Sleep Sting | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Sludge Gush | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Slurhk | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Sobtjek | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Solvis | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Asperity | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Deflection | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of EmberNova | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Focus | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Fury | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Futuresight | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of GeoNova | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Mandiblor | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Recovery | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Resistance | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Resurgence | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Revival, (UnderWorld) | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Stasis | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Surprisal | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Symmetry | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Treachery | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Truesight | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Spectral Viewer | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Spirit Gust | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Squeeze Play | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Staff of Wisdom | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Staluk | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Steam Rage | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Stone Mail | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Stone Pillar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Stronghold Morn | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Takinom | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Talisman of the Mandiblor | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Tangath Toborn | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Tartarek | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Telekinetic Bolt | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- The Storm Tunnel | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Thunder Shout | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Tiaane | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Tornado Tackle | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Torrent Krinth | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Torrent of Flame | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Torwegg | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Toxic Gust | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Toxis | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Trills of Diminution | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ubliqun | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ulmar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- UnderWorld City | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- UnderWorld Colosseum | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Unsanity | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Uro | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Valanii Levaan | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Velocitrap | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Velreth | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Vidav | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Viledriver | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Vine Snare | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Vinta | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Viperlash | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Vlaric Shard | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Wamma | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Whepcrack | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Windslash | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Windstrider | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Wooden Pillar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Xaerv | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Xield | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Yokkis | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Zalic | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Zaur | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Zhade | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+
+## [ZOTH]
+- Accelerated Unity | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Acid Wash | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Aggroar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Arkanin | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Balaan | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Bierk | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Carnival of Confusion | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Cascading Rondo | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Casters' Warsong | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Chorus of Cothica | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Composition of Concentration | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Daj Huun | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Danian Carapace | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Danian Element Choral | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Danihilation | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Dasalin | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Defender's Song | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Desiccate the Land | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Dibanni | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Dissonance of Distraction | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Dubin | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Elemental Denial | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Elemental Elegy | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Elementalist Pauldrons | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Elementalist's Psy-Blast | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Faash | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Forgotten Origins | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Freeze Flash | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Garv | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Gear Glissando | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Gear Grind | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Geltod | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Grand Hall of Muge's Summit | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Granite Balls | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hammerdoom Chantcaller | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hive Destruction | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hive Unsung | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hive-phoon | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hune Marquard | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ice Cloak | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Illazar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Illexia, The Danian Queen | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Infectious Melody | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Infight | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Jaal | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kamangareth | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kelvedran | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Khavakk | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Khritlaan | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kolmo | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lomma | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mahrrant | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Malevolent Blast | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mandiblor Crown | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mandiblor Might | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Melodic Might | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Melody of the Meek | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Momental Virtuosity | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mount Pillar Reservoir | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Muge's Edge | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mugician Steal | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Munnari | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Narfall | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Oipont's Lookout | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ornathor | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- OverWorld Embassy at Mount Pillar | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Pillar Quake | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Prelude of Protection | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Purge Dirge | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Queen's Gate | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ramarhvir, The Danian Hivebringer | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Raznus, Ambassador to the Danians | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Recurring Rescue | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Reverberate | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ribbian | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Sands of the Unseen | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Scout's Monocular | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Scout's Strike | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Serenade of Subordinance | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Sha-Kree Flats | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Slufurah | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Encompassing | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Resilience | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Shelter | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Stingblade Prototype | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Strike of the Meek | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Strikto | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Sunder Ground | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Supercharged Alterant | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Swassa | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Switch Riff | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Sword of Khy'at | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Tassanil | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Telebracers | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Terraport | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- The Barracks | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- The Darkened Dunes | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ultadur | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ur-Shard | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Yondaf | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+
+## [SS]
+- Apoc-eclipse | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Arbeid | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Arborsmash | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Armament Adagio | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Atrapol | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Blaze Barrage | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Blazvatan, The Epic Warbeast | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Blind Fury | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Bylkian | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Catacombs of the Conjurors | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Challor | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Clodor | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Cyclone Slam | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Dexterous Storm | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Drimesse | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Echoes of Empty Hands | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Elemental Oxidation | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Enlightened Tenacity | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Enre-hep | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Entropy Modulator | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ere | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Fear Fight | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Fighters' Fanfare | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Fivarth | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Force Strike | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Forest of Life, During Aichlyys | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Gnarlus | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hammerdoom Chantcaller, Assimilated | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hampering Winds | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Harnessed Rage | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Heptadd's Crown | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Heptagon Hail | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hifdan | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hunter's Lure | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hurlicane | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hydro Balls | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Hymn of Teleportation | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Indigo Grove | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Iparu | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Iparu Jungle | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kalt | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Karraba | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kinnianne, Ambassador to the Mipedians | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kolmo, Assimilated | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Kopond | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lanker | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lightning Canister | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Liquescent Swirl | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Lobanne | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Makrabon | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Matagore | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Melke | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Melody of Parasitic Mayhem | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mind Strike | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mipedian Dew Farm | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mipedim Lounge | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Mipedim Mirage | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Na-inna | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Olkiex | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- OverWorld Embassy at Mipedim Oasis | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Phelphor | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Progressive Speed | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Purifying Mud | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ranun | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Rao'Pa Sahkk, The Ocean with No Water | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Ravita Flower | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Raznus, Assimilated | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Reactive Resolution | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Reality Field Generator | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Reckless Defeat | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Reckless Reproach | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Rhyme of the Reckless | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Rot Cloud | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Saand | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Slashclaw | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of Desperation | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Song of the Dyad | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Strain of Ash | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Strain of Clarity | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Strain of Expensive Delusions | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Strain of Infection | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Strain of the Tide | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Stupefying Tide | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Symmetry Slam | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- The Doomhammer | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- The Hunter's Perimeter | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Titanix | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Trampling Tackle | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Tune of Xerium | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Twister of Elements | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Uboraan | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Viqtarr | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Void Dirge | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Vyll | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Warbeast Power Leash | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Web Cocoon | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Wind Whip | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Wytod | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Xelfe | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending
+- Zapetur | parser: pending | target: pending | cost: pending | priority: pending | runtime: pending | tested: pending

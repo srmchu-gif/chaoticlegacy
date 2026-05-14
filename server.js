@@ -796,6 +796,14 @@ function createSqlV2Tables() {
   `);
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_tribes_tribe ON perim_location_tribes(tribe_key, updated_at DESC);");
   sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_location_climate_rules (
+      location_card_id TEXT NOT NULL PRIMARY KEY,
+      allowed_climates_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_climate_rules_updated ON perim_location_climate_rules(updated_at DESC);");
+  sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_location_chat (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       location_id TEXT NOT NULL,
@@ -7809,6 +7817,101 @@ function normalizeClimateText(value) {
     .trim();
 }
 
+const PERIM_LOCATION_ALLOWED_CLIMATE_KEYS = new Set(["ensolarado", "chuvoso", "ventania", "tempestade", "nublado"]);
+
+function normalizePerimClimateKey(rawValue) {
+  const key = normalizeClimateText(rawValue)
+    .replace(/[^a-z0-9]+/g, "");
+  if (!key) {
+    return "";
+  }
+  if (key.includes("ensolar")) return "ensolarado";
+  if (key.includes("chuv")) return "chuvoso";
+  if (key.includes("vent")) return "ventania";
+  if (key.includes("tempest")) return "tempestade";
+  if (key.includes("nublad")) return "nublado";
+  return "";
+}
+
+function perimClimateLabelFromKey(climateKeyRaw) {
+  switch (normalizePerimClimateKey(climateKeyRaw)) {
+    case "ensolarado":
+      return "Ensolarado";
+    case "chuvoso":
+      return "Chuvoso";
+    case "ventania":
+      return "Ventania";
+    case "tempestade":
+      return "Tempestade";
+    case "nublado":
+    default:
+      return "Nublado";
+  }
+}
+
+function getPerimLocationAllowedClimateKeys(locationCardIdRaw) {
+  if (!sqliteDb) {
+    return [];
+  }
+  const locationCardId = String(locationCardIdRaw || "").trim();
+  if (!locationCardId) {
+    return [];
+  }
+  try {
+    const row = sqliteDb
+      .prepare("SELECT allowed_climates_json FROM perim_location_climate_rules WHERE location_card_id = ? LIMIT 1")
+      .get(locationCardId);
+    if (!row?.allowed_climates_json) {
+      return [];
+    }
+    const parsed = JSON.parse(String(row.allowed_climates_json || "[]"));
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    const normalized = [...new Set(
+      parsed
+        .map((entry) => normalizePerimClimateKey(entry))
+        .filter((entry) => PERIM_LOCATION_ALLOWED_CLIMATE_KEYS.has(entry))
+    )];
+    return normalized;
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao consultar regras de clima do local ${locationCardId}: ${error?.message || error}`);
+    return [];
+  }
+}
+
+function isPerimClimateAllowed(climateRaw, allowedClimateKeys = []) {
+  const normalizedAllowed = Array.isArray(allowedClimateKeys) ? allowedClimateKeys : [];
+  if (!normalizedAllowed.length) {
+    return true;
+  }
+  const climateKey = normalizePerimClimateKey(climateRaw);
+  return climateKey ? normalizedAllowed.includes(climateKey) : false;
+}
+
+function filterPerimClimateProfileByAllowlist(profile, allowedClimateKeys = []) {
+  const validProfile = Array.isArray(profile) ? profile : [];
+  const allowed = Array.isArray(allowedClimateKeys) ? allowedClimateKeys.filter((entry) => PERIM_LOCATION_ALLOWED_CLIMATE_KEYS.has(entry)) : [];
+  if (!allowed.length) {
+    return validProfile;
+  }
+  const allowedSet = new Set(allowed);
+  const filtered = validProfile
+    .filter((entry) => allowedSet.has(normalizePerimClimateKey(entry?.climate || "")))
+    .map((entry) => ({
+      climate: perimClimateLabelFromKey(entry?.climate || "nublado"),
+      weight: Number(entry?.weight || 0),
+    }))
+    .filter((entry) => Number(entry.weight || 0) > 0);
+  if (filtered.length) {
+    return filtered;
+  }
+  return allowed.map((entry) => ({
+    climate: perimClimateLabelFromKey(entry),
+    weight: 1,
+  }));
+}
+
 function inferPerimClimateProfile(locationEntry) {
   const terrainKey = normalizeClimateText(locationEntry?.terrain || locationEntry?.environment || "");
   const nameKey = normalizeClimateText(locationEntry?.name || "");
@@ -7970,6 +8073,7 @@ function currentPerimHourToken(nowDate = new Date()) {
 
 function getPerimGlobalLocationState(locationEntry, nowDate = new Date()) {
   const locationId = String(locationEntry?.cardId || locationEntry?.id || "").trim();
+  const allowedClimateKeys = getPerimLocationAllowedClimateKeys(locationId);
   if (!locationId) {
     return {
       turnLabel: turnLabelFromHour(nowDate.getHours()),
@@ -7987,6 +8091,30 @@ function getPerimGlobalLocationState(locationEntry, nowDate = new Date()) {
       `)
       .get(locationId);
     if (row && String(row?.hour_token || "") === hourToken) {
+      if (!isPerimClimateAllowed(row?.climate || "", allowedClimateKeys)) {
+        const weatherSeed = hashTokenToInt(`${locationId}:${hourToken}:allowlist`);
+        const climateProfile = filterPerimClimateProfileByAllowlist(
+          inferPerimClimateProfile(locationEntry || {}),
+          allowedClimateKeys
+        );
+        const refreshedClimate = pickWeightedClimate(climateProfile, weatherSeed);
+        const refreshedState = {
+          hourToken,
+          turnLabel: String(row?.turn_label || turnLabelFromHour(nowDate.getHours())),
+          climate: perimClimateLabelFromKey(refreshedClimate || "nublado"),
+          updatedAt: nowIso(),
+        };
+        sqliteDb.prepare(`
+          UPDATE perim_location_state
+          SET climate = ?, updated_at = ?
+          WHERE location_id = ?
+        `).run(
+          String(refreshedState.climate || "Nublado"),
+          String(refreshedState.updatedAt || nowIso()),
+          locationId
+        );
+        return refreshedState;
+      }
       return {
         hourToken: String(row?.hour_token || hourToken),
         turnLabel: String(row?.turn_label || turnLabelFromHour(nowDate.getHours())),
@@ -8001,12 +8129,15 @@ function getPerimGlobalLocationState(locationEntry, nowDate = new Date()) {
     }
   }
   const weatherSeed = hashTokenToInt(`${locationId}:${hourToken}`);
-  const climateProfile = inferPerimClimateProfile(locationEntry || {});
+  const climateProfile = filterPerimClimateProfileByAllowlist(
+    inferPerimClimateProfile(locationEntry || {}),
+    allowedClimateKeys
+  );
   const climate = pickWeightedClimate(climateProfile, weatherSeed);
   const nextState = {
     hourToken,
     turnLabel: turnLabelFromHour(nowDate.getHours()),
-    climate,
+    climate: perimClimateLabelFromKey(climate || "nublado"),
     updatedAt: nowIso(),
   };
   if (isSqlV2Ready()) {

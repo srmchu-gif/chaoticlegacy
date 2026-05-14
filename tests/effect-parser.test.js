@@ -280,6 +280,30 @@ test("parseAbilityEffects reconhece begin combat energy com filtro elemental e e
   );
 });
 
+test("parseAbilityEffects adiciona contrato de runtime padrao nos efeitos", () => {
+  const text = "Deal 20 damage to target Creature.";
+  const effects = parseAbilityEffects(text);
+  const dealDamage = effects.find((effect) => effect.kind === "dealDamage");
+  assert.ok(dealDamage);
+  assert.equal(dealDamage.runtimeContract?.priorityWindow, "official");
+  assert.equal(dealDamage.runtimeContract?.targetResolution, "sequential");
+  assert.equal(dealDamage.runtimeContract?.requirementsCheckAt, "resolution");
+  assert.equal(dealDamage.runtimeContract?.costAtomicity, "full");
+  assert.equal(dealDamage.runtimeContract?.stackResolution, "lifo");
+  assert.equal(dealDamage.runtimeContract?.unknownEffectPolicy, "allow_noop_log");
+  assert.equal(dealDamage.runtimeContract?.partialFailurePolicy, "resolve_partial");
+});
+
+test("parseAbilityEffects marca another target como alvo distinto", () => {
+  const text = "Deal 10 damage to target Creature. Deal 5 damage to another target Creature.";
+  const effects = parseAbilityEffects(text).filter((effect) => effect.kind === "dealDamage");
+  assert.ok(effects.length >= 2);
+  const second = effects.find((effect) => /another target/i.test(String(effect.sourceText || "")));
+  assert.ok(second);
+  assert.equal(second.targetSpec?.distinctFromPrevious, true);
+  assert.equal(second.runtimeContract?.targetRepeatPolicy, "allow_unless_another_target");
+});
+
 test("parseAbilityEffects reconhece Ekuud com bonus de energia por Mandiblor quando Hive ativa", () => {
   const text = "Hive: Ekuud has an additional 5 Energy for each Mandiblor you control and each Infected Creature in play.";
   const effects = parseAbilityEffects(text);

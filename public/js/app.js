@@ -112,6 +112,9 @@ const UI_LANGUAGE_LABELS = {
     tabBattle: "Battlefield",
     tabSettings: "Configuracoes",
     mobileViewerToggle: "Visualizacao",
+    mobileFiltersToggle: "Filtros",
+    mobileFiltersClose: "Fechar",
+    mobileFiltersApply: "Aplicar",
     libraryTitle: "Scans",
     libraryViewLibrary: "Biblioteca",
     libraryViewScans: "Scans",
@@ -153,6 +156,9 @@ const UI_LANGUAGE_LABELS = {
     tabBattle: "Battlefield",
     tabSettings: "Settings",
     mobileViewerToggle: "Viewer",
+    mobileFiltersToggle: "Filters",
+    mobileFiltersClose: "Close",
+    mobileFiltersApply: "Apply",
     libraryTitle: "Scans",
     libraryViewLibrary: "Library",
     libraryViewScans: "Scans",
@@ -194,6 +200,9 @@ const UI_LANGUAGE_LABELS = {
     tabBattle: "Battlefield",
     tabSettings: "Configuracion",
     mobileViewerToggle: "Vista",
+    mobileFiltersToggle: "Filtros",
+    mobileFiltersClose: "Cerrar",
+    mobileFiltersApply: "Aplicar",
     libraryTitle: "Scans",
     libraryViewLibrary: "Biblioteca",
     libraryViewScans: "Scans",
@@ -517,6 +526,9 @@ const appState = {
     touchStartX: null,
     touchStartY: null,
   },
+  mobileFiltersDrawer: {
+    open: false,
+  },
   scans: {
     cards: {
       creatures: [],
@@ -653,6 +665,7 @@ const el = {
   battleForfeit: document.querySelector("#battle-forfeit"),
   battleMenuBtn: document.querySelector("#battle-menu-btn"),
   mobileScanViewerToggle: document.querySelector("#mobile-scan-viewer-toggle"),
+  mobileBuilderFiltersToggle: document.querySelector("#mobile-builder-filters-toggle"),
   reloadLibrary: document.querySelector("#reload-library"),
   cardTypeFilter: document.querySelector("#card-type-filter"),
   setFilter: document.querySelector("#set-filter"),
@@ -682,6 +695,10 @@ const el = {
   mobileScanViewerMeta: document.querySelector("#mobile-scan-viewer-meta"),
   mobileScanViewerStars: document.querySelector("#mobile-scan-viewer-stars"),
   mobileScanViewerIndex: document.querySelector("#mobile-scan-viewer-index"),
+  builderFiltersDrawer: document.querySelector("#builder-filters-drawer"),
+  builderFiltersDrawerBackdrop: document.querySelector("#builder-filters-drawer-backdrop"),
+  builderFiltersDrawerClose: document.querySelector("#builder-filters-drawer-close"),
+  builderFiltersDrawerApply: document.querySelector("#builder-filters-drawer-apply"),
   deckMode: document.querySelector("#deck-mode"),
   deckName: document.querySelector("#deck-name"),
   saveDeck: document.querySelector("#save-deck"),
@@ -3479,6 +3496,15 @@ function applyInterfaceLanguage() {
   if (el.mobileScanViewerToggle) {
     el.mobileScanViewerToggle.textContent = dictionary.mobileViewerToggle;
   }
+  if (el.mobileBuilderFiltersToggle) {
+    el.mobileBuilderFiltersToggle.textContent = dictionary.mobileFiltersToggle;
+  }
+  if (el.builderFiltersDrawerClose) {
+    el.builderFiltersDrawerClose.textContent = dictionary.mobileFiltersClose;
+  }
+  if (el.builderFiltersDrawerApply) {
+    el.builderFiltersDrawerApply.textContent = dictionary.mobileFiltersApply;
+  }
   if (el.reloadLibrary) {
     el.reloadLibrary.textContent = dictionary.reload;
   }
@@ -4214,8 +4240,10 @@ function switchTab(target = "builder") {
   }
   if (tab !== "builder") {
     appState.mobileViewer.active = false;
+    appState.mobileFiltersDrawer.open = false;
   }
   syncTopbarButtons();
+  renderMobileBuilderFiltersDrawer();
   renderMobileScanViewer();
 }
 
@@ -4230,8 +4258,13 @@ function isMobileViewport() {
 function syncTopbarButtons() {
   const isBuilderTab = appState.currentTab === "builder";
   const canUseMobileViewer = isBuilderTab && isMobileViewport();
+  const canUseMobileFilters = isBuilderTab && isMobileViewport();
   if (el.battleForfeit) {
     el.battleForfeit.classList.toggle("hidden", !appState.currentTab || appState.currentTab !== "battle");
+  }
+  if (el.mobileBuilderFiltersToggle) {
+    el.mobileBuilderFiltersToggle.classList.toggle("hidden", !canUseMobileFilters);
+    el.mobileBuilderFiltersToggle.classList.toggle("active", Boolean(appState.mobileFiltersDrawer.open && canUseMobileFilters));
   }
   if (el.mobileScanViewerToggle) {
     el.mobileScanViewerToggle.classList.toggle("hidden", !canUseMobileViewer);
@@ -4239,14 +4272,41 @@ function syncTopbarButtons() {
   }
 }
 
+function setMobileBuilderFiltersDrawerOpen(open) {
+  const canOpen = isMobileViewport() && appState.currentTab === "builder";
+  appState.mobileFiltersDrawer.open = Boolean(open && canOpen);
+  if (appState.mobileFiltersDrawer.open) {
+    appState.mobileViewer.active = false;
+  }
+  syncTopbarButtons();
+  renderMobileBuilderFiltersDrawer();
+  renderMobileScanViewer();
+}
+
+function renderMobileBuilderFiltersDrawer() {
+  const enabled = Boolean(appState.mobileFiltersDrawer.open && isMobileViewport() && appState.currentTab === "builder");
+  if (el.builderFiltersDrawer) {
+    el.builderFiltersDrawer.classList.toggle("is-open", enabled);
+  }
+  if (el.builderFiltersDrawerBackdrop) {
+    el.builderFiltersDrawerBackdrop.classList.toggle("hidden", !enabled);
+    el.builderFiltersDrawerBackdrop.setAttribute("aria-hidden", enabled ? "false" : "true");
+  }
+  document.body.classList.toggle("mobile-builder-filters-open", enabled);
+}
+
 function setMobileScanViewerActive(active) {
   const canActivate = isMobileViewport() && appState.currentTab === "builder";
   appState.mobileViewer.active = Boolean(active && canActivate);
+  if (appState.mobileViewer.active) {
+    appState.mobileFiltersDrawer.open = false;
+  }
   if (!appState.mobileViewer.active) {
     appState.mobileViewer.touchStartX = null;
     appState.mobileViewer.touchStartY = null;
   }
   syncTopbarButtons();
+  renderMobileBuilderFiltersDrawer();
   renderMobileScanViewer();
 }
 
@@ -6711,6 +6771,26 @@ function bindEvents() {
       setMobileScanViewerActive(!appState.mobileViewer.active);
     });
   }
+  if (el.mobileBuilderFiltersToggle) {
+    el.mobileBuilderFiltersToggle.addEventListener("click", () => {
+      setMobileBuilderFiltersDrawerOpen(!appState.mobileFiltersDrawer.open);
+    });
+  }
+  if (el.builderFiltersDrawerBackdrop) {
+    el.builderFiltersDrawerBackdrop.addEventListener("click", () => {
+      setMobileBuilderFiltersDrawerOpen(false);
+    });
+  }
+  if (el.builderFiltersDrawerClose) {
+    el.builderFiltersDrawerClose.addEventListener("click", () => {
+      setMobileBuilderFiltersDrawerOpen(false);
+    });
+  }
+  if (el.builderFiltersDrawerApply) {
+    el.builderFiltersDrawerApply.addEventListener("click", () => {
+      setMobileBuilderFiltersDrawerOpen(false);
+    });
+  }
   if (el.mobileScanViewer) {
     el.mobileScanViewer.addEventListener("touchstart", (event) => {
       const touch = event.changedTouches?.[0];
@@ -7271,7 +7351,11 @@ async function init() {
     if (!isMobileViewport() && appState.mobileViewer.active) {
       appState.mobileViewer.active = false;
     }
+    if (!isMobileViewport() && appState.mobileFiltersDrawer.open) {
+      appState.mobileFiltersDrawer.open = false;
+    }
     syncTopbarButtons();
+    renderMobileBuilderFiltersDrawer();
     renderMobileScanViewer();
   });
 

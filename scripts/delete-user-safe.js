@@ -7,6 +7,14 @@ const { DatabaseSync } = require("node:sqlite");
 
 const CARD_TYPES = ["creatures", "attacks", "battlegear", "locations", "mugic"];
 const LOCATION_TRIBE_KEYS = ["overworld", "underworld", "danian", "mipedian", "marrillian", "tribeless"];
+const LOCATION_CLIMATE_KEYS = ["ensolarado", "chuvoso", "ventania", "tempestade", "nublado"];
+const LOCATION_CLIMATE_LABELS = {
+  ensolarado: "Ensolarado",
+  chuvoso: "Chuvoso",
+  ventania: "Ventania",
+  tempestade: "Tempestade",
+  nublado: "Nublado",
+};
 const QUEST_ALLOWED_SET_KEYS = new Set(["dop", "zoth", "ss"]);
 const DROME_IDS = ["crellan", "hotekk", "amzen", "oron", "tirasis", "imthor", "chirrul", "beta"];
 const PERIM_RUNTIME_CONFIG_NAMESPACE = "perim_runtime_config";
@@ -207,6 +215,21 @@ function normalizeLocationTribeKey(value) {
   if (token.includes("danian")) return "danian";
   if (token.includes("mipedian") || token.includes("miprdian") || token.includes("maipidian")) return "mipedian";
   if (token.includes("marrillian") || token.includes("marrilian")) return "marrillian";
+  return "";
+}
+
+function normalizeLocationClimateKey(value) {
+  const token = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+  if (!token) return "";
+  if (token.includes("ensolar")) return "ensolarado";
+  if (token.includes("chuv")) return "chuvoso";
+  if (token.includes("vent")) return "ventania";
+  if (token.includes("tempest")) return "tempestade";
+  if (token.includes("nublad")) return "nublado";
   return "";
 }
 
@@ -461,6 +484,17 @@ function ensurePerimLocationTribesTable(db) {
   db.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_tribes_tribe ON perim_location_tribes(tribe_key, updated_at DESC);");
 }
 
+function ensurePerimLocationClimateRulesTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS perim_location_climate_rules (
+      location_card_id TEXT NOT NULL PRIMARY KEY,
+      allowed_climates_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_climate_rules_updated ON perim_location_climate_rules(updated_at DESC);");
+}
+
 function ensureKvStoreTable(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS kv_store (
@@ -664,6 +698,120 @@ function sanitizeLocationTribeDeletePayload(db, raw) {
     throw new Error(`Local invalido: ${locationCardId}`);
   }
   return { locationCardId };
+}
+
+function sanitizeLocationClimateSetPayload(db, raw) {
+  const locationCardId = String(raw?.locationCardId || "").trim();
+  if (!locationCardId) {
+    throw new Error("locationCardId e obrigatorio.");
+  }
+  const locationCard = getCatalogCardById(db, locationCardId);
+  if (!locationCard || locationCard.type !== "locations") {
+    throw new Error(`Local invalido: ${locationCardId}`);
+  }
+  const input = Array.isArray(raw?.allowedClimates) ? raw.allowedClimates : [];
+  const normalized = [...new Set(
+    input
+      .map((entry) => normalizeLocationClimateKey(entry))
+      .filter((entry) => LOCATION_CLIMATE_KEYS.includes(entry))
+  )];
+  if (!normalized.length) {
+    throw new Error("Selecione ao menos 1 clima permitido para o local.");
+  }
+  return { locationCardId, allowedClimates: normalized };
+}
+
+function sanitizeLocationClimateDeletePayload(db, raw) {
+  const locationCardId = String(raw?.locationCardId || "").trim();
+  if (!locationCardId) {
+    throw new Error("locationCardId e obrigatorio.");
+  }
+  const locationCard = getCatalogCardById(db, locationCardId);
+  if (!locationCard || locationCard.type !== "locations") {
+    throw new Error(`Local invalido: ${locationCardId}`);
+  }
+  return { locationCardId };
+}
+
+function normalizeAllowedClimateKeys(raw) {
+  const values = Array.isArray(raw) ? raw : [];
+  return [...new Set(
+    values
+      .map((entry) => normalizeLocationClimateKey(entry))
+      .filter((entry) => LOCATION_CLIMATE_KEYS.includes(entry))
+  )];
+}
+
+function listLocationClimateRules(db) {
+  ensurePerimLocationClimateRulesTable(db);
+  const rows = db
+    .prepare(`
+      SELECT
+        r.location_card_id,
+        r.allowed_climates_json,
+        r.updated_at,
+        c.name AS location_name,
+        c.set_name AS location_set
+      FROM perim_location_climate_rules r
+      LEFT JOIN card_catalog c ON c.id = r.location_card_id
+      ORDER BY c.name COLLATE NOCASE, r.location_card_id
+    `)
+    .all();
+  return rows.map((row) => {
+    let parsed = [];
+    try {
+      parsed = JSON.parse(String(row.allowed_climates_json || "[]"));
+    } catch {}
+    const allowedClimateKeys = normalizeAllowedClimateKeys(parsed);
+    return {
+      locationCardId: String(row.location_card_id || ""),
+      locationName: String(row.location_name || row.location_card_id || ""),
+      locationSet: String(row.location_set || ""),
+      allowedClimateKeys,
+      allowedClimateLabels: allowedClimateKeys.map((entry) => LOCATION_CLIMATE_LABELS[entry] || entry),
+      updatedAt: String(row.updated_at || ""),
+    };
+  });
+}
+
+function normalizeClimateFromState(raw) {
+  const key = normalizeLocationClimateKey(raw);
+  return key || "nublado";
+}
+
+function climateLabelFromKey(climateKey) {
+  return LOCATION_CLIMATE_LABELS[normalizeLocationClimateKey(climateKey)] || "Nublado";
+}
+
+function reconcileLocationStateClimateRule(db, locationCardId, allowedClimateKeys) {
+  const allowed = normalizeAllowedClimateKeys(allowedClimateKeys);
+  if (!allowed.length) {
+    return null;
+  }
+  const row = db
+    .prepare("SELECT climate FROM perim_location_state WHERE location_id = ? LIMIT 1")
+    .get(locationCardId);
+  if (!row) {
+    return null;
+  }
+  const currentKey = normalizeClimateFromState(row.climate);
+  if (allowed.includes(currentKey)) {
+    return {
+      changed: false,
+      climate: climateLabelFromKey(currentKey),
+    };
+  }
+  const replacement = allowed[Math.floor(Math.random() * allowed.length)] || "nublado";
+  const replacementLabel = climateLabelFromKey(replacement);
+  db.prepare("UPDATE perim_location_state SET climate = ?, updated_at = ? WHERE location_id = ?").run(
+    replacementLabel,
+    nowIso(),
+    locationCardId
+  );
+  return {
+    changed: true,
+    climate: replacementLabel,
+  };
 }
 
 function listLocationTribes(db) {
@@ -1687,6 +1835,58 @@ function run() {
         locationCardId: sanitized.locationCardId,
         deleted: Number(removed?.changes || 0) > 0,
         locationTribes: listLocationTribes(db),
+      });
+      return;
+    }
+
+    if (args.action === "location-climates-list") {
+      jsonOk({
+        climateKeys: LOCATION_CLIMATE_KEYS,
+        locationClimateRules: listLocationClimateRules(db),
+      });
+      return;
+    }
+
+    if (args.action === "location-climate-set") {
+      ensurePerimLocationClimateRulesTable(db);
+      const payload = decodePayload(args);
+      const sanitized = sanitizeLocationClimateSetPayload(db, payload);
+      const updatedAt = nowIso();
+      let appliedClimateUpdate = null;
+      withTransaction(db, () => {
+        db.prepare(`
+          INSERT INTO perim_location_climate_rules (location_card_id, allowed_climates_json, updated_at)
+          VALUES (?, ?, ?)
+          ON CONFLICT(location_card_id) DO UPDATE SET
+            allowed_climates_json = excluded.allowed_climates_json,
+            updated_at = excluded.updated_at
+        `).run(
+          sanitized.locationCardId,
+          JSON.stringify(sanitized.allowedClimates),
+          updatedAt
+        );
+        appliedClimateUpdate = reconcileLocationStateClimateRule(db, sanitized.locationCardId, sanitized.allowedClimates);
+      });
+      jsonOk({
+        locationCardId: sanitized.locationCardId,
+        allowedClimates: sanitized.allowedClimates,
+        appliedClimateUpdate,
+        locationClimateRules: listLocationClimateRules(db),
+      });
+      return;
+    }
+
+    if (args.action === "location-climate-delete") {
+      ensurePerimLocationClimateRulesTable(db);
+      const payload = decodePayload(args);
+      const sanitized = sanitizeLocationClimateDeletePayload(db, payload);
+      const removed = withTransaction(db, () =>
+        db.prepare("DELETE FROM perim_location_climate_rules WHERE location_card_id = ?").run(sanitized.locationCardId)
+      );
+      jsonOk({
+        locationCardId: sanitized.locationCardId,
+        deleted: Number(removed?.changes || 0) > 0,
+        locationClimateRules: listLocationClimateRules(db),
       });
       return;
     }

@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=9" />
+    <link rel="stylesheet" href="css/styles.css?v=10" />
     <link rel="stylesheet" href="css/music.css?v=7" />
     <script src="config.js"></script>
     <script>
@@ -34,6 +34,7 @@
       </div>
       <div class="topbar-actions">
         <button id="battle-menu-btn" class="ghost-btn">Menu</button>
+        <button id="mobile-builder-filters-toggle" class="ghost-btn hidden" type="button">Filtros</button>
         <button id="mobile-scan-viewer-toggle" class="ghost-btn hidden" type="button">Visualizacao</button>
         <button id="battle-forfeit" class="ghost-btn">Desistir</button>
       </div>
@@ -47,7 +48,16 @@
             <div class="row">
               <h2 id="library-title">Scans</h2>
               <small id="scans-stock-summary">Scans: -</small>
-              <div class="builder-filters">
+              <div id="builder-filters-drawer-backdrop" class="builder-filters-drawer-backdrop hidden" aria-hidden="true"></div>
+              <div id="builder-filters-drawer" class="builder-filters-drawer">
+                <div class="builder-filters-drawer-head">
+                  <strong id="builder-filters-drawer-title">Filtros de Scans</strong>
+                  <div class="builder-filters-drawer-actions">
+                    <button id="builder-filters-drawer-apply" type="button" class="ghost-btn">Aplicar</button>
+                    <button id="builder-filters-drawer-close" type="button" class="ghost-btn">Fechar</button>
+                  </div>
+                </div>
+                <div class="builder-filters">
                 <article class="builder-filter-card">
                   <h3>Busca &amp; Tipo</h3>
                   <div class="builder-filter-row">
@@ -152,6 +162,7 @@
                     <input id="speed-min" type="number" min="0" placeholder="S>= " />
                   </div>
                 </article>
+              </div>
               </div>
             </div>
             <div id="card-library" class="card-list"></div>
@@ -561,7 +572,7 @@
     <div id="hover-preview" class="hover-preview"></div>
     <div id="fps-counter" class="fps-counter hidden" aria-live="polite">FPS: --</div>
 
-    <script type="module" src="js/app.js?v=10"></script>
+    <script type="module" src="js/app.js?v=11"></script>
   </body>
 </html>
 

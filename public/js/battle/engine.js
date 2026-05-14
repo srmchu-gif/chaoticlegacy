@@ -1,4 +1,4 @@
-import {
+﻿import {
   ELEMENT_KEYS,
   clamp,
   createBoardState,
@@ -26,6 +26,14 @@ const PLAYER_SLOT_LETTERS = {
   0: ["A", "B", "C", "D", "E", "F"],
   1: ["L", "J", "K", "G", "H", "I"],
 };
+const BOARD_LETTER_ORDER = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+const BOARD_LETTER_INDEX = Object.freeze(
+  Object.fromEntries(BOARD_LETTER_ORDER.map((letter, index) => [letter, index]))
+);
+const SIMULTANEOUS_TRIGGER_SOURCE_ORDER = Object.freeze(["location", "battlegear", "creature", "mugic"]);
+const SIMULTANEOUS_TRIGGER_SOURCE_INDEX = Object.freeze(
+  Object.fromEntries(SIMULTANEOUS_TRIGGER_SOURCE_ORDER.map((entry, index) => [entry, index]))
+);
 const ONE_VS_ONE_START_LETTERS = {
   0: "E",
   1: "H",
@@ -758,7 +766,7 @@ export const PHASE_LABEL = {
   finished: "Finished",
 };
 
-/* ─── Simple event emitter for UI integration ─── */
+/* â”€â”€â”€ Simple event emitter for UI integration â”€â”€â”€ */
 const _listeners = new Map();
 export function onBattleEvent(eventName, callback) {
   if (!_listeners.has(eventName)) _listeners.set(eventName, []);
@@ -1715,7 +1723,7 @@ function moveUnitToAdjacentEmptySlot(board, playerIndex, fromSlot, toSlot) {
   return true;
 }
 
-/* ─── Move attacker into the slot vacated by a defeated defender ─── */
+/* â”€â”€â”€ Move attacker into the slot vacated by a defeated defender â”€â”€â”€ */
 function moveAttackerToDefeatedDefenderSlot(board, battle) {
   const attackerIndex = board.activePlayerIndex;
   const defenderLetter = normalizeBoardLetter(board.engagement.defenderLetter);
@@ -1733,7 +1741,7 @@ function moveAttackerToDefeatedDefenderSlot(board, battle) {
   registerUnitMoveUsage(battle, attacker, 1);
 }
 
-/* ─── Post-combat movement: AI auto-moves creatures to better positions ─── */
+/* â”€â”€â”€ Post-combat movement: AI auto-moves creatures to better positions â”€â”€â”€ */
 function autoPostCombatMoves(board, battle) {
   const activeIndex = board.activePlayerIndex;
   const player = board.players[activeIndex];
@@ -7433,6 +7441,38 @@ function targetPlayersFromScope(sourcePlayerIndex, scopeHint, sourceText = "") {
   return [sourcePlayerIndex];
 }
 
+function boardLetterIndex(letter) {
+  const normalized = String(letter || "").toUpperCase();
+  return Number.isInteger(BOARD_LETTER_INDEX[normalized]) ? BOARD_LETTER_INDEX[normalized] : 999;
+}
+
+function sortTargetCandidatesForDisplay(board, candidates = []) {
+  const list = Array.isArray(candidates) ? candidates.slice() : [];
+  list.sort((left, right) => {
+    const leftEngaged = left?.type === "creature" || left?.type === "battlegear"
+      ? Number(isUnitCurrentlyEngaged(board, Number(left.playerIndex || 0), left.unitId ? findUnitById(board, left.unitId)?.unit : null))
+      : 0;
+    const rightEngaged = right?.type === "creature" || right?.type === "battlegear"
+      ? Number(isUnitCurrentlyEngaged(board, Number(right.playerIndex || 0), right.unitId ? findUnitById(board, right.unitId)?.unit : null))
+      : 0;
+    if (leftEngaged !== rightEngaged) {
+      return rightEngaged - leftEngaged;
+    }
+    const leftLetterOrder = boardLetterIndex(left?.letter);
+    const rightLetterOrder = boardLetterIndex(right?.letter);
+    if (leftLetterOrder !== rightLetterOrder) {
+      return leftLetterOrder - rightLetterOrder;
+    }
+    const leftSlot = Number.isInteger(left?.slot) ? Number(left.slot) : 99;
+    const rightSlot = Number.isInteger(right?.slot) ? Number(right.slot) : 99;
+    if (leftSlot !== rightSlot) {
+      return leftSlot - rightSlot;
+    }
+    return String(left?.label || "").localeCompare(String(right?.label || ""), "pt-BR", { sensitivity: "base" });
+  });
+  return list;
+}
+
 function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourceUnit) {
   const board = battle.board;
   const spec = effectTargetSpec(effect);
@@ -7502,7 +7542,7 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
         });
       });
     });
-    return candidates;
+    return sortTargetCandidatesForDisplay(board, candidates);
   }
 
   if (spec.type === "battlegear") {
@@ -7534,7 +7574,7 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
         });
       });
     });
-    return candidates;
+    return sortTargetCandidatesForDisplay(board, candidates);
   }
 
   if (spec.type === "attack") {
@@ -7563,7 +7603,7 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
         card: entry.attackCard,
       });
     });
-    return candidates;
+    return sortTargetCandidatesForDisplay(board, candidates);
   }
 
   if (spec.type === "player") {
@@ -7575,7 +7615,7 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
         playerIndex,
       });
     });
-    return candidates;
+    return sortTargetCandidatesForDisplay(board, candidates);
   }
 
   if (spec.type === "creature_discard") {
@@ -7614,7 +7654,7 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
         });
       });
     });
-    return candidates;
+    return sortTargetCandidatesForDisplay(board, candidates);
   }
 
   if (spec.type === "mugic_discard") {
@@ -7633,7 +7673,7 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
         });
       });
     });
-    return candidates;
+    return sortTargetCandidatesForDisplay(board, candidates);
   }
 
   if (spec.type === "mugic") {
@@ -7668,7 +7708,7 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
         card: null,
       });
     });
-    return candidates;
+    return sortTargetCandidatesForDisplay(board, candidates);
   }
 
   if (spec.type === "location") {
@@ -7694,7 +7734,7 @@ function buildTargetCandidatesForEffect(battle, sourcePlayerIndex, effect, sourc
         card: topCard,
       });
     });
-    return candidates;
+    return sortTargetCandidatesForDisplay(board, candidates);
   }
 
   return [];
@@ -7713,6 +7753,7 @@ function buildTargetStepsForEffects(battle, sourcePlayerIndex, effects, sourceUn
       effectKind: effect.kind,
       label: String(effect.sourceText || effect.kind || "Selecione um alvo"),
       spec,
+      board: battle.board,
       candidates,
     });
   });
@@ -7834,11 +7875,7 @@ function aiPickTargetCandidate(step) {
   if (!step?.candidates?.length) {
     return null;
   }
-  const sorted = [...step.candidates].sort((a, b) => {
-    const aOpp = Number(a.playerIndex === 1);
-    const bOpp = Number(b.playerIndex === 1);
-    return bOpp - aOpp;
-  });
+  const sorted = sortTargetCandidatesForDisplay(step.board, step.candidates);
   return sorted[0];
 }
 
@@ -7858,7 +7895,7 @@ function selectedTargetsForAi(steps) {
       const used = usedByType.get(typeKey) || new Set();
       candidates = candidates.filter((candidate) => !used.has(candidateTargetKey(candidate)));
     }
-    const picked = aiPickTargetCandidate({ ...step, candidates });
+    const picked = aiPickTargetCandidate({ ...step, board: step.board, candidates });
     if (!picked) {
       return null;
     }
@@ -8719,10 +8756,6 @@ function applyPassiveAbilities(battle, forceAutoHuman = false) {
     for (const unit of aliveUnitsForPlayer(board, playerIndex)) {
       const sourceEngaged = isUnitCurrentlyEngaged(board, playerIndex, unit);
       const sourceEffects = [];
-      const creatureEffectBuckets = splitCardEffectsByActivation(activeCreatureCard(unit));
-      sourceEffects.push(
-        ...(creatureEffectBuckets.passive || []).filter((effect) => PASSIVE_EFFECT_KINDS.has(effect.kind))
-      );
       const gearCard = activeGearCard(unit);
       if (gearCard) {
         const gearEffectBuckets = splitCardEffectsByActivation(gearCard);
@@ -8730,6 +8763,10 @@ function applyPassiveAbilities(battle, forceAutoHuman = false) {
           ...(gearEffectBuckets.passive || []).filter((effect) => BATTLEGEAR_PHASE_EFFECT_KINDS.has(effect.kind))
         );
       }
+      const creatureEffectBuckets = splitCardEffectsByActivation(activeCreatureCard(unit));
+      sourceEffects.push(
+        ...(creatureEffectBuckets.passive || []).filter((effect) => PASSIVE_EFFECT_KINDS.has(effect.kind))
+      );
       const applicableEffects = sourceEffects.filter(
         (effect) => sourceEngaged || isGlobalPassiveEffectScope(effect)
       );
@@ -9294,69 +9331,135 @@ function endTurnCleanup(board) {
   });
 }
 
-function queueBeginTurnTriggeredEffects(battle) {
+function compareSourcePriority(a, b) {
+  const aOrder = Number.isInteger(SIMULTANEOUS_TRIGGER_SOURCE_INDEX[a]) ? SIMULTANEOUS_TRIGGER_SOURCE_INDEX[a] : 99;
+  const bOrder = Number.isInteger(SIMULTANEOUS_TRIGGER_SOURCE_INDEX[b]) ? SIMULTANEOUS_TRIGGER_SOURCE_INDEX[b] : 99;
+  return aOrder - bOrder;
+}
+
+function collectBeginTurnTriggerEntries(battle) {
   const board = battle.board;
-  let queued = 0;
-  board.players.forEach((player, playerIndex) => {
-    player.creatures.forEach((unit) => {
-      if (!unit || unit.defeated) {
-        return;
-      }
-      const sources = [
-        { label: unitDisplayName(unit), card: activeCreatureCard(unit), sourceUnitId: unit.unitId },
-        { label: activeGearCard(unit)?.name || "Battlegear", card: activeGearCard(unit), sourceUnitId: unit.unitId },
-      ].filter((source) => source.card);
-      sources.forEach((source) => {
-        const timedEffects = (source.card?.parsedEffects || []).filter(
-          (effect) => String(effect?.timing || "").toLowerCase() === "begin_turn"
-        );
-        if (!timedEffects.length) {
-          return;
-        }
-        const payload = filterCoreEffects(timedEffects, battle, `${source.label} (begin_turn)`);
-        if (!payload.length) {
-          return;
-        }
-        queueStackItem(battle, {
-          kind: "triggered",
-          source: `${source.label} (inicio do turno)`,
-          owner: playerIndex,
-          playerIndex,
-          sourceUnitId: source.sourceUnitId,
-          costsPaid: null,
-          effectPayload: payload,
-          targetsSnapshot: null,
-          effectRef: source.card.id || source.card.name || source.label,
-          timing: "begin_turn",
-        });
-        queued += 1;
-      });
-    });
-  });
+  const entries = [];
 
   if (board.locationCard) {
     const locationEffects = (board.locationCard.parsedEffects || []).filter(
       (effect) => String(effect?.timing || "").toLowerCase() === "begin_turn"
     );
     if (locationEffects.length) {
-      const payload = filterCoreEffects(locationEffects, battle, `Location ${board.locationCard.name}`);
-      if (payload.length) {
-        queueStackItem(battle, {
-          kind: "triggered_location",
-          source: `Location ${board.locationCard.name} (inicio do turno)`,
-          owner: board.activePlayerIndex,
-          playerIndex: board.activePlayerIndex,
-          sourceUnitId: null,
-          costsPaid: null,
-          effectPayload: payload,
-          targetsSnapshot: null,
-          effectRef: board.locationCard.id || board.locationCard.name,
-          timing: "begin_turn",
-        });
-        queued += 1;
-      }
+      entries.push({
+        sourceType: "location",
+        owner: board.activePlayerIndex,
+        playerIndex: board.activePlayerIndex,
+        sourceUnitId: null,
+        sourceLabel: `Location ${board.locationCard.name}`,
+        queueKind: "triggered_location",
+        effectRef: board.locationCard.id || board.locationCard.name,
+        effects: locationEffects,
+      });
     }
   }
+
+  board.players.forEach((player, playerIndex) => {
+    (player.creatures || []).forEach((unit) => {
+      if (!unit || unit.defeated) {
+        return;
+      }
+      const gearCard = activeGearCard(unit);
+      if (gearCard) {
+        const gearEffects = (gearCard.parsedEffects || []).filter(
+          (effect) => String(effect?.timing || "").toLowerCase() === "begin_turn"
+        );
+        if (gearEffects.length) {
+          entries.push({
+            sourceType: "battlegear",
+            owner: playerIndex,
+            playerIndex,
+            sourceUnitId: unit.unitId,
+            sourceLabel: gearCard.name || "Battlegear",
+            queueKind: "triggered",
+            effectRef: gearCard.id || gearCard.name || "battlegear",
+            effects: gearEffects,
+          });
+        }
+      }
+
+      const creatureCard = activeCreatureCard(unit);
+      const creatureEffects = (creatureCard?.parsedEffects || []).filter(
+        (effect) => String(effect?.timing || "").toLowerCase() === "begin_turn"
+      );
+      if (creatureEffects.length) {
+        entries.push({
+          sourceType: "creature",
+          owner: playerIndex,
+          playerIndex,
+          sourceUnitId: unit.unitId,
+          sourceLabel: unitDisplayName(unit),
+          queueKind: "triggered",
+          effectRef: creatureCard?.id || creatureCard?.name || unitDisplayName(unit),
+          effects: creatureEffects,
+        });
+      }
+    });
+
+    (player.mugicSlots || [])
+      .filter((slot) => slot && slot.available && slot.card)
+      .forEach((slot) => {
+        const mugicEffects = (slot.card?.parsedEffects || []).filter(
+          (effect) => String(effect?.timing || "").toLowerCase() === "begin_turn"
+        );
+        if (!mugicEffects.length) {
+          return;
+        }
+        entries.push({
+          sourceType: "mugic",
+          owner: playerIndex,
+          playerIndex,
+          sourceUnitId: null,
+          sourceLabel: slot.card?.name || "Mugic",
+          queueKind: "triggered_mugic",
+          effectRef: slot.card?.id || slot.card?.name || `mugic_slot_${Number(slot.slotIndex || 0)}`,
+          effects: mugicEffects,
+        });
+      });
+  });
+
+  entries.sort((left, right) => {
+    const bySource = compareSourcePriority(left.sourceType, right.sourceType);
+    if (bySource !== 0) {
+      return bySource;
+    }
+    const byPlayer = Number(left.playerIndex || 0) - Number(right.playerIndex || 0);
+    if (byPlayer !== 0) {
+      return byPlayer;
+    }
+    return String(left.sourceLabel || "").localeCompare(String(right.sourceLabel || ""), "pt-BR", { sensitivity: "base" });
+  });
+  return entries;
+}
+
+function queueBeginTurnTriggeredEffects(battle) {
+  let queued = 0;
+  const triggerEntries = collectBeginTurnTriggerEntries(battle);
+  triggerEntries.forEach((entry) => {
+    const payload = filterCoreEffects(entry.effects || [], battle, `${entry.sourceLabel} (begin_turn)`);
+    if (!payload.length) {
+      return;
+    }
+    queueStackItem(battle, {
+      kind: entry.queueKind,
+      source: `${entry.sourceLabel} (inicio do turno)`,
+      owner: entry.owner,
+      playerIndex: entry.playerIndex,
+      sourceUnitId: entry.sourceUnitId,
+      costsPaid: null,
+      effectPayload: payload,
+      targetsSnapshot: null,
+      effectRef: entry.effectRef,
+      timing: "begin_turn",
+      sourceType: entry.sourceType,
+    });
+    queued += 1;
+  });
 
   return queued;
 }
@@ -10574,7 +10677,7 @@ function applyDefenderRedirect(battle, selectedSlot) {
     currentDefender.positionLetter = selectedLetter;
     selectedUnit.positionLetter = currentLetter;
     battle.log.push(
-      `Defender: ${unitDisplayName(selectedUnit)} troca de lugar com ${unitDisplayName(currentDefender)} (${selectedLetter}↔${currentLetter}).`
+      `Defender: ${unitDisplayName(selectedUnit)} troca de lugar com ${unitDisplayName(currentDefender)} (${selectedLetter}â†”${currentLetter}).`
     );
   }
   board.engagement.defenderSlot = selectedSlot;
@@ -10870,3 +10973,4 @@ export function debugBuildTargetCandidatesForEffect(battle, sourcePlayerIndex, e
     sourceEntry?.unit || null
   );
 }
+

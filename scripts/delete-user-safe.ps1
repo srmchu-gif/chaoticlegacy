@@ -217,6 +217,7 @@ $script:Users = @()
 $script:EventsCache = @()
 $script:QuestsCache = @()
 $script:LocationTribesCache = @()
+$script:LocationClimateRulesCache = @()
 $script:ScansCache = @()
 $script:ProfileRankedSnapshot = $null
 $script:PerimSnapshot = $null
@@ -314,6 +315,10 @@ $tab.Controls.Add($tabPerimState)
 $tabPerimConfig = New-Object System.Windows.Forms.TabPage
 $tabPerimConfig.Text = "Config PERIM"
 $tab.Controls.Add($tabPerimConfig)
+
+$tabLocationClimateRules = New-Object System.Windows.Forms.TabPage
+$tabLocationClimateRules.Text = "Climas por Local"
+$tab.Controls.Add($tabLocationClimateRules)
 
 $tabLogs = New-Object System.Windows.Forms.TabPage
 $tabLogs.Text = "Logs"
@@ -1444,6 +1449,101 @@ $lblPerimConfigHint.Size = New-Object System.Drawing.Size(560, 22)
 $lblPerimConfigHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
 $perimConfigPanel.Controls.Add($lblPerimConfigHint)
 
+# Climas por Local tab
+$climateRulesSplit = New-Object System.Windows.Forms.SplitContainer
+$climateRulesSplit.Dock = "Fill"
+$climateRulesSplit.Orientation = "Vertical"
+Set-SplitterLayoutSafe -Splitter $climateRulesSplit -Panel1Min 460 -Panel2Min 420 -PreferredDistance 640
+$climateRulesSplit.Panel1.Padding = New-Object System.Windows.Forms.Padding(4)
+$climateRulesSplit.Panel2.Padding = New-Object System.Windows.Forms.Padding(4)
+$tabLocationClimateRules.Controls.Add($climateRulesSplit)
+
+$climateRulesGrid = New-Object System.Windows.Forms.DataGridView
+$climateRulesGrid.Dock = "Fill"
+$climateRulesGrid.ReadOnly = $true
+$climateRulesGrid.AllowUserToAddRows = $false
+$climateRulesGrid.AllowUserToDeleteRows = $false
+$climateRulesGrid.RowHeadersVisible = $false
+$climateRulesGrid.SelectionMode = "FullRowSelect"
+$climateRulesGrid.MultiSelect = $false
+$climateRulesGrid.ColumnCount = 5
+$climateRulesGrid.Columns[0].Name = "Local"
+$climateRulesGrid.Columns[1].Name = "ID"
+$climateRulesGrid.Columns[2].Name = "Set"
+$climateRulesGrid.Columns[3].Name = "Climas permitidos"
+$climateRulesGrid.Columns[4].Name = "Atualizado"
+$climateRulesSplit.Panel1.Controls.Add($climateRulesGrid)
+Apply-GridResponsiveStyle -Grid $climateRulesGrid
+
+$climateRulesPanel = New-Object System.Windows.Forms.Panel
+$climateRulesPanel.Dock = "Fill"
+$climateRulesPanel.AutoScroll = $true
+$climateRulesSplit.Panel2.Controls.Add($climateRulesPanel)
+
+$lblClimateRulesTitle = New-Object System.Windows.Forms.Label
+$lblClimateRulesTitle.Text = "Allowlist de Climas por Local (PERIM)"
+$lblClimateRulesTitle.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$lblClimateRulesTitle.Location = New-Object System.Drawing.Point(12, 10)
+$lblClimateRulesTitle.Size = New-Object System.Drawing.Size(480, 24)
+$climateRulesPanel.Controls.Add($lblClimateRulesTitle)
+
+$lblClimateRuleLocation = New-Object System.Windows.Forms.Label
+$lblClimateRuleLocation.Text = "Local:"
+$lblClimateRuleLocation.Location = New-Object System.Drawing.Point(12, 40)
+$lblClimateRuleLocation.Size = New-Object System.Drawing.Size(120, 20)
+$climateRulesPanel.Controls.Add($lblClimateRuleLocation)
+
+$comboClimateRuleLocation = New-Object System.Windows.Forms.ComboBox
+$comboClimateRuleLocation.DropDownStyle = "DropDownList"
+$comboClimateRuleLocation.Location = New-Object System.Drawing.Point(12, 62)
+$comboClimateRuleLocation.Size = New-Object System.Drawing.Size(520, 28)
+$comboClimateRuleLocation.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$climateRulesPanel.Controls.Add($comboClimateRuleLocation)
+
+$lblClimateRuleStatus = New-Object System.Windows.Forms.Label
+$lblClimateRuleStatus.Text = "Status: sem regra (todos os climas permitidos)."
+$lblClimateRuleStatus.Location = New-Object System.Drawing.Point(12, 94)
+$lblClimateRuleStatus.Size = New-Object System.Drawing.Size(520, 20)
+$lblClimateRuleStatus.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
+$climateRulesPanel.Controls.Add($lblClimateRuleStatus)
+
+$lblClimateChecklist = New-Object System.Windows.Forms.Label
+$lblClimateChecklist.Text = "Climas permitidos:"
+$lblClimateChecklist.Location = New-Object System.Drawing.Point(12, 118)
+$lblClimateChecklist.Size = New-Object System.Drawing.Size(220, 20)
+$climateRulesPanel.Controls.Add($lblClimateChecklist)
+
+$checkedClimateKeys = New-Object System.Windows.Forms.CheckedListBox
+$checkedClimateKeys.Location = New-Object System.Drawing.Point(12, 140)
+$checkedClimateKeys.Size = New-Object System.Drawing.Size(260, 120)
+$checkedClimateKeys.CheckOnClick = $true
+$climateRulesPanel.Controls.Add($checkedClimateKeys)
+
+$btnClimateRuleSave = New-Object System.Windows.Forms.Button
+$btnClimateRuleSave.Text = "Salvar"
+$btnClimateRuleSave.Location = New-Object System.Drawing.Point(12, 272)
+$btnClimateRuleSave.Size = New-Object System.Drawing.Size(100, 30)
+$climateRulesPanel.Controls.Add($btnClimateRuleSave)
+
+$btnClimateRuleDelete = New-Object System.Windows.Forms.Button
+$btnClimateRuleDelete.Text = "Remover regra"
+$btnClimateRuleDelete.Location = New-Object System.Drawing.Point(118, 272)
+$btnClimateRuleDelete.Size = New-Object System.Drawing.Size(120, 30)
+$climateRulesPanel.Controls.Add($btnClimateRuleDelete)
+
+$btnClimateRuleRefresh = New-Object System.Windows.Forms.Button
+$btnClimateRuleRefresh.Text = "Atualizar"
+$btnClimateRuleRefresh.Location = New-Object System.Drawing.Point(244, 272)
+$btnClimateRuleRefresh.Size = New-Object System.Drawing.Size(100, 30)
+$climateRulesPanel.Controls.Add($btnClimateRuleRefresh)
+
+$lblClimateRuleHint = New-Object System.Windows.Forms.Label
+$lblClimateRuleHint.Text = "Sem regra: local usa todos os climas. Ao salvar, a regra aplica imediatamente."
+$lblClimateRuleHint.Location = New-Object System.Drawing.Point(12, 308)
+$lblClimateRuleHint.Size = New-Object System.Drawing.Size(560, 40)
+$lblClimateRuleHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
+$climateRulesPanel.Controls.Add($lblClimateRuleHint)
+
 # Logs tab
 $logsPanel = New-Object System.Windows.Forms.Panel
 $logsPanel.Dock = "Fill"
@@ -1520,6 +1620,28 @@ function Build-LocationTribeKeyItems {
   )
 }
 
+function Get-ClimateDisplayLabel {
+  param([string]$ClimateKey)
+  switch ($ClimateKey) {
+    "ensolarado" { return "Ensolarado" }
+    "chuvoso" { return "Chuvoso" }
+    "ventania" { return "Ventania" }
+    "tempestade" { return "Tempestade" }
+    "nublado" { return "Nublado" }
+    default { return [string]$ClimateKey }
+  }
+}
+
+function Build-LocationClimateItems {
+  return @(
+    (New-DisplayItem -Label "Ensolarado" -Value "ensolarado")
+    (New-DisplayItem -Label "Chuvoso" -Value "chuvoso")
+    (New-DisplayItem -Label "Ventania" -Value "ventania")
+    (New-DisplayItem -Label "Tempestade" -Value "tempestade")
+    (New-DisplayItem -Label "Nublado" -Value "nublado")
+  )
+}
+
 function Build-DromeItems {
   return @(
     (New-DisplayItem -Label "Crellan" -Value "crellan")
@@ -1570,6 +1692,62 @@ function Load-LocationTribes {
     )
   }
   Set-Status "Tribos de locais carregadas."
+}
+
+function Set-CheckedClimateSelections {
+  param([string[]]$ClimateKeys)
+  $selected = @($ClimateKeys | ForEach-Object { [string]$_ })
+  for ($idx = 0; $idx -lt $checkedClimateKeys.Items.Count; $idx += 1) {
+    $item = $checkedClimateKeys.Items[$idx]
+    $value = [string]$item.Value
+    $checkedClimateKeys.SetItemChecked($idx, ($selected -contains $value))
+  }
+}
+
+function Collect-CheckedClimateSelections {
+  $selected = @()
+  foreach ($item in $checkedClimateKeys.CheckedItems) {
+    $value = [string]$item.Value
+    if (-not [string]::IsNullOrWhiteSpace($value) -and -not ($selected -contains $value)) {
+      $selected += $value
+    }
+  }
+  return @($selected)
+}
+
+function Load-LocationClimateRules {
+  Set-Status "Carregando regras de climas por local..."
+  $payload = Invoke-AdminEngine -Action "location-climates-list"
+  $script:LocationClimateRulesCache = @($payload.locationClimateRules)
+  $climateRulesGrid.Rows.Clear()
+  foreach ($entry in $script:LocationClimateRulesCache) {
+    $climateLabels = @()
+    foreach ($k in @($entry.allowedClimateKeys)) {
+      $climateLabels += (Get-ClimateDisplayLabel -ClimateKey ([string]$k))
+    }
+    [void]$climateRulesGrid.Rows.Add(
+      [string]$entry.locationName,
+      [string]$entry.locationCardId,
+      [string]$entry.locationSet,
+      ($climateLabels -join ", "),
+      [string]$entry.updatedAt
+    )
+  }
+  $selectedLocationCardId = Get-SelectedValue -Combo $comboClimateRuleLocation
+  if ($selectedLocationCardId) {
+    $entry = $script:LocationClimateRulesCache | Where-Object { [string]$_.locationCardId -eq $selectedLocationCardId } | Select-Object -First 1
+    if ($entry) {
+      Set-CheckedClimateSelections -ClimateKeys @($entry.allowedClimateKeys)
+      $lblClimateRuleStatus.Text = "Status: regra ativa para este local."
+    } else {
+      Set-CheckedClimateSelections -ClimateKeys @()
+      $lblClimateRuleStatus.Text = "Status: sem regra (todos os climas permitidos)."
+    }
+  } else {
+    Set-CheckedClimateSelections -ClimateKeys @()
+    $lblClimateRuleStatus.Text = "Status: sem regra (todos os climas permitidos)."
+  }
+  Set-Status "Regras de climas carregadas."
 }
 
 function Load-Users {
@@ -2297,6 +2475,33 @@ $locationTribesGrid.Add_SelectionChanged({
   }
 })
 
+$climateRulesGrid.Add_SelectionChanged({
+  if ($climateRulesGrid.SelectedRows.Count -lt 1) { return }
+  $locationCardId = [string]$climateRulesGrid.SelectedRows[0].Cells[1].Value
+  if (-not [string]::IsNullOrWhiteSpace($locationCardId)) {
+    $comboClimateRuleLocation.SelectedValue = $locationCardId
+  }
+})
+
+$comboClimateRuleLocation.Add_SelectedIndexChanged({
+  try {
+    $locationCardId = Get-SelectedValue -Combo $comboClimateRuleLocation
+    if (-not $locationCardId) {
+      Set-CheckedClimateSelections -ClimateKeys @()
+      $lblClimateRuleStatus.Text = "Status: sem regra (todos os climas permitidos)."
+      return
+    }
+    $entry = $script:LocationClimateRulesCache | Where-Object { [string]$_.locationCardId -eq $locationCardId } | Select-Object -First 1
+    if ($entry) {
+      Set-CheckedClimateSelections -ClimateKeys @($entry.allowedClimateKeys)
+      $lblClimateRuleStatus.Text = "Status: regra ativa para este local."
+    } else {
+      Set-CheckedClimateSelections -ClimateKeys @()
+      $lblClimateRuleStatus.Text = "Status: sem regra (todos os climas permitidos)."
+    }
+  } catch {}
+})
+
 $btnEventSave.Add_Click({
   try {
     $payload = Build-EventPayload
@@ -2412,6 +2617,62 @@ $btnLocationTribeDelete.Add_Click({
     Load-LocationTribes
   } catch {
     [System.Windows.Forms.MessageBox]::Show("Falha ao remover tribo do local: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnClimateRuleRefresh.Add_Click({
+  try { Load-LocationClimateRules } catch {
+    [System.Windows.Forms.MessageBox]::Show("Erro ao atualizar regras de clima: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnClimateRuleSave.Add_Click({
+  try {
+    $locationCardId = Get-SelectedValue -Combo $comboClimateRuleLocation
+    if (-not $locationCardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um local para salvar a regra de clima.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $allowedClimates = @(Collect-CheckedClimateSelections)
+    if (-not $allowedClimates -or $allowedClimates.Count -lt 1) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione ao menos 1 clima permitido.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $payload = @{
+      locationCardId = $locationCardId
+      allowedClimates = $allowedClimates
+    }
+    $op = Invoke-MutatingOperation -OperationName "location-climate-set" -Target ("location-climate:" + $locationCardId) -ActionBlock {
+      Invoke-AdminEngine -Action "location-climate-set" -Payload $payload
+    }
+    $climateUpdateText = ""
+    if ($op.result.appliedClimateUpdate -and [bool]$op.result.appliedClimateUpdate.changed) {
+      $climateUpdateText = "`r`nClima atual do local foi recalculado para: $([string]$op.result.appliedClimateUpdate.climate)"
+    }
+    [System.Windows.Forms.MessageBox]::Show("Regra de clima salva.$climateUpdateText`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-LocationClimateRules
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao salvar regra de clima: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnClimateRuleDelete.Add_Click({
+  try {
+    $locationCardId = Get-SelectedValue -Combo $comboClimateRuleLocation
+    if (-not $locationCardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um local para remover a regra de clima.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $confirm = [System.Windows.Forms.MessageBox]::Show("Remover regra de clima deste local? (volta para todos permitidos)", "Confirmar", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question)
+    if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    $payload = @{ locationCardId = $locationCardId }
+    $op = Invoke-MutatingOperation -OperationName "location-climate-delete" -Target ("location-climate:" + $locationCardId) -ActionBlock {
+      Invoke-AdminEngine -Action "location-climate-delete" -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Regra de clima removida.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-LocationClimateRules
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao remover regra de clima: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
   }
 })
 
@@ -2816,6 +3077,7 @@ function Apply-TabSplitLayoutDefaults {
   Set-SplitterLayoutSafe -Splitter $profileBody -Panel1Min 460 -Panel2Min 320 -PreferredDistance 640
   Set-SplitterLayoutSafe -Splitter $perimBody -Panel1Min 220 -Panel2Min 160 -PreferredDistance 330
   Set-SplitterLayoutSafe -Splitter $perimUpperSplit -Panel1Min 360 -Panel2Min 320 -PreferredDistance 600
+  Set-SplitterLayoutSafe -Splitter $climateRulesSplit -Panel1Min 460 -Panel2Min 420 -PreferredDistance 640
 }
 
 $form.Add_Shown({ Apply-TabSplitLayoutDefaults })
@@ -2840,6 +3102,13 @@ try {
   Set-ComboItems -Combo $comboQuestTargetLocation -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboLocationTribeLocation -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboLocationTribeKey -Items (Build-LocationTribeKeyItems)
+  Set-ComboItems -Combo $comboClimateRuleLocation -Items (Build-LocationItems)
+  $checkedClimateKeys.Items.Clear()
+  foreach ($item in (Build-LocationClimateItems)) {
+    [void]$checkedClimateKeys.Items.Add($item)
+  }
+  $checkedClimateKeys.DisplayMember = "Label"
+  $checkedClimateKeys.ValueMember = "Value"
   Set-ComboItems -Combo $comboScansType -Items (Build-ScansTypeItems)
   Set-ComboItems -Combo $comboGrantCardType -Items $typeItems
   Set-ComboItems -Combo $comboProfileDrome -Items (Build-DromeItems)
@@ -2859,6 +3128,7 @@ try {
   }
   Load-Events
   Load-LocationTribes
+  Load-LocationClimateRules
   Load-Quests
   Load-PerimConfig
   Load-Logs

@@ -2,6 +2,28 @@
 
 Human-readable mirror of `effects-registry.json`.
 
+## Combat Runtime Contract
+- Priority window: official.
+- Simultaneous trigger enqueue order: `Location > Battlegear > Creature > Mugic`.
+- Stack resolution: LIFO.
+- Targeting: sequential; repeat target only blocked when text says `another target`.
+- Requirements: validated at resolution.
+- Costs: atomic (no partial payment).
+- Negation: no cost refund.
+- Unknown/unparsed kinds: no-op + technical log.
+
+## DOP/ZOTH/SS Checklist (runtime audit)
+- Parser coverage: in progress (tracked via matrix scripts).
+- Target/cost/priority/context review: in progress.
+- Card-by-card tracker: `references/dop-zoth-ss-checklist.md`.
+- Per-card closure format:
+  - `parser`: ok/gap
+  - `target`: ok/gap
+  - `cost`: ok/gap
+  - `priority`: ok/gap
+  - `runtime`: ok/gap
+  - `tested`: ok/gap
+
 ## ACTIVATED_ABILITY
 - Abilities with explicit cost (`MC`, `Expend`, `Discard`, `Sacrifice`).
 - Triggered only by controller action in priority window.

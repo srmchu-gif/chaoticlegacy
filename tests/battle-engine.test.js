@@ -1828,3 +1828,28 @@ test("texto com you can target the same Creature permite repetir alvo", async ()
   const accepted = engine.chooseEffectTarget(battle, sharedCandidate.id);
   assert.equal(accepted, true);
 });
+
+test("debugBuildTargetCandidatesForEffect prioriza engajados e ordem de tabuleiro", async () => {
+  const engine = await loadEngine();
+  const battle = engine.createBattleState(makeDeck("TA"), makeDeck("TB"), { mode: "casual" });
+  battle.board.engagement.attackerSlot = 0;
+  battle.board.engagement.defenderSlot = 0;
+  battle.board.engagement.attackerLetter = "A";
+  battle.board.engagement.defenderLetter = "L";
+
+  const candidates = engine.debugBuildTargetCandidatesForEffect(
+    battle,
+    0,
+    {
+      kind: "dealDamage",
+      sourceText: "Deal 5 damage to target Creature.",
+      targetSpec: { type: "creature", required: true, scope: "all" },
+    },
+    battle.board.players[0].creatures[0].unitId
+  );
+
+  assert.ok(Array.isArray(candidates));
+  assert.ok(candidates.length >= 2);
+  assert.equal(candidates[0].id, `creature:${battle.board.players[0].creatures[0].unitId}`);
+  assert.equal(candidates[1].id, `creature:${battle.board.players[1].creatures[0].unitId}`);
+});

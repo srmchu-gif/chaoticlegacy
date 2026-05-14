@@ -76,6 +76,27 @@ Each effect entry must include:
 - `exceptions`
 - `examples`
 
+## Combat Runtime Contract (official)
+
+This project follows one combat runtime contract for parser -> engine:
+
+- Priority windows are official/strict.
+- Simultaneous trigger enqueue order is fixed:
+  1) `location`
+  2) `battlegear`
+  3) `creature`
+  4) `mugic`
+- Stack resolves in **LIFO**.
+- Target selection is **sequential per effect step**.
+- Repeat target is allowed unless the text requires `another target`.
+- Requirements (`Power >= X`, required element, etc.) are validated at **resolution**.
+- Activation costs are **atomic** (if full payment is not possible, do not queue on stack).
+- Negation does not refund costs.
+- Unknown/unparsed effect kind is a no-op with technical log (`noop_pending_kind`), card remains playable.
+- Partial failure policy is **kind-specific** and must be documented in `runtime_contract.partial_failure_policy`.
+
+Every parser output effect should carry `runtimeContract` metadata with these defaults.
+
 ## Parametrized effect model
 
 Preferred model is one parametrized `kind` per family.  
@@ -91,3 +112,4 @@ Example: `elemento_x` with params:
 - Keep parser/engine changes minimal and tied to audited gaps.
 - Prefer adding tests before/with each behavior fix.
 - Keep fallback safety: unknown effect never crashes combat flow.
+- Keep DOP/ZOTH/SS checklist updated (`references/effects-glossary.md`).
