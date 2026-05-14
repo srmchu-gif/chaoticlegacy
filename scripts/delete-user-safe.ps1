@@ -218,6 +218,7 @@ $script:EventsCache = @()
 $script:QuestsCache = @()
 $script:LocationTribesCache = @()
 $script:LocationClimateRulesCache = @()
+$script:LocationLinksCache = @()
 $script:ScansCache = @()
 $script:ProfileRankedSnapshot = $null
 $script:PerimSnapshot = $null
@@ -319,6 +320,10 @@ $tab.Controls.Add($tabPerimConfig)
 $tabLocationClimateRules = New-Object System.Windows.Forms.TabPage
 $tabLocationClimateRules.Text = "Climas por Local"
 $tab.Controls.Add($tabLocationClimateRules)
+
+$tabLocationLinks = New-Object System.Windows.Forms.TabPage
+$tabLocationLinks.Text = "Adjacencia Locais"
+$tab.Controls.Add($tabLocationLinks)
 
 $tabLogs = New-Object System.Windows.Forms.TabPage
 $tabLogs.Text = "Logs"
@@ -1544,6 +1549,108 @@ $lblClimateRuleHint.Size = New-Object System.Drawing.Size(560, 40)
 $lblClimateRuleHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
 $climateRulesPanel.Controls.Add($lblClimateRuleHint)
 
+# Adjacencia de Locais tab
+$locationLinksSplit = New-Object System.Windows.Forms.SplitContainer
+$locationLinksSplit.Dock = "Fill"
+$locationLinksSplit.Orientation = "Vertical"
+Set-SplitterLayoutSafe -Splitter $locationLinksSplit -Panel1Min 500 -Panel2Min 380 -PreferredDistance 700
+$locationLinksSplit.Panel1.Padding = New-Object System.Windows.Forms.Padding(4)
+$locationLinksSplit.Panel2.Padding = New-Object System.Windows.Forms.Padding(4)
+$tabLocationLinks.Controls.Add($locationLinksSplit)
+
+$locationLinksGrid = New-Object System.Windows.Forms.DataGridView
+$locationLinksGrid.Dock = "Fill"
+$locationLinksGrid.ReadOnly = $true
+$locationLinksGrid.AllowUserToAddRows = $false
+$locationLinksGrid.AllowUserToDeleteRows = $false
+$locationLinksGrid.RowHeadersVisible = $false
+$locationLinksGrid.SelectionMode = "FullRowSelect"
+$locationLinksGrid.MultiSelect = $false
+$locationLinksGrid.ColumnCount = 5
+$locationLinksGrid.Columns[0].Name = "Origem"
+$locationLinksGrid.Columns[1].Name = "Origem ID"
+$locationLinksGrid.Columns[2].Name = "Destino"
+$locationLinksGrid.Columns[3].Name = "Destino ID"
+$locationLinksGrid.Columns[4].Name = "Atualizado"
+$locationLinksSplit.Panel1.Controls.Add($locationLinksGrid)
+Apply-GridResponsiveStyle -Grid $locationLinksGrid
+
+$locationLinksPanel = New-Object System.Windows.Forms.Panel
+$locationLinksPanel.Dock = "Fill"
+$locationLinksPanel.AutoScroll = $true
+$locationLinksSplit.Panel2.Controls.Add($locationLinksPanel)
+
+$lblLocationLinksTitle = New-Object System.Windows.Forms.Label
+$lblLocationLinksTitle.Text = "Adjacencia de Locais (A -> B)"
+$lblLocationLinksTitle.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$lblLocationLinksTitle.Location = New-Object System.Drawing.Point(12, 10)
+$lblLocationLinksTitle.Size = New-Object System.Drawing.Size(460, 24)
+$locationLinksPanel.Controls.Add($lblLocationLinksTitle)
+
+$lblLocationLinkFrom = New-Object System.Windows.Forms.Label
+$lblLocationLinkFrom.Text = "Local origem:"
+$lblLocationLinkFrom.Location = New-Object System.Drawing.Point(12, 40)
+$lblLocationLinkFrom.Size = New-Object System.Drawing.Size(160, 20)
+$locationLinksPanel.Controls.Add($lblLocationLinkFrom)
+
+$comboLocationLinkFrom = New-Object System.Windows.Forms.ComboBox
+$comboLocationLinkFrom.DropDownStyle = "DropDownList"
+$comboLocationLinkFrom.Location = New-Object System.Drawing.Point(12, 62)
+$comboLocationLinkFrom.Size = New-Object System.Drawing.Size(520, 28)
+$comboLocationLinkFrom.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$locationLinksPanel.Controls.Add($comboLocationLinkFrom)
+
+$lblLocationLinkTo = New-Object System.Windows.Forms.Label
+$lblLocationLinkTo.Text = "Local destino:"
+$lblLocationLinkTo.Location = New-Object System.Drawing.Point(12, 98)
+$lblLocationLinkTo.Size = New-Object System.Drawing.Size(160, 20)
+$locationLinksPanel.Controls.Add($lblLocationLinkTo)
+
+$comboLocationLinkTo = New-Object System.Windows.Forms.ComboBox
+$comboLocationLinkTo.DropDownStyle = "DropDownList"
+$comboLocationLinkTo.Location = New-Object System.Drawing.Point(12, 120)
+$comboLocationLinkTo.Size = New-Object System.Drawing.Size(520, 28)
+$comboLocationLinkTo.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$locationLinksPanel.Controls.Add($comboLocationLinkTo)
+
+$lblLocationLinkStatus = New-Object System.Windows.Forms.Label
+$lblLocationLinkStatus.Text = "Status: ligacao direcionada (somente ida)."
+$lblLocationLinkStatus.Location = New-Object System.Drawing.Point(12, 154)
+$lblLocationLinkStatus.Size = New-Object System.Drawing.Size(560, 20)
+$lblLocationLinkStatus.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
+$locationLinksPanel.Controls.Add($lblLocationLinkStatus)
+
+$btnLocationLinksAdd = New-Object System.Windows.Forms.Button
+$btnLocationLinksAdd.Text = "Adicionar"
+$btnLocationLinksAdd.Location = New-Object System.Drawing.Point(12, 182)
+$btnLocationLinksAdd.Size = New-Object System.Drawing.Size(110, 30)
+$locationLinksPanel.Controls.Add($btnLocationLinksAdd)
+
+$btnLocationLinksRemove = New-Object System.Windows.Forms.Button
+$btnLocationLinksRemove.Text = "Remover"
+$btnLocationLinksRemove.Location = New-Object System.Drawing.Point(128, 182)
+$btnLocationLinksRemove.Size = New-Object System.Drawing.Size(110, 30)
+$locationLinksPanel.Controls.Add($btnLocationLinksRemove)
+
+$btnLocationLinksRefresh = New-Object System.Windows.Forms.Button
+$btnLocationLinksRefresh.Text = "Atualizar"
+$btnLocationLinksRefresh.Location = New-Object System.Drawing.Point(244, 182)
+$btnLocationLinksRefresh.Size = New-Object System.Drawing.Size(110, 30)
+$locationLinksPanel.Controls.Add($btnLocationLinksRefresh)
+
+$btnLocationLinksImport = New-Object System.Windows.Forms.Button
+$btnLocationLinksImport.Text = "Importar da planilha"
+$btnLocationLinksImport.Location = New-Object System.Drawing.Point(360, 182)
+$btnLocationLinksImport.Size = New-Object System.Drawing.Size(172, 30)
+$locationLinksPanel.Controls.Add($btnLocationLinksImport)
+
+$lblLocationLinksHint = New-Object System.Windows.Forms.Label
+$lblLocationLinksHint.Text = "A ligacao e A -> B (somente ida). Para retorno, crie tambem B -> A."
+$lblLocationLinksHint.Location = New-Object System.Drawing.Point(12, 218)
+$lblLocationLinksHint.Size = New-Object System.Drawing.Size(560, 36)
+$lblLocationLinksHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
+$locationLinksPanel.Controls.Add($lblLocationLinksHint)
+
 # Logs tab
 $logsPanel = New-Object System.Windows.Forms.Panel
 $logsPanel.Dock = "Fill"
@@ -1758,6 +1865,30 @@ function Load-LocationClimateRules {
     $lblClimateRuleStatus.Text = "Status: sem regra (todos os climas permitidos)."
   }
   Set-Status "Regras de climas carregadas."
+}
+
+function Load-LocationLinks {
+  Set-Status "Carregando adjacencias de locais..."
+  $payload = Invoke-AdminEngine -Action "location-links-list"
+  $script:LocationLinksCache = @($payload.locationLinks)
+  $locationLinksGrid.Rows.Clear()
+  foreach ($entry in $script:LocationLinksCache) {
+    [void]$locationLinksGrid.Rows.Add(
+      [string]$entry.fromLocationName,
+      [string]$entry.fromLocationCardId,
+      [string]$entry.toLocationName,
+      [string]$entry.toLocationCardId,
+      [string]$entry.updatedAt
+    )
+  }
+  $fromId = Get-SelectedValue -Combo $comboLocationLinkFrom
+  $toId = Get-SelectedValue -Combo $comboLocationLinkTo
+  if ($fromId -and $toId) {
+    $lblLocationLinkStatus.Text = "Status: origem '$fromId' e destino '$toId'."
+  } else {
+    $lblLocationLinkStatus.Text = "Status: ligacao direcionada (somente ida)."
+  }
+  Set-Status "Adjacencias carregadas."
 }
 
 function Load-Users {
@@ -2512,6 +2643,43 @@ $comboClimateRuleLocation.Add_SelectedIndexChanged({
   } catch {}
 })
 
+$locationLinksGrid.Add_SelectionChanged({
+  if ($locationLinksGrid.SelectedRows.Count -lt 1) { return }
+  $fromLocationCardId = [string]$locationLinksGrid.SelectedRows[0].Cells[1].Value
+  $toLocationCardId = [string]$locationLinksGrid.SelectedRows[0].Cells[3].Value
+  if (-not [string]::IsNullOrWhiteSpace($fromLocationCardId)) {
+    $comboLocationLinkFrom.SelectedValue = $fromLocationCardId
+  }
+  if (-not [string]::IsNullOrWhiteSpace($toLocationCardId)) {
+    $comboLocationLinkTo.SelectedValue = $toLocationCardId
+  }
+  $lblLocationLinkStatus.Text = "Status: linha selecionada para origem/destino."
+})
+
+$comboLocationLinkFrom.Add_SelectedIndexChanged({
+  try {
+    $fromId = Get-SelectedValue -Combo $comboLocationLinkFrom
+    $toId = Get-SelectedValue -Combo $comboLocationLinkTo
+    if ($fromId -and $toId) {
+      $lblLocationLinkStatus.Text = "Status: ligacao pronta para A -> B."
+    } else {
+      $lblLocationLinkStatus.Text = "Status: ligacao direcionada (somente ida)."
+    }
+  } catch {}
+})
+
+$comboLocationLinkTo.Add_SelectedIndexChanged({
+  try {
+    $fromId = Get-SelectedValue -Combo $comboLocationLinkFrom
+    $toId = Get-SelectedValue -Combo $comboLocationLinkTo
+    if ($fromId -and $toId) {
+      $lblLocationLinkStatus.Text = "Status: ligacao pronta para A -> B."
+    } else {
+      $lblLocationLinkStatus.Text = "Status: ligacao direcionada (somente ida)."
+    }
+  } catch {}
+})
+
 $btnEventSave.Add_Click({
   try {
     $payload = Build-EventPayload
@@ -2683,6 +2851,81 @@ $btnClimateRuleDelete.Add_Click({
     Load-LocationClimateRules
   } catch {
     [System.Windows.Forms.MessageBox]::Show("Falha ao remover regra de clima: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnLocationLinksRefresh.Add_Click({
+  try { Load-LocationLinks } catch {
+    [System.Windows.Forms.MessageBox]::Show("Erro ao atualizar adjacencias: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnLocationLinksAdd.Add_Click({
+  try {
+    $fromLocationCardId = Get-SelectedValue -Combo $comboLocationLinkFrom
+    $toLocationCardId = Get-SelectedValue -Combo $comboLocationLinkTo
+    if (-not $fromLocationCardId -or -not $toLocationCardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione origem e destino para criar a ligacao.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if ($fromLocationCardId -eq $toLocationCardId) {
+      [System.Windows.Forms.MessageBox]::Show("Origem e destino nao podem ser iguais.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $payload = @{
+      fromLocationCardId = $fromLocationCardId
+      toLocationCardId = $toLocationCardId
+    }
+    $targetText = "location-link:$fromLocationCardId->$toLocationCardId"
+    $op = Invoke-MutatingOperation -OperationName "location-link-add" -Target $targetText -ActionBlock {
+      Invoke-AdminEngine -Action "location-link-add" -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Ligacao adicionada (A -> B).`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-LocationLinks
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao adicionar ligacao: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnLocationLinksRemove.Add_Click({
+  try {
+    $fromLocationCardId = Get-SelectedValue -Combo $comboLocationLinkFrom
+    $toLocationCardId = Get-SelectedValue -Combo $comboLocationLinkTo
+    if (-not $fromLocationCardId -or -not $toLocationCardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione origem e destino para remover a ligacao.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $confirm = [System.Windows.Forms.MessageBox]::Show("Remover ligacao $fromLocationCardId -> $toLocationCardId?", "Confirmar", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question)
+    if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    $payload = @{
+      fromLocationCardId = $fromLocationCardId
+      toLocationCardId = $toLocationCardId
+    }
+    $targetText = "location-link:$fromLocationCardId->$toLocationCardId"
+    $op = Invoke-MutatingOperation -OperationName "location-link-remove" -Target $targetText -ActionBlock {
+      Invoke-AdminEngine -Action "location-link-remove" -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Ligacao removida.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-LocationLinks
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao remover ligacao: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnLocationLinksImport.Add_Click({
+  try {
+    $confirm = [System.Windows.Forms.MessageBox]::Show("Importar ligacoes de locais.xlsx e substituir as atuais?", "Confirmar importacao", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning)
+    if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    $payload = @{ replace = $true }
+    $op = Invoke-MutatingOperation -OperationName "location-links-import-from-matrix" -Target "location-links:matrix" -ActionBlock {
+      Invoke-AdminEngine -Action "location-links-import-from-matrix" -Payload $payload
+    }
+    $summary = $op.result.summary
+    $msg = "Importacao concluida.`r`nLinhas matriz: $([string]$summary.matrixRows)`r`nLinks importados: $([string]$summary.imported)`r`nNao resolvidos (origem): $([string]$summary.unresolvedSources)`r`nNao resolvidos (destino): $([string]$summary.unresolvedTargets)`r`nTotal final: $([string]$summary.linksAfter)`r`nBackup: $($op.backup)"
+    [System.Windows.Forms.MessageBox]::Show($msg, "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-LocationLinks
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao importar ligacoes da planilha: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
   }
 })
 
@@ -3088,6 +3331,7 @@ function Apply-TabSplitLayoutDefaults {
   Set-SplitterLayoutSafe -Splitter $perimBody -Panel1Min 220 -Panel2Min 160 -PreferredDistance 330
   Set-SplitterLayoutSafe -Splitter $perimUpperSplit -Panel1Min 360 -Panel2Min 320 -PreferredDistance 600
   Set-SplitterLayoutSafe -Splitter $climateRulesSplit -Panel1Min 460 -Panel2Min 420 -PreferredDistance 640
+  Set-SplitterLayoutSafe -Splitter $locationLinksSplit -Panel1Min 500 -Panel2Min 380 -PreferredDistance 700
 }
 
 $form.Add_Shown({ Apply-TabSplitLayoutDefaults })
@@ -3113,6 +3357,8 @@ try {
   Set-ComboItems -Combo $comboLocationTribeLocation -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboLocationTribeKey -Items (Build-LocationTribeKeyItems)
   Set-ComboItems -Combo $comboClimateRuleLocation -Items (Build-LocationItems)
+  Set-ComboItems -Combo $comboLocationLinkFrom -Items (Build-LocationItems)
+  Set-ComboItems -Combo $comboLocationLinkTo -Items (Build-LocationItems)
   $checkedClimateKeys.Items.Clear()
   foreach ($item in (Build-LocationClimateItems)) {
     [void]$checkedClimateKeys.Items.Add($item)
@@ -3139,6 +3385,7 @@ try {
   Load-Events
   Load-LocationTribes
   Load-LocationClimateRules
+  Load-LocationLinks
   Load-Quests
   Load-PerimConfig
   Load-Logs

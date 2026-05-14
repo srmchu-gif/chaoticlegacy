@@ -592,3 +592,33 @@ test("parseAbilityEffects reconhece infect em alvo engajado", () => {
   assert.equal(infectEffect.targetSpec?.type, "creature");
   assert.equal(infectEffect.targetSpec?.requireUninfected, true);
 });
+
+test("parseAbilityEffects reconhece Void Dirge com up to three targets em descarte", () => {
+  const text = "Remove up to three target cards in one general discard pile from the game.";
+  const effects = parseAbilityEffects(text);
+  const exileEffect = effects.find((effect) => effect.kind === "exileGeneralDiscardCards");
+  assert.ok(exileEffect);
+  assert.equal(exileEffect.amount, 3);
+  assert.equal(exileEffect.targetSpec?.type, "player");
+  assert.equal(exileEffect.targetSpec?.required, true);
+  assert.equal(exileEffect.targetSpec?.maxTargets, 3);
+});
+
+test("parseAbilityEffects reconhece descarte e compra de attack na ordem inversa", () => {
+  const text = "Air: Your engaged Creature loses Air. Discard an Attack Card, then draw an Attack Card.";
+  const effects = parseAbilityEffects(text);
+  assert.ok(
+    effects.some(
+      (effect) =>
+        effect.kind === "drawDiscardAttack"
+        && effect.draw === 1
+        && effect.discard === 1
+    )
+  );
+});
+
+test("parseAbilityEffects reconhece mover para qualquer espaco no board como adjacente", () => {
+  const text = "MC: Equipped Creature can move to any space on the board as if it were adjacent.";
+  const effects = parseAbilityEffects(text);
+  assert.ok(effects.some((effect) => effect.kind === "moveAsIfAdjacent"));
+});

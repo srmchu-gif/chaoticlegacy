@@ -3477,14 +3477,24 @@ function parseActivationCost(text) {
     const amount = Number(expendAllMatch[1] || 1);
     return { type: "expendAllDisciplines", amount, label: `Expend all Disciplines ${amount}` };
   }
-  const discardMatch = normalizedRaw.match(/\bDiscard\s+((?:a|an|one|two|\d+))\s+Mugic\s+Cards?\b/i);
+  const discardMatch = normalizedRaw.match(
+    /\bDiscard\s+((?:a|an|one|two|\d+))\s+((?:OverWorld|UnderWorld|Mipedian|Danian|M'arrillian|Marrillian)\s+)?Mugic\s+Cards?\b/i
+  );
   if (discardMatch) {
     const token = String(discardMatch[1] || "").toLowerCase();
     const amountMap = { a: 1, an: 1, one: 1, two: 2 };
     const amount = Number.isFinite(Number(token))
       ? Number(token)
       : (amountMap[token] || 1);
-    return { type: "discardMugic", amount: Math.max(1, amount), label: `Discard ${Math.max(1, amount)} Mugic` };
+    const tribe = normalizeTribeKey(discardMatch[2] || "");
+    return {
+      type: "discardMugic",
+      amount: Math.max(1, amount),
+      ...(tribe ? { tribe } : {}),
+      label: tribe
+        ? `Discard ${Math.max(1, amount)} ${tribe} Mugic`
+        : `Discard ${Math.max(1, amount)} Mugic`,
+    };
   }
   return null;
 }
@@ -3502,7 +3512,7 @@ function extractActivationSegments(text) {
     return [];
   }
   const prefixRegex =
-    /\b(?:\d*\s*M(?:C)+|\bspend\s+\d+\s+M(?:P|C)\b|Expend(?:\s+(?:Fire|Air|Earth|Water|all Disciplines(?:\s+\d+)?|any Elemental Type))?|Discard\s+(?:a|an|one|two|\d+)\s+Mugic\s+Cards?|Sacrifice\s+(?:[A-Za-z][A-Za-z'\-\s]+|(?:this\s+)?Battlegear))\s*:/gi;
+    /\b(?:\d*\s*M(?:C)+|\bspend\s+\d+\s+M(?:P|C)\b|Expend(?:\s+(?:Fire|Air|Earth|Water|all Disciplines(?:\s+\d+)?|any Elemental Type))?|Discard\s+(?:a|an|one|two|\d+)\s+(?:(?:OverWorld|UnderWorld|Mipedian|Danian|M'arrillian|Marrillian)\s+)?Mugic\s+Cards?|Sacrifice\s+(?:[A-Za-z][A-Za-z'\-\s]+|(?:this\s+)?Battlegear))\s*:/gi;
   const matches = [...raw.matchAll(prefixRegex)];
   if (!matches.length) {
     return [];
@@ -3659,7 +3669,16 @@ function canPayActivationCost(board, playerIndex, unit, player, exchange, cost) 
     return Number(unit?.mugicCounters || 0) >= Number(cost.amount || 0);
   }
   if (cost.type === "discardMugic") {
-    return availableMugicSlots(player).length >= Number(cost.amount || 1);
+    const requiredAmount = Number(cost.amount || 1);
+    const requiredTribe = normalizeTribeKey(cost.tribe || "");
+    const slots = availableMugicSlots(player).filter((entry) => {
+      if (!requiredTribe) {
+        return true;
+      }
+      const mugicTribe = normalizeTribeKey(entry?.card?.tribe || "");
+      return mugicTribe === requiredTribe;
+    });
+    return slots.length >= requiredAmount;
   }
   if (cost.type === "expendElement") {
     return unitStat(board, playerIndex, unit, cost.element, exchange) > 0;
@@ -3702,8 +3721,19 @@ function payActivationCost(board, playerIndex, unit, player, exchange, cost, bat
   }
   if (cost.type === "discardMugic") {
     const amount = Number(cost.amount || 1);
+    const requiredTribe = normalizeTribeKey(cost.tribe || "");
+    const candidateSlots = availableMugicSlots(player).filter((entry) => {
+      if (!requiredTribe) {
+        return true;
+      }
+      const mugicTribe = normalizeTribeKey(entry?.card?.tribe || "");
+      return mugicTribe === requiredTribe;
+    });
+    if (candidateSlots.length < amount) {
+      return false;
+    }
     for (let i = 0; i < amount; i += 1) {
-      const nextSlot = availableMugicSlots(player)[0];
+      const nextSlot = candidateSlots[i];
       if (!nextSlot) {
         break;
       }

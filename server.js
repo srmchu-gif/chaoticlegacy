@@ -804,6 +804,16 @@ function createSqlV2Tables() {
   `);
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_climate_rules_updated ON perim_location_climate_rules(updated_at DESC);");
   sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_location_adjacency (
+      from_location_card_id TEXT NOT NULL,
+      to_location_card_id TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (from_location_card_id, to_location_card_id)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_adjacency_from ON perim_location_adjacency(from_location_card_id, updated_at DESC);");
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_adjacency_to ON perim_location_adjacency(to_location_card_id, updated_at DESC);");
+  sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_location_chat (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       location_id TEXT NOT NULL,
@@ -5337,8 +5347,9 @@ function getOrCreatePerimPlayerState(rootState, playerKey) {
 }
 
 let perimLocationsMatrixCache = null;
-let perimLocationAdjacencyGraphCache = { mtimeMs: -1, value: null };
-let perimLocationMetaByCardIdCache = { mtimeMs: -1, value: null };
+let perimLocationAdjacencyGraphCache = { token: "", value: null };
+let perimLocationMetaByCardIdCache = { token: "", value: null };
+let perimLocationAdjacencyCache = { token: "", byFromCardId: new Map(), links: [] };
 let libraryIndexCache = { versionToken: "", value: null };
 let dailyCreatureIndexCache = { dateKey: "", generatedAt: "", value: null };
 
@@ -6706,10 +6717,200 @@ function loadPerimLocationsMatrix() {
   return rows;
 }
 
+function getPerimLocationAdjacencyCacheToken() {
+  if (!sqliteDb) {
+    return "no_sql";
+  }
+  try {
+    const row = sqliteDb
+      .prepare(`
+        SELECT COUNT(*) AS total, MAX(updated_at) AS max_updated_at
+        FROM perim_location_adjacency
+      `)
+      .get();
+    const total = Number(row?.total || 0);
+    const maxUpdatedAt = String(row?.max_updated_at || "");
+    return `${total}:${maxUpdatedAt}`;
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao ler token de adjacencia: ${error?.message || error}`);
+    return "read_error";
+  }
+}
+
+function loadPerimLocationAdjacencyLinks() {
+  const token = getPerimLocationAdjacencyCacheToken();
+  if (perimLocationAdjacencyCache.token === token) {
+    return perimLocationAdjacencyCache;
+  }
+  const byFromCardId = new Map();
+  const links = [];
+  if (sqliteDb) {
+    try {
+      const rows = sqliteDb
+        .prepare(`
+          SELECT from_location_card_id, to_location_card_id
+          FROM perim_location_adjacency
+        `)
+        .all();
+      rows.forEach((row) => {
+        const fromId = String(row?.from_location_card_id || "").trim();
+        const toId = String(row?.to_location_card_id || "").trim();
+        if (!fromId || !toId || fromId === toId) {
+          return;
+        }
+        if (!byFromCardId.has(fromId)) {
+          byFromCardId.set(fromId, new Set());
+        }
+        byFromCardId.get(fromId).add(toId);
+        links.push({ fromId, toId });
+      });
+    } catch (error) {
+      console.warn(`[PERIM] Falha ao ler adjacencia SQL: ${error?.message || error}`);
+    }
+  }
+  perimLocationAdjacencyCache = { token, byFromCardId, links };
+  return perimLocationAdjacencyCache;
+}
+
+function importPerimLocationAdjacencyFromMatrix(options = {}) {
+  if (!sqliteDb) {
+    return { imported: 0, skipped: 0, unresolved: 0, linksBefore: 0, linksAfter: 0 };
+  }
+  const replace = options?.replace !== false;
+  const { locationsById: cardById } = getLibraryIndexes();
+  const rows = loadPerimLocationsMatrix();
+  const nameSetKeyToIds = new Map();
+  const nameOnlyKeyToIds = new Map();
+
+  cardById.forEach((card) => {
+    const nameKey = normalizePerimText(card?.name || "");
+    const setKey = normalizePerimText(card?.set || "");
+    if (!nameKey) {
+      return;
+    }
+    const nameSetKey = `${nameKey}|${setKey}`;
+    if (!nameSetKeyToIds.has(nameSetKey)) {
+      nameSetKeyToIds.set(nameSetKey, []);
+    }
+    nameSetKeyToIds.get(nameSetKey).push(String(card.id));
+    if (!nameOnlyKeyToIds.has(nameKey)) {
+      nameOnlyKeyToIds.set(nameKey, []);
+    }
+    nameOnlyKeyToIds.get(nameKey).push(String(card.id));
+  });
+
+  const pairSet = new Set();
+  let unresolvedSources = 0;
+  let unresolvedTargets = 0;
+
+  rows.forEach((row) => {
+    const sourceNameKey = normalizePerimText(row?.name || "");
+    const sourceSetKey = normalizePerimText(row?.set || "");
+    if (!sourceNameKey) {
+      return;
+    }
+    const sourceCandidates = [
+      ...(nameSetKeyToIds.get(`${sourceNameKey}|${sourceSetKey}`) || []),
+      ...(nameOnlyKeyToIds.get(sourceNameKey) || []),
+    ];
+    const sourceIds = [...new Set(sourceCandidates)].filter((cardId) => cardById.has(cardId));
+    if (!sourceIds.length) {
+      unresolvedSources += 1;
+      return;
+    }
+
+    const linkedNames = Array.isArray(row?.linkedLocationNames) ? row.linkedLocationNames : [];
+    linkedNames.forEach((linkedNameRaw) => {
+      const linkedNameKey = normalizePerimText(linkedNameRaw);
+      if (!linkedNameKey) {
+        return;
+      }
+      const targetIds = [...new Set(nameOnlyKeyToIds.get(linkedNameKey) || [])].filter((cardId) => cardById.has(cardId));
+      if (!targetIds.length) {
+        unresolvedTargets += 1;
+        return;
+      }
+      sourceIds.forEach((fromId) => {
+        targetIds.forEach((toId) => {
+          if (!fromId || !toId || fromId === toId) {
+            return;
+          }
+          pairSet.add(`${fromId}=>${toId}`);
+        });
+      });
+    });
+  });
+
+  const links = [...pairSet].map((entry) => {
+    const [fromId, toId] = String(entry).split("=>");
+    return { fromId, toId };
+  });
+  const linksBefore = Number(
+    sqliteDb.prepare("SELECT COUNT(*) AS total FROM perim_location_adjacency").get()?.total || 0
+  );
+
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    if (replace) {
+      sqliteDb.prepare("DELETE FROM perim_location_adjacency").run();
+    }
+    const upsert = sqliteDb.prepare(`
+      INSERT INTO perim_location_adjacency (from_location_card_id, to_location_card_id, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(from_location_card_id, to_location_card_id) DO UPDATE SET
+        updated_at = excluded.updated_at
+    `);
+    const now = nowIso();
+    links.forEach((link) => {
+      upsert.run(link.fromId, link.toId, now);
+    });
+    sqliteDb.exec("COMMIT");
+  } catch (error) {
+    sqliteDb.exec("ROLLBACK");
+    throw error;
+  }
+  const linksAfter = Number(
+    sqliteDb.prepare("SELECT COUNT(*) AS total FROM perim_location_adjacency").get()?.total || 0
+  );
+  perimLocationAdjacencyCache = { token: "", byFromCardId: new Map(), links: [] };
+  perimLocationMetaByCardIdCache = { token: "", value: null };
+  perimLocationAdjacencyGraphCache = { token: "", value: null };
+  return {
+    imported: links.length,
+    unresolvedSources,
+    unresolvedTargets,
+    matrixRows: rows.length,
+    linksBefore,
+    linksAfter,
+  };
+}
+
+function ensurePerimLocationAdjacencySeedFromMatrix() {
+  if (!sqliteDb) {
+    return;
+  }
+  try {
+    const currentCount = Number(
+      sqliteDb.prepare("SELECT COUNT(*) AS total FROM perim_location_adjacency").get()?.total || 0
+    );
+    if (currentCount > 0) {
+      return;
+    }
+    const summary = importPerimLocationAdjacencyFromMatrix({ replace: true });
+    console.log(
+      `[PERIM] Adjacencia de locais importada da planilha para SQL: imported=${summary.imported}, unresolvedSources=${summary.unresolvedSources}, unresolvedTargets=${summary.unresolvedTargets}, total=${summary.linksAfter}.`
+    );
+  } catch (error) {
+    console.warn(`[PERIM] Falha ao importar adjacencia inicial da planilha: ${error?.message || error}`);
+  }
+}
+
 function buildPerimLocationMetaByCardId() {
   const rows = loadPerimLocationsMatrix();
   const matrixMtime = Number(perimLocationsMatrixCache?.mtimeMs || 0);
-  if (perimLocationMetaByCardIdCache.value && perimLocationMetaByCardIdCache.mtimeMs === matrixMtime) {
+  const adjacencySnapshot = loadPerimLocationAdjacencyLinks();
+  const cacheToken = `${matrixMtime}:${adjacencySnapshot.token}`;
+  if (perimLocationMetaByCardIdCache.value && perimLocationMetaByCardIdCache.token === cacheToken) {
     return perimLocationMetaByCardIdCache.value;
   }
   const byCardId = new Map();
@@ -6743,17 +6944,6 @@ function buildPerimLocationMetaByCardId() {
       return;
     }
 
-    const linkedIds = new Set();
-    row.linkedLocationNames.forEach((linkedName) => {
-      const linkedNameKey = normalizePerimText(linkedName);
-      const exactLinked = nameOnlyKeyToIds.get(linkedNameKey) || [];
-      exactLinked.forEach((cardId) => {
-        if (cardById.has(cardId)) {
-          linkedIds.add(cardId);
-        }
-      });
-    });
-
     sourceUniqueIds.forEach((cardId) => {
       const card = cardById.get(cardId);
       if (!card) {
@@ -6764,6 +6954,7 @@ function buildPerimLocationMetaByCardId() {
       PERIM_ACTIONS.map((action) => String(action.id || "")).forEach((actionId) => {
         perActionCreatureChance[actionId] = calculateCreatureChancePercent(rarity, actionId);
       });
+      const linkedIds = new Set(adjacencySnapshot.byFromCardId.get(cardId) || []);
       const current = byCardId.get(cardId) || {
         linkedLocationIds: new Set(),
       };
@@ -6779,8 +6970,25 @@ function buildPerimLocationMetaByCardId() {
       });
     });
   });
+
+  adjacencySnapshot.byFromCardId.forEach((targets, fromId) => {
+    const card = cardById.get(fromId);
+    if (!card || byCardId.has(fromId)) {
+      return;
+    }
+    byCardId.set(fromId, {
+      rarity: card.rarity || "Unknown",
+      terrain: null,
+      eventFlag: "n",
+      eventChancePercent: 0,
+      locationDropChancePercent: 0,
+      linkedLocationIds: new Set(targets || []),
+      perActionCreatureChance: {},
+    });
+  });
+
   perimLocationMetaByCardIdCache = {
-    mtimeMs: Number(perimLocationsMatrixCache?.mtimeMs || 0),
+    token: cacheToken,
     value: byCardId,
   };
   return byCardId;
@@ -8758,13 +8966,32 @@ function locationAliasCandidates(rawValue) {
 function buildLocationAdjacencyGraph() {
   const locRows = loadPerimLocationsMatrix();
   const matrixMtime = Number(perimLocationsMatrixCache?.mtimeMs || 0);
-  if (perimLocationAdjacencyGraphCache.value && perimLocationAdjacencyGraphCache.mtimeMs === matrixMtime) {
+  const adjacencySnapshot = loadPerimLocationAdjacencyLinks();
+  const cacheToken = `${matrixMtime}:${adjacencySnapshot.token}`;
+  if (perimLocationAdjacencyGraphCache.value && perimLocationAdjacencyGraphCache.token === cacheToken) {
     return perimLocationAdjacencyGraphCache.value;
   }
   const locNameToEnvironment = new Map();
   const locNameToAdjacent = new Map();
   const locationKeys = new Set();
   const displayNameByKey = new Map();
+
+  const { locationsById: locationsByCardId } = getLibraryIndexes();
+  locationsByCardId.forEach((card) => {
+    const name = String(card?.name || "").trim();
+    const nameKey = normalizePerimText(name);
+    if (!nameKey) {
+      return;
+    }
+    locationKeys.add(nameKey);
+    if (!displayNameByKey.has(nameKey)) {
+      displayNameByKey.set(nameKey, name);
+    }
+    if (!locNameToAdjacent.has(nameKey)) {
+      locNameToAdjacent.set(nameKey, new Set());
+    }
+  });
+
   locRows.forEach((row) => {
     const name = String(row.name || "").trim();
     const nameKey = normalizePerimText(name);
@@ -8777,20 +9004,35 @@ function buildLocationAdjacencyGraph() {
     if (!locNameToAdjacent.has(nameKey)) {
       locNameToAdjacent.set(nameKey, new Set());
     }
-    row.linkedLocationNames.forEach((linkedName) => {
-      const linkedKey = normalizePerimText(linkedName);
-      if (!linkedKey) {
-        return;
-      }
-      locNameToAdjacent.get(nameKey).add(linkedKey);
-      if (!locNameToAdjacent.has(linkedKey)) {
-        locNameToAdjacent.set(linkedKey, new Set());
-      }
-      locNameToAdjacent.get(linkedKey).add(nameKey);
-    });
   });
+
+  adjacencySnapshot.links.forEach((link) => {
+    const fromCard = locationsByCardId.get(String(link.fromId || ""));
+    const toCard = locationsByCardId.get(String(link.toId || ""));
+    const fromKey = normalizePerimText(fromCard?.name || "");
+    const toKey = normalizePerimText(toCard?.name || "");
+    if (!fromKey || !toKey || fromKey === toKey) {
+      return;
+    }
+    if (!locNameToAdjacent.has(fromKey)) {
+      locNameToAdjacent.set(fromKey, new Set());
+    }
+    if (!locNameToAdjacent.has(toKey)) {
+      locNameToAdjacent.set(toKey, new Set());
+    }
+    locNameToAdjacent.get(fromKey).add(toKey);
+    locationKeys.add(fromKey);
+    locationKeys.add(toKey);
+    if (!displayNameByKey.has(fromKey) && fromCard?.name) {
+      displayNameByKey.set(fromKey, String(fromCard.name));
+    }
+    if (!displayNameByKey.has(toKey) && toCard?.name) {
+      displayNameByKey.set(toKey, String(toCard.name));
+    }
+  });
+
   const graph = { locNameToEnvironment, locNameToAdjacent, locationKeys, displayNameByKey };
-  perimLocationAdjacencyGraphCache = { mtimeMs: matrixMtime, value: graph };
+  perimLocationAdjacencyGraphCache = { token: cacheToken, value: graph };
   return graph;
 }
 
@@ -20910,6 +21152,7 @@ try {
 }
 
 refreshLibraryCatalog(false);
+ensurePerimLocationAdjacencySeedFromMatrix();
 ensurePerimQuestTemplatesSeed();
 loadPerimDropTables(true);
 hydrateCreatureDropSqlMetadata();

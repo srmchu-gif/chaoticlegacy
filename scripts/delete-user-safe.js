@@ -4,6 +4,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
+const XLSX = require("xlsx");
 
 const CARD_TYPES = ["creatures", "attacks", "battlegear", "locations", "mugic"];
 const LOCATION_TRIBE_KEYS = ["overworld", "underworld", "danian", "mipedian", "marrillian", "tribeless"];
@@ -516,6 +517,19 @@ function ensurePerimLocationClimateRulesTable(db) {
   db.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_climate_rules_updated ON perim_location_climate_rules(updated_at DESC);");
 }
 
+function ensurePerimLocationAdjacencyTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS perim_location_adjacency (
+      from_location_card_id TEXT NOT NULL,
+      to_location_card_id TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (from_location_card_id, to_location_card_id)
+    );
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_adjacency_from ON perim_location_adjacency(from_location_card_id, updated_at DESC);");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_adjacency_to ON perim_location_adjacency(to_location_card_id, updated_at DESC);");
+}
+
 function ensureKvStoreTable(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS kv_store (
@@ -857,6 +871,205 @@ function listLocationTribes(db) {
       tribeKey: normalizeLocationTribeKey(row.tribe_key || ""),
       updatedAt: String(row.updated_at || ""),
     }));
+}
+
+function resolveProjectRootFromDbPath(dbPath) {
+  const absoluteDbPath = path.resolve(String(dbPath || ""));
+  return path.resolve(path.dirname(absoluteDbPath), "..");
+}
+
+function parseLocationsMatrixRows(locationsFilePath) {
+  const filePath = path.resolve(String(locationsFilePath || ""));
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Arquivo locais.xlsx nao encontrado: ${filePath}`);
+  }
+  const workbook = XLSX.readFile(filePath, { cellDates: false, dense: false });
+  const sheet = workbook.Sheets.Planilha1 || workbook.Sheets[workbook.SheetNames[0]];
+  if (!sheet) {
+    return [];
+  }
+  const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+  const rows = [];
+  rawRows.forEach((row) => {
+    const type = normalizeCardType(row?.["Column1.type"] || "");
+    if (type !== "locations") {
+      return;
+    }
+    const name = String(row?.["Column1.name"] || "").trim();
+    if (!name) {
+      return;
+    }
+    const setName = String(row?.["Column1.set"] || "").trim();
+    const linkedLocationNames = [];
+    for (let idx = 1; idx <= 11; idx += 1) {
+      const linkedName = String(row?.[`LIGADO A LOCAL ${idx}`] || "").trim();
+      if (linkedName) {
+        linkedLocationNames.push(linkedName);
+      }
+    }
+    rows.push({ name, setName, linkedLocationNames });
+  });
+  return rows;
+}
+
+function buildLocationLookupMaps(db) {
+  const rows = db
+    .prepare(`
+      SELECT id, name, set_name
+      FROM card_catalog
+      WHERE lower(type) = 'locations'
+      ORDER BY name COLLATE NOCASE, id
+    `)
+    .all();
+  const byNameSet = new Map();
+  const byName = new Map();
+  rows.forEach((row) => {
+    const id = String(row?.id || "").trim();
+    const nameKey = normalizeSetKey(row?.name || "");
+    const setKey = normalizeSetKey(row?.set_name || "");
+    if (!id || !nameKey) {
+      return;
+    }
+    const nameSetKey = `${nameKey}|${setKey}`;
+    if (!byNameSet.has(nameSetKey)) {
+      byNameSet.set(nameSetKey, []);
+    }
+    byNameSet.get(nameSetKey).push(id);
+    if (!byName.has(nameKey)) {
+      byName.set(nameKey, []);
+    }
+    byName.get(nameKey).push(id);
+  });
+  return { byNameSet, byName };
+}
+
+function resolveLocationIdsFromRow(lookup, nameRaw, setRaw = "") {
+  const nameKey = normalizeSetKey(nameRaw || "");
+  const setKey = normalizeSetKey(setRaw || "");
+  if (!nameKey) {
+    return [];
+  }
+  const resolved = [
+    ...(lookup.byNameSet.get(`${nameKey}|${setKey}`) || []),
+    ...(lookup.byName.get(nameKey) || []),
+  ];
+  return [...new Set(resolved)];
+}
+
+function sanitizeLocationLinkPayload(db, raw) {
+  ensurePerimLocationAdjacencyTable(db);
+  const fromLocationCardId = String(raw?.fromLocationCardId || raw?.from || "").trim();
+  const toLocationCardId = String(raw?.toLocationCardId || raw?.to || "").trim();
+  if (!fromLocationCardId || !toLocationCardId) {
+    throw new Error("fromLocationCardId e toLocationCardId sao obrigatorios.");
+  }
+  if (fromLocationCardId === toLocationCardId) {
+    throw new Error("Auto-link nao permitido: origem e destino sao iguais.");
+  }
+  const fromCard = getCatalogCardById(db, fromLocationCardId);
+  const toCard = getCatalogCardById(db, toLocationCardId);
+  if (!fromCard || fromCard.type !== "locations") {
+    throw new Error(`Local de origem invalido: ${fromLocationCardId}`);
+  }
+  if (!toCard || toCard.type !== "locations") {
+    throw new Error(`Local de destino invalido: ${toLocationCardId}`);
+  }
+  return { fromLocationCardId, toLocationCardId };
+}
+
+function listLocationLinks(db) {
+  ensurePerimLocationAdjacencyTable(db);
+  const rows = db
+    .prepare(`
+      SELECT
+        a.from_location_card_id,
+        a.to_location_card_id,
+        a.updated_at,
+        cf.name AS from_location_name,
+        cf.set_name AS from_location_set,
+        ct.name AS to_location_name,
+        ct.set_name AS to_location_set
+      FROM perim_location_adjacency a
+      LEFT JOIN card_catalog cf ON cf.id = a.from_location_card_id
+      LEFT JOIN card_catalog ct ON ct.id = a.to_location_card_id
+      ORDER BY cf.name COLLATE NOCASE, ct.name COLLATE NOCASE, a.from_location_card_id, a.to_location_card_id
+    `)
+    .all();
+  return rows.map((row) => ({
+    fromLocationCardId: String(row?.from_location_card_id || ""),
+    fromLocationName: String(row?.from_location_name || row?.from_location_card_id || ""),
+    fromLocationSet: String(row?.from_location_set || ""),
+    toLocationCardId: String(row?.to_location_card_id || ""),
+    toLocationName: String(row?.to_location_name || row?.to_location_card_id || ""),
+    toLocationSet: String(row?.to_location_set || ""),
+    updatedAt: String(row?.updated_at || ""),
+  }));
+}
+
+function importLocationLinksFromMatrix(db, options = {}) {
+  ensurePerimLocationAdjacencyTable(db);
+  const replace = options?.replace !== false;
+  const projectRoot = options?.projectRoot ? path.resolve(options.projectRoot) : process.cwd();
+  const locationsFilePath = options?.locationsFilePath
+    ? path.resolve(options.locationsFilePath)
+    : path.join(projectRoot, "locais.xlsx");
+  const rows = parseLocationsMatrixRows(locationsFilePath);
+  const lookup = buildLocationLookupMaps(db);
+  const pairs = new Set();
+  let unresolvedSources = 0;
+  let unresolvedTargets = 0;
+
+  rows.forEach((row) => {
+    const sourceIds = resolveLocationIdsFromRow(lookup, row.name, row.setName);
+    if (!sourceIds.length) {
+      unresolvedSources += 1;
+      return;
+    }
+    const linkedNames = Array.isArray(row.linkedLocationNames) ? row.linkedLocationNames : [];
+    linkedNames.forEach((linkedName) => {
+      const targetIds = resolveLocationIdsFromRow(lookup, linkedName, "");
+      if (!targetIds.length) {
+        unresolvedTargets += 1;
+        return;
+      }
+      sourceIds.forEach((fromId) => {
+        targetIds.forEach((toId) => {
+          if (!fromId || !toId || fromId === toId) {
+            return;
+          }
+          pairs.add(`${fromId}=>${toId}`);
+        });
+      });
+    });
+  });
+
+  const linksBefore = Number(db.prepare("SELECT COUNT(*) AS total FROM perim_location_adjacency").get()?.total || 0);
+  const now = nowIso();
+  withTransaction(db, () => {
+    if (replace) {
+      db.prepare("DELETE FROM perim_location_adjacency").run();
+    }
+    const upsert = db.prepare(`
+      INSERT INTO perim_location_adjacency (from_location_card_id, to_location_card_id, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(from_location_card_id, to_location_card_id) DO UPDATE SET
+        updated_at = excluded.updated_at
+    `);
+    pairs.forEach((entry) => {
+      const [fromId, toId] = String(entry).split("=>");
+      upsert.run(fromId, toId, now);
+    });
+  });
+  const linksAfter = Number(db.prepare("SELECT COUNT(*) AS total FROM perim_location_adjacency").get()?.total || 0);
+  return {
+    imported: pairs.size,
+    linksBefore,
+    linksAfter,
+    unresolvedSources,
+    unresolvedTargets,
+    matrixRows: rows.length,
+    locationsFilePath,
+  };
 }
 
 function parseDateIsoRequired(value, fieldName) {
@@ -1908,6 +2121,83 @@ function run() {
         locationCardId: sanitized.locationCardId,
         deleted: Number(removed?.changes || 0) > 0,
         locationClimateRules: listLocationClimateRules(db),
+      });
+      return;
+    }
+
+    if (args.action === "location-links-list") {
+      jsonOk({
+        locationLinks: listLocationLinks(db),
+      });
+      return;
+    }
+
+    if (args.action === "location-link-add") {
+      ensurePerimLocationAdjacencyTable(db);
+      const payload = decodePayload(args);
+      const sanitized = sanitizeLocationLinkPayload(db, payload);
+      const existing = db
+        .prepare(`
+          SELECT 1
+          FROM perim_location_adjacency
+          WHERE from_location_card_id = ? AND to_location_card_id = ?
+          LIMIT 1
+        `)
+        .get(sanitized.fromLocationCardId, sanitized.toLocationCardId);
+      if (existing) {
+        throw new Error("Link ja existe para origem -> destino selecionados.");
+      }
+      withTransaction(db, () => {
+        db.prepare(`
+          INSERT INTO perim_location_adjacency (from_location_card_id, to_location_card_id, updated_at)
+          VALUES (?, ?, ?)
+        `).run(sanitized.fromLocationCardId, sanitized.toLocationCardId, nowIso());
+      });
+      jsonOk({
+        fromLocationCardId: sanitized.fromLocationCardId,
+        toLocationCardId: sanitized.toLocationCardId,
+        locationLinks: listLocationLinks(db),
+      });
+      return;
+    }
+
+    if (args.action === "location-link-remove") {
+      ensurePerimLocationAdjacencyTable(db);
+      const payload = decodePayload(args);
+      const sanitized = sanitizeLocationLinkPayload(db, payload);
+      const removed = withTransaction(db, () =>
+        db.prepare(`
+          DELETE FROM perim_location_adjacency
+          WHERE from_location_card_id = ? AND to_location_card_id = ?
+        `).run(sanitized.fromLocationCardId, sanitized.toLocationCardId)
+      );
+      jsonOk({
+        fromLocationCardId: sanitized.fromLocationCardId,
+        toLocationCardId: sanitized.toLocationCardId,
+        deleted: Number(removed?.changes || 0) > 0,
+        locationLinks: listLocationLinks(db),
+      });
+      return;
+    }
+
+    if (args.action === "location-links-import-from-matrix") {
+      ensurePerimLocationAdjacencyTable(db);
+      const payload = decodePayload(args);
+      const projectRoot = resolveProjectRootFromDbPath(dbPath);
+      const summary = importLocationLinksFromMatrix(db, {
+        replace: payload?.replace !== false,
+        projectRoot,
+      });
+      appendAuditLogEntry(
+        db,
+        "admin_location_links_import_matrix",
+        "system",
+        "Importacao de adjacencia de locais a partir de locais.xlsx.",
+        summary
+      );
+      jsonOk({
+        summary,
+        locationLinks: listLocationLinks(db),
       });
       return;
     }

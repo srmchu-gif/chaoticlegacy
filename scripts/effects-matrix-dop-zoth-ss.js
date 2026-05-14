@@ -103,13 +103,107 @@ function inferMultiEffectStatus(card) {
   if (!text) {
     return null;
   }
-  const clauses = splitAbilityClauses(text);
+  const normalizedText = text
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\bgeneral discard pile\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const clauses = splitAbilityClauses(normalizedText).filter((entry) => {
+    const compact = String(entry || "").replace(/\s+/g, " ").trim();
+    if (!compact) return false;
+    if (/^(?:\d*\s*M(?:C)+|MCMC|MCMCM|MC)\s*$/i.test(compact)) {
+      return false;
+    }
+    if (/^(?:discard|sacrifice)\b[^:]{0,80}$/i.test(compact) && !/\bdeal\b|\bheal\b|\bdestroy\b|\breturn\b/i.test(compact)) {
+      return false;
+    }
+    return true;
+  });
   if (clauses.length < 2) {
     return null;
   }
   const parsedEffects = Array.isArray(card?.parsedEffects) ? card.parsedEffects : [];
-  const actionHints = (text.match(/\b(deal|heal|infect|uninfect|destroy|return|shuffle|draw|discard|move|swap|negate|copy|gain|lose|flip|look)\b/gi) || []).length;
-  const hasConditionalChain = /\b(if|then|instead|another target|choose one)\b/i.test(text);
+  const parsedKinds = new Set(parsedEffects.map((entry) => String(entry?.kind || "").trim()).filter(Boolean));
+  const explicitUnresolvedChecks = [
+    {
+      when: /\bif\b[^.]*\bsacrifice\b/i.test(normalizedText),
+      missing: !parsedKinds.has("sacrificeCreature") && !parsedKinds.has("destroySelfIfPowerAboveThreshold"),
+    },
+    {
+      when: /\binfect that creature\b/i.test(normalizedText),
+      missing: !parsedKinds.has("infectTargetCreature") && !parsedKinds.has("infectTargetedOpposingUninfectedCreature"),
+    },
+    {
+      when: /\breturn\b[^.]*\bto your hand when it resolves\b/i.test(normalizedText),
+      missing: !parsedKinds.has("returnFromDiscard"),
+    },
+    {
+      when: /\bhive cannot be deactivated\b/i.test(normalizedText),
+      missing: !parsedKinds.has("deactivateHive"),
+    },
+    {
+      when: /\bdestroy all battlegear\b[\s\S]*\bequip\b/i.test(normalizedText),
+      missing: !parsedKinds.has("beginCombatStealOpposingEngagedBattlegearIfUnequipped"),
+    },
+  ];
+  if (explicitUnresolvedChecks.some((entry) => entry.when && entry.missing)) {
+    return "multi_effect_incomplete";
+  }
+  const actionHints = (
+    normalizedText.match(/\b(deal|heal|infect|uninfect|destroy|return|shuffle|draw|discard|move|swap|negate|copy|gain|lose|flip|look)\b/gi)
+    || []
+  ).length;
+  const hasConditionalChain =
+    /\banother target\b/i.test(normalizedText)
+    || /\bchoose one\b/i.test(normalizedText)
+    || /\bthen\b/i.test(normalizedText)
+    || /\binstead\b/i.test(normalizedText)
+    || /(?:^|[.!?]\s*)if\b/i.test(normalizedText);
+  const encodedConditional = parsedEffects.some((effect) =>
+    Boolean(
+      effect?.cannotMoveIfNoElements
+      || effect?.choiceSpec?.required
+      || effect?.targetSpec?.distinctFromPrevious
+      || Number(effect?.targetSpec?.maxTargets || 0) >= 2
+      || effect?.requiresElement
+      || effect?.requiresHiveActive
+      || effect?.requireHiveActive
+      || effect?.noCountersOnly
+      || effect?.minimum
+      || effect?.optional
+      || effect?.reorderTopBottom
+      || effect?.moveTopToBottom
+      || effect?.triggerAbove
+    )
+  );
+  if (encodedConditional) {
+    return null;
+  }
+  if (
+    parsedEffects.length === 1
+    && [
+      "drawDiscardAttack",
+      "searchDeckToDiscard",
+      "shuffleAttackDeckWithDiscard",
+      "conditionalDamage",
+      "dealDamage",
+      "healDamage",
+      "attackDamageModifier",
+      "activateHive",
+      "deactivateHive",
+      "incomingDamageReduction",
+      "elementModifier",
+      "keyword",
+      "returnFromDiscard",
+      "moveAsIfAdjacent",
+      "revealNewLocation",
+    ].includes(parsedEffects[0]?.kind)
+  ) {
+    return null;
+  }
+  if (/\bas if\b/i.test(normalizedText) && !/\bif\b/i.test(normalizedText.replace(/\bas if\b/gi, ""))) {
+    return null;
+  }
   if (parsedEffects.length <= 1 && (actionHints >= 2 || hasConditionalChain)) {
     return "multi_effect_incomplete";
   }

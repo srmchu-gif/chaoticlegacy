@@ -1651,6 +1651,38 @@ test("habilidades ativadas com multiplos custos geram opcoes separadas", async (
   assert.ok(casterOptions.every((entry) => Number(entry.option?.cost?.amount || 0) === 1));
 });
 
+test("habilidade ativada com custo de descartar Mugic tribal exige carta da tribo correta", async () => {
+  const { engine, battle } = await setupMovePhase("TRB1", "TRB2");
+  const caster = battle.board.players[0].creatures[4];
+  caster.card.ability = "Discard an UnderWorld Mugic Card: Deal 5 damage to target Creature.";
+  caster.card.parsedEffects = [
+    {
+      kind: "dealDamage",
+      amount: 5,
+      targetSpec: { type: "creature", required: true, scope: "all" },
+      sourceText: "Deal 5 damage to target Creature.",
+    },
+  ];
+  battle.pendingAction = { type: "priority", playerIndex: 0, choice: null, windowType: "test_priority" };
+
+  setPlayerMugicSlots(battle.board.players[0], [
+    { ...mugicCard("OW Chant", 1), tribe: "OverWorld" },
+  ]);
+  let actions = engine.getPriorityActions(battle, 0).filter((entry) => entry.kind === "ability");
+  let casterOptions = actions.filter((entry) => entry.option?.sourceUnitId === caster.unitId);
+  assert.equal(casterOptions.length, 0);
+
+  setPlayerMugicSlots(battle.board.players[0], [
+    { ...mugicCard("UW Dirge", 1), tribe: "UnderWorld" },
+  ]);
+  actions = engine.getPriorityActions(battle, 0).filter((entry) => entry.kind === "ability");
+  casterOptions = actions.filter((entry) => entry.option?.sourceUnitId === caster.unitId);
+  assert.ok(casterOptions.length >= 1);
+  const option = casterOptions[0].option;
+  assert.equal(option?.cost?.type, "discardMugic");
+  assert.equal(option?.cost?.tribe, "underworld");
+});
+
 test("habilidade once per turn nao reaparece em nova janela do mesmo turno", async () => {
   const { engine, battle } = await setupMovePhase("OPT1", "OPT2");
   const attacker = battle.board.players[0].creatures[4];
