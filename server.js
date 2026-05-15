@@ -799,6 +799,19 @@ function createSqlV2Tables() {
   `);
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_drop_events_active_window ON perim_drop_events(enabled, location_card_id, start_at, end_at);");
   sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_climate_daily_effects (
+      date_key TEXT NOT NULL,
+      climate_key TEXT NOT NULL,
+      effect_id TEXT NOT NULL,
+      effect_label TEXT NOT NULL,
+      effect_description TEXT NOT NULL,
+      modifiers_json TEXT NOT NULL DEFAULT '{}',
+      rolled_at TEXT NOT NULL,
+      PRIMARY KEY (date_key, climate_key)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_climate_daily_effects_date ON perim_climate_daily_effects(date_key, climate_key);");
+  sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_location_state (
       location_id TEXT NOT NULL PRIMARY KEY,
       turn_label TEXT NOT NULL,
@@ -5069,6 +5082,89 @@ const PERIM_EVENTS_BY_CLIMATE = {
   lugar_fechado: { id: "indoor_flow", label: "Lugar Fechado", effect: "Clima neutro operacional.", bonus: {} },
 };
 
+const PERIM_DAILY_CLIMATE_EFFECTS = {
+  ensolarado: [
+    { id: "sun_scout_1", label: "Rastros Dourados", description: "Criaturas aparecem um pouco mais em exploracao.", modifiers: { creatureDropChanceAdd: 0.03 } },
+    { id: "sun_relic_2", label: "Calor de Reliquia", description: "Leve foco em reliquias e equipamentos.", modifiers: { typeWeightMultiplier: { battlegear: 1.06 } } },
+    { id: "sun_attack_3", label: "Brilho de Combate", description: "Ataques ficam levemente mais frequentes.", modifiers: { typeWeightMultiplier: { attacks: 1.06 }, attackChanceMultiplier: 1.04 } },
+    { id: "sun_swift_4", label: "Janela Clara", description: "Pequeno ganho de sucesso e duracao estavel.", modifiers: { successChanceAdd: 0.03 } },
+    { id: "sun_stable_5", label: "Sinal Limpo", description: "Leve bonus para drop extra na run.", modifiers: { bonusChanceMultiplier: 1.06 } },
+  ],
+  chuvoso: [
+    { id: "rain_water_1", label: "Pulso Aquatico", description: "Ataques aquaticos ficam um pouco mais comuns.", modifiers: { typeWeightMultiplier: { attacks: 1.06 } } },
+    { id: "rain_mugic_2", label: "Canal Umido", description: "Mugics recebem leve impulso de chance.", modifiers: { typeWeightMultiplier: { mugic: 1.06 } } },
+    { id: "rain_creature_3", label: "Pegadas Fundas", description: "Rastreamento de criatura sobe um pouco.", modifiers: { creatureDropChanceAdd: 0.03 } },
+    { id: "rain_drift_4", label: "Corrente Lenta", description: "Leve penalidade de chance de bonus.", modifiers: { bonusChanceMultiplier: 0.95 } },
+    { id: "rain_cache_5", label: "Pocao de Itens", description: "Equipamentos tem pequeno reforco.", modifiers: { typeWeightMultiplier: { battlegear: 1.05 } } },
+  ],
+  ventania: [
+    { id: "wind_track_1", label: "Trilha de Ar", description: "Chance de criatura sobe levemente.", modifiers: { creatureDropChanceAdd: 0.03 } },
+    { id: "wind_attack_2", label: "Corte de Vento", description: "Ataques ficam um pouco mais provaveis.", modifiers: { typeWeightMultiplier: { attacks: 1.06 }, attackChanceMultiplier: 1.05 } },
+    { id: "wind_loc_3", label: "Rotas Abertas", description: "Locais ganham leve bonus de drop.", modifiers: { locationDropChanceMultiplier: 1.07 } },
+    { id: "wind_focus_4", label: "Foco de Patrulha", description: "Leve aumento na taxa de sucesso.", modifiers: { successChanceAdd: 0.03 } },
+    { id: "wind_turb_5", label: "Rajada Turbulenta", description: "Pequena queda no bonus de run.", modifiers: { bonusChanceMultiplier: 0.95 } },
+  ],
+  tempestade: [
+    { id: "storm_hunt_1", label: "Cacada da Tempestade", description: "Criaturas sobem um pouco na run.", modifiers: { creatureDropChanceAdd: 0.04 } },
+    { id: "storm_mugic_2", label: "Condutor Arcano", description: "Mugics e raridade recebem impulso leve.", modifiers: { typeWeightMultiplier: { mugic: 1.07 }, rareBoostAdd: 0.05 } },
+    { id: "storm_gear_3", label: "Ferragens Expostas", description: "Equipamentos aparecem mais no clima instavel.", modifiers: { typeWeightMultiplier: { battlegear: 1.06 } } },
+    { id: "storm_risk_4", label: "Ruido Eletrico", description: "Leve queda de sucesso na acao.", modifiers: { successChanceAdd: -0.03 } },
+    { id: "storm_attack_5", label: "Impacto Duplo", description: "Ataques tem reforco pequeno por slot.", modifiers: { attackChanceMultiplier: 1.06, typeWeightMultiplier: { attacks: 1.05 } } },
+  ],
+  nublado: [
+    { id: "cloud_balance_1", label: "Leitura Estavel", description: "Distribuicao equilibrada, sem extremos.", modifiers: {} },
+    { id: "cloud_clue_2", label: "Eco de Sinais", description: "Chance de bonus da run sobe levemente.", modifiers: { bonusChanceMultiplier: 1.05 } },
+    { id: "cloud_attack_3", label: "Janela Tatica", description: "Ataques sobem um pouco no sorteio.", modifiers: { typeWeightMultiplier: { attacks: 1.05 } } },
+    { id: "cloud_loc_4", label: "Mapa Coberto", description: "Locais ganham leve chance extra.", modifiers: { locationDropChanceMultiplier: 1.06 } },
+    { id: "cloud_watch_5", label: "Observacao Longa", description: "Rastreio de criaturas sobe de forma leve.", modifiers: { creatureDropChanceAdd: 0.03 } },
+  ],
+  umido: [
+    { id: "humid_mugic_1", label: "Canal Saturado", description: "Mugics recebem pequeno bonus.", modifiers: { typeWeightMultiplier: { mugic: 1.06 } } },
+    { id: "humid_pack_2", label: "Bolso Encharcado", description: "Equipamentos ficam ligeiramente mais comuns.", modifiers: { typeWeightMultiplier: { battlegear: 1.05 } } },
+    { id: "humid_track_3", label: "Rastro Pesado", description: "Leve aumento para criaturas.", modifiers: { creatureDropChanceAdd: 0.03 } },
+    { id: "humid_drag_4", label: "Terreno Denso", description: "Leve reducao na chance de ataque.", modifiers: { attackChanceMultiplier: 0.95 } },
+    { id: "humid_sync_5", label: "Umidade Harmonica", description: "Sucesso geral sobe um pouco.", modifiers: { successChanceAdd: 0.03 } },
+  ],
+  seco: [
+    { id: "dry_attack_1", label: "Ar Seco", description: "Ataques ficam um pouco mais presentes.", modifiers: { typeWeightMultiplier: { attacks: 1.06 }, attackChanceMultiplier: 1.05 } },
+    { id: "dry_relic_2", label: "Vestigio Exposto", description: "Leve bonus para battlegear.", modifiers: { typeWeightMultiplier: { battlegear: 1.06 } } },
+    { id: "dry_trace_3", label: "Pegada Clara", description: "Rastreio ganha pequeno impulso.", modifiers: { creatureDropChanceAdd: 0.03 } },
+    { id: "dry_break_4", label: "Quebra de Ritmo", description: "Bonus de run cai um pouco.", modifiers: { bonusChanceMultiplier: 0.95 } },
+    { id: "dry_map_5", label: "Horizonte Livre", description: "Chance de local sobe levemente.", modifiers: { locationDropChanceMultiplier: 1.06 } },
+  ],
+  frio: [
+    { id: "cold_focus_1", label: "Frio Preciso", description: "Leve aumento de sucesso.", modifiers: { successChanceAdd: 0.03 } },
+    { id: "cold_mugic_2", label: "Canal Gelado", description: "Mugic e raridade sobem de leve.", modifiers: { typeWeightMultiplier: { mugic: 1.05 }, rareBoostAdd: 0.04 } },
+    { id: "cold_track_3", label: "Rastro Congelado", description: "Criaturas ficam um pouco mais detectaveis.", modifiers: { creatureDropChanceAdd: 0.03 } },
+    { id: "cold_attack_4", label: "Golpe Rigido", description: "Ataques recebem pequeno bonus.", modifiers: { typeWeightMultiplier: { attacks: 1.05 } } },
+    { id: "cold_slow_5", label: "Passo Lento", description: "Leve queda de chance extra.", modifiers: { bonusChanceMultiplier: 0.95 } },
+  ],
+  quente: [
+    { id: "hot_burst_1", label: "Pico Termico", description: "Ataques ficam um pouco mais frequentes.", modifiers: { attackChanceMultiplier: 1.06, typeWeightMultiplier: { attacks: 1.05 } } },
+    { id: "hot_hunt_2", label: "Cacada Escaldante", description: "Leve impulso para criaturas.", modifiers: { creatureDropChanceAdd: 0.03 } },
+    { id: "hot_tools_3", label: "Sucata Quente", description: "Equipamentos sobem um pouco no sorteio.", modifiers: { typeWeightMultiplier: { battlegear: 1.06 } } },
+    { id: "hot_focus_4", label: "Luz Aberta", description: "Chance de sucesso sobe levemente.", modifiers: { successChanceAdd: 0.03 } },
+    { id: "hot_drift_5", label: "Miragem Instavel", description: "Mugic perde um pouco de peso.", modifiers: { typeWeightMultiplier: { mugic: 0.95 } } },
+  ],
+  lugar_fechado: [
+    { id: "indoor_cache_1", label: "Deposito Oculto", description: "Equipamentos recebem pequeno bonus.", modifiers: { typeWeightMultiplier: { battlegear: 1.07 } } },
+    { id: "indoor_echo_2", label: "Eco de Corredor", description: "Mugics sobem de leve.", modifiers: { typeWeightMultiplier: { mugic: 1.05 } } },
+    { id: "indoor_steps_3", label: "Passos Contidos", description: "Leve ganho de sucesso.", modifiers: { successChanceAdd: 0.03 } },
+    { id: "indoor_hunt_4", label: "Rastro Curto", description: "Criaturas ficam um pouco mais visiveis.", modifiers: { creatureDropChanceAdd: 0.03 } },
+    { id: "indoor_closed_5", label: "Mapa Restrito", description: "Locais tem leve reducao de chance.", modifiers: { locationDropChanceMultiplier: 0.94 } },
+  ],
+};
+
+const PERIM_DAILY_CLIMATE_KEYS = Object.keys(PERIM_DAILY_CLIMATE_EFFECTS);
+const PERIM_ATTACK_SLOT_OVERRIDE_CHANCE = 0.0001;
+const PERIM_ATTACK_SLOT_OVERRIDE_NAMES = new Set([
+  "supercooledrain",
+  "innerflood",
+  "primalsmash",
+  "whirlingwail",
+  "deadwaterdevastation",
+]);
+
 function normalizePerimPlayerKey(value) {
   const fallback = "local-player";
   const clean = String(value || "")
@@ -6850,6 +6946,8 @@ function buildPerimActionsDropsReportText() {
   lines.push("- Drop de Location usa chance por raridade do local e prioriza locais ligados.");
   lines.push("- Se local ligado nao cair, pode dropar o proprio local atual.");
   lines.push("- Se carta ja estiver no cap, ela e ignorada no roll.");
+  lines.push("- Roleta diaria de clima: 10 climas com 5 efeitos cada, sorteio uniforme e snapshot por run.");
+  lines.push("- Ataques rarissimos especiais: chance final de 0.01% por slot de ataque no Perim.");
   lines.push("");
   lines.push("Efeitos de Scanner por nivel:");
   [1, 2, 3, 4].forEach((level) => {
@@ -8081,6 +8179,21 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
     }
     return { card, weight: Math.max(0.05, weight) };
   });
+  if (type === "attacks") {
+    const ultraRareOverrides = pool.filter((card) => PERIM_ATTACK_SLOT_OVERRIDE_NAMES.has(normalizePerimText(card?.name || "")));
+    if (ultraRareOverrides.length && Math.random() < PERIM_ATTACK_SLOT_OVERRIDE_CHANCE) {
+      const pickedUltra = pickFromList(ultraRareOverrides);
+      if (pickedUltra?.id) {
+        return {
+          type,
+          cardId: pickedUltra.id,
+          cardName: pickedUltra.name,
+          rarity: pickedUltra.rarity || "Unknown",
+          image: pickedUltra.image || "",
+        };
+      }
+    }
+  }
   const pickedEntry = weightedRandomChoice(weighted, Math.random);
   const picked = pickedEntry?.card || pickFromList(pool);
   if (!picked?.id) {
@@ -8608,9 +8721,213 @@ function perimClimateEventByName(climateRaw) {
   return PERIM_EVENTS_BY_CLIMATE.nublado;
 }
 
+let perimClimateDailyEffectCache = { dateKey: "", byClimate: new Map() };
+
+function sanitizePerimDailyClimateModifiers(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const sanitizeMult = (value, fallback = 1) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return fallback;
+    }
+    return Math.max(0.5, Math.min(1.5, numeric));
+  };
+  const sanitizeAdd = (value, min = -0.2, max = 0.2) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+      return 0;
+    }
+    return Math.max(min, Math.min(max, numeric));
+  };
+  const typeWeightSource = source.typeWeightMultiplier && typeof source.typeWeightMultiplier === "object"
+    ? source.typeWeightMultiplier
+    : {};
+  return {
+    typeWeightMultiplier: {
+      creatures: sanitizeMult(typeWeightSource.creatures, 1),
+      attacks: sanitizeMult(typeWeightSource.attacks, 1),
+      battlegear: sanitizeMult(typeWeightSource.battlegear, 1),
+      mugic: sanitizeMult(typeWeightSource.mugic, 1),
+      locations: sanitizeMult(typeWeightSource.locations, 1),
+    },
+    creatureDropChanceAdd: sanitizeAdd(source.creatureDropChanceAdd, -0.12, 0.12),
+    attackChanceMultiplier: sanitizeMult(source.attackChanceMultiplier, 1),
+    bonusChanceMultiplier: sanitizeMult(source.bonusChanceMultiplier, 1),
+    locationDropChanceMultiplier: sanitizeMult(source.locationDropChanceMultiplier, 1),
+    successChanceAdd: sanitizeAdd(source.successChanceAdd, -0.12, 0.12),
+    rareBoostAdd: sanitizeAdd(source.rareBoostAdd, -0.4, 0.4),
+  };
+}
+
+function buildPerimDailyEffectEntry(climateKeyRaw, effectSource, dateKeyRaw = "", rolledAtRaw = "") {
+  const climateKey = normalizePerimClimateKey(climateKeyRaw) || "nublado";
+  const fallback = Array.isArray(PERIM_DAILY_CLIMATE_EFFECTS[climateKey]) ? PERIM_DAILY_CLIMATE_EFFECTS[climateKey][0] : null;
+  const source = effectSource && typeof effectSource === "object" ? effectSource : fallback || {};
+  const modifiers = sanitizePerimDailyClimateModifiers(source.modifiers);
+  return {
+    climateKey,
+    dateKey: String(dateKeyRaw || todayDateKey()).trim() || todayDateKey(),
+    id: String(source.id || `${climateKey}_fallback`),
+    label: String(source.label || "Efeito Diario"),
+    description: String(source.description || "Efeito diario leve de Perim."),
+    modifiers,
+    rolledAt: String(rolledAtRaw || nowIso()),
+  };
+}
+
+function pickPerimDailyClimateEffect(climateKeyRaw) {
+  const climateKey = normalizePerimClimateKey(climateKeyRaw) || "nublado";
+  const pool = Array.isArray(PERIM_DAILY_CLIMATE_EFFECTS[climateKey]) ? PERIM_DAILY_CLIMATE_EFFECTS[climateKey] : [];
+  if (!pool.length) {
+    return buildPerimDailyEffectEntry(climateKey, {
+      id: `${climateKey}_neutral`,
+      label: "Fluxo Neutro",
+      description: "Sem alteracoes relevantes hoje.",
+      modifiers: {},
+    });
+  }
+  const picked = pool[Math.floor(Math.random() * pool.length)] || pool[0];
+  return buildPerimDailyEffectEntry(climateKey, picked);
+}
+
+function readPerimClimateDailyEffectsForDate(dateKeyRaw = "") {
+  const dateKey = String(dateKeyRaw || todayDateKey()).trim() || todayDateKey();
+  const byClimate = new Map();
+  if (isSqlV2Ready()) {
+    const rows = sqliteDb
+      .prepare(`
+        SELECT date_key, climate_key, effect_id, effect_label, effect_description, modifiers_json, rolled_at
+        FROM perim_climate_daily_effects
+        WHERE date_key = ?
+      `)
+      .all(dateKey);
+    rows.forEach((row) => {
+      const climateKey = normalizePerimClimateKey(row?.climate_key || "");
+      if (!climateKey) {
+        return;
+      }
+      const parsedModifiers = parseJsonText(row?.modifiers_json, {});
+      byClimate.set(
+        climateKey,
+        buildPerimDailyEffectEntry(
+          climateKey,
+          {
+            id: String(row?.effect_id || ""),
+            label: String(row?.effect_label || ""),
+            description: String(row?.effect_description || ""),
+            modifiers: parsedModifiers,
+          },
+          String(row?.date_key || dateKey),
+          String(row?.rolled_at || nowIso())
+        )
+      );
+    });
+    return byClimate;
+  }
+  const cached = sqlGet("perim_climate_daily_effects", dateKey);
+  const entries = Array.isArray(cached?.effects) ? cached.effects : [];
+  entries.forEach((entry) => {
+    const climateKey = normalizePerimClimateKey(entry?.climateKey || "");
+    if (!climateKey) {
+      return;
+    }
+    byClimate.set(
+      climateKey,
+      buildPerimDailyEffectEntry(
+        climateKey,
+        {
+          id: entry?.id,
+          label: entry?.label,
+          description: entry?.description,
+          modifiers: entry?.modifiers,
+        },
+        entry?.dateKey || dateKey,
+        entry?.rolledAt || nowIso()
+      )
+    );
+  });
+  return byClimate;
+}
+
+function ensurePerimClimateDailyEffectsForDate(dateKeyRaw = "") {
+  const dateKey = String(dateKeyRaw || todayDateKey()).trim() || todayDateKey();
+  if (perimClimateDailyEffectCache.dateKey === dateKey && perimClimateDailyEffectCache.byClimate.size === PERIM_DAILY_CLIMATE_KEYS.length) {
+    return perimClimateDailyEffectCache.byClimate;
+  }
+  const existing = readPerimClimateDailyEffectsForDate(dateKey);
+  if (isSqlV2Ready()) {
+    const insertStmt = sqliteDb.prepare(`
+      INSERT INTO perim_climate_daily_effects (
+        date_key, climate_key, effect_id, effect_label, effect_description, modifiers_json, rolled_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(date_key, climate_key) DO NOTHING
+    `);
+    PERIM_DAILY_CLIMATE_KEYS.forEach((climateKey) => {
+      if (existing.has(climateKey)) {
+        return;
+      }
+      const rolled = pickPerimDailyClimateEffect(climateKey);
+      insertStmt.run(
+        dateKey,
+        climateKey,
+        String(rolled.id || ""),
+        String(rolled.label || ""),
+        String(rolled.description || ""),
+        JSON.stringify(rolled.modifiers || {}),
+        String(rolled.rolledAt || nowIso())
+      );
+      existing.set(climateKey, buildPerimDailyEffectEntry(climateKey, rolled, dateKey, rolled.rolledAt));
+    });
+  } else {
+    let changed = false;
+    PERIM_DAILY_CLIMATE_KEYS.forEach((climateKey) => {
+      if (existing.has(climateKey)) {
+        return;
+      }
+      existing.set(climateKey, pickPerimDailyClimateEffect(climateKey));
+      changed = true;
+    });
+    if (changed) {
+      sqlSet("perim_climate_daily_effects", dateKey, {
+        dateKey,
+        effects: [...existing.values()],
+      });
+    }
+  }
+  const refreshed = readPerimClimateDailyEffectsForDate(dateKey);
+  PERIM_DAILY_CLIMATE_KEYS.forEach((climateKey) => {
+    if (!refreshed.has(climateKey)) {
+      refreshed.set(climateKey, pickPerimDailyClimateEffect(climateKey));
+    }
+  });
+  perimClimateDailyEffectCache = { dateKey, byClimate: refreshed };
+  return refreshed;
+}
+
+function getPerimDailyClimateEffect(climateRaw, dateKeyRaw = "", nowDate = new Date()) {
+  const climateKey = normalizePerimClimateKey(climateRaw) || "nublado";
+  const dateKey = String(dateKeyRaw || todayDateKey(nowDate)).trim() || todayDateKey(nowDate);
+  const byClimate = ensurePerimClimateDailyEffectsForDate(dateKey);
+  const effect = byClimate.get(climateKey) || byClimate.get("nublado") || pickPerimDailyClimateEffect(climateKey);
+  return buildPerimDailyEffectEntry(climateKey, effect, dateKey, effect?.rolledAt || nowIso());
+}
+
+function applyPerimTypeWeightMultipliers(baseWeightsRaw, dailyModifiersRaw) {
+  const baseWeights = baseWeightsRaw && typeof baseWeightsRaw === "object" ? baseWeightsRaw : {};
+  const dailyModifiers = sanitizePerimDailyClimateModifiers(dailyModifiersRaw);
+  const typeMultipliers = dailyModifiers.typeWeightMultiplier;
+  const output = {};
+  ["creatures", "attacks", "battlegear", "mugic", "locations"].forEach((type) => {
+    const base = Math.max(0, Number(baseWeights[type] || 0));
+    output[type] = Math.max(0, base * Math.max(0.25, Number(typeMultipliers[type] || 1)));
+  });
+  return output;
+}
+
 function buildPerimContextSnapshot(locationEntry, actionId, scannerEffect = null, nowDate = new Date(), clues = []) {
   const globalState = getPerimGlobalLocationState(locationEntry, nowDate);
   const climateEvent = perimClimateEventByName(globalState.climate);
+  const dailyEffect = getPerimDailyClimateEffect(globalState.climate, todayDateKey(nowDate), nowDate);
   const chosenAction = String(actionId || "explore");
   const creatureChanceByAction = locationEntry?.creatureChanceByAction || {};
   const creatureChancePercent = clampPercent(
@@ -8621,19 +8938,31 @@ function buildPerimContextSnapshot(locationEntry, actionId, scannerEffect = null
     todayDateKey(nowDate)
   );
   const successBoost = Math.max(0, Number(scannerEffect?.successBoostPercent || 0));
+  const combinedEventEffect = String(climateEvent?.effect || "").trim();
+  const dailyEventEffect = String(dailyEffect?.description || "").trim();
   return {
     capturedAt: nowDate.toISOString(),
     turnLabel: globalState.turnLabel,
     climate: globalState.climate,
     eventId: String(climateEvent?.id || ""),
     eventLabel: String(climateEvent?.label || ""),
-    eventEffect: String(climateEvent?.effect || ""),
+    eventEffect: dailyEventEffect
+      ? `${combinedEventEffect}${combinedEventEffect ? " | " : ""}${dailyEventEffect}`
+      : combinedEventEffect,
+    dailyEffectId: String(dailyEffect?.id || ""),
+    dailyEffectLabel: String(dailyEffect?.label || ""),
+    dailyEffectDescription: String(dailyEffect?.description || ""),
+    dailyEffectDate: String(dailyEffect?.dateKey || todayDateKey(nowDate)),
+    dailyEffectModifiers: sanitizePerimDailyClimateModifiers(dailyEffect?.modifiers),
     creatureChancePercent,
     creaturesTodayCount,
     hasCreaturesToday: creaturesTodayCount > 0,
     clues: Array.isArray(clues) ? clues.filter(Boolean) : [],
     scanSuccessBoostPercent: successBoost,
-    eventChancePercent: climateEvent?.bonus && Object.keys(climateEvent.bonus).length ? 100 : 0,
+    eventChancePercent: (
+      (climateEvent?.bonus && Object.keys(climateEvent.bonus).length ? 100 : 0)
+      || (dailyEventEffect ? 100 : 0)
+    ),
     locationDropChancePercent: Math.round(locationDropChanceByRarity(locationEntry?.rarity || "") * 100),
   };
 }
@@ -8774,18 +9103,41 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   const fallbackCurrentMinChance = clampUnitInterval(locationRules?.fallbackCurrentMinChance, 0.05);
   const maxCreatureDropsPerRun = getPerimMaxCreatureDropsPerRun();
   const maxTotalDropsPerRun = getPerimMaxTotalDropsPerRun();
+  const contextSnapshot = options.contextSnapshot && typeof options.contextSnapshot === "object"
+    ? options.contextSnapshot
+    : null;
+  const startDate = options.startDate instanceof Date
+    ? options.startDate
+    : new Date(
+      Date.parse(
+        String(
+          contextSnapshot?.capturedAt
+          || contextSnapshot?.startAt
+          || options?.startAt
+          || nowIso()
+        )
+      ) || Date.now()
+    );
+  const snapshotClimate = String(contextSnapshot?.climate || "").trim();
+  const dailyEffectDateKey = String(contextSnapshot?.dailyEffectDate || todayDateKey(startDate));
+  const dailyEffect = getPerimDailyClimateEffect(snapshotClimate, dailyEffectDateKey, startDate);
+  const dailyEffectModifiers = sanitizePerimDailyClimateModifiers(
+    contextSnapshot?.dailyEffectModifiers || dailyEffect?.modifiers || {}
+  );
   let creatureDropsInRun = 0;
-  const perimState = getPerimGlobalLocationState(locationEntry, new Date());
+  const perimState = getPerimGlobalLocationState(locationEntry, startDate);
   const activeClimate = normalizeClimateText(perimState?.climate || "nublado");
+  const primaryWeights = applyPerimTypeWeightMultipliers(profile.primary, dailyEffectModifiers);
+  const effectiveRareBoostBase = Math.max(0, Number(scannerEffect.rareBoost || 0) + Number(dailyEffectModifiers.rareBoostAdd || 0));
   const locationScannerKey = normalizeTribeToScannerKey(locationTribeKey || tribe);
   const tribeBoostEntry = tribeScannerRareBoosts.get(locationScannerKey) || null;
-  const creatureRareBoost = Math.max(0, Number(tribeBoostEntry?.creatureRareBoost ?? scannerEffect.rareBoost ?? 0));
-  const mugicRareBoost = Math.max(0, Number(tribeBoostEntry?.mugicRareBoost ?? scannerEffect.mugicRareBoost ?? scannerEffect.rareBoost ?? 0));
+  const creatureRareBoost = Math.max(0, Number(tribeBoostEntry?.creatureRareBoost ?? effectiveRareBoostBase ?? 0));
+  const mugicRareBoost = Math.max(0, Number(tribeBoostEntry?.mugicRareBoost ?? scannerEffect.mugicRareBoost ?? effectiveRareBoostBase ?? 0));
   const campWaitCount = Math.max(0, Math.floor(Number(options?.campWaitCount || 0)));
   const excludedRewardCardKeys = options.excludedRewardCardKeys instanceof Set ? options.excludedRewardCardKeys : new Set();
   const battlegearAllowedCardIds = getPerimAvailableBattlegearCardIdsForLocation(
     String(locationEntry?.cardId || locationEntry?.id || ""),
-    todayDateKey(new Date())
+    todayDateKey(startDate)
   );
   const campStacking = getPerimCampCreatureStackingSettings();
   const campBonusPercent = actionId === "camp"
@@ -8794,7 +9146,11 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   const campBonusChance = clampUnitInterval(campBonusPercent / 100, 0);
   const creatureDropChance = Math.max(
     0,
-    Math.min(1, Number(calculateCreatureChancePercent(locationEntry?.rarity, actionId) || 0) / 100)
+    Math.min(
+      1,
+      (Number(calculateCreatureChancePercent(locationEntry?.rarity, actionId) || 0) / 100)
+      + Number(dailyEffectModifiers.creatureDropChanceAdd || 0)
+    )
   );
   const { locationsById: locationCardsById } = getLibraryIndexes();
   const resolveOwnedLocationTotal = (cardIdRaw) => {
@@ -8922,7 +9278,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     }
     return rewardCardFromType(type, tribe, {
       inventoryCounts,
-      rareBoost: type === "mugic" ? mugicRareBoost : scannerEffect.rareBoost,
+      rareBoost: type === "mugic" ? mugicRareBoost : effectiveRareBoostBase,
       includeCreatureVariant,
       ignoreInventoryCap,
       activeClimate,
@@ -9029,13 +9385,21 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
 
   const successRoll = Math.random();
   const baseSuccessChance = Math.max(0, Math.min(1, Number(profile.baseSuccessChance || 0.65)));
-  const boostedSuccessChance = Math.max(0, Math.min(1, baseSuccessChance + (Number(scannerEffect.successBoostPercent || 0) / 100)));
+  const boostedSuccessChance = Math.max(
+    0,
+    Math.min(
+      1,
+      baseSuccessChance
+      + (Number(scannerEffect.successBoostPercent || 0) / 100)
+      + Number(dailyEffectModifiers.successChanceAdd || 0)
+    )
+  );
   const success = successRoll <= boostedSuccessChance;
   if (!success) {
     const failFallback =
       rewardCardFromType("attacks", tribe, {
         inventoryCounts,
-        rareBoost: scannerEffect.rareBoost,
+        rareBoost: effectiveRareBoostBase,
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
@@ -9046,7 +9410,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       }) ||
       rewardCardFromType("battlegear", tribe, {
         inventoryCounts,
-        rareBoost: scannerEffect.rareBoost,
+        rareBoost: effectiveRareBoostBase,
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
@@ -9075,20 +9439,28 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       pickGuaranteedLocalReward();
     }
   } else {
-    const primaryType = weightedPickWithClimate(profile.primary, activeClimate) || "creatures";
+    const primaryType = weightedPickWithClimate(primaryWeights, activeClimate) || "creatures";
     const primaryReward = pickRewardForType(primaryType);
     if (primaryReward) {
       appendReward(primaryReward);
     }
-    if (Math.random() < profile.bonusChance) {
-      const bonusType = weightedPickWithClimate(profile.primary, activeClimate) || "attacks";
+    const effectiveBonusChance = Math.max(
+      0,
+      Math.min(1, Number(profile.bonusChance || 0) * Number(dailyEffectModifiers.bonusChanceMultiplier || 1))
+    );
+    if (Math.random() < effectiveBonusChance) {
+      const bonusType = weightedPickWithClimate(primaryWeights, activeClimate) || "attacks";
       const bonusReward = pickRewardForType(bonusType);
       if (bonusReward) {
         appendReward(bonusReward);
       }
     }
     let attackDrops = 0;
-    if (Math.random() < profile.attackChance) {
+    const effectiveAttackChance = Math.max(
+      0,
+      Math.min(1, Number(profile.attackChance || 0) * Number(dailyEffectModifiers.attackChanceMultiplier || 1))
+    );
+    if (Math.random() < effectiveAttackChance) {
       attackDrops += 1;
     }
     if (attackDrops > 0 && Math.random() < 0.35) {
@@ -9098,7 +9470,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     for (let i = 0; i < attackDrops; i += 1) {
       const attackReward = rewardCardFromType("attacks", tribe, {
         inventoryCounts,
-        rareBoost: scannerEffect.rareBoost,
+        rareBoost: effectiveRareBoostBase,
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
@@ -9118,6 +9490,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         locationDropChanceByRarity(locationEntry?.rarity || "")
         * Math.max(0.2, Number(profile.locationDropBias || 1))
         * PERIM_LOCATION_DROP_BASE_CHANCE_MULTIPLIER
+        * Math.max(0.25, Number(dailyEffectModifiers.locationDropChanceMultiplier || 1))
       )
     );
     const linkedLocationIds = Array.isArray(locationEntry?.linkedLocationIds) ? locationEntry.linkedLocationIds : [];
@@ -9140,7 +9513,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   if (!rewards.length) {
     const fallback = rewardCardFromType("attacks", tribe, {
       inventoryCounts,
-      rareBoost: scannerEffect.rareBoost,
+      rareBoost: effectiveRareBoostBase,
       ignoreInventoryCap,
       activeClimate,
       locationEntry,
@@ -9151,7 +9524,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
     })
       || rewardCardFromType("battlegear", tribe, {
         inventoryCounts,
-        rareBoost: scannerEffect.rareBoost,
+        rareBoost: effectiveRareBoostBase,
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
@@ -9185,10 +9558,10 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       break;
     }
     const topUp =
-      pickRewardForType(weightedPickWithClimate(profile.primary, activeClimate) || "attacks")
+      pickRewardForType(weightedPickWithClimate(primaryWeights, activeClimate) || "attacks")
       || rewardCardFromType("attacks", tribe, {
         inventoryCounts,
-        rareBoost: scannerEffect.rareBoost,
+        rareBoost: effectiveRareBoostBase,
         ignoreInventoryCap,
         activeClimate,
         locationEntry,
@@ -10254,6 +10627,8 @@ let dailyCreatureCheckInterval = null;
 let perimDailyWalkSchedulerState = { dateKey: "", executedSlots: new Set() };
 let battlegearDailySpawnSchedulerState = { dateKey: "", generatedAtMidnight: false };
 let battlegearDailySpawnCheckInterval = null;
+let perimClimateDailyEffectSchedulerState = { dateKey: "", generatedAtMidnight: false };
+let perimClimateDailyEffectCheckInterval = null;
 
 function startDailyCreatureLocationScheduler() {
   ensureDailyCreatureLocations();
@@ -10307,6 +10682,32 @@ function startPerimBattlegearDailySpawnScheduler() {
   evaluateSchedule();
   battlegearDailySpawnCheckInterval = setInterval(evaluateSchedule, 30 * 1000);
   battlegearDailySpawnCheckInterval.unref?.();
+}
+
+function startPerimClimateDailyEffectScheduler() {
+  ensurePerimClimateDailyEffectsForDate(todayDateKey());
+  const evaluateSchedule = () => {
+    const now = new Date();
+    const dateKey = todayDateKey(now);
+    const slot = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    if (perimClimateDailyEffectSchedulerState.dateKey !== dateKey) {
+      perimClimateDailyEffectSchedulerState = { dateKey, generatedAtMidnight: false };
+      perimClimateDailyEffectCache = { dateKey: "", byClimate: new Map() };
+    }
+    if (slot !== "00:00" || perimClimateDailyEffectSchedulerState.generatedAtMidnight) {
+      return;
+    }
+    perimClimateDailyEffectSchedulerState.generatedAtMidnight = true;
+    try {
+      const byClimate = ensurePerimClimateDailyEffectsForDate(dateKey);
+      console.log(`[PERIM][CLIMATE] Rotacao diaria aplicada: date=${dateKey}, entries=${byClimate.size}`);
+    } catch (error) {
+      console.error(`[PERIM][CLIMATE] Falha ao aplicar roleta diaria (${dateKey}): ${error?.message || error}`);
+    }
+  };
+  evaluateSchedule();
+  perimClimateDailyEffectCheckInterval = setInterval(evaluateSchedule, 30 * 1000);
+  perimClimateDailyEffectCheckInterval.unref?.();
 }
 
 function cleanupOldDbBackups(retentionDays = DB_BACKUP_RETENTION_DAYS) {
@@ -11251,22 +11652,35 @@ function listPerimGlobalEvents(locationEntries = []) {
   (Array.isArray(locationEntries) ? locationEntries : []).forEach((entry) => {
     const context = entry?.contextPreview || buildPerimContextSnapshot(entry, "explore", null, new Date(), []);
     const climate = String(context?.climate || "");
+    const dailyEffectId = String(context?.dailyEffectId || "");
     const event = perimClimateEventByName(climate);
     if (!event) return;
-    eventsById.set(String(event.id), {
+    const mapKey = `${String(event.id)}:${dailyEffectId || "none"}`;
+    eventsById.set(mapKey, {
       id: String(event.id),
       label: String(event.label),
       effect: String(event.effect),
       climate,
+      dailyEffectId,
+      dailyEffectLabel: String(context?.dailyEffectLabel || ""),
+      dailyEffectDescription: String(context?.dailyEffectDescription || ""),
+      dailyEffectDate: String(context?.dailyEffectDate || ""),
+      dailyEffectModifiers: sanitizePerimDailyClimateModifiers(context?.dailyEffectModifiers || {}),
     });
   });
   if (!eventsById.size) {
     const fallback = perimClimateEventByName("nublado");
+    const fallbackDaily = getPerimDailyClimateEffect("nublado", todayDateKey(), new Date());
     return [{
       id: String(fallback.id),
       label: String(fallback.label),
       effect: String(fallback.effect),
       climate: "Nublado",
+      dailyEffectId: String(fallbackDaily?.id || ""),
+      dailyEffectLabel: String(fallbackDaily?.label || ""),
+      dailyEffectDescription: String(fallbackDaily?.description || ""),
+      dailyEffectDate: String(fallbackDaily?.dateKey || todayDateKey()),
+      dailyEffectModifiers: sanitizePerimDailyClimateModifiers(fallbackDaily?.modifiers || {}),
     }];
   }
   return [...eventsById.values()];
@@ -11278,7 +11692,14 @@ function buildPerimClimateEventCards(locationEntries = []) {
     source: "climate",
     climate: String(event?.climate || ""),
     title: String(event?.label || "Evento climatico"),
-    description: String(event?.effect || ""),
+    description: String(event?.dailyEffectDescription || "")
+      ? `${String(event?.effect || "")}${String(event?.effect || "") ? " | " : ""}${String(event?.dailyEffectDescription || "")}`
+      : String(event?.effect || ""),
+    dailyEffectId: String(event?.dailyEffectId || ""),
+    dailyEffectLabel: String(event?.dailyEffectLabel || ""),
+    dailyEffectDescription: String(event?.dailyEffectDescription || ""),
+    dailyEffectDate: String(event?.dailyEffectDate || ""),
+    dailyEffectModifiers: sanitizePerimDailyClimateModifiers(event?.dailyEffectModifiers || {}),
     startAt: "",
     endAt: "",
     locationId: "",
@@ -17857,6 +18278,7 @@ async function handleRequest(request, response) {
           excludedRewardCardKeys: questExclusiveRewardCardKeys,
         })
       : false;
+    const baseContextSnapshot = buildPerimContextSnapshot(selectedLocation, actionId, scannerState.effect, startAt, []);
     const rewards = buildPerimRewards(selectedLocation, actionId, {
       inventoryCounts,
       locationOwnedTotalCounts,
@@ -17866,6 +18288,8 @@ async function handleRequest(request, response) {
       ignoreInventoryCap: instantPerim,
       campWaitCount,
       excludedRewardCardKeys: questExclusiveRewardCardKeys,
+      contextSnapshot: baseContextSnapshot,
+      startDate: startAt,
     });
     let droppedQuest = null;
     if (actionId === "anomaly") {
@@ -21581,6 +22005,7 @@ ensureDailyCreatureLocations(todayDateKey());
 queuePerimDailyGeneration("startup", todayDateKey());
 startDailyCreatureLocationScheduler();
 startPerimBattlegearDailySpawnScheduler();
+startPerimClimateDailyEffectScheduler();
 cleanupOldDbBackups(DB_BACKUP_RETENTION_DAYS);
 startDbBackupScheduler();
 startMultiplayerRoomGcScheduler();
