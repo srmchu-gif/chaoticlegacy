@@ -32,7 +32,7 @@ const LOCATION_CLIMATE_LABELS = {
   quente: "Quente",
   lugar_fechado: "Lugar Fechado",
 };
-const QUEST_ALLOWED_SET_KEYS = new Set(["dop", "zoth", "ss"]);
+const QUEST_DIFFICULTY_KEYS = new Set(["ok", "muito_dificil", "impossivel"]);
 const DROME_IDS = ["crellan", "hotekk", "amzen", "oron", "tirasis", "imthor", "chirrul", "beta"];
 const PERIM_RUNTIME_CONFIG_NAMESPACE = "perim_runtime_config";
 const PERIM_RUNTIME_CONFIG_KEY = "state";
@@ -205,9 +205,23 @@ function sortWalkTimes(times = []) {
   });
 }
 
-function isQuestCardSetAllowed(card) {
-  const setKey = normalizeSetKey(card?.setName || "");
-  return QUEST_ALLOWED_SET_KEYS.has(setKey);
+function normalizeQuestDifficultyKey(value) {
+  const token = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  if (!token) {
+    return "ok";
+  }
+  if (token === "muito_dificil" || token === "muitodificil" || token === "muito_dificil_quest") {
+    return "muito_dificil";
+  }
+  if (token === "impossivel") {
+    return "impossivel";
+  }
+  return "ok";
 }
 
 function normalizeLocationTribeKey(value) {
@@ -495,6 +509,45 @@ function ensurePerimDropEventTable(db) {
   db.exec("CREATE INDEX IF NOT EXISTS idx_perim_drop_events_active_window ON perim_drop_events(enabled, location_card_id, start_at, end_at);");
 }
 
+function ensurePerimQuestTemplatesTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS perim_quest_templates (
+      quest_key TEXT NOT NULL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      reward_type TEXT NOT NULL,
+      reward_card_id TEXT NOT NULL,
+      quest_set_key TEXT NOT NULL DEFAULT '',
+      difficulty_key TEXT NOT NULL DEFAULT 'ok',
+      is_draft INTEGER NOT NULL DEFAULT 0,
+      target_location_card_id TEXT NOT NULL,
+      anomaly_location_ids_json TEXT NOT NULL DEFAULT '[]',
+      requirements_json TEXT NOT NULL DEFAULT '[]',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  const columns = db.prepare("PRAGMA table_info(perim_quest_templates)").all();
+  const columnSet = new Set(columns.map((entry) => String(entry?.name || "").toLowerCase()));
+  if (!columnSet.has("quest_set_key")) {
+    db.exec("ALTER TABLE perim_quest_templates ADD COLUMN quest_set_key TEXT NOT NULL DEFAULT '';");
+  }
+  if (!columnSet.has("difficulty_key")) {
+    db.exec("ALTER TABLE perim_quest_templates ADD COLUMN difficulty_key TEXT NOT NULL DEFAULT 'ok';");
+  }
+  if (!columnSet.has("is_draft")) {
+    db.exec("ALTER TABLE perim_quest_templates ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0;");
+  }
+  db.exec(`
+    UPDATE perim_quest_templates
+    SET quest_set_key = lower(trim((SELECT set_name FROM card_catalog WHERE id = reward_card_id LIMIT 1)))
+    WHERE trim(COALESCE(quest_set_key, '')) = ''
+  `);
+  db.exec("UPDATE perim_quest_templates SET difficulty_key = 'ok' WHERE trim(COALESCE(difficulty_key, '')) = '';");
+  db.exec("UPDATE perim_quest_templates SET is_draft = 0 WHERE is_draft IS NULL;");
+}
+
 function ensurePerimLocationTribesTable(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS perim_location_tribes (
@@ -528,6 +581,36 @@ function ensurePerimLocationAdjacencyTable(db) {
   `);
   db.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_adjacency_from ON perim_location_adjacency(from_location_card_id, updated_at DESC);");
   db.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_adjacency_to ON perim_location_adjacency(to_location_card_id, updated_at DESC);");
+}
+
+function ensurePerimBattlegearSpawnRulesTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS perim_battlegear_spawn_rules (
+      card_id TEXT NOT NULL PRIMARY KEY,
+      location_1_card_id TEXT NOT NULL,
+      location_2_card_id TEXT NOT NULL,
+      chance_percent REAL NOT NULL DEFAULT 0,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_perim_battlegear_spawn_rules_enabled ON perim_battlegear_spawn_rules(enabled, updated_at DESC);");
+}
+
+function ensurePerimBattlegearDailySpawnsTable(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS perim_battlegear_daily_spawns (
+      date_key TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      selected_location_card_id TEXT NOT NULL,
+      chance_percent REAL NOT NULL DEFAULT 0,
+      roll_value REAL NOT NULL DEFAULT 0,
+      is_available INTEGER NOT NULL DEFAULT 0,
+      generated_at TEXT NOT NULL,
+      PRIMARY KEY (date_key, card_id)
+    );
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_perim_battlegear_daily_spawns_lookup ON perim_battlegear_daily_spawns(date_key, selected_location_card_id, is_available);");
 }
 
 function ensureKvStoreTable(db) {
@@ -688,6 +771,25 @@ function getCatalogCardById(db, cardIdRaw) {
   };
 }
 
+function isQuestExclusiveRewardCard(db, cardTypeRaw, cardIdRaw) {
+  const rewardType = normalizeCardType(cardTypeRaw || "");
+  const rewardCardId = String(cardIdRaw || "").trim();
+  if (!rewardType || !rewardCardId) {
+    return false;
+  }
+  ensurePerimQuestTemplatesTable(db);
+  const row = db
+    .prepare(`
+      SELECT 1
+      FROM perim_quest_templates
+      WHERE lower(trim(reward_type)) = ?
+        AND trim(reward_card_id) = ?
+      LIMIT 1
+    `)
+    .get(rewardType, rewardCardId);
+  return Boolean(row);
+}
+
 function listCatalogCards(db, cardTypeRaw = "") {
   const normalizedType = normalizeCardType(cardTypeRaw);
   const rows = normalizedType
@@ -807,6 +909,66 @@ function listLocationClimateRules(db) {
       updatedAt: String(row.updated_at || ""),
     };
   });
+}
+
+function seedLocationClimateRulesTempestadeAll(db) {
+  ensurePerimLocationClimateRulesTable(db);
+  const locations = db
+    .prepare(`
+      SELECT id
+      FROM card_catalog
+      WHERE lower(type) = 'locations'
+      ORDER BY id
+    `)
+    .all()
+    .map((row) => String(row?.id || "").trim())
+    .filter(Boolean);
+  if (!locations.length) {
+    throw new Error("Nenhum local encontrado no catalogo para popular regras de clima.");
+  }
+  const existingRules = Number(
+    db.prepare("SELECT COUNT(*) AS total FROM perim_location_climate_rules").get()?.total || 0
+  );
+  const updatedAt = nowIso();
+  const allowedClimates = ["tempestade"];
+  const allowedJson = JSON.stringify(allowedClimates);
+  const insertRule = db.prepare(`
+    INSERT INTO perim_location_climate_rules (location_card_id, allowed_climates_json, updated_at)
+    VALUES (?, ?, ?)
+  `);
+  const clearRules = db.prepare("DELETE FROM perim_location_climate_rules");
+  let climateStateChanged = 0;
+  withTransaction(db, () => {
+    clearRules.run();
+    locations.forEach((locationCardId) => {
+      insertRule.run(locationCardId, allowedJson, updatedAt);
+    });
+    locations.forEach((locationCardId) => {
+      const climateUpdate = reconcileLocationStateClimateRule(db, locationCardId, allowedClimates);
+      if (climateUpdate?.changed) {
+        climateStateChanged += 1;
+      }
+    });
+    appendAuditLogEntry(
+      db,
+      "admin_location_climate_seed_tempestade_all",
+      "system",
+      "Popular regras de clima por local com Tempestade para todos os locais.",
+      {
+        totalLocations: locations.length,
+        overwrittenRules: existingRules,
+        appliedClimate: "tempestade",
+        climateStateChanged,
+      }
+    );
+  });
+  return {
+    totalLocations: locations.length,
+    affected: locations.length,
+    overwrittenRules: existingRules,
+    appliedClimate: "tempestade",
+    climateStateChanged,
+  };
 }
 
 function normalizeClimateFromState(raw) {
@@ -1072,6 +1234,132 @@ function importLocationLinksFromMatrix(db, options = {}) {
   };
 }
 
+function sanitizeBattlegearSpawnRulePayload(db, raw) {
+  ensurePerimBattlegearSpawnRulesTable(db);
+  const cardId = String(raw?.cardId || "").trim();
+  const location1CardId = String(raw?.location1CardId || raw?.location1 || "").trim();
+  const location2CardId = String(raw?.location2CardId || raw?.location2 || "").trim();
+  const chancePercent = Number(raw?.chancePercent);
+  const enabled = raw?.enabled === false ? false : Boolean(raw?.enabled ?? true);
+
+  if (!cardId) {
+    throw new Error("cardId e obrigatorio.");
+  }
+  const card = getCatalogCardById(db, cardId);
+  if (!card || card.type !== "battlegear") {
+    throw new Error(`Equipamento invalido: ${cardId}`);
+  }
+  if (isQuestExclusiveRewardCard(db, "battlegear", cardId)) {
+    throw new Error("Este equipamento e quest-exclusive e nao pode ter regra de spawn por local.");
+  }
+  if (!location1CardId || !location2CardId) {
+    throw new Error("location1CardId e location2CardId sao obrigatorios.");
+  }
+  if (location1CardId === location2CardId) {
+    throw new Error("Local 1 e Local 2 devem ser diferentes.");
+  }
+  const location1 = getCatalogCardById(db, location1CardId);
+  const location2 = getCatalogCardById(db, location2CardId);
+  if (!location1 || location1.type !== "locations") {
+    throw new Error(`Local 1 invalido: ${location1CardId}`);
+  }
+  if (!location2 || location2.type !== "locations") {
+    throw new Error(`Local 2 invalido: ${location2CardId}`);
+  }
+  if (!Number.isFinite(chancePercent) || chancePercent < 0 || chancePercent > 100) {
+    throw new Error("chancePercent deve estar entre 0 e 100.");
+  }
+  return {
+    cardId,
+    location1CardId,
+    location2CardId,
+    chancePercent: Math.max(0, Math.min(100, chancePercent)),
+    enabled,
+  };
+}
+
+function listBattlegearSpawnRules(db, dateKeyRaw = "") {
+  ensurePerimBattlegearSpawnRulesTable(db);
+  ensurePerimBattlegearDailySpawnsTable(db);
+  const dateKey = String(dateKeyRaw || new Date().toISOString().slice(0, 10)).trim() || new Date().toISOString().slice(0, 10);
+  const rows = db
+    .prepare(`
+      SELECT
+        r.card_id,
+        r.location_1_card_id,
+        r.location_2_card_id,
+        r.chance_percent,
+        r.enabled,
+        r.updated_at,
+        c.name AS card_name,
+        c.set_name AS card_set,
+        l1.name AS location_1_name,
+        l2.name AS location_2_name
+      FROM perim_battlegear_spawn_rules r
+      LEFT JOIN card_catalog c ON c.id = r.card_id
+      LEFT JOIN card_catalog l1 ON l1.id = r.location_1_card_id
+      LEFT JOIN card_catalog l2 ON l2.id = r.location_2_card_id
+      ORDER BY c.name COLLATE NOCASE, r.card_id
+    `)
+    .all();
+
+  const dailyRows = db
+    .prepare(`
+      SELECT
+        card_id,
+        selected_location_card_id,
+        chance_percent,
+        roll_value,
+        is_available,
+        generated_at
+      FROM perim_battlegear_daily_spawns
+      WHERE date_key = ?
+    `)
+    .all(dateKey);
+  const dailyByCardId = new Map();
+  dailyRows.forEach((row) => {
+    dailyByCardId.set(String(row?.card_id || "").trim(), row);
+  });
+
+  return rows.map((row) => {
+    const cardId = String(row?.card_id || "").trim();
+    const daily = dailyByCardId.get(cardId) || null;
+    const questExclusive = isQuestExclusiveRewardCard(db, "battlegear", cardId);
+    return {
+      cardId,
+      cardName: String(row?.card_name || cardId),
+      cardSet: String(row?.card_set || ""),
+      location1CardId: String(row?.location_1_card_id || ""),
+      location1Name: String(row?.location_1_name || row?.location_1_card_id || ""),
+      location2CardId: String(row?.location_2_card_id || ""),
+      location2Name: String(row?.location_2_name || row?.location_2_card_id || ""),
+      chancePercent: Math.max(0, Math.min(100, Number(row?.chance_percent || 0))),
+      enabled: Number(row?.enabled || 0) === 1,
+      updatedAt: String(row?.updated_at || ""),
+      dailyDateKey: dateKey,
+      dailySelectedLocationCardId: String(daily?.selected_location_card_id || ""),
+      dailySelectedLocationName: String(
+        daily?.selected_location_card_id
+          ? (
+            String(daily?.selected_location_card_id || "") === String(row?.location_1_card_id || "")
+              ? String(row?.location_1_name || row?.location_1_card_id || "")
+              : (
+                String(daily?.selected_location_card_id || "") === String(row?.location_2_card_id || "")
+                  ? String(row?.location_2_name || row?.location_2_card_id || "")
+                  : String(daily?.selected_location_card_id || "")
+              )
+          )
+          : ""
+      ),
+      dailyChancePercent: daily ? Math.max(0, Math.min(100, Number(daily?.chance_percent || 0))) : null,
+      dailyRollValue: daily ? Math.max(0, Math.min(100, Number(daily?.roll_value || 0))) : null,
+      dailyIsAvailable: daily ? Number(daily?.is_available || 0) === 1 : null,
+      dailyGeneratedAt: String(daily?.generated_at || ""),
+      questExclusive,
+    };
+  });
+}
+
 function parseDateIsoRequired(value, fieldName) {
   const text = String(value || "").trim();
   if (!text) {
@@ -1228,7 +1516,8 @@ function listDropEvents(db) {
     }));
 }
 
-function sanitizeQuestRequirements(db, requirementsRaw) {
+function sanitizeQuestRequirements(db, requirementsRaw, options = {}) {
+  const allowEmpty = options?.allowEmpty === true;
   const source = Array.isArray(requirementsRaw) ? requirementsRaw : [];
   const out = source
     .map((entry) => {
@@ -1242,13 +1531,10 @@ function sanitizeQuestRequirements(db, requirementsRaw) {
       if (!card || card.type !== cardType) {
         throw new Error(`Requisito invalido: ${cardType}:${cardId}`);
       }
-      if (!isQuestCardSetAllowed(card)) {
-        throw new Error(`Requisito fora dos sets liberados (DOP/ZOTH/SS): ${cardType}:${cardId}`);
-      }
       return { cardType, cardId, required };
     })
     .filter(Boolean);
-  if (!out.length) {
+  if (!allowEmpty && !out.length) {
     throw new Error("A quest precisa de pelo menos 1 requisito.");
   }
   return out;
@@ -1261,6 +1547,8 @@ function sanitizeQuestPayload(db, raw, isUpdate = false) {
   const rewardType = normalizeCardType(raw?.rewardType || "");
   const rewardCardId = String(raw?.rewardCardId || "").trim();
   const targetLocationCardId = String(raw?.targetLocationCardId || "").trim();
+  const difficultyKey = normalizeQuestDifficultyKey(raw?.difficultyKey || "ok");
+  const isDraft = raw?.isDraft === true || Number(raw?.isDraft || 0) === 1;
   const enabled = raw?.enabled === false ? 0 : 1;
   const anomalyLocationIdsRaw = Array.isArray(raw?.anomalyLocationIds)
     ? raw.anomalyLocationIds
@@ -1278,19 +1566,31 @@ function sanitizeQuestPayload(db, raw, isUpdate = false) {
   if (!rewardCardId) {
     throw new Error("rewardCardId e obrigatorio.");
   }
-  if (!targetLocationCardId) {
-    throw new Error("targetLocationCardId e obrigatorio.");
-  }
   const rewardCard = getCatalogCardById(db, rewardCardId);
   if (!rewardCard || rewardCard.type !== rewardType) {
     throw new Error(`rewardCardId invalido para rewardType: ${rewardCardId}`);
   }
-  if (!isQuestCardSetAllowed(rewardCard)) {
-    throw new Error(`rewardCardId fora dos sets liberados (DOP/ZOTH/SS): ${rewardCardId}`);
+  const questSetKey = normalizePerimDropSetKey(rewardCard?.setName || "");
+  if (!questSetKey || questSetKey === "unknown") {
+    throw new Error(`Nao foi possivel identificar o set da recompensa: ${rewardCardId}`);
   }
-  const targetLocation = getCatalogCardById(db, targetLocationCardId);
-  if (!targetLocation || targetLocation.type !== "locations") {
-    throw new Error(`targetLocationCardId invalido: ${targetLocationCardId}`);
+
+  let targetLocationIdFinal = targetLocationCardId;
+  if (!isDraft && enabled === 1) {
+    if (!targetLocationCardId) {
+      throw new Error("targetLocationCardId e obrigatorio para quest ativa.");
+    }
+    const targetLocation = getCatalogCardById(db, targetLocationCardId);
+    if (!targetLocation || targetLocation.type !== "locations") {
+      throw new Error(`targetLocationCardId invalido: ${targetLocationCardId}`);
+    }
+  } else if (targetLocationCardId) {
+    const targetLocation = getCatalogCardById(db, targetLocationCardId);
+    if (!targetLocation || targetLocation.type !== "locations") {
+      throw new Error(`targetLocationCardId invalido: ${targetLocationCardId}`);
+    }
+  } else {
+    targetLocationIdFinal = "";
   }
 
   const anomalyLocationIds = [...new Set(
@@ -1298,13 +1598,18 @@ function sanitizeQuestPayload(db, raw, isUpdate = false) {
       .map((entry) => String(entry || "").trim())
       .filter(Boolean)
   )];
-  anomalyLocationIds.forEach((locationId) => {
-    const row = getCatalogCardById(db, locationId);
-    if (!row || row.type !== "locations") {
-      throw new Error(`anomalyLocationIds contem local invalido: ${locationId}`);
-    }
-  });
-  const requirements = sanitizeQuestRequirements(db, raw?.requirements);
+  if (anomalyLocationIds.length) {
+    anomalyLocationIds.forEach((locationId) => {
+      const row = getCatalogCardById(db, locationId);
+      if (!row || row.type !== "locations") {
+        throw new Error(`anomalyLocationIds contem local invalido: ${locationId}`);
+      }
+    });
+  }
+  const requirements = sanitizeQuestRequirements(db, raw?.requirements, { allowEmpty: isDraft || enabled !== 1 });
+  if (!isDraft && enabled === 1 && !anomalyLocationIds.length) {
+    throw new Error("A quest ativa precisa de ao menos 1 local de anomalia.");
+  }
 
   return {
     questKey,
@@ -1312,7 +1617,10 @@ function sanitizeQuestPayload(db, raw, isUpdate = false) {
     description,
     rewardType,
     rewardCardId,
-    targetLocationCardId,
+    questSetKey,
+    difficultyKey: QUEST_DIFFICULTY_KEYS.has(difficultyKey) ? difficultyKey : "ok",
+    isDraft: isDraft ? 1 : 0,
+    targetLocationCardId: targetLocationIdFinal,
     anomalyLocationIds,
     requirements,
     enabled
@@ -1320,10 +1628,11 @@ function sanitizeQuestPayload(db, raw, isUpdate = false) {
 }
 
 function listQuests(db) {
+  ensurePerimQuestTemplatesTable(db);
   return db
     .prepare(`
-      SELECT quest_key, title, description, reward_type, reward_card_id, target_location_card_id,
-             anomaly_location_ids_json, requirements_json, enabled, created_at, updated_at
+      SELECT quest_key, title, description, reward_type, reward_card_id, quest_set_key, difficulty_key, is_draft,
+             target_location_card_id, anomaly_location_ids_json, requirements_json, enabled, created_at, updated_at
       FROM perim_quest_templates
       ORDER BY quest_key
     `)
@@ -1334,6 +1643,9 @@ function listQuests(db) {
       description: String(row.description || ""),
       rewardType: String(row.reward_type || ""),
       rewardCardId: String(row.reward_card_id || ""),
+      questSetKey: normalizePerimDropSetKey(row.quest_set_key || ""),
+      difficultyKey: normalizeQuestDifficultyKey(row.difficulty_key || "ok"),
+      isDraft: Number(row.is_draft || 0) === 1,
       targetLocationCardId: String(row.target_location_card_id || ""),
       anomalyLocationIds: safeJsonArray(row.anomaly_location_ids_json),
       requirements: safeJsonArray(row.requirements_json),
@@ -2081,6 +2393,16 @@ function run() {
       return;
     }
 
+    if (args.action === "location-climates-seed-tempestade-all") {
+      const summary = seedLocationClimateRulesTempestadeAll(db);
+      jsonOk({
+        summary,
+        climateKeys: LOCATION_CLIMATE_KEYS,
+        locationClimateRules: listLocationClimateRules(db),
+      });
+      return;
+    }
+
     if (args.action === "location-climate-set") {
       ensurePerimLocationClimateRulesTable(db);
       const payload = decodePayload(args);
@@ -2202,6 +2524,101 @@ function run() {
       return;
     }
 
+    if (args.action === "battlegear-spawn-rules-list") {
+      const payload = decodePayload(args);
+      const dateKey = String(payload?.dateKey || "").trim();
+      jsonOk({
+        dateKey: dateKey || new Date().toISOString().slice(0, 10),
+        battlegearSpawnRules: listBattlegearSpawnRules(db, dateKey),
+      });
+      return;
+    }
+
+    if (args.action === "battlegear-spawn-rule-set") {
+      ensurePerimBattlegearSpawnRulesTable(db);
+      const payload = decodePayload(args);
+      const sanitized = sanitizeBattlegearSpawnRulePayload(db, payload);
+      const updatedAt = nowIso();
+      withTransaction(db, () => {
+        db.prepare(`
+          INSERT INTO perim_battlegear_spawn_rules (
+            card_id,
+            location_1_card_id,
+            location_2_card_id,
+            chance_percent,
+            enabled,
+            updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?)
+          ON CONFLICT(card_id) DO UPDATE SET
+            location_1_card_id = excluded.location_1_card_id,
+            location_2_card_id = excluded.location_2_card_id,
+            chance_percent = excluded.chance_percent,
+            enabled = excluded.enabled,
+            updated_at = excluded.updated_at
+        `).run(
+          sanitized.cardId,
+          sanitized.location1CardId,
+          sanitized.location2CardId,
+          sanitized.chancePercent,
+          sanitized.enabled ? 1 : 0,
+          updatedAt
+        );
+        appendAuditLogEntry(
+          db,
+          "admin_battlegear_spawn_rule_set",
+          "system",
+          "Configuracao de spawn diario de equipamento por local atualizada.",
+          {
+            cardId: sanitized.cardId,
+            location1CardId: sanitized.location1CardId,
+            location2CardId: sanitized.location2CardId,
+            chancePercent: sanitized.chancePercent,
+            enabled: sanitized.enabled,
+          }
+        );
+      });
+      jsonOk({
+        cardId: sanitized.cardId,
+        battlegearSpawnRules: listBattlegearSpawnRules(db),
+      });
+      return;
+    }
+
+    if (args.action === "battlegear-spawn-rule-delete") {
+      ensurePerimBattlegearSpawnRulesTable(db);
+      const payload = decodePayload(args);
+      const cardId = String(payload?.cardId || "").trim();
+      if (!cardId) {
+        throw new Error("cardId e obrigatorio para remover regra.");
+      }
+      const card = getCatalogCardById(db, cardId);
+      if (!card || card.type !== "battlegear") {
+        throw new Error(`Equipamento invalido: ${cardId}`);
+      }
+      const deleted = withTransaction(db, () => {
+        const result = db
+          .prepare("DELETE FROM perim_battlegear_spawn_rules WHERE card_id = ?")
+          .run(cardId);
+        appendAuditLogEntry(
+          db,
+          "admin_battlegear_spawn_rule_delete",
+          "system",
+          "Regra de spawn diario de equipamento removida.",
+          {
+            cardId,
+            deleted: Number(result?.changes || 0) > 0,
+          }
+        );
+        return result;
+      });
+      jsonOk({
+        cardId,
+        deleted: Number(deleted?.changes || 0) > 0,
+        battlegearSpawnRules: listBattlegearSpawnRules(db),
+      });
+      return;
+    }
+
     if (args.action === "perim-config-get") {
       const snapshot = fetchPerimRuntimeConfig(db);
       jsonOk({
@@ -2240,11 +2657,13 @@ function run() {
     }
 
     if (args.action === "quests-list") {
+      ensurePerimQuestTemplatesTable(db);
       jsonOk({ quests: listQuests(db) });
       return;
     }
 
     if (args.action === "quest-create") {
+      ensurePerimQuestTemplatesTable(db);
       const payload = decodePayload(args);
       const quest = sanitizeQuestPayload(db, payload, false);
       const now = nowIso();
@@ -2252,9 +2671,9 @@ function run() {
         db
           .prepare(`
             INSERT INTO perim_quest_templates (
-              quest_key, title, description, reward_type, reward_card_id, target_location_card_id,
-              anomaly_location_ids_json, requirements_json, enabled, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              quest_key, title, description, reward_type, reward_card_id, quest_set_key, difficulty_key, is_draft,
+              target_location_card_id, anomaly_location_ids_json, requirements_json, enabled, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `)
           .run(
             quest.questKey,
@@ -2262,6 +2681,9 @@ function run() {
             quest.description,
             quest.rewardType,
             quest.rewardCardId,
+            quest.questSetKey,
+            quest.difficultyKey,
+            quest.isDraft,
             quest.targetLocationCardId,
             JSON.stringify(quest.anomalyLocationIds),
             JSON.stringify(quest.requirements),
@@ -2275,6 +2697,7 @@ function run() {
     }
 
     if (args.action === "quest-update") {
+      ensurePerimQuestTemplatesTable(db);
       const questKey = String(args.questKey || "").trim();
       if (!questKey) {
         throw new Error("Parametro --questKey e obrigatorio para quest-update.");
@@ -2292,8 +2715,8 @@ function run() {
         db
           .prepare(`
             UPDATE perim_quest_templates
-            SET title = ?, description = ?, reward_type = ?, reward_card_id = ?, target_location_card_id = ?,
-                anomaly_location_ids_json = ?, requirements_json = ?, enabled = ?, updated_at = ?
+            SET title = ?, description = ?, reward_type = ?, reward_card_id = ?, quest_set_key = ?, difficulty_key = ?, is_draft = ?,
+                target_location_card_id = ?, anomaly_location_ids_json = ?, requirements_json = ?, enabled = ?, updated_at = ?
             WHERE quest_key = ?
           `)
           .run(
@@ -2301,6 +2724,9 @@ function run() {
             quest.description,
             quest.rewardType,
             quest.rewardCardId,
+            quest.questSetKey,
+            quest.difficultyKey,
+            quest.isDraft,
             quest.targetLocationCardId,
             JSON.stringify(quest.anomalyLocationIds),
             JSON.stringify(quest.requirements),
@@ -2314,6 +2740,7 @@ function run() {
     }
 
     if (args.action === "quest-delete") {
+      ensurePerimQuestTemplatesTable(db);
       const questKey = String(args.questKey || "").trim();
       if (!questKey) {
         throw new Error("Parametro --questKey e obrigatorio para quest-delete.");

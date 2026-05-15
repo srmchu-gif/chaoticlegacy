@@ -219,6 +219,7 @@ $script:QuestsCache = @()
 $script:LocationTribesCache = @()
 $script:LocationClimateRulesCache = @()
 $script:LocationLinksCache = @()
+$script:BattlegearSpawnRulesCache = @()
 $script:ScansCache = @()
 $script:ProfileRankedSnapshot = $null
 $script:PerimSnapshot = $null
@@ -324,6 +325,10 @@ $tab.Controls.Add($tabLocationClimateRules)
 $tabLocationLinks = New-Object System.Windows.Forms.TabPage
 $tabLocationLinks.Text = "Adjacencia Locais"
 $tab.Controls.Add($tabLocationLinks)
+
+$tabBattlegearSpawns = New-Object System.Windows.Forms.TabPage
+$tabBattlegearSpawns.Text = "Spawn Equipamentos"
+$tab.Controls.Add($tabBattlegearSpawns)
 
 $tabLogs = New-Object System.Windows.Forms.TabPage
 $tabLogs.Text = "Logs"
@@ -692,13 +697,16 @@ $questsGrid.AllowUserToAddRows = $false
 $questsGrid.AllowUserToDeleteRows = $false
 $questsGrid.RowHeadersVisible = $false
 $questsGrid.SelectionMode = "FullRowSelect"
-$questsGrid.ColumnCount = 6
+$questsGrid.ColumnCount = 9
 $questsGrid.Columns[0].Name = "QuestKey"
 $questsGrid.Columns[1].Name = "Titulo"
 $questsGrid.Columns[2].Name = "Recompensa"
-$questsGrid.Columns[3].Name = "Local resgate"
-$questsGrid.Columns[4].Name = "Ativa"
-$questsGrid.Columns[5].Name = "Reqs"
+$questsGrid.Columns[3].Name = "Set"
+$questsGrid.Columns[4].Name = "Dificuldade"
+$questsGrid.Columns[5].Name = "Rascunho"
+$questsGrid.Columns[6].Name = "Local resgate"
+$questsGrid.Columns[7].Name = "Ativa"
+$questsGrid.Columns[8].Name = "Reqs"
 $questSplit.Panel1.Controls.Add($questsGrid)
 Apply-GridResponsiveStyle -Grid $questsGrid
 
@@ -793,34 +801,65 @@ $txtAnomalyIds.Size = New-Object System.Drawing.Size(520, 24)
 $txtAnomalyIds.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $questPanel.Controls.Add($txtAnomalyIds)
 
+$lblQuestSetKey = New-Object System.Windows.Forms.Label
+$lblQuestSetKey.Text = "Set da quest:"
+$lblQuestSetKey.Location = New-Object System.Drawing.Point(12, 298)
+$lblQuestSetKey.Size = New-Object System.Drawing.Size(110, 20)
+$questPanel.Controls.Add($lblQuestSetKey)
+
+$txtQuestSetKey = New-Object System.Windows.Forms.TextBox
+$txtQuestSetKey.Location = New-Object System.Drawing.Point(12, 320)
+$txtQuestSetKey.Size = New-Object System.Drawing.Size(120, 24)
+$txtQuestSetKey.ReadOnly = $true
+$questPanel.Controls.Add($txtQuestSetKey)
+
+$lblQuestDifficulty = New-Object System.Windows.Forms.Label
+$lblQuestDifficulty.Text = "Dificuldade:"
+$lblQuestDifficulty.Location = New-Object System.Drawing.Point(138, 298)
+$lblQuestDifficulty.Size = New-Object System.Drawing.Size(110, 20)
+$questPanel.Controls.Add($lblQuestDifficulty)
+
+$comboQuestDifficulty = New-Object System.Windows.Forms.ComboBox
+$comboQuestDifficulty.DropDownStyle = "DropDownList"
+$comboQuestDifficulty.Location = New-Object System.Drawing.Point(138, 320)
+$comboQuestDifficulty.Size = New-Object System.Drawing.Size(150, 28)
+$questPanel.Controls.Add($comboQuestDifficulty)
+
 $chkQuestEnabled = New-Object System.Windows.Forms.CheckBox
 $chkQuestEnabled.Text = "Ativa"
-$chkQuestEnabled.Location = New-Object System.Drawing.Point(12, 300)
+$chkQuestEnabled.Location = New-Object System.Drawing.Point(300, 321)
 $chkQuestEnabled.Size = New-Object System.Drawing.Size(90, 24)
-$chkQuestEnabled.Checked = $true
+$chkQuestEnabled.Checked = $false
 $questPanel.Controls.Add($chkQuestEnabled)
+
+$chkQuestDraft = New-Object System.Windows.Forms.CheckBox
+$chkQuestDraft.Text = "Rascunho"
+$chkQuestDraft.Location = New-Object System.Drawing.Point(390, 321)
+$chkQuestDraft.Size = New-Object System.Drawing.Size(110, 24)
+$chkQuestDraft.Checked = $true
+$questPanel.Controls.Add($chkQuestDraft)
 
 $lblReqTitle = New-Object System.Windows.Forms.Label
 $lblReqTitle.Text = "Requisitos:"
-$lblReqTitle.Location = New-Object System.Drawing.Point(12, 328)
+$lblReqTitle.Location = New-Object System.Drawing.Point(12, 356)
 $lblReqTitle.Size = New-Object System.Drawing.Size(120, 20)
 $questPanel.Controls.Add($lblReqTitle)
 
 $comboReqType = New-Object System.Windows.Forms.ComboBox
 $comboReqType.DropDownStyle = "DropDownList"
-$comboReqType.Location = New-Object System.Drawing.Point(12, 350)
+$comboReqType.Location = New-Object System.Drawing.Point(12, 378)
 $comboReqType.Size = New-Object System.Drawing.Size(180, 28)
 $questPanel.Controls.Add($comboReqType)
 
 $comboReqCard = New-Object System.Windows.Forms.ComboBox
 $comboReqCard.DropDownStyle = "DropDownList"
-$comboReqCard.Location = New-Object System.Drawing.Point(198, 350)
+$comboReqCard.Location = New-Object System.Drawing.Point(198, 378)
 $comboReqCard.Size = New-Object System.Drawing.Size(246, 28)
 $comboReqCard.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $questPanel.Controls.Add($comboReqCard)
 
 $numReqAmount = New-Object System.Windows.Forms.NumericUpDown
-$numReqAmount.Location = New-Object System.Drawing.Point(450, 350)
+$numReqAmount.Location = New-Object System.Drawing.Point(450, 378)
 $numReqAmount.Size = New-Object System.Drawing.Size(82, 24)
 $numReqAmount.Minimum = 1
 $numReqAmount.Maximum = 99
@@ -829,18 +868,18 @@ $questPanel.Controls.Add($numReqAmount)
 
 $btnReqAdd = New-Object System.Windows.Forms.Button
 $btnReqAdd.Text = "Adicionar req"
-$btnReqAdd.Location = New-Object System.Drawing.Point(12, 384)
+$btnReqAdd.Location = New-Object System.Drawing.Point(12, 412)
 $btnReqAdd.Size = New-Object System.Drawing.Size(110, 28)
 $questPanel.Controls.Add($btnReqAdd)
 
 $btnReqRemove = New-Object System.Windows.Forms.Button
 $btnReqRemove.Text = "Remover req"
-$btnReqRemove.Location = New-Object System.Drawing.Point(128, 384)
+$btnReqRemove.Location = New-Object System.Drawing.Point(128, 412)
 $btnReqRemove.Size = New-Object System.Drawing.Size(110, 28)
 $questPanel.Controls.Add($btnReqRemove)
 
 $reqList = New-Object System.Windows.Forms.ListView
-$reqList.Location = New-Object System.Drawing.Point(12, 418)
+$reqList.Location = New-Object System.Drawing.Point(12, 446)
 $reqList.Size = New-Object System.Drawing.Size(520, 170)
 $reqList.View = "Details"
 $reqList.FullRowSelect = $true
@@ -854,25 +893,25 @@ $questPanel.Controls.Add($reqList)
 
 $btnQuestNew = New-Object System.Windows.Forms.Button
 $btnQuestNew.Text = "Nova"
-$btnQuestNew.Location = New-Object System.Drawing.Point(12, 596)
+$btnQuestNew.Location = New-Object System.Drawing.Point(12, 624)
 $btnQuestNew.Size = New-Object System.Drawing.Size(80, 30)
 $questPanel.Controls.Add($btnQuestNew)
 
 $btnQuestSave = New-Object System.Windows.Forms.Button
 $btnQuestSave.Text = "Salvar"
-$btnQuestSave.Location = New-Object System.Drawing.Point(98, 596)
+$btnQuestSave.Location = New-Object System.Drawing.Point(98, 624)
 $btnQuestSave.Size = New-Object System.Drawing.Size(80, 30)
 $questPanel.Controls.Add($btnQuestSave)
 
 $btnQuestDelete = New-Object System.Windows.Forms.Button
 $btnQuestDelete.Text = "Excluir"
-$btnQuestDelete.Location = New-Object System.Drawing.Point(184, 596)
+$btnQuestDelete.Location = New-Object System.Drawing.Point(184, 624)
 $btnQuestDelete.Size = New-Object System.Drawing.Size(80, 30)
 $questPanel.Controls.Add($btnQuestDelete)
 
 $btnQuestRefresh = New-Object System.Windows.Forms.Button
 $btnQuestRefresh.Text = "Atualizar"
-$btnQuestRefresh.Location = New-Object System.Drawing.Point(270, 596)
+$btnQuestRefresh.Location = New-Object System.Drawing.Point(270, 624)
 $btnQuestRefresh.Size = New-Object System.Drawing.Size(90, 30)
 $questPanel.Controls.Add($btnQuestRefresh)
 
@@ -1542,9 +1581,15 @@ $btnClimateRuleRefresh.Location = New-Object System.Drawing.Point(244, 272)
 $btnClimateRuleRefresh.Size = New-Object System.Drawing.Size(100, 30)
 $climateRulesPanel.Controls.Add($btnClimateRuleRefresh)
 
+$btnClimateRuleSeedStormAll = New-Object System.Windows.Forms.Button
+$btnClimateRuleSeedStormAll.Text = "Preencher todos com Tempestade"
+$btnClimateRuleSeedStormAll.Location = New-Object System.Drawing.Point(12, 308)
+$btnClimateRuleSeedStormAll.Size = New-Object System.Drawing.Size(332, 32)
+$climateRulesPanel.Controls.Add($btnClimateRuleSeedStormAll)
+
 $lblClimateRuleHint = New-Object System.Windows.Forms.Label
 $lblClimateRuleHint.Text = "Sem regra: local usa todos os climas. Ao salvar, a regra aplica imediatamente."
-$lblClimateRuleHint.Location = New-Object System.Drawing.Point(12, 308)
+$lblClimateRuleHint.Location = New-Object System.Drawing.Point(12, 346)
 $lblClimateRuleHint.Size = New-Object System.Drawing.Size(560, 40)
 $lblClimateRuleHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
 $climateRulesPanel.Controls.Add($lblClimateRuleHint)
@@ -1651,6 +1696,145 @@ $lblLocationLinksHint.Size = New-Object System.Drawing.Size(560, 36)
 $lblLocationLinksHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
 $locationLinksPanel.Controls.Add($lblLocationLinksHint)
 
+# Spawn Equipamentos tab
+$battlegearSpawnSplit = New-Object System.Windows.Forms.SplitContainer
+$battlegearSpawnSplit.Dock = "Fill"
+$battlegearSpawnSplit.Orientation = "Vertical"
+Set-SplitterLayoutSafe -Splitter $battlegearSpawnSplit -Panel1Min 520 -Panel2Min 380 -PreferredDistance 760
+$battlegearSpawnSplit.Panel1.Padding = New-Object System.Windows.Forms.Padding(4)
+$battlegearSpawnSplit.Panel2.Padding = New-Object System.Windows.Forms.Padding(4)
+$tabBattlegearSpawns.Controls.Add($battlegearSpawnSplit)
+
+$battlegearSpawnGrid = New-Object System.Windows.Forms.DataGridView
+$battlegearSpawnGrid.Dock = "Fill"
+$battlegearSpawnGrid.ReadOnly = $true
+$battlegearSpawnGrid.AllowUserToAddRows = $false
+$battlegearSpawnGrid.AllowUserToDeleteRows = $false
+$battlegearSpawnGrid.RowHeadersVisible = $false
+$battlegearSpawnGrid.SelectionMode = "FullRowSelect"
+$battlegearSpawnGrid.MultiSelect = $false
+$battlegearSpawnGrid.ColumnCount = 12
+$battlegearSpawnGrid.Columns[0].Name = "Equipamento"
+$battlegearSpawnGrid.Columns[1].Name = "Card ID"
+$battlegearSpawnGrid.Columns[2].Name = "Local 1"
+$battlegearSpawnGrid.Columns[3].Name = "Local 1 ID"
+$battlegearSpawnGrid.Columns[4].Name = "Local 2"
+$battlegearSpawnGrid.Columns[5].Name = "Local 2 ID"
+$battlegearSpawnGrid.Columns[6].Name = "Chance (%)"
+$battlegearSpawnGrid.Columns[7].Name = "Ativo"
+$battlegearSpawnGrid.Columns[8].Name = "Hoje"
+$battlegearSpawnGrid.Columns[9].Name = "Roll Hoje"
+$battlegearSpawnGrid.Columns[10].Name = "Quest-only"
+$battlegearSpawnGrid.Columns[11].Name = "Atualizado"
+$battlegearSpawnSplit.Panel1.Controls.Add($battlegearSpawnGrid)
+Apply-GridResponsiveStyle -Grid $battlegearSpawnGrid
+
+$battlegearSpawnPanel = New-Object System.Windows.Forms.Panel
+$battlegearSpawnPanel.Dock = "Fill"
+$battlegearSpawnPanel.AutoScroll = $true
+$battlegearSpawnSplit.Panel2.Controls.Add($battlegearSpawnPanel)
+
+$lblBattlegearSpawnTitle = New-Object System.Windows.Forms.Label
+$lblBattlegearSpawnTitle.Text = "Spawn Diario de Equipamentos por Local"
+$lblBattlegearSpawnTitle.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$lblBattlegearSpawnTitle.Location = New-Object System.Drawing.Point(12, 10)
+$lblBattlegearSpawnTitle.Size = New-Object System.Drawing.Size(560, 24)
+$battlegearSpawnPanel.Controls.Add($lblBattlegearSpawnTitle)
+
+$lblBattlegearSpawnCard = New-Object System.Windows.Forms.Label
+$lblBattlegearSpawnCard.Text = "Equipamento:"
+$lblBattlegearSpawnCard.Location = New-Object System.Drawing.Point(12, 40)
+$lblBattlegearSpawnCard.Size = New-Object System.Drawing.Size(140, 20)
+$battlegearSpawnPanel.Controls.Add($lblBattlegearSpawnCard)
+
+$comboBattlegearSpawnCard = New-Object System.Windows.Forms.ComboBox
+$comboBattlegearSpawnCard.DropDownStyle = "DropDownList"
+$comboBattlegearSpawnCard.Location = New-Object System.Drawing.Point(12, 62)
+$comboBattlegearSpawnCard.Size = New-Object System.Drawing.Size(520, 28)
+$comboBattlegearSpawnCard.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$battlegearSpawnPanel.Controls.Add($comboBattlegearSpawnCard)
+
+$lblBattlegearSpawnLoc1 = New-Object System.Windows.Forms.Label
+$lblBattlegearSpawnLoc1.Text = "Local 1:"
+$lblBattlegearSpawnLoc1.Location = New-Object System.Drawing.Point(12, 98)
+$lblBattlegearSpawnLoc1.Size = New-Object System.Drawing.Size(140, 20)
+$battlegearSpawnPanel.Controls.Add($lblBattlegearSpawnLoc1)
+
+$comboBattlegearSpawnLoc1 = New-Object System.Windows.Forms.ComboBox
+$comboBattlegearSpawnLoc1.DropDownStyle = "DropDownList"
+$comboBattlegearSpawnLoc1.Location = New-Object System.Drawing.Point(12, 120)
+$comboBattlegearSpawnLoc1.Size = New-Object System.Drawing.Size(520, 28)
+$comboBattlegearSpawnLoc1.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$battlegearSpawnPanel.Controls.Add($comboBattlegearSpawnLoc1)
+
+$lblBattlegearSpawnLoc2 = New-Object System.Windows.Forms.Label
+$lblBattlegearSpawnLoc2.Text = "Local 2:"
+$lblBattlegearSpawnLoc2.Location = New-Object System.Drawing.Point(12, 156)
+$lblBattlegearSpawnLoc2.Size = New-Object System.Drawing.Size(140, 20)
+$battlegearSpawnPanel.Controls.Add($lblBattlegearSpawnLoc2)
+
+$comboBattlegearSpawnLoc2 = New-Object System.Windows.Forms.ComboBox
+$comboBattlegearSpawnLoc2.DropDownStyle = "DropDownList"
+$comboBattlegearSpawnLoc2.Location = New-Object System.Drawing.Point(12, 178)
+$comboBattlegearSpawnLoc2.Size = New-Object System.Drawing.Size(520, 28)
+$comboBattlegearSpawnLoc2.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
+$battlegearSpawnPanel.Controls.Add($comboBattlegearSpawnLoc2)
+
+$lblBattlegearSpawnChance = New-Object System.Windows.Forms.Label
+$lblBattlegearSpawnChance.Text = "Chance (%):"
+$lblBattlegearSpawnChance.Location = New-Object System.Drawing.Point(12, 214)
+$lblBattlegearSpawnChance.Size = New-Object System.Drawing.Size(120, 20)
+$battlegearSpawnPanel.Controls.Add($lblBattlegearSpawnChance)
+
+$numBattlegearSpawnChance = New-Object System.Windows.Forms.NumericUpDown
+$numBattlegearSpawnChance.Location = New-Object System.Drawing.Point(12, 236)
+$numBattlegearSpawnChance.Size = New-Object System.Drawing.Size(140, 24)
+$numBattlegearSpawnChance.Minimum = 0
+$numBattlegearSpawnChance.Maximum = 100
+$numBattlegearSpawnChance.DecimalPlaces = 2
+$numBattlegearSpawnChance.Increment = 0.5
+$numBattlegearSpawnChance.Value = 50
+$battlegearSpawnPanel.Controls.Add($numBattlegearSpawnChance)
+
+$chkBattlegearSpawnEnabled = New-Object System.Windows.Forms.CheckBox
+$chkBattlegearSpawnEnabled.Text = "Regra ativa"
+$chkBattlegearSpawnEnabled.Location = New-Object System.Drawing.Point(166, 236)
+$chkBattlegearSpawnEnabled.Size = New-Object System.Drawing.Size(140, 24)
+$chkBattlegearSpawnEnabled.Checked = $true
+$battlegearSpawnPanel.Controls.Add($chkBattlegearSpawnEnabled)
+
+$lblBattlegearSpawnStatus = New-Object System.Windows.Forms.Label
+$lblBattlegearSpawnStatus.Text = "Hoje: sem roll para este equipamento."
+$lblBattlegearSpawnStatus.Location = New-Object System.Drawing.Point(12, 266)
+$lblBattlegearSpawnStatus.Size = New-Object System.Drawing.Size(560, 36)
+$lblBattlegearSpawnStatus.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
+$battlegearSpawnPanel.Controls.Add($lblBattlegearSpawnStatus)
+
+$btnBattlegearSpawnSave = New-Object System.Windows.Forms.Button
+$btnBattlegearSpawnSave.Text = "Salvar regra"
+$btnBattlegearSpawnSave.Location = New-Object System.Drawing.Point(12, 306)
+$btnBattlegearSpawnSave.Size = New-Object System.Drawing.Size(130, 30)
+$battlegearSpawnPanel.Controls.Add($btnBattlegearSpawnSave)
+
+$btnBattlegearSpawnDelete = New-Object System.Windows.Forms.Button
+$btnBattlegearSpawnDelete.Text = "Remover regra"
+$btnBattlegearSpawnDelete.Location = New-Object System.Drawing.Point(148, 306)
+$btnBattlegearSpawnDelete.Size = New-Object System.Drawing.Size(130, 30)
+$battlegearSpawnPanel.Controls.Add($btnBattlegearSpawnDelete)
+
+$btnBattlegearSpawnRefresh = New-Object System.Windows.Forms.Button
+$btnBattlegearSpawnRefresh.Text = "Atualizar"
+$btnBattlegearSpawnRefresh.Location = New-Object System.Drawing.Point(284, 306)
+$btnBattlegearSpawnRefresh.Size = New-Object System.Drawing.Size(100, 30)
+$battlegearSpawnPanel.Controls.Add($btnBattlegearSpawnRefresh)
+
+$lblBattlegearSpawnHint = New-Object System.Windows.Forms.Label
+$lblBattlegearSpawnHint.Text = "Virada 00:00: escolhe Local 1/2 (50/50) e rola chance uma vez. Falha = indisponivel no dia."
+$lblBattlegearSpawnHint.Location = New-Object System.Drawing.Point(12, 342)
+$lblBattlegearSpawnHint.Size = New-Object System.Drawing.Size(560, 40)
+$lblBattlegearSpawnHint.ForeColor = [System.Drawing.Color]::FromArgb(90, 110, 140)
+$battlegearSpawnPanel.Controls.Add($lblBattlegearSpawnHint)
+
 # Logs tab
 $logsPanel = New-Object System.Windows.Forms.Panel
 $logsPanel.Dock = "Fill"
@@ -1701,6 +1885,12 @@ function Build-LocationItems {
     $label = "{0} [{1}]" -f [string]$_.name, [string]$_.id
     New-DisplayItem -Label $label -Value ([string]$_.id)
   })
+}
+
+function Build-OptionalLocationItems {
+  $items = @((New-DisplayItem -Label "(Nao definido)" -Value ""))
+  $items += @(Build-LocationItems)
+  return $items
 }
 
 function Get-LocationTribeDisplayLabel {
@@ -1783,12 +1973,33 @@ function Build-ScansTypeItems {
   )
 }
 
+function Build-QuestDifficultyItems {
+  return @(
+    (New-DisplayItem -Label "OK" -Value "ok")
+    (New-DisplayItem -Label "Muito dificil" -Value "muito_dificil")
+    (New-DisplayItem -Label "Impossivel" -Value "impossivel")
+  )
+}
+
+function Update-QuestSetFromRewardSelection {
+  $rewardCardId = Get-SelectedValue -Combo $comboRewardCard
+  $setKey = ""
+  if ($rewardCardId) {
+    $card = $script:CatalogCards | Where-Object { [string]$_.id -eq [string]$rewardCardId } | Select-Object -First 1
+    if ($card) {
+      $setKey = ([string]$card.setName).ToLowerInvariant().Trim()
+    }
+  }
+  $txtQuestSetKey.Text = $setKey
+}
+
 function Refresh-TypeCardCombos {
   $eventType = Get-SelectedValue -Combo $comboEventType
   Set-ComboItems -Combo $comboEventCard -Items (Build-CardItems -Type $eventType)
 
   $rewardType = Get-SelectedValue -Combo $comboRewardType
   Set-ComboItems -Combo $comboRewardCard -Items (Build-CardItems -Type $rewardType)
+  Update-QuestSetFromRewardSelection
 
   $reqType = Get-SelectedValue -Combo $comboReqType
   Set-ComboItems -Combo $comboReqCard -Items (Build-CardItems -Type $reqType)
@@ -1889,6 +2100,85 @@ function Load-LocationLinks {
     $lblLocationLinkStatus.Text = "Status: ligacao direcionada (somente ida)."
   }
   Set-Status "Adjacencias carregadas."
+}
+
+function Update-BattlegearSpawnFormFromCardId {
+  param([string]$CardId)
+  $cardId = [string]$CardId
+  if (-not $cardId) {
+    $lblBattlegearSpawnStatus.Text = "Hoje: sem roll para este equipamento."
+    return
+  }
+  $entry = $script:BattlegearSpawnRulesCache | Where-Object { [string]$_.cardId -eq $cardId } | Select-Object -First 1
+  if ($entry) {
+    $comboBattlegearSpawnLoc1.SelectedValue = [string]$entry.location1CardId
+    $comboBattlegearSpawnLoc2.SelectedValue = [string]$entry.location2CardId
+    try {
+      $chanceValue = [decimal]([double]$entry.chancePercent)
+      if ($chanceValue -lt $numBattlegearSpawnChance.Minimum) { $chanceValue = $numBattlegearSpawnChance.Minimum }
+      if ($chanceValue -gt $numBattlegearSpawnChance.Maximum) { $chanceValue = $numBattlegearSpawnChance.Maximum }
+      $numBattlegearSpawnChance.Value = $chanceValue
+    } catch {
+      $numBattlegearSpawnChance.Value = 0
+    }
+    $chkBattlegearSpawnEnabled.Checked = [bool]$entry.enabled
+    if ([bool]$entry.questExclusive) {
+      $lblBattlegearSpawnStatus.Text = "Quest-only: este equipamento so pode ser obtido por quest (spawn por local ignorado)."
+      return
+    }
+    if ($null -ne $entry.dailyIsAvailable) {
+      $dailyLabel = if ([bool]$entry.dailyIsAvailable) { "DISPONIVEL" } else { "INDISPONIVEL" }
+      $dailyLocation = [string]$entry.dailySelectedLocationName
+      if (-not $dailyLocation) { $dailyLocation = [string]$entry.dailySelectedLocationCardId }
+      $dailyRoll = if ($null -ne $entry.dailyRollValue -and "$($entry.dailyRollValue)" -ne "") { [string]$entry.dailyRollValue } else { "-" }
+      $dailyChance = if ($null -ne $entry.dailyChancePercent -and "$($entry.dailyChancePercent)" -ne "") { [string]$entry.dailyChancePercent } else { "-" }
+      $lblBattlegearSpawnStatus.Text = "Hoje ($([string]$entry.dailyDateKey)): $dailyLabel em '$dailyLocation' (roll=$dailyRoll / chance=$dailyChance)."
+    } else {
+      $lblBattlegearSpawnStatus.Text = "Hoje: sem roll para este equipamento (ainda nao processado)."
+    }
+  } else {
+    $lblBattlegearSpawnStatus.Text = "Status: sem regra salva para este equipamento."
+  }
+}
+
+function Load-BattlegearSpawnRules {
+  Set-Status "Carregando regras de spawn de equipamentos..."
+  $payload = Invoke-AdminEngine -Action "battlegear-spawn-rules-list"
+  $script:BattlegearSpawnRulesCache = @($payload.battlegearSpawnRules)
+  $battlegearSpawnGrid.Rows.Clear()
+  foreach ($entry in $script:BattlegearSpawnRulesCache) {
+    $activeText = if ([bool]$entry.enabled) { "Sim" } else { "Nao" }
+    $todayText = if ($null -eq $entry.dailyIsAvailable) {
+      "-"
+    } elseif ([bool]$entry.dailyIsAvailable) {
+      "Disponivel"
+    } else {
+      "Indisponivel"
+    }
+    $todayRollText = if ($null -eq $entry.dailyRollValue -or "$($entry.dailyRollValue)" -eq "") {
+      "-"
+    } else {
+      "{0} / {1}" -f [string]$entry.dailyRollValue, [string]$entry.dailyChancePercent
+    }
+    $questOnlyText = if ([bool]$entry.questExclusive) { "Sim" } else { "Nao" }
+    [void]$battlegearSpawnGrid.Rows.Add(
+      [string]$entry.cardName,
+      [string]$entry.cardId,
+      [string]$entry.location1Name,
+      [string]$entry.location1CardId,
+      [string]$entry.location2Name,
+      [string]$entry.location2CardId,
+      [string]$entry.chancePercent,
+      $activeText,
+      $todayText,
+      $todayRollText,
+      $questOnlyText,
+      [string]$entry.updatedAt
+    )
+  }
+  $selectedCardId = Get-SelectedValue -Combo $comboBattlegearSpawnCard
+  Update-BattlegearSpawnFormFromCardId -CardId $selectedCardId
+  Set-Status "Regras de spawn de equipamentos carregadas."
 }
 
 function Load-Users {
@@ -2059,10 +2349,14 @@ function Reset-QuestForm {
   $txtQuestKey.Enabled = $true
   $txtQuestTitle.Text = ""
   $txtQuestDesc.Text = ""
+  $txtQuestSetKey.Text = ""
+  $chkQuestDraft.Checked = $true
+  $chkQuestEnabled.Checked = $false
+  $comboQuestDifficulty.SelectedValue = "ok"
   $comboRewardType.SelectedIndex = 0
   Refresh-TypeCardCombos
+  $comboQuestTargetLocation.SelectedValue = ""
   $txtAnomalyIds.Text = ""
-  $chkQuestEnabled.Checked = $true
   $reqList.Items.Clear()
 }
 
@@ -2077,6 +2371,9 @@ function Load-Quests {
       [string]$q.questKey,
       [string]$q.title,
       ([string]$q.rewardType + ":" + [string]$q.rewardCardId),
+      [string]$q.questSetKey,
+      [string]$q.difficultyKey,
+      [string]$q.isDraft,
       [string]$q.targetLocationCardId,
       [string]$q.enabled,
       [string]$reqCount
@@ -2094,9 +2391,13 @@ function Fill-QuestForm {
   $txtQuestKey.Enabled = $false
   $txtQuestTitle.Text = [string]$quest.title
   $txtQuestDesc.Text = [string]$quest.description
+  $txtQuestSetKey.Text = [string]$quest.questSetKey
+  $comboQuestDifficulty.SelectedValue = [string]$quest.difficultyKey
+  $chkQuestDraft.Checked = [bool]$quest.isDraft
   $comboRewardType.SelectedValue = [string]$quest.rewardType
   Refresh-TypeCardCombos
   $comboRewardCard.SelectedValue = [string]$quest.rewardCardId
+  Update-QuestSetFromRewardSelection
   $comboQuestTargetLocation.SelectedValue = [string]$quest.targetLocationCardId
   $txtAnomalyIds.Text = ([string[]]$quest.anomalyLocationIds -join ",")
   $chkQuestEnabled.Checked = [bool]$quest.enabled
@@ -2128,6 +2429,9 @@ function Build-QuestPayload {
     description = $txtQuestDesc.Text.Trim()
     rewardType = Get-SelectedValue -Combo $comboRewardType
     rewardCardId = Get-SelectedValue -Combo $comboRewardCard
+    questSetKey = $txtQuestSetKey.Text.Trim()
+    difficultyKey = Get-SelectedValue -Combo $comboQuestDifficulty
+    isDraft = [bool]$chkQuestDraft.Checked
     targetLocationCardId = Get-SelectedValue -Combo $comboQuestTargetLocation
     anomalyLocationIds = $anomalyIds
     requirements = $reqs
@@ -2565,6 +2869,7 @@ $btnUserDelete.Add_Click({
 
 $comboEventType.Add_SelectedIndexChanged({ Refresh-TypeCardCombos })
 $comboRewardType.Add_SelectedIndexChanged({ Refresh-TypeCardCombos })
+$comboRewardCard.Add_SelectedIndexChanged({ Update-QuestSetFromRewardSelection })
 $comboReqType.Add_SelectedIndexChanged({ Refresh-TypeCardCombos })
 
 $btnEventNew.Add_Click({ Reset-EventForm })
@@ -2854,6 +3159,28 @@ $btnClimateRuleDelete.Add_Click({
   }
 })
 
+$btnClimateRuleSeedStormAll.Add_Click({
+  try {
+    $confirm = [System.Windows.Forms.MessageBox]::Show(
+      "Isso vai sobrescrever as regras de clima atuais e definir TODOS os locais como Tempestade. Continuar?",
+      "Confirmar preenchimento em lote",
+      [System.Windows.Forms.MessageBoxButtons]::YesNo,
+      [System.Windows.Forms.MessageBoxIcon]::Warning
+    )
+    if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+
+    $op = Invoke-MutatingOperation -OperationName "location-climates-seed-tempestade-all" -Target "location-climates:all" -ActionBlock {
+      Invoke-AdminEngine -Action "location-climates-seed-tempestade-all"
+    }
+    $summary = $op.result.summary
+    $msg = "Preenchimento concluido.`r`nLocais totais: $([string]$summary.totalLocations)`r`nRegras sobrescritas: $([string]$summary.overwrittenRules)`r`nAplicados: $([string]$summary.affected)`r`nEstados climaticos ajustados agora: $([string]$summary.climateStateChanged)`r`nBackup: $($op.backup)"
+    [System.Windows.Forms.MessageBox]::Show($msg, "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-LocationClimateRules
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao preencher climas com Tempestade: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
 $btnLocationLinksRefresh.Add_Click({
   try { Load-LocationLinks } catch {
     [System.Windows.Forms.MessageBox]::Show("Erro ao atualizar adjacencias: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
@@ -2926,6 +3253,85 @@ $btnLocationLinksImport.Add_Click({
     Load-LocationLinks
   } catch {
     [System.Windows.Forms.MessageBox]::Show("Falha ao importar ligacoes da planilha: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$battlegearSpawnGrid.Add_SelectionChanged({
+  if ($battlegearSpawnGrid.SelectedRows.Count -lt 1) { return }
+  $cardId = [string]$battlegearSpawnGrid.SelectedRows[0].Cells[1].Value
+  if (-not [string]::IsNullOrWhiteSpace($cardId)) {
+    $comboBattlegearSpawnCard.SelectedValue = $cardId
+    Update-BattlegearSpawnFormFromCardId -CardId $cardId
+  }
+})
+
+$comboBattlegearSpawnCard.Add_SelectedIndexChanged({
+  try {
+    $cardId = Get-SelectedValue -Combo $comboBattlegearSpawnCard
+    Update-BattlegearSpawnFormFromCardId -CardId $cardId
+  } catch {}
+})
+
+$btnBattlegearSpawnRefresh.Add_Click({
+  try { Load-BattlegearSpawnRules } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao atualizar regras de spawn de equipamentos: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnBattlegearSpawnSave.Add_Click({
+  try {
+    $cardId = Get-SelectedValue -Combo $comboBattlegearSpawnCard
+    $location1CardId = Get-SelectedValue -Combo $comboBattlegearSpawnLoc1
+    $location2CardId = Get-SelectedValue -Combo $comboBattlegearSpawnLoc2
+    if (-not $cardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um equipamento.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if (-not $location1CardId -or -not $location2CardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione Local 1 e Local 2.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if ($location1CardId -eq $location2CardId) {
+      [System.Windows.Forms.MessageBox]::Show("Local 1 e Local 2 devem ser diferentes.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $payload = @{
+      cardId = $cardId
+      location1CardId = $location1CardId
+      location2CardId = $location2CardId
+      chancePercent = [double]$numBattlegearSpawnChance.Value
+      enabled = [bool]$chkBattlegearSpawnEnabled.Checked
+    }
+    $op = Invoke-MutatingOperation -OperationName "battlegear-spawn-rule-set" -Target ("battlegear-spawn:" + $cardId) -ActionBlock {
+      Invoke-AdminEngine -Action "battlegear-spawn-rule-set" -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Regra de spawn salva.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-BattlegearSpawnRules
+    $comboBattlegearSpawnCard.SelectedValue = $cardId
+    Update-BattlegearSpawnFormFromCardId -CardId $cardId
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao salvar regra de spawn: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnBattlegearSpawnDelete.Add_Click({
+  try {
+    $cardId = Get-SelectedValue -Combo $comboBattlegearSpawnCard
+    if (-not $cardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione um equipamento para remover a regra.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $confirm = [System.Windows.Forms.MessageBox]::Show("Remover regra de spawn do equipamento '$cardId'?", "Confirmar", [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Question)
+    if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    $payload = @{ cardId = $cardId }
+    $op = Invoke-MutatingOperation -OperationName "battlegear-spawn-rule-delete" -Target ("battlegear-spawn:" + $cardId) -ActionBlock {
+      Invoke-AdminEngine -Action "battlegear-spawn-rule-delete" -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Regra removida.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-BattlegearSpawnRules
+    Update-BattlegearSpawnFormFromCardId -CardId $cardId
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao remover regra de spawn: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
   }
 })
 
@@ -3332,6 +3738,7 @@ function Apply-TabSplitLayoutDefaults {
   Set-SplitterLayoutSafe -Splitter $perimUpperSplit -Panel1Min 360 -Panel2Min 320 -PreferredDistance 600
   Set-SplitterLayoutSafe -Splitter $climateRulesSplit -Panel1Min 460 -Panel2Min 420 -PreferredDistance 640
   Set-SplitterLayoutSafe -Splitter $locationLinksSplit -Panel1Min 500 -Panel2Min 380 -PreferredDistance 700
+  Set-SplitterLayoutSafe -Splitter $battlegearSpawnSplit -Panel1Min 520 -Panel2Min 380 -PreferredDistance 760
 }
 
 $form.Add_Shown({ Apply-TabSplitLayoutDefaults })
@@ -3353,12 +3760,16 @@ try {
   Set-ComboItems -Combo $comboRewardType -Items $typeItems
   Set-ComboItems -Combo $comboReqType -Items $typeItems
   Set-ComboItems -Combo $comboEventLocation -Items (Build-LocationItems)
-  Set-ComboItems -Combo $comboQuestTargetLocation -Items (Build-LocationItems)
+  Set-ComboItems -Combo $comboQuestTargetLocation -Items (Build-OptionalLocationItems)
+  Set-ComboItems -Combo $comboQuestDifficulty -Items (Build-QuestDifficultyItems)
   Set-ComboItems -Combo $comboLocationTribeLocation -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboLocationTribeKey -Items (Build-LocationTribeKeyItems)
   Set-ComboItems -Combo $comboClimateRuleLocation -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboLocationLinkFrom -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboLocationLinkTo -Items (Build-LocationItems)
+  Set-ComboItems -Combo $comboBattlegearSpawnCard -Items (Build-CardItems -Type "battlegear")
+  Set-ComboItems -Combo $comboBattlegearSpawnLoc1 -Items (Build-LocationItems)
+  Set-ComboItems -Combo $comboBattlegearSpawnLoc2 -Items (Build-LocationItems)
   $checkedClimateKeys.Items.Clear()
   foreach ($item in (Build-LocationClimateItems)) {
     [void]$checkedClimateKeys.Items.Add($item)
@@ -3386,6 +3797,7 @@ try {
   Load-LocationTribes
   Load-LocationClimateRules
   Load-LocationLinks
+  Load-BattlegearSpawnRules
   Load-Quests
   Load-PerimConfig
   Load-Logs

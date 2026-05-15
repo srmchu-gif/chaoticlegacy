@@ -96,7 +96,7 @@ const AUTH_RATE_LIMIT_WINDOW_MS = Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS |
 const AUTH_RATE_LIMIT_MAX = Number(process.env.AUTH_RATE_LIMIT_MAX || 25);
 const ACTION_RATE_LIMIT_WINDOW_MS = Number(process.env.ACTION_RATE_LIMIT_WINDOW_MS || 10 * 1000);
 const ACTION_RATE_LIMIT_MAX = Number(process.env.ACTION_RATE_LIMIT_MAX || 40);
-const CREATURE_DAILY_ALGO_VERSION = 2;
+const CREATURE_DAILY_ALGO_VERSION = 3;
 const SMTP_HOST = String(process.env.SMTP_HOST || "smtp.gmail.com").trim();
 const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const SMTP_SECURE = String(process.env.SMTP_SECURE || "true").toLowerCase() !== "false";
@@ -726,6 +726,9 @@ function createSqlV2Tables() {
       description TEXT NOT NULL DEFAULT '',
       reward_type TEXT NOT NULL,
       reward_card_id TEXT NOT NULL,
+      quest_set_key TEXT NOT NULL DEFAULT '',
+      difficulty_key TEXT NOT NULL DEFAULT 'ok',
+      is_draft INTEGER NOT NULL DEFAULT 0,
       target_location_card_id TEXT NOT NULL,
       anomaly_location_ids_json TEXT NOT NULL DEFAULT '[]',
       requirements_json TEXT NOT NULL DEFAULT '[]',
@@ -734,7 +737,26 @@ function createSqlV2Tables() {
       updated_at TEXT NOT NULL
     );
   `);
+  const perimQuestTemplateColumns = sqliteDb.prepare("PRAGMA table_info(perim_quest_templates)").all();
+  const perimQuestTemplateColumnSet = new Set(perimQuestTemplateColumns.map((entry) => String(entry?.name || "").toLowerCase()));
+  if (!perimQuestTemplateColumnSet.has("quest_set_key")) {
+    sqliteDb.exec("ALTER TABLE perim_quest_templates ADD COLUMN quest_set_key TEXT NOT NULL DEFAULT '';");
+  }
+  if (!perimQuestTemplateColumnSet.has("difficulty_key")) {
+    sqliteDb.exec("ALTER TABLE perim_quest_templates ADD COLUMN difficulty_key TEXT NOT NULL DEFAULT 'ok';");
+  }
+  if (!perimQuestTemplateColumnSet.has("is_draft")) {
+    sqliteDb.exec("ALTER TABLE perim_quest_templates ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0;");
+  }
+  sqliteDb.exec(`
+    UPDATE perim_quest_templates
+    SET quest_set_key = lower(trim((SELECT set_name FROM card_catalog WHERE id = reward_card_id LIMIT 1)))
+    WHERE trim(COALESCE(quest_set_key, '')) = ''
+  `);
+  sqliteDb.exec("UPDATE perim_quest_templates SET difficulty_key = 'ok' WHERE trim(COALESCE(difficulty_key, '')) = '';");
+  sqliteDb.exec("UPDATE perim_quest_templates SET is_draft = 0 WHERE is_draft IS NULL;");
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_quest_templates_enabled ON perim_quest_templates(enabled, reward_type);");
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_quest_templates_runtime ON perim_quest_templates(enabled, is_draft, quest_set_key);");
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_player_quests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -813,6 +835,30 @@ function createSqlV2Tables() {
   `);
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_adjacency_from ON perim_location_adjacency(from_location_card_id, updated_at DESC);");
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_location_adjacency_to ON perim_location_adjacency(to_location_card_id, updated_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_battlegear_spawn_rules (
+      card_id TEXT NOT NULL PRIMARY KEY,
+      location_1_card_id TEXT NOT NULL,
+      location_2_card_id TEXT NOT NULL,
+      chance_percent REAL NOT NULL DEFAULT 0,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_battlegear_spawn_rules_enabled ON perim_battlegear_spawn_rules(enabled, updated_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS perim_battlegear_daily_spawns (
+      date_key TEXT NOT NULL,
+      card_id TEXT NOT NULL,
+      selected_location_card_id TEXT NOT NULL,
+      chance_percent REAL NOT NULL DEFAULT 0,
+      roll_value REAL NOT NULL DEFAULT 0,
+      is_available INTEGER NOT NULL DEFAULT 0,
+      generated_at TEXT NOT NULL,
+      PRIMARY KEY (date_key, card_id)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_battlegear_daily_spawns_lookup ON perim_battlegear_daily_spawns(date_key, selected_location_card_id, is_available);");
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_location_chat (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -5464,6 +5510,10 @@ const PERIM_ANOMALY_DIRECT_REVEAL_CHANCE = 0.02;
 const PERIM_ANOMALY_QUEST_DROP_CHANCE = 0.1;
 const PERIM_LOCATION_DROP_COPY_CAP = 3;
 const PERIM_LOCATION_DROP_BASE_CHANCE_MULTIPLIER = 0.82;
+const PERIM_QUEST_EXCLUSIVE_REWARD_TYPES = new Set(["creatures", "battlegear"]);
+const PERIM_QUEST_EXCLUSIVE_MAX_COPIES = 1;
+const PERIM_GENERIC_MUGIC_BASE_WEIGHT = 0.75;
+const PERIM_GENERIC_MUGIC_RUNIC_GROVE_MULTIPLIER = 1.35;
 const DEFAULT_PLAYER_ALLOWED_SET_KEYS = ["dop", "zoth", "ss"];
 const PLAYER_ALLOWED_SET_KEYS = new Set(DEFAULT_PLAYER_ALLOWED_SET_KEYS);
 const PERIM_QUEST_REWARD_RARITIES = new Set(["rare", "super rare", "ultra rare"]);
@@ -5832,9 +5882,9 @@ function ensurePerimQuestTemplatesSeed() {
     const now = nowIso();
     const insert = sqliteDb.prepare(`
       INSERT INTO perim_quest_templates (
-        quest_key, title, description, reward_type, reward_card_id, target_location_card_id,
-        anomaly_location_ids_json, requirements_json, enabled, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+        quest_key, title, description, reward_type, reward_card_id, quest_set_key, difficulty_key, is_draft,
+        target_location_card_id, anomaly_location_ids_json, requirements_json, enabled, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 'ok', 0, ?, ?, ?, 1, ?, ?)
     `);
     sqliteDb.exec("BEGIN IMMEDIATE");
     templates.forEach((template) => {
@@ -5844,6 +5894,7 @@ function ensurePerimQuestTemplatesSeed() {
         String(template.description || ""),
         String(template.rewardType),
         String(template.rewardCardId),
+        resolveCardSetKeyById(template.rewardCardId),
         String(template.targetLocationCardId),
         JSON.stringify(template.anomalyLocationIds || []),
         JSON.stringify(template.requirements || []),
@@ -5868,8 +5919,8 @@ function listPerimQuestTemplates() {
   ensurePerimQuestTemplatesSeed();
   const rows = sqliteDb
     .prepare(`
-      SELECT quest_key, title, description, reward_type, reward_card_id, target_location_card_id,
-             anomaly_location_ids_json, requirements_json, enabled
+      SELECT quest_key, title, description, reward_type, reward_card_id, quest_set_key, difficulty_key, is_draft,
+             target_location_card_id, anomaly_location_ids_json, requirements_json, enabled
       FROM perim_quest_templates
       WHERE enabled = 1
       ORDER BY quest_key
@@ -5881,6 +5932,10 @@ function listPerimQuestTemplates() {
       const rewardType = normalizeQuestCardType(row?.reward_type || "");
       const rewardCardId = String(row?.reward_card_id || "").trim();
       const rewardCard = indexes.byId.get(rewardCardId) || null;
+      const questSetKey = normalizePerimDropSetKey(row?.quest_set_key || rewardCard?.set || "");
+      const difficultyKeyRaw = String(row?.difficulty_key || "ok").trim().toLowerCase();
+      const difficultyKey = difficultyKeyRaw === "muito_dificil" || difficultyKeyRaw === "impossivel" ? difficultyKeyRaw : "ok";
+      const isDraft = Number(row?.is_draft || 0) === 1;
       const requirements = parseQuestRequirements(row?.requirements_json);
       const targetLocationCardId = String(row?.target_location_card_id || "").trim();
       const targetLocationCard = indexes.byId.get(targetLocationCardId) || null;
@@ -5889,10 +5944,13 @@ function listPerimQuestTemplates() {
             .map((value) => String(value || "").trim())
             .filter(Boolean)
         : [];
-      if (!rewardType || !rewardCardId || !rewardCard || !targetLocationCard || !requirements.length) {
+      if (!rewardType || !rewardCardId || !rewardCard) {
         return null;
       }
-      const rewardSetAllowed = isPerimDropSetAllowed(rewardCard?.set || "");
+      if (isDraft || !targetLocationCard || !requirements.length) {
+        return null;
+      }
+      const rewardSetAllowed = isPerimDropSetAllowed(questSetKey || rewardCard?.set || "");
       if (!rewardSetAllowed) {
         return null;
       }
@@ -5910,6 +5968,9 @@ function listPerimQuestTemplates() {
         rewardType,
         rewardCardId,
         rewardCard,
+        questSetKey,
+        difficultyKey,
+        isDraft,
         targetLocationCardId,
         targetLocationCard,
         anomalyLocationIds,
@@ -5937,6 +5998,57 @@ function listPerimPlayerQuestRows(ownerKeyRaw) {
     .all(ownerKey);
 }
 
+function isPerimQuestExclusiveRewardType(cardTypeRaw) {
+  const cardType = normalizeQuestCardType(cardTypeRaw || "");
+  return PERIM_QUEST_EXCLUSIVE_REWARD_TYPES.has(cardType);
+}
+
+function getPerimQuestExclusiveRewardCardKeySet() {
+  const set = new Set();
+  if (!isSqlV2Ready()) {
+    return set;
+  }
+  let rows = [];
+  try {
+    rows = sqliteDb
+      .prepare(`
+        SELECT reward_type, reward_card_id
+        FROM perim_quest_templates
+        WHERE trim(COALESCE(reward_type, '')) <> ''
+          AND trim(COALESCE(reward_card_id, '')) <> ''
+      `)
+      .all();
+  } catch (error) {
+    console.warn(`[PERIM][QUESTS] Falha ao carregar cartas quest-exclusive: ${error?.message || error}`);
+    return set;
+  }
+  rows.forEach((row) => {
+    const rewardType = normalizeQuestCardType(row?.reward_type || "");
+    const rewardCardId = String(row?.reward_card_id || "").trim();
+    if (!rewardType || !rewardCardId || !isPerimQuestExclusiveRewardType(rewardType)) {
+      return;
+    }
+    set.add(`${rewardType}:${rewardCardId}`);
+  });
+  return set;
+}
+
+function getPerimRewardMaxCopies(rewardTypeRaw, rewardCardIdRaw, questExclusiveRewardCardKeys = null) {
+  const rewardType = normalizeQuestCardType(rewardTypeRaw || "");
+  const rewardCardId = String(rewardCardIdRaw || "").trim();
+  if (!rewardType || !rewardCardId) {
+    return INVENTORY_MAX_COPIES;
+  }
+  const key = `${rewardType}:${rewardCardId}`;
+  const questExclusive = questExclusiveRewardCardKeys instanceof Set
+    ? questExclusiveRewardCardKeys
+    : getPerimQuestExclusiveRewardCardKeySet();
+  if (questExclusive.has(key)) {
+    return PERIM_QUEST_EXCLUSIVE_MAX_COPIES;
+  }
+  return INVENTORY_MAX_COPIES;
+}
+
 function getQuestUnlockedRewardKeySet(ownerKeyRaw) {
   const set = new Set();
   if (!isSqlV2Ready()) {
@@ -5961,19 +6073,7 @@ function getQuestUnlockedRewardKeySet(ownerKeyRaw) {
 }
 
 function getQuestLockedRewardKeySet(ownerKeyRaw) {
-  const templates = listPerimQuestTemplates();
-  if (!templates.length) {
-    return new Set();
-  }
-  const unlocked = getQuestUnlockedRewardKeySet(ownerKeyRaw);
-  const locked = new Set();
-  templates.forEach((template) => {
-    const rewardKey = `${template.rewardType}:${template.rewardCardId}`;
-    if (!unlocked.has(rewardKey)) {
-      locked.add(rewardKey);
-    }
-  });
-  return locked;
+  return getPerimQuestExclusiveRewardCardKeySet();
 }
 
 function computePerimQuestProgress(ownerKeyRaw, cards) {
@@ -6020,6 +6120,8 @@ function computePerimQuestProgress(ownerKeyRaw, cards) {
       questKey: template.questKey,
       title: template.title,
       description: template.description,
+      questSetKey: template.questSetKey || normalizePerimDropSetKey(template.rewardCard?.set || ""),
+      difficultyKey: template.difficultyKey || "ok",
       status,
       assignedAt: String(row?.assigned_at || now),
       updatedAt: String(row?.updated_at || now),
@@ -6103,6 +6205,9 @@ function reserveQuestRewardForRun(ownerKeyRaw, runIdRaw, locationCardIdRaw, rewa
   }
   const cards = Array.isArray(options.cards) ? options.cards : [];
   const ignoreInventoryCap = Boolean(options.ignoreInventoryCap);
+  const questExclusiveRewardCardKeys = options.questExclusiveRewardCardKeys instanceof Set
+    ? options.questExclusiveRewardCardKeys
+    : getPerimQuestExclusiveRewardCardKeySet();
   const quests = computePerimQuestProgress(ownerKey, cards);
   const candidate = quests.find(
     (quest) => quest.status === "ready_to_redeem" && String(quest?.targetLocation?.cardId || "") === locationCardId
@@ -6117,7 +6222,8 @@ function reserveQuestRewardForRun(ownerKeyRaw, runIdRaw, locationCardIdRaw, rewa
   }
   const stockKey = `${rewardType}:${rewardCardId}`;
   const currentAmount = Math.max(0, Number(inventoryCounts?.get(stockKey) || 0));
-  if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
+  const maxCopies = getPerimRewardMaxCopies(rewardType, rewardCardId, questExclusiveRewardCardKeys);
+  if (!ignoreInventoryCap && currentAmount >= maxCopies) {
     return null;
   }
   const rewardPayload = normalizeRewardPayload({
@@ -6142,7 +6248,7 @@ function reserveQuestRewardForRun(ownerKeyRaw, runIdRaw, locationCardIdRaw, rewa
   return { questKey: candidate.questKey, reward: rewardPayload };
 }
 
-function grantReservedQuestByRun(ownerKeyRaw, runIdRaw, rewards) {
+function grantReservedQuestByRun(ownerKeyRaw, runIdRaw, rewards, options = {}) {
   const ownerKey = normalizeUserKey(ownerKeyRaw, "");
   const runId = String(runIdRaw || "").trim();
   if (!ownerKey || !runId || !isSqlV2Ready()) {
@@ -6167,9 +6273,30 @@ function grantReservedQuestByRun(ownerKeyRaw, runIdRaw, rewards) {
   }
   const rewardType = normalizeQuestCardType(template.rewardType);
   const rewardCardId = String(template.rewardCardId || "").trim();
+  const questExclusiveRewardCardKeys = options.questExclusiveRewardCardKeys instanceof Set
+    ? options.questExclusiveRewardCardKeys
+    : getPerimQuestExclusiveRewardCardKeySet();
+  const inventoryCounts = options.inventoryCounts instanceof Map ? options.inventoryCounts : null;
   const hasRewardInRun = Array.isArray(rewards)
     && rewards.some((entry) => String(entry?.type || "") === rewardType && String(entry?.cardId || "") === rewardCardId);
+  const rewardStockKey = `${rewardType}:${rewardCardId}`;
+  const currentAmount = inventoryCounts instanceof Map
+    ? Math.max(0, Number(inventoryCounts.get(rewardStockKey) || 0))
+    : 0;
+  const maxCopies = getPerimRewardMaxCopies(rewardType, rewardCardId, questExclusiveRewardCardKeys);
+  const capReachedWithoutReward = !hasRewardInRun && Boolean(inventoryCounts instanceof Map) && currentAmount >= maxCopies;
   if (!hasRewardInRun) {
+    if (!capReachedWithoutReward) {
+      return null;
+    }
+    console.log(
+      `[PERIM][QUEST] ${questKey} marcado como concedido sem copia extra para ${ownerKey} (cap ${maxCopies}).`
+    );
+  }
+  if (!hasRewardInRun && capReachedWithoutReward) {
+    // Continue with status update/unlock insertion to avoid leaving the quest in reward_reserved.
+  }
+  if (!rewardType || !rewardCardId) {
     return null;
   }
   const now = nowIso();
@@ -6460,6 +6587,166 @@ function listActivePerimDropEventsForLocation(locationCardIdRaw, nowDate = new D
     startAt: String(row?.start_at || ""),
     endAt: String(row?.end_at || ""),
   }));
+}
+
+function listPerimBattlegearSpawnRules(enabledOnly = false) {
+  if (!isSqlV2Ready()) {
+    return [];
+  }
+  const enabledClause = enabledOnly ? "AND enabled = 1" : "";
+  let rows = [];
+  try {
+    rows = sqliteDb
+      .prepare(`
+        SELECT card_id, location_1_card_id, location_2_card_id, chance_percent, enabled, updated_at
+        FROM perim_battlegear_spawn_rules
+        WHERE trim(COALESCE(card_id, '')) <> ''
+          AND trim(COALESCE(location_1_card_id, '')) <> ''
+          AND trim(COALESCE(location_2_card_id, '')) <> ''
+          ${enabledClause}
+      `)
+      .all();
+  } catch (error) {
+    console.warn(`[PERIM][BATTLEGEAR] Falha ao listar regras de spawn: ${error?.message || error}`);
+    return [];
+  }
+  const cardsByType = Array.isArray(library?.cardsByType?.battlegear) ? library.cardsByType.battlegear : [];
+  const battlegearById = new Map(cardsByType.map((card) => [String(card?.id || ""), card]));
+  const { locationsById } = getLibraryIndexes();
+  return rows
+    .map((row) => {
+      const cardId = String(row?.card_id || "").trim();
+      const location1CardId = String(row?.location_1_card_id || "").trim();
+      const location2CardId = String(row?.location_2_card_id || "").trim();
+      if (!cardId || !location1CardId || !location2CardId || location1CardId === location2CardId) {
+        return null;
+      }
+      if (!battlegearById.has(cardId)) {
+        return null;
+      }
+      if (!locationsById.has(location1CardId) || !locationsById.has(location2CardId)) {
+        return null;
+      }
+      return {
+        cardId,
+        location1CardId,
+        location2CardId,
+        chancePercent: clampPercent(row?.chance_percent, 0),
+        enabled: Number(row?.enabled || 0) === 1,
+        updatedAt: String(row?.updated_at || ""),
+      };
+    })
+    .filter(Boolean);
+}
+
+function ensurePerimBattlegearDailySpawnsForDate(dateKeyRaw = "", forceRegenerate = false) {
+  if (!sqliteDb) {
+    return { dateKey: todayDateKey(), generated: 0, skippedExisting: 0, questExclusiveSkipped: 0 };
+  }
+  const dateKey = String(dateKeyRaw || todayDateKey()).trim() || todayDateKey();
+  const rules = listPerimBattlegearSpawnRules(true);
+  const questExclusiveRewardCardKeys = getPerimQuestExclusiveRewardCardKeySet();
+  const existingRows = sqliteDb
+    .prepare("SELECT card_id FROM perim_battlegear_daily_spawns WHERE date_key = ?")
+    .all(dateKey);
+  const existingCardIds = new Set(existingRows.map((row) => String(row?.card_id || "").trim()).filter(Boolean));
+
+  let generated = 0;
+  let skippedExisting = 0;
+  let questExclusiveSkipped = 0;
+  const generatedAt = nowIso();
+
+  const upsert = sqliteDb.prepare(`
+    INSERT INTO perim_battlegear_daily_spawns (
+      date_key, card_id, selected_location_card_id, chance_percent, roll_value, is_available, generated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(date_key, card_id) DO UPDATE SET
+      selected_location_card_id = excluded.selected_location_card_id,
+      chance_percent = excluded.chance_percent,
+      roll_value = excluded.roll_value,
+      is_available = excluded.is_available,
+      generated_at = excluded.generated_at
+  `);
+
+  sqliteDb.exec("BEGIN IMMEDIATE");
+  try {
+    if (forceRegenerate) {
+      sqliteDb.prepare("DELETE FROM perim_battlegear_daily_spawns WHERE date_key = ?").run(dateKey);
+      existingCardIds.clear();
+    }
+    for (const rule of rules) {
+      const key = `battlegear:${rule.cardId}`;
+      if (questExclusiveRewardCardKeys.has(key)) {
+        questExclusiveSkipped += 1;
+        sqliteDb
+          .prepare("DELETE FROM perim_battlegear_daily_spawns WHERE date_key = ? AND card_id = ?")
+          .run(dateKey, rule.cardId);
+        continue;
+      }
+      if (!forceRegenerate && existingCardIds.has(rule.cardId)) {
+        skippedExisting += 1;
+        continue;
+      }
+      const chosenLocationCardId = Math.random() < 0.5 ? rule.location1CardId : rule.location2CardId;
+      const chancePercent = clampPercent(rule.chancePercent, 0);
+      const rollValue = Math.max(0, Math.min(100, Math.random() * 100));
+      const isAvailable = rollValue <= chancePercent ? 1 : 0;
+      upsert.run(dateKey, rule.cardId, chosenLocationCardId, chancePercent, rollValue, isAvailable, generatedAt);
+      generated += 1;
+    }
+    sqliteDb.exec("COMMIT");
+  } catch (error) {
+    sqliteDb.exec("ROLLBACK");
+    throw error;
+  }
+
+  return {
+    dateKey,
+    generated,
+    skippedExisting,
+    questExclusiveSkipped,
+    rulesTotal: rules.length,
+  };
+}
+
+function getPerimAvailableBattlegearCardIdsForLocation(locationCardIdRaw, dateKeyRaw = "") {
+  const set = new Set();
+  if (!sqliteDb) {
+    return set;
+  }
+  const locationCardId = String(locationCardIdRaw || "").trim();
+  if (!locationCardId) {
+    return set;
+  }
+  const dateKey = String(dateKeyRaw || todayDateKey()).trim() || todayDateKey();
+  try {
+    ensurePerimBattlegearDailySpawnsForDate(dateKey, false);
+  } catch (error) {
+    console.warn(`[PERIM][BATTLEGEAR] Falha ao garantir snapshot diario (${dateKey}): ${error?.message || error}`);
+  }
+  let rows = [];
+  try {
+    rows = sqliteDb
+      .prepare(`
+        SELECT card_id
+        FROM perim_battlegear_daily_spawns
+        WHERE date_key = ?
+          AND selected_location_card_id = ?
+          AND is_available = 1
+      `)
+      .all(dateKey, locationCardId);
+  } catch (error) {
+    console.warn(`[PERIM][BATTLEGEAR] Falha ao consultar disponibilidade diaria (${dateKey}): ${error?.message || error}`);
+    return set;
+  }
+  rows.forEach((row) => {
+    const cardId = String(row?.card_id || "").trim();
+    if (cardId) {
+      set.add(cardId);
+    }
+  });
+  return set;
 }
 
 function getPerimMaxCreatureDropsPerRun() {
@@ -7491,6 +7778,26 @@ function attackClimateElementBoostWeight(card, climateRaw) {
   return hasMatch ? 1.08 : 1;
 }
 
+function isRunicGroveLocationEntry(locationEntry) {
+  const locationNameKey = normalizePerimText(locationEntry?.name || "");
+  const locationIdKey = normalizePerimText(locationEntry?.cardId || locationEntry?.id || "");
+  return locationNameKey.includes("runicgrove") || locationIdKey.includes("runicgrove");
+}
+
+function isPerimMugicGenericCard(card) {
+  const tribeRaw = String(card?.tribe || "").trim();
+  const normalizedTribe = normalizePerimLocationTribeKey(tribeRaw);
+  if (normalizedTribe === "tribeless") {
+    return true;
+  }
+  const fallback = String(tribeRaw || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9?]+/g, "");
+  return !fallback || fallback === "?" || fallback === "unknown";
+}
+
 function selectMugicTribeWeightsFromLocation(locationEntry = null, options = {}) {
   const result = new Map();
   if (!locationEntry || typeof locationEntry !== "object") {
@@ -7678,36 +7985,55 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
   const locationTribeKey = normalizePerimLocationTribeKey(options.locationTribeKey || "");
   const requireLocalMugicEligible = Boolean(options.requireLocalMugicEligible);
   const excludedRewardCardKeys = options.excludedRewardCardKeys instanceof Set ? options.excludedRewardCardKeys : new Set();
+  const battlegearAllowedCardIds = options.battlegearAllowedCardIds instanceof Set ? options.battlegearAllowedCardIds : null;
   const tribeKey = String(preferredTribe || "").trim().toLowerCase();
   let basePool = cards;
   let selectedTribeKey = tribeKey;
   if (type === "mugic" && locationEntry) {
-    if (locationTribeKey) {
-      const filteredPool = cards.filter((card) => isPerimTribeMatchForCard(card, locationTribeKey));
-      if (!filteredPool.length && requireLocalMugicEligible) {
-        return null;
-      }
-      if (filteredPool.length) {
-        basePool = filteredPool;
-      }
+    const genericPool = cards.filter((card) => isPerimMugicGenericCard(card));
+    const runicGroveMultiplier = isRunicGroveLocationEntry(locationEntry)
+      ? PERIM_GENERIC_MUGIC_RUNIC_GROVE_MULTIPLIER
+      : 1;
+    const baseLocalPool = locationTribeKey
+      ? cards.filter((card) => isPerimTribeMatchForCard(card, locationTribeKey))
+      : cards;
+    if (baseLocalPool.length) {
+      basePool = baseLocalPool;
     }
     const tribeWeights = selectMugicTribeWeightsFromLocation(locationEntry, { locationTribeKey });
-    if (!tribeWeights.size && requireLocalMugicEligible) {
+    const weightedTribes = [...tribeWeights.entries()].map(([tribe, weight]) => ({ tribe, weight }));
+    if (genericPool.length) {
+      weightedTribes.push({
+        tribe: "__generic__",
+        weight: Math.max(0.05, PERIM_GENERIC_MUGIC_BASE_WEIGHT * runicGroveMultiplier),
+      });
+    }
+    if (!weightedTribes.length && requireLocalMugicEligible) {
       return null;
     }
-    if (tribeWeights.size) {
-      const weightedTribes = [...tribeWeights.entries()].map(([tribe, weight]) => ({ tribe, weight }));
+    if (weightedTribes.length) {
       const selected = weightedRandomChoice(weightedTribes, Math.random);
       const selectedTribe = String(selected?.tribe || "").trim().toLowerCase();
-      selectedTribeKey = selectedTribe;
-      const selectedPool = selectedTribe
-        ? cards.filter((card) => String(card?.tribe || "").trim().toLowerCase() === selectedTribe)
-        : [];
+      const isGenericPick = selectedTribe === "__generic__";
+      selectedTribeKey = isGenericPick ? "tribeless" : selectedTribe;
+      const selectedPool = isGenericPick
+        ? genericPool
+        : (
+          selectedTribe
+            ? cards.filter((card) => String(card?.tribe || "").trim().toLowerCase() === selectedTribe)
+            : []
+        );
       if (selectedPool.length) {
         basePool = selectedPool;
+      } else if (genericPool.length) {
+        selectedTribeKey = "tribeless";
+        basePool = genericPool;
       } else if (requireLocalMugicEligible && !basePool.length) {
         return null;
       }
+    } else if (genericPool.length) {
+      selectedTribeKey = "tribeless";
+      basePool = genericPool;
     }
   } else {
     const tribePool = tribeKey
@@ -7726,6 +8052,9 @@ function rewardCardFromType(type, preferredTribe = "", options = {}) {
     const stockKey = `${type}:${String(card?.id || "")}`;
     if (excludedRewardCardKeys.has(stockKey)) {
       return false;
+    }
+    if (type === "battlegear" && battlegearAllowedCardIds instanceof Set) {
+      return battlegearAllowedCardIds.has(String(card?.id || ""));
     }
     const currentAmount = inventoryCounts.get(stockKey) || 0;
     return ignoreInventoryCap || currentAmount < INVENTORY_MAX_COPIES;
@@ -8454,6 +8783,10 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
   const mugicRareBoost = Math.max(0, Number(tribeBoostEntry?.mugicRareBoost ?? scannerEffect.mugicRareBoost ?? scannerEffect.rareBoost ?? 0));
   const campWaitCount = Math.max(0, Math.floor(Number(options?.campWaitCount || 0)));
   const excludedRewardCardKeys = options.excludedRewardCardKeys instanceof Set ? options.excludedRewardCardKeys : new Set();
+  const battlegearAllowedCardIds = getPerimAvailableBattlegearCardIdsForLocation(
+    String(locationEntry?.cardId || locationEntry?.id || ""),
+    todayDateKey(new Date())
+  );
   const campStacking = getPerimCampCreatureStackingSettings();
   const campBonusPercent = actionId === "camp"
     ? calculatePerimCampCreatureBonusPercent(campWaitCount)
@@ -8598,6 +8931,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       tribeScannerRareBoosts,
       requireLocalMugicEligible: type === "mugic",
       excludedRewardCardKeys,
+      battlegearAllowedCardIds,
     });
   };
 
@@ -8708,6 +9042,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
+        battlegearAllowedCardIds,
       }) ||
       rewardCardFromType("battlegear", tribe, {
         inventoryCounts,
@@ -8718,6 +9053,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
+        battlegearAllowedCardIds,
       }) ||
       rewardCardFromType("mugic", tribe, {
         inventoryCounts,
@@ -8729,6 +9065,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
         excludedRewardCardKeys,
+        battlegearAllowedCardIds,
       }) ||
       pickCreatureForAction();
     if (failFallback) {
@@ -8768,6 +9105,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
+        battlegearAllowedCardIds,
       });
       if (attackReward) {
         appendReward(attackReward);
@@ -8809,6 +9147,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
       locationTribeKey,
       tribeScannerRareBoosts,
       excludedRewardCardKeys,
+      battlegearAllowedCardIds,
     })
       || rewardCardFromType("battlegear", tribe, {
         inventoryCounts,
@@ -8819,6 +9158,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
+        battlegearAllowedCardIds,
       })
       || rewardCardFromType("mugic", tribe, {
         inventoryCounts,
@@ -8830,6 +9170,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
         excludedRewardCardKeys,
+        battlegearAllowedCardIds,
       });
     if (fallback) {
       appendReward(fallback);
@@ -8854,6 +9195,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         locationTribeKey,
         tribeScannerRareBoosts,
         excludedRewardCardKeys,
+        battlegearAllowedCardIds,
       })
       || rewardCardFromType("mugic", tribe, {
         inventoryCounts,
@@ -8865,6 +9207,7 @@ function buildPerimRewards(locationEntry, actionId, options = {}) {
         tribeScannerRareBoosts,
         requireLocalMugicEligible: true,
         excludedRewardCardKeys,
+        battlegearAllowedCardIds,
       });
     if (!topUp || !appendReward(topUp)) {
       break;
@@ -9706,7 +10049,7 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
     }
 
     if (!candidates.length) {
-      if (previousLocationKey) {
+      if (previousLocationKey && possibleSet.has(previousLocationKey)) {
         sourceRule = "adjacent_hold";
         tribeNoAdjacentStayCount += 1;
         candidates = [{
@@ -9714,6 +10057,7 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
           weight: Math.max(0.1, rarityFactor),
         }];
       } else {
+        sourceRule = previousLocationKey ? "adjacent_relocate_by_tribe" : "weighted_pool";
         candidates = filteredPossibleLocations.map((locKey) => ({
           locationKey: locKey,
           weight: ((somenteSet.has(locKey) ? 8 : 2.5) + Number(scoreByLocation?.get(locKey) || 0)) * rarityFactor,
@@ -9847,7 +10191,7 @@ function getCreatureCountAtLocation(locationNameOrId, dateKey = null) {
   return getCreaturesAtLocation(locationNameOrId, dateKey).length;
 }
 
-function isPerimDailyCreatureEntryDroppable(entry, indexes = null) {
+function isPerimDailyCreatureEntryDroppable(entry, indexes = null, questExclusiveCreatureCardIds = null) {
   const libraryIndexes = indexes || getLibraryIndexes();
   const creaturesById = libraryIndexes?.creaturesById || new Map();
   const creaturesByNormalizedName = libraryIndexes?.creaturesByNormalizedName || new Map();
@@ -9859,18 +10203,38 @@ function isPerimDailyCreatureEntryDroppable(entry, indexes = null) {
   if (!card || !card.id) {
     return false;
   }
+  if (questExclusiveCreatureCardIds instanceof Set && questExclusiveCreatureCardIds.has(String(card.id))) {
+    return false;
+  }
   return isPerimDropSetAllowed(card?.set || "");
 }
 
-function getDroppableCreatureCountAtLocation(locationNameOrId, dateKey = null) {
+function getDroppableCreatureCountAtLocation(locationNameOrId, dateKey = null, questExclusiveCreatureCardIds = null) {
   const pool = getCreaturesAtLocation(locationNameOrId, dateKey);
   if (!pool.length) {
     return 0;
   }
   const indexes = getLibraryIndexes();
+  let effectiveQuestExclusiveCreatureCardIds = questExclusiveCreatureCardIds instanceof Set
+    ? questExclusiveCreatureCardIds
+    : null;
+  if (!(effectiveQuestExclusiveCreatureCardIds instanceof Set)) {
+    effectiveQuestExclusiveCreatureCardIds = new Set();
+    const questExclusiveRewardKeys = getPerimQuestExclusiveRewardCardKeySet();
+    questExclusiveRewardKeys.forEach((entry) => {
+      const text = String(entry || "");
+      if (!text.startsWith("creatures:")) {
+        return;
+      }
+      const cardId = text.slice("creatures:".length).trim();
+      if (cardId) {
+        effectiveQuestExclusiveCreatureCardIds.add(cardId);
+      }
+    });
+  }
   let total = 0;
   pool.forEach((entry) => {
-    if (isPerimDailyCreatureEntryDroppable(entry, indexes)) {
+    if (isPerimDailyCreatureEntryDroppable(entry, indexes, effectiveQuestExclusiveCreatureCardIds)) {
       total += 1;
     }
   });
@@ -9888,6 +10252,8 @@ function getCreaturesForWorldType(worldType, dateKey = null) {
 
 let dailyCreatureCheckInterval = null;
 let perimDailyWalkSchedulerState = { dateKey: "", executedSlots: new Set() };
+let battlegearDailySpawnSchedulerState = { dateKey: "", generatedAtMidnight: false };
+let battlegearDailySpawnCheckInterval = null;
 
 function startDailyCreatureLocationScheduler() {
   ensureDailyCreatureLocations();
@@ -9912,6 +10278,35 @@ function startDailyCreatureLocationScheduler() {
 
   evaluateWalkSchedule();
   dailyCreatureCheckInterval = setInterval(evaluateWalkSchedule, 30 * 1000);
+}
+
+function startPerimBattlegearDailySpawnScheduler() {
+  ensurePerimBattlegearDailySpawnsForDate(todayDateKey(), false);
+  const evaluateSchedule = () => {
+    const now = new Date();
+    const dateKey = todayDateKey(now);
+    const slot = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    if (battlegearDailySpawnSchedulerState.dateKey !== dateKey) {
+      battlegearDailySpawnSchedulerState = { dateKey, generatedAtMidnight: false };
+    }
+    if (slot !== "00:00" || battlegearDailySpawnSchedulerState.generatedAtMidnight) {
+      return;
+    }
+    battlegearDailySpawnSchedulerState.generatedAtMidnight = true;
+    try {
+      const summary = ensurePerimBattlegearDailySpawnsForDate(dateKey, true);
+      console.log(
+        `[PERIM][BATTLEGEAR] Sorteio diario ${dateKey}: generated=${summary.generated}, ` +
+        `skippedExisting=${summary.skippedExisting}, questExclusiveSkipped=${summary.questExclusiveSkipped}, rules=${summary.rulesTotal}.`
+      );
+    } catch (error) {
+      console.error(`[PERIM][BATTLEGEAR] Falha ao gerar sorteio diario (${dateKey}): ${error?.message || error}`);
+    }
+  };
+
+  evaluateSchedule();
+  battlegearDailySpawnCheckInterval = setInterval(evaluateSchedule, 30 * 1000);
+  battlegearDailySpawnCheckInterval.unref?.();
 }
 
 function cleanupOldDbBackups(retentionDays = DB_BACKUP_RETENTION_DAYS) {
@@ -10601,6 +10996,7 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
   const { profile } = getOrCreateProfile(profilesState, playerKeyRaw);
   const nextCards = cloneCardBuckets(cards);
   const inventoryCounts = buildInventoryCountMap(nextCards);
+  const questExclusiveRewardCardKeys = getPerimQuestExclusiveRewardCardKeySet();
   const ignoreInventoryCap = isPerimInstantAdmin(playerKeyRaw);
   const collected = [];
   const skippedByCap = [];
@@ -10612,11 +11008,13 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
     }
     const stockKey = `${type}:${cardId}`;
     const currentAmount = inventoryCounts.get(stockKey) || 0;
-    if (!ignoreInventoryCap && currentAmount >= INVENTORY_MAX_COPIES) {
+    const maxCopies = getPerimRewardMaxCopies(type, cardId, questExclusiveRewardCardKeys);
+    if (!ignoreInventoryCap && currentAmount >= maxCopies) {
       skippedByCap.push({
         type,
         cardId,
         cardName: reward?.cardName || cardId,
+        maxCopies,
       });
       return;
     }
@@ -10698,7 +11096,10 @@ function claimPerimRewardsForRun(playerState, runId, playerKeyRaw) {
   incrementPerimMissionProgress(playerKeyRaw, 1, new Date());
   incrementWeeklyPerimMissionProgress(playerKeyRaw, 1, new Date());
   applyScannerProgressFromRewards(playerKeyRaw, collected);
-  const questGrant = grantReservedQuestByRun(playerKeyRaw, target.runId, collected);
+  const questGrant = grantReservedQuestByRun(playerKeyRaw, target.runId, collected, {
+    inventoryCounts,
+    questExclusiveRewardCardKeys,
+  });
   invalidateUserCaches(playerKeyRaw);
   return {
     ok: true,
@@ -10730,6 +11131,17 @@ function buildPerimStatePayload(playerKeyRaw) {
     : [];
   const locationEntries = collectPerimLocationEntriesForPlayer(playerKey);
   const creatureCountByLocation = new Map();
+  const questExclusiveCreatureCardIds = new Set();
+  getPerimQuestExclusiveRewardCardKeySet().forEach((entry) => {
+    const text = String(entry || "");
+    if (!text.startsWith("creatures:")) {
+      return;
+    }
+    const cardId = text.slice("creatures:".length).trim();
+    if (cardId) {
+      questExclusiveCreatureCardIds.add(cardId);
+    }
+  });
   const perimCountDateKey = todayDateKey(nowDate);
   const campStackingSettings = getPerimCampCreatureStackingSettings();
   const baseLocations = buildPerimLocationsFromScans(locationEntries);
@@ -10757,7 +11169,11 @@ function buildPerimStatePayload(playerKeyRaw) {
       : 0;
     let creaturesTodayCount = creatureCountByLocation.get(entry.cardId);
     if (typeof creaturesTodayCount !== "number") {
-      creaturesTodayCount = getDroppableCreatureCountAtLocation(entry.cardId || entry.name, perimCountDateKey);
+      creaturesTodayCount = getDroppableCreatureCountAtLocation(
+        entry.cardId || entry.name,
+        perimCountDateKey,
+        questExclusiveCreatureCardIds
+      );
       creatureCountByLocation.set(entry.cardId, creaturesTodayCount);
     }
     return {
@@ -17428,7 +17844,7 @@ async function handleRequest(request, response) {
     const runId = crypto.randomBytes(12).toString("hex");
     const inventoryCounts = buildInventoryCountMap(cards);
     const locationOwnedTotalCounts = buildPlayerLocationOwnershipCountMap(playerKeyRaw, cards);
-    const lockedQuestRewardCardKeys = getQuestLockedRewardKeySet(playerKeyRaw);
+    const questExclusiveRewardCardKeys = getQuestLockedRewardKeySet(playerKeyRaw);
     const locationTribeKey = resolvePerimLocationEffectiveTribeKey(selectedLocation);
     const campWaitCount = actionId === "camp"
       ? getPerimCampWaitCount(playerState, locationCard.id)
@@ -17438,7 +17854,7 @@ async function handleRequest(request, response) {
           inventoryCounts,
           ignoreInventoryCap: instantPerim,
           locationTribeKey,
-          excludedRewardCardKeys: lockedQuestRewardCardKeys,
+          excludedRewardCardKeys: questExclusiveRewardCardKeys,
         })
       : false;
     const rewards = buildPerimRewards(selectedLocation, actionId, {
@@ -17449,7 +17865,7 @@ async function handleRequest(request, response) {
       includeCreatureVariant: true,
       ignoreInventoryCap: instantPerim,
       campWaitCount,
-      excludedRewardCardKeys: lockedQuestRewardCardKeys,
+      excludedRewardCardKeys: questExclusiveRewardCardKeys,
     });
     let droppedQuest = null;
     if (actionId === "anomaly") {
@@ -17464,6 +17880,7 @@ async function handleRequest(request, response) {
       {
         cards,
         ignoreInventoryCap: instantPerim,
+        questExclusiveRewardCardKeys,
       }
     );
     const clues = buildPerimCluesForRun(actionId, selectedLocation, rewards, {
@@ -21163,6 +21580,7 @@ getPerimRuntimeConfig(true);
 ensureDailyCreatureLocations(todayDateKey());
 queuePerimDailyGeneration("startup", todayDateKey());
 startDailyCreatureLocationScheduler();
+startPerimBattlegearDailySpawnScheduler();
 cleanupOldDbBackups(DB_BACKUP_RETENTION_DAYS);
 startDbBackupScheduler();
 startMultiplayerRoomGcScheduler();
