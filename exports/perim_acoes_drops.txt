@@ -1,5 +1,5 @@
 PERIM - Acoes e Regras de Drops
-Gerado em: 2026-05-14T19:00:21.595Z
+Gerado em: 2026-05-15T01:29:28.195Z
 
 Acoes:
 - Explorar a Area (explore)
@@ -110,7 +110,7 @@ Rede de drops de locations (por local de origem):
 - Chamber of Waves [locations:mi:chamber-of-waves:1130] chance_location_por_raridade=20% links=Open Doors of the Deepmines
 - City of Kehn-sep, Tablet Dig Site [locations:au:city-of-kehn-sep-tablet-dig-site:1068] chance_location_por_raridade=11% links=Tablet Sanctuary, Mipedian Dew Farm
 - Cordac Falls [locations:dop:cordac-falls:1181] chance_location_por_raridade=20% links=Cordac Falls Plungepool, Kiru City, Stronghold Morn, Stronghold Morn
-- Cordac Falls Plungepool [locations:dop:cordac-falls-plungepool:1180] chance_location_por_raridade=20% links=Castle Pillar, Cordac Falls, Iron Pillar, Castle Pillar, Iron Pillar
+- Cordac Falls Plungepool [locations:dop:cordac-falls-plungepool:1180] chance_location_por_raridade=20% links=Castle Pillar, Iron Pillar, Castle Pillar, Iron Pillar
 - Cryomorph Barricades [locations:fun:cryomorph-barricades:1084] chance_location_por_raridade=16% links=Glacier Plains
 - Crystal Cave [locations:dop:crystal-cave:1179] chance_location_por_raridade=16% links=Riverlands
 - Deadrange Gong [locations:mi:deadrange-gong:1129] chance_location_por_raridade=7% links=Open Doors of the Deepmines
@@ -130,7 +130,7 @@ Rede de drops de locations (por local de origem):
 - Gambreor's Hut [locations:mi:gambreors-hut:1128] chance_location_por_raridade=7% links=Lava Pond
 - Gigantempopolis [locations:dop:gigantempopolis:1172] chance_location_por_raridade=16% links=Gigantempopolis, Chamber of the Oraklon, Doors of the Deepmines
 - Gigantempopolis, Chamber of the Oraklon [locations:au:gigantempopolis-chamber-of-the-oraklon:1065] chance_location_por_raridade=11% links=Gigantempopolis
-- Glacier Plains [locations:dop:glacier-plains:1171] chance_location_por_raridade=7% links=Cryomorph Barricades, Glacier Plains, M'arrillian Heat Cannon, Frozen Fire, Glacier Plains, M'arrillian Melting Camp
+- Glacier Plains [locations:dop:glacier-plains:1171] chance_location_por_raridade=7% links=Cryomorph Barricades, Glacier Plains, M'arrillian Heat Cannon, The Northrange, Highground, Frozen Fire, Glacier Plains, M'arrillian Melting Camp
 - Glacier Plains, (Holiday Reward) [locations:promo:glacier-plains-holiday-reward:1026] chance_location_por_raridade=7% links=Frozen Fire
 - Glacier Plains, M'arrillian Heat Cannon [locations:fun:glacier-plains-marrillian-heat-cannon:1083] chance_location_por_raridade=4% links=Frozen Fire
 - Glacier Plains, M'arrillian Melting Camp [locations:tott:glacier-plains-marrillian-melting-camp:1093] chance_location_por_raridade=7% links=Frozen Fire
@@ -139,7 +139,7 @@ Rede de drops de locations (por local de origem):
 - Gorram's Briefing [locations:fun:gorrams-briefing:1082] chance_location_por_raridade=20% links=Mount Pillar Reservoir
 - Gothos Tower [locations:dop:gothos-tower:1169] chance_location_por_raridade=11% links=Fear Valley, UnderWorld City, Van Bloot's Banquet
 - Graalorn Forest [locations:au:graalorn-forest:1064] chance_location_por_raridade=11% links=Lake Morn, Globe Storm, Gloom-mire Night
-- Grand Hall of Muge's Summit [locations:zoth:grand-hall-of-muges-summit:1152] chance_location_por_raridade=7% links=Lake Ken-I-Po
+- Grand Hall of Muge's Summit [locations:zoth:grand-hall-of-muges-summit:1152] chance_location_por_raridade=7% links=The Darkened Dunes
 - Hall of Fatigue [locations:mi:hall-of-fatigue:1126] chance_location_por_raridade=20% links=Fear Valley, M'arrillian Pulse Beacons
 - Herken's Feast [locations:au:herkens-feast:1063] chance_location_por_raridade=11% links=Kiru City Tunnels
 - Ijahni Outpost [locations:mi:ijahni-outpost:1125] chance_location_por_raridade=7% links=Mipedim Oasis
@@ -179,7 +179,7 @@ Rede de drops de locations (por local de origem):
 - Najarin's Castle [locations:au:najarins-castle:1056] chance_location_por_raridade=7% links=Lake Ken-I-Po
 - Numin Voidland [locations:fun:numin-voidland:1078] chance_location_por_raridade=16% links=Open Doors of the Deepmines
 - Oipont's Lookout [locations:zoth:oiponts-lookout:1150] chance_location_por_raridade=11% links=Mount Pillar
-- Open Doors of the Deepmines [locations:mi:open-doors-of-the-deepmines:1118] chance_location_por_raridade=7% links=AZAIA Mindscrying Chamber, The Swartbron, Doors of the Deepmines, Numin Voidland, The Northrange, Highground, Chamber of Waves, Deadrange Gong, Psi-fanger's Shelf, The Coralsmithy, Shardcrafters' Workshop
+- Open Doors of the Deepmines [locations:mi:open-doors-of-the-deepmines:1118] chance_location_por_raridade=7% links=AZAIA Mindscrying Chamber, The Swartbron, Doors of the Deepmines, Numin Voidland, Chamber of Waves, Deadrange Gong, Psi-fanger's Shelf, The Coralsmithy, Shardcrafters' Workshop
 - OverWorld Embassy at Mipedim Oasis [locations:ss:overworld-embassy-at-mipedim-oasis:1136] chance_location_por_raridade=20% links=Mipedim Oasis
 - OverWorld Embassy at Mount Pillar [locations:zoth:overworld-embassy-at-mount-pillar:1149] chance_location_por_raridade=16% links=Mount Pillar
 - Pouril Forest [locations:tott:pouril-forest:1091] chance_location_por_raridade=11% links=Castle Mommark, Indigo Grove, Iparu Jungle
@@ -228,7 +228,7 @@ Rede de drops de locations (por local de origem):
 - The Hunter's Perimeter [locations:ss:the-hunters-perimeter:1134] chance_location_por_raridade=16% links=Royal Mipedian Academy of Melee Arts, Mipedian Dew Farm
 - The Infectorium [locations:mi:the-infectorium:1111] chance_location_por_raridade=11% links=The Hive Gallery, The Hive Gallery
 - The Magma Dam [locations:au:the-magma-dam:1044] chance_location_por_raridade=7% links=Lava Pond, The Flame Gate
-- The Northrange, Highground [locations:fun:the-northrange-highground:1075] chance_location_por_raridade=11% links=Open Doors of the Deepmines
+- The Northrange, Highground [locations:fun:the-northrange-highground:1075] chance_location_por_raridade=11% links=Glacier Plains
 - The Oligarch's Path [locations:roto:the-oligarchs-path:1098] chance_location_por_raridade=20% links=AZAIA Mindscrying Chamber
 - The OverWorld Library [locations:mi:the-overworld-library:1110] chance_location_por_raridade=16% links=Kiru City
 - The OverWorld Library [locations:au:the-overworld-library:1043] chance_location_por_raridade=16% links=Kiru City
