@@ -20264,6 +20264,41 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (pathname === "/api/ranked/banlist/active" && request.method === "GET") {
+    const authUser = requireAuthenticatedUser(request, response);
+    if (!authUser) {
+      return;
+    }
+    if (!sqliteDb) {
+      sendJson(response, 503, { error: "Banlist ranked indisponivel sem banco SQL." });
+      return;
+    }
+    const snapshot = getActiveRankedBanlistSnapshot();
+    sendJson(response, 200, {
+      ok: true,
+      banlist: snapshot
+        ? {
+            banlistId: Number(snapshot.banlistId || 0),
+            name: String(snapshot.name || ""),
+            description: String(snapshot.description || ""),
+            isActive: Boolean(snapshot.isActive),
+            updatedAt: String(snapshot.updatedAt || ""),
+            cards: Array.isArray(snapshot.cards)
+              ? snapshot.cards.map((entry) => ({
+                  cardId: String(entry?.cardId || ""),
+                  cardName: String(entry?.cardName || entry?.cardId || ""),
+                  allowedCopies: Math.max(
+                    0,
+                    Math.min(3, Number.isFinite(Number(entry?.allowedCopies)) ? Number(entry.allowedCopies) : 0)
+                  ),
+                }))
+              : [],
+          }
+        : null,
+    });
+    return;
+  }
+
   if (pathname === "/api/leaderboards/top50" && request.method === "GET") {
     if (!sqliteDb) {
       sendJson(response, 503, { error: "Leaderboard indisponivel sem banco SQL." });

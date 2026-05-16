@@ -109,6 +109,7 @@ body[data-theme="light"] .music-floating-btn{
 .builder-layout{display:grid;gap:.6rem;grid-template-columns:minmax(270px,.68fr) minmax(0,2.32fr)}
 .card-panel{border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:.55rem}
 .card-list,.hand-list,.battle-log{margin-top:.5rem;display:grid;gap:.4rem;max-height:76vh;overflow:auto;padding-right:.2rem}
+.library-panel,.deck-panel,.builder-filters,.builder-filters-main{min-width:0}
 .library-panel .card-list{max-height:73vh}
 .library-panel .card-item{grid-template-columns:72px 1fr;gap:.42rem;padding:.28rem}
 .library-panel .card-content p{font-size:.7rem}
@@ -406,7 +407,7 @@ body[data-theme="light"] .keybind-row{background:#eef3fb}
 }
 @media(max-width:860px){
   .builder-layout,.battle-main-grid{grid-template-columns:1fr}
-  .builder-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .builder-filters{display:grid;grid-template-columns:1fr}
   .builder-filters input[type="number"]{width:100%}
   #deck-builder #deck-board{
     padding:.6rem;

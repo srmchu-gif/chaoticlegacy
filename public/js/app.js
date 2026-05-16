@@ -644,6 +644,11 @@ const appState = {
       guest: { ready: false, deckName: "", valid: false, errors: [] },
     },
   },
+  rankedBanlist: {
+    snapshot: null,
+    fetchedAtMs: 0,
+    pendingPromise: null,
+  },
   adminMetrics: {
     pollTimerId: null,
     latest: null,
@@ -2068,6 +2073,107 @@ function validateDeck(deck, rulesetKey) {
   };
 }
 
+function computeRankedBanlistViolations(deckData, banlistSnapshot) {
+  if (!banlistSnapshot || !Array.isArray(banlistSnapshot.cards) || !banlistSnapshot.cards.length) {
+    return [];
+  }
+  const ruleMap = new Map();
+  banlistSnapshot.cards.forEach((entry) => {
+    const cardId = String(entry?.cardId || "").trim();
+    if (!cardId) {
+      return;
+    }
+    const allowedCopiesRaw = Number(entry?.allowedCopies);
+    ruleMap.set(cardId, {
+      cardName: String(entry?.cardName || getCardById(cardId)?.name || cardId),
+      allowedCopies: Number.isFinite(allowedCopiesRaw)
+        ? Math.max(0, Math.min(3, Math.floor(allowedCopiesRaw)))
+        : 0,
+    });
+  });
+  if (!ruleMap.size) {
+    return [];
+  }
+  const deckCount = new Map();
+  CARD_TYPES.forEach((type) => {
+    (deckData?.cards?.[type] || []).forEach((rawId) => {
+      const cardId = String(rawId || "").trim();
+      if (!cardId || !ruleMap.has(cardId)) {
+        return;
+      }
+      deckCount.set(cardId, Number(deckCount.get(cardId) || 0) + 1);
+    });
+  });
+  const violations = [];
+  deckCount.forEach((copiesInDeck, cardId) => {
+    const rule = ruleMap.get(cardId);
+    const allowedCopies = Number(rule?.allowedCopies || 0);
+    if (copiesInDeck <= allowedCopies) {
+      return;
+    }
+    violations.push({
+      cardId,
+      cardName: String(rule?.cardName || cardId),
+      copiesInDeck,
+      allowedCopies,
+      exceededBy: Math.max(0, copiesInDeck - allowedCopies),
+    });
+  });
+  violations.sort((left, right) => {
+    const leftName = String(left?.cardName || left?.cardId || "");
+    const rightName = String(right?.cardName || right?.cardId || "");
+    return leftName.localeCompare(rightName);
+  });
+  return violations;
+}
+
+async function fetchActiveRankedBanlistSnapshot(options = {}) {
+  const force = Boolean(options?.force);
+  const nowMs = Date.now();
+  const staleMs = 45_000;
+  const cachedReady = appState.rankedBanlist.fetchedAtMs > 0 && (nowMs - appState.rankedBanlist.fetchedAtMs) < staleMs;
+  if (!force && cachedReady) {
+    return appState.rankedBanlist.snapshot;
+  }
+  if (!force && appState.rankedBanlist.pendingPromise) {
+    return appState.rankedBanlist.pendingPromise;
+  }
+  const pending = (async () => {
+    try {
+      const payload = await apiJson("/api/ranked/banlist/active");
+      const snapshot = payload?.banlist && typeof payload.banlist === "object" ? payload.banlist : null;
+      appState.rankedBanlist.snapshot = snapshot;
+      appState.rankedBanlist.fetchedAtMs = Date.now();
+      return snapshot;
+    } catch (_error) {
+      appState.rankedBanlist.snapshot = null;
+      appState.rankedBanlist.fetchedAtMs = Date.now();
+      return null;
+    } finally {
+      appState.rankedBanlist.pendingPromise = null;
+    }
+  })();
+  appState.rankedBanlist.pendingPromise = pending;
+  return pending;
+}
+
+function ensureRankedBanlistSnapshotForValidation(modeKey) {
+  if (String(modeKey || "").trim().toLowerCase() !== "competitive") {
+    return;
+  }
+  if (appState.rankedBanlist.pendingPromise) {
+    return;
+  }
+  const nowMs = Date.now();
+  const staleMs = 45_000;
+  if (appState.rankedBanlist.fetchedAtMs > 0 && (nowMs - appState.rankedBanlist.fetchedAtMs) < staleMs) {
+    return;
+  }
+  void fetchActiveRankedBanlistSnapshot().then(() => {
+    renderDeckValidation();
+  });
+}
+
 function parseMinValue(input) {
   const value = Number(input?.value || 0);
   return Number.isFinite(value) && value > 0 ? value : 0;
@@ -2977,18 +3083,45 @@ function renderDeckBoard() {
 
 function renderDeckValidation() {
   const rulesetKey = el.deckMode?.value || appState.deck.mode || appState.currentRuleset;
+  const modeKey = String(rulesetKey || "").trim().toLowerCase();
   const validation = validateDeck(appState.deck, rulesetKey);
+  ensureRankedBanlistSnapshotForValidation(modeKey);
+  const activeBanlist = modeKey === "competitive"
+    ? appState.rankedBanlist.snapshot
+    : null;
+  const banlistViolations = modeKey === "competitive"
+    ? computeRankedBanlistViolations(appState.deck, activeBanlist)
+    : [];
+  const combinedErrors = [...validation.errors];
+  if (banlistViolations.length) {
+    banlistViolations.slice(0, 6).forEach((entry) => {
+      combinedErrors.push(`Banlist: ${entry.cardName} (${entry.copiesInDeck}/${entry.allowedCopies}).`);
+    });
+    if (banlistViolations.length > 6) {
+      combinedErrors.push(`+${banlistViolations.length - 6} outras violacoes de banlist.`);
+    }
+  }
+  const isValid = combinedErrors.length === 0;
   const lines = [`Modo: ${(DECK_RULESETS[rulesetKey] || DECK_RULESETS.casual).label}`];
-  if (validation.ok) {
+  if (modeKey === "competitive") {
+    if (activeBanlist?.name) {
+      lines.push(`Banlist ativa: ${activeBanlist.name}`);
+    } else if (appState.rankedBanlist.pendingPromise) {
+      lines.push("Banlist ativa: carregando...");
+    } else {
+      lines.push("Banlist ativa: nenhuma.");
+    }
+  }
+  if (isValid) {
     lines.push("Deck valido.");
   } else {
     lines.push("Deck invalido.");
-    validation.errors.slice(0, 6).forEach((error) => lines.push(`- ${error}`));
+    combinedErrors.slice(0, 8).forEach((error) => lines.push(`- ${error}`));
   }
   validation.warnings.forEach((warning) => lines.push(`* ${warning}`));
   el.deckValidation.textContent = lines.join("\n");
-  el.deckValidation.classList.toggle("invalid", !validation.ok);
-  el.deckValidation.classList.toggle("valid", validation.ok);
+  el.deckValidation.classList.toggle("invalid", !isValid);
+  el.deckValidation.classList.toggle("valid", isValid);
 }
 
 function renderDeck() {
