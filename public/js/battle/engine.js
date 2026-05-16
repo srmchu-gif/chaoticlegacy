@@ -2971,6 +2971,51 @@ function resolveComparatorStatValue(board, playerIndex, unit, statKey, exchange)
   return unitStat(board, playerIndex, unit, stat, exchange);
 }
 
+function normalizeConditionRuleStatKey(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+function evaluateStatCheckConditionRule(board, sourcePlayerIndex, sourceUnit, exchange, conditionRule) {
+  if (!conditionRule || String(conditionRule.type || "").toLowerCase() !== "stat_check") {
+    return true;
+  }
+  const unit = sourceUnit && !sourceUnit.defeated
+    ? sourceUnit
+    : unitForPlayer(board, sourcePlayerIndex);
+  if (!unit || unit.defeated) {
+    return false;
+  }
+  const statKey = normalizeConditionRuleStatKey(conditionRule.stat);
+  const threshold = Number(conditionRule.threshold || 0);
+  const comparator = String(conditionRule.comparator || "selfGte");
+  const statValue = statKey === "mugiccounters"
+    ? Number(unit?.mugicCounters || 0)
+    : unitStat(board, sourcePlayerIndex, unit, statKey, exchange);
+  if (comparator === "selfLte") {
+    return statValue <= threshold;
+  }
+  if (comparator === "selfEq") {
+    return statValue === threshold;
+  }
+  return statValue >= threshold;
+}
+
+function isEffectConditionRuleSatisfied(board, sourcePlayerIndex, sourceUnit, exchange, effect) {
+  if (!effect || !effect.condition_rule) {
+    return true;
+  }
+  return evaluateStatCheckConditionRule(
+    board,
+    sourcePlayerIndex,
+    sourceUnit,
+    exchange,
+    effect.condition_rule
+  );
+}
+
 function evaluateInitiativeWinner(board) {
   const attackerIndex = board.activePlayerIndex;
   const defenderIndex = targetPlayer(attackerIndex);
@@ -3947,6 +3992,9 @@ function applyParsedEffectsToExchange(board, sourcePlayerIndex, effects, exchang
       return;
     }
     const effect = runtimeEffect;
+    if (!isEffectConditionRuleSatisfied(board, runtimeSourcePlayerIndex, attacker, exchange, effect)) {
+      return;
+    }
     if (exchange?.runtime?.appliedEffects) {
       exchange.runtime.appliedEffects.push({
         kind: effect.kind,
@@ -6675,6 +6723,9 @@ function damageFromAttackCard(board, attackerIndex, attackCard, exchange) {
   if (!Number.isFinite(fixedDamage)) {
     const attackEffects = attackCard.parsedEffects || [];
     attackEffects.forEach((effect) => {
+      if (!isEffectConditionRuleSatisfied(board, attackerIndex, attacker, exchange, effect)) {
+        return;
+      }
       if (effect.kind === "attackDamageSetIfDefenderHasElement" && effect.element) {
         const defenderElement = unitStat(board, defenderIndex, defender, effect.element, exchange);
         if (defenderElement > 0) {
@@ -7206,8 +7257,12 @@ function applyPostAttackEffects(battle, attackerIndex, attackCard) {
   if (dealtDamage <= 0) {
     return;
   }
+  const sourceUnit = unitForPlayer(board, attackerIndex);
   const effects = attackCard?.parsedEffects || [];
   effects.forEach((effect) => {
+    if (!isEffectConditionRuleSatisfied(board, attackerIndex, sourceUnit, board.exchange, effect)) {
+      return;
+    }
     if (effect.kind === "exileGeneralDiscardOnDamage") {
       const targetIdx = effect.target === "self" ? attackerIndex : defenderIndex;
       const removed = exileOneFromGeneralDiscard(board, targetIdx);
@@ -8642,7 +8697,7 @@ function runPriorityWindow(battle, windowType, forceAutoHuman = false, priorityS
         };
         const played = resolvePriorityChoice(
           battle,
-          0,
+          playerIndex,
           options,
           mugicChoice,
           { allowPrompt: true }
@@ -8670,7 +8725,7 @@ function runPriorityWindow(battle, windowType, forceAutoHuman = false, priorityS
         }
         const played = resolvePriorityChoice(
           battle,
-          0,
+          playerIndex,
           options,
           battle.pendingAction.choice,
           { allowPrompt: true }
@@ -9086,8 +9141,12 @@ function queueTempEffectsFromAttacks(battle) {
     if (!attackCard) {
       return;
     }
+    const sourceUnit = unitForPlayer(board, attackerIndex);
     (attackCard.parsedEffects || []).forEach((effect) => {
       if (!effect || !effect.kind) {
+        return;
+      }
+      if (!isEffectConditionRuleSatisfied(board, attackerIndex, sourceUnit, board.exchange, effect)) {
         return;
       }
 

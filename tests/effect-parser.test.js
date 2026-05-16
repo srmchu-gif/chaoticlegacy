@@ -622,3 +622,41 @@ test("parseAbilityEffects reconhece mover para qualquer espaco no board como adj
   const effects = parseAbilityEffects(text);
   assert.ok(effects.some((effect) => effect.kind === "moveAsIfAdjacent"));
 });
+
+test("parseAbilityEffects aplica Stat Check como condition_rule em Heal sem buff de atributo", () => {
+  const text = "Stat Check Wisdom 50: Heal 5 damage.";
+  const effects = parseAbilityEffects(text);
+  const heal = effects.find((effect) => effect.kind === "healDamage");
+  assert.ok(heal);
+  assert.deepEqual(heal.condition_rule, {
+    type: "stat_check",
+    stat: "wisdom",
+    threshold: 50,
+    comparator: "selfGte",
+  });
+  assert.equal(
+    effects.some(
+      (effect) => effect.kind === "statModifier" && effect.stat === "wisdom" && Number(effect.amount) === 50
+    ),
+    false
+  );
+});
+
+test("parseAbilityEffects aplica Stat Check como condition_rule em gainElement", () => {
+  const text = "Stat Check Courage 50: Your engaged Creature gains Earth.";
+  const effects = parseAbilityEffects(text);
+  const gain = effects.find((effect) => effect.kind === "gainElement");
+  assert.ok(gain);
+  assert.deepEqual(gain.condition_rule, {
+    type: "stat_check",
+    stat: "courage",
+    threshold: 50,
+    comparator: "selfGte",
+  });
+  assert.equal(
+    effects.some(
+      (effect) => effect.kind === "statModifier" && effect.stat === "courage" && Number(effect.amount) === 50
+    ),
+    false
+  );
+});

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T22:09:15.154Z",
+  "generatedAt": "2026-05-16T03:55:28.405Z",
   "inputFile": "C:\\Users\\samue\\Downloads\\1\\LIVRE PARA O CODEX\\chaotic-api-main\\exports\\todas_cartas_por_set_ordem.txt",
   "outputFile": "C:\\Users\\samue\\Downloads\\1\\LIVRE PARA O CODEX\\chaotic-api-main\\exports\\cartas_efeitos_oficiais_tecnico.txt",
   "totals": {
@@ -531,7 +531,7 @@
       {
         "name": "Flash Mend",
         "previous": "Programado no combate: BP 0, dano base 0, fire 0, air 0, earth 0, water 0. healDamage(amount=5); statModifier(stat=wisdom, amount=50)",
-        "current": "Carta=Flash Mend | Tipo=Attack | Set=DOP | EfeitoOficial=Stat Check Wisdom 50: Heal 5 damage. | Funcionamento=Efeito oficial: \"Stat Check Wisdom 50: Heal 5 damage.\". Em regras, resolve na resolução do ataque, gerando: healDamage, statModifier. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:resolucao_do_ataque} | Condicoes={stat_check:Wisdom 50,challenge:N/A,elemento:N/A,disciplina:wisdom,com"
+        "current": "Carta=Flash Mend | Tipo=Attack | Set=DOP | EfeitoOficial=Stat Check Wisdom 50: Heal 5 damage. | Funcionamento=Efeito oficial: \"Stat Check Wisdom 50: Heal 5 damage.\". Em regras, resolve na resolução do ataque, gerando: healDamage. | Dano={base:0,fire:0,water:0,air:0,earth:0,mugic:0,adicional:N/A,janela:resolucao_do_ataque} | Condicoes={stat_check:Wisdom 50,challenge:N/A,elemento:N/A,disciplina:wisdom,combate:N/A,alvo:"
       },
       {
         "name": "Flashwarp",

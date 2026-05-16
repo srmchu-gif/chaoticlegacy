@@ -1,5 +1,5 @@
 Relatorio - Cartas Efeitos Oficiais Tecnico
-Gerado em: 2026-05-10T22:09:15.154Z
+Gerado em: 2026-05-16T03:55:28.405Z
 Entrada: C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\exports\todas_cartas_por_set_ordem.txt
 Saida: C:\Users\samue\Downloads\1\LIVRE PARA O CODEX\chaotic-api-main\exports\cartas_efeitos_oficiais_tecnico.txt
 

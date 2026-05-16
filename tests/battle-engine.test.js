@@ -779,6 +779,130 @@ test("Mugic com multiplos casters abre selecao de criatura antes de entrar na pi
   assert.equal(selectedSupportCaster, true);
 });
 
+test("priority do jogador 1 abre target_select de Mugic no dono correto e debita custo no caster correto", async () => {
+  const engine = await loadEngine();
+  const battle = engine.createBattleState(makeDeck("P1M1"), makeDeck("P1M2"), { mode: "casual" });
+  battle.board.activePlayerIndex = 1;
+  battle.turnMeta.startingPlayerIndex = 1;
+  battle.phase = "action_step_pre_move";
+  battle.turnStep = "action_step_pre_move";
+
+  const playerOneCaster = battle.board.players[1].creatures[4];
+  const playerZeroCaster = battle.board.players[0].creatures[4];
+  playerOneCaster.mugicCounters = 3;
+  playerZeroCaster.mugicCounters = 3;
+  setPlayerMugicSlots(battle.board.players[1], [
+    {
+      ...mugicCard("P1 Target Song", 1),
+      tribe: playerOneCaster.card.tribe,
+      parsedEffects: [
+        {
+          kind: "dealDamage",
+          amount: 5,
+          targetSpec: { type: "creature", required: true, scope: "all" },
+          sourceText: "Deal 5 damage to target Creature.",
+        },
+      ],
+    },
+  ]);
+  setPlayerMugicSlots(battle.board.players[0], [
+    { ...mugicCard("P0 Song", 1), tribe: playerZeroCaster.card.tribe, parsedEffects: [] },
+  ]);
+
+  engine.advanceBattle(battle, false);
+  assert.equal(battle.pendingAction?.type, "priority");
+  assert.equal(Number(battle.pendingAction?.playerIndex), 1);
+
+  const mugicOption = (battle.pendingAction?.options || []).find((entry) => entry?.kind === "mugic");
+  assert.ok(mugicOption);
+  const selectedCaster = battle.board.players[1].creatures.find(
+    (unit) => unit?.unitId === mugicOption.casterUnitId
+  );
+  assert.ok(selectedCaster);
+
+  const p1CasterBefore = Number(selectedCaster.mugicCounters || 0);
+  const p0CasterBefore = Number(playerZeroCaster.mugicCounters || 0);
+  engine.chooseMugic(battle, mugicOption.mugicIndex, mugicOption.casterUnitId);
+  engine.advanceBattle(battle, false);
+
+  assert.equal(battle.pendingAction?.type, "target_select");
+  assert.equal(Number(battle.pendingAction?.playerIndex), 1);
+  assert.equal(Number(selectedCaster.mugicCounters || 0), p1CasterBefore - 1);
+  assert.equal(Number(playerZeroCaster.mugicCounters || 0), p0CasterBefore);
+  assert.equal(battle.board.players[1].mugicDiscard.length, 1);
+  assert.equal(battle.board.players[0].mugicDiscard.length, 0);
+  const p1Slot = battle.board.players[1].mugicSlots.find((entry) => Number(entry?.slotIndex) === Number(mugicOption.mugicIndex));
+  assert.ok(p1Slot);
+  assert.equal(Boolean(p1Slot.available), false);
+  assert.equal(Boolean(p1Slot.spent), true);
+});
+
+test("mugic_caster_select do jogador 1 mantem ownership correto ate empilhar o efeito", async () => {
+  const engine = await loadEngine();
+  const battle = engine.createBattleState(makeDeck("P1MC1"), makeDeck("P1MC2"), { mode: "casual" });
+  battle.board.activePlayerIndex = 1;
+  battle.turnMeta.startingPlayerIndex = 1;
+  battle.phase = "action_step_pre_move";
+  battle.turnStep = "action_step_pre_move";
+
+  const primaryCaster = battle.board.players[1].creatures[4];
+  const supportCaster = battle.board.players[1].creatures[0];
+  const playerZeroCaster = battle.board.players[0].creatures[4];
+  primaryCaster.mugicCounters = 3;
+  supportCaster.mugicCounters = 3;
+  playerZeroCaster.mugicCounters = 3;
+  setPlayerMugicSlots(battle.board.players[1], [
+    {
+      ...mugicCard("P1 Shared Song", 1),
+      tribe: primaryCaster.card.tribe,
+      parsedEffects: [
+        {
+          kind: "dealDamage",
+          amount: 3,
+          targetSpec: { type: "creature", required: true, scope: "all" },
+          sourceText: "Deal 3 damage to target Creature.",
+        },
+      ],
+    },
+  ]);
+
+  engine.advanceBattle(battle, false);
+  assert.equal(battle.pendingAction?.type, "priority");
+  assert.equal(Number(battle.pendingAction?.playerIndex), 1);
+  const mugicOption = (battle.pendingAction?.options || []).find((entry) => entry?.kind === "mugic");
+  assert.ok(mugicOption);
+  engine.chooseMugic(battle, mugicOption.mugicIndex);
+  engine.advanceBattle(battle, false);
+
+  assert.equal(battle.pendingAction?.type, "mugic_caster_select");
+  assert.equal(Number(battle.pendingAction?.playerIndex), 1);
+  const supportIndex = (battle.pendingAction.options || []).findIndex(
+    (entry) => entry?.casterUnitId === supportCaster.unitId
+  );
+  assert.ok(supportIndex >= 0);
+  const supportBefore = Number(supportCaster.mugicCounters || 0);
+  const primaryBefore = Number(primaryCaster.mugicCounters || 0);
+  const p0Before = Number(playerZeroCaster.mugicCounters || 0);
+
+  engine.chooseMugic(battle, supportIndex);
+  engine.advanceBattle(battle, false);
+
+  assert.equal(battle.pendingAction?.type, "target_select");
+  assert.equal(Number(battle.pendingAction?.playerIndex), 1);
+  assert.equal(Number(supportCaster.mugicCounters || 0), supportBefore - 1);
+  assert.equal(Number(primaryCaster.mugicCounters || 0), primaryBefore);
+  assert.equal(Number(playerZeroCaster.mugicCounters || 0), p0Before);
+
+  const step = battle.pendingAction.targetSteps?.[battle.pendingAction.currentStep];
+  const candidate = step?.candidates?.[0] || null;
+  assert.ok(candidate);
+  engine.chooseEffectTarget(battle, candidate.id);
+  const stackTop = battle.burstStack[battle.burstStack.length - 1];
+  assert.ok(stackTop);
+  assert.equal(Number(stackTop.owner), 1);
+  assert.equal(String(stackTop.sourceUnitId), String(supportCaster.unitId));
+});
+
 test("efeito com choice_select empilha Mugic com escolhas e alvo definidos", async () => {
   const { engine, battle } = await setupMovePhase("MU7", "MU8");
   const supportCaster = battle.board.players[0].creatures[0];
@@ -1242,6 +1366,96 @@ test("conditionalDamage com Mugic counters aplica challenge corretamente", async
   assert.equal(defender.currentEnergy, before - 20);
 });
 
+test("Stat Check falho nao aplica statModifier do ataque", async () => {
+  const { engine, battle } = await setupMovePhase("SCF1", "SCF2");
+  const attacker = battle.board.players[0].creatures[4];
+  const defender = battle.board.players[1].creatures[3];
+  attacker.card.stats.speed = 120;
+  defender.card.stats.speed = 1;
+  attacker.card.stats.wisdom = 40;
+
+  battle.board.players[0].attackHand = [
+    {
+      ...attackCard("StatCheckFailBuff", 0),
+      parsedEffects: [
+        {
+          kind: "statModifier",
+          stat: "wisdom",
+          amount: 50,
+          sourceText: "Your engaged Creature gains 50 Wisdom.",
+          condition_rule: {
+            type: "stat_check",
+            stat: "wisdom",
+            threshold: 100,
+            comparator: "selfGte",
+          },
+        },
+      ],
+    },
+  ];
+  battle.board.players[0].attackDeck = [];
+
+  const declared = engine.declareMove(battle, 4, "G");
+  assert.equal(declared, true);
+
+  let guard = 0;
+  while (!battle.finished && guard < 220) {
+    engine.advanceBattle(battle, false);
+    resolveHumanPendingAction(engine, battle);
+    if (battle.board.combat?.lastResolvedAttackName === "StatCheckFailBuff") {
+      break;
+    }
+    guard += 1;
+  }
+
+  assert.equal(Number(attacker.tempMods?.wisdom || 0), 0);
+});
+
+test("Stat Check aprovado aplica efeito do ataque", async () => {
+  const { engine, battle } = await setupMovePhase("SCP1", "SCP2");
+  const attacker = battle.board.players[0].creatures[4];
+  const defender = battle.board.players[1].creatures[3];
+  attacker.card.stats.speed = 120;
+  defender.card.stats.speed = 1;
+  attacker.card.stats.wisdom = 80;
+
+  battle.board.players[0].attackHand = [
+    {
+      ...attackCard("StatCheckPassBuff", 0),
+      parsedEffects: [
+        {
+          kind: "statModifier",
+          stat: "wisdom",
+          amount: 50,
+          sourceText: "Your engaged Creature gains 50 Wisdom.",
+          condition_rule: {
+            type: "stat_check",
+            stat: "wisdom",
+            threshold: 50,
+            comparator: "selfGte",
+          },
+        },
+      ],
+    },
+  ];
+  battle.board.players[0].attackDeck = [];
+
+  const declared = engine.declareMove(battle, 4, "G");
+  assert.equal(declared, true);
+
+  let guard = 0;
+  while (!battle.finished && guard < 220) {
+    engine.advanceBattle(battle, false);
+    resolveHumanPendingAction(engine, battle);
+    if (battle.board.combat?.lastResolvedAttackName === "StatCheckPassBuff") {
+      break;
+    }
+    guard += 1;
+  }
+
+  assert.ok(Number(attacker.tempMods?.wisdom || 0) >= 50);
+});
+
 test("ataques escalam por tribos e tipo de criatura controlada", async () => {
   const { engine, battle } = await setupMovePhase("DMG1", "DMG2");
   const attacker = battle.board.players[0].creatures[4];
@@ -1649,6 +1863,66 @@ test("habilidades ativadas com multiplos custos geram opcoes separadas", async (
   const casterOptions = actions.filter((entry) => entry.option?.sourceUnitId === caster.unitId);
   assert.equal(casterOptions.length, 2);
   assert.ok(casterOptions.every((entry) => Number(entry.option?.cost?.amount || 0) === 1));
+});
+
+test("priority do jogador 1 resolve Ability com target_select no dono correto sem vazar para jogador 0", async () => {
+  const engine = await loadEngine();
+  const battle = engine.createBattleState(makeDeck("P1A1"), makeDeck("P1A2"), { mode: "casual" });
+  battle.board.activePlayerIndex = 1;
+  battle.turnMeta.startingPlayerIndex = 1;
+  battle.phase = "action_step_pre_move";
+  battle.turnStep = "action_step_pre_move";
+
+  const playerOneCaster = battle.board.players[1].creatures[4];
+  const playerZeroCaster = battle.board.players[0].creatures[4];
+  playerOneCaster.card.ability = "MC: Deal 5 damage to target Creature.";
+  playerOneCaster.card.parsedEffects = [
+    {
+      kind: "dealDamage",
+      amount: 5,
+      targetSpec: { type: "creature", required: true, scope: "all" },
+      sourceText: "Deal 5 damage to target Creature.",
+    },
+  ];
+  playerOneCaster.mugicCounters = 2;
+  playerZeroCaster.mugicCounters = 2;
+  playerZeroCaster.card.ability = "MC: Heal 5 damage to target Creature.";
+  playerZeroCaster.card.parsedEffects = [
+    {
+      kind: "healDamage",
+      amount: 5,
+      targetSpec: { type: "creature", required: true, scope: "all" },
+      sourceText: "Heal 5 damage to target Creature.",
+    },
+  ];
+
+  engine.advanceBattle(battle, false);
+  assert.equal(battle.pendingAction?.type, "priority");
+  assert.equal(Number(battle.pendingAction?.playerIndex), 1);
+
+  const abilityOption = (battle.pendingAction?.options || []).find(
+    (entry) => entry?.kind === "ability" && entry?.option?.sourceUnitId === playerOneCaster.unitId
+  );
+  assert.ok(abilityOption);
+  const p1Before = Number(playerOneCaster.mugicCounters || 0);
+  const p0Before = Number(playerZeroCaster.mugicCounters || 0);
+  engine.chooseActivatedAbility(battle, abilityOption.optionIndex);
+  engine.advanceBattle(battle, false);
+
+  assert.equal(battle.pendingAction?.type, "target_select");
+  assert.equal(Number(battle.pendingAction?.playerIndex), 1);
+  assert.equal(battle.pendingAction?.sourceKind, "ability");
+  assert.equal(Number(playerOneCaster.mugicCounters || 0), p1Before - 1);
+  assert.equal(Number(playerZeroCaster.mugicCounters || 0), p0Before);
+
+  const step = battle.pendingAction.targetSteps?.[battle.pendingAction.currentStep];
+  const candidate = step?.candidates?.find((entry) => Number(entry.playerIndex) === 0) || step?.candidates?.[0] || null;
+  assert.ok(candidate);
+  engine.chooseEffectTarget(battle, candidate.id);
+  const stackTop = battle.burstStack[battle.burstStack.length - 1];
+  assert.ok(stackTop);
+  assert.equal(Number(stackTop.owner), 1);
+  assert.equal(String(stackTop.sourceUnitId), String(playerOneCaster.unitId));
 });
 
 test("habilidade ativada com custo de descartar Mugic tribal exige carta da tribo correta", async () => {
