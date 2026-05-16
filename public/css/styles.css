@@ -83,6 +83,8 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
 .topbar-actions{
   display:flex;
   align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
   gap:.45rem;
 }
 
@@ -529,7 +531,7 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
     gap:.52rem;
   }
   #deck-builder .builder-filters #desktop-builder-filters-toggle{
-    display:none;
+    display:inline-flex;
   }
   #deck-builder .builder-filters-advanced{
     max-height:none;

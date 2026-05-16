@@ -4297,7 +4297,8 @@ function syncTopbarButtons() {
 }
 
 function renderDesktopBuilderFilters() {
-  const isDesktopBuilder = appState.currentTab === "builder" && !isMobileViewport();
+  const isBuilderTab = appState.currentTab === "builder";
+  const isDesktopBuilder = isBuilderTab && !isMobileViewport();
   const isExpanded = Boolean(isDesktopBuilder && appState.desktopFiltersExpanded);
   if (el.builderFiltersAdvanced) {
     el.builderFiltersAdvanced.classList.toggle("is-collapsed", isDesktopBuilder && !isExpanded);
@@ -4305,7 +4306,7 @@ function renderDesktopBuilderFilters() {
   if (el.desktopBuilderFiltersToggle) {
     const language = normalizeLanguage(appState.settings.language.ui);
     const dictionary = UI_LANGUAGE_LABELS[language] || UI_LANGUAGE_LABELS.pt;
-    el.desktopBuilderFiltersToggle.classList.toggle("hidden", !isDesktopBuilder);
+    el.desktopBuilderFiltersToggle.classList.toggle("hidden", !isBuilderTab);
     el.desktopBuilderFiltersToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
     el.desktopBuilderFiltersToggle.textContent = isExpanded
       ? String(dictionary.desktopFiltersLess || "Menos filtros")
@@ -6831,6 +6832,10 @@ function bindEvents() {
   }
   if (el.desktopBuilderFiltersToggle) {
     el.desktopBuilderFiltersToggle.addEventListener("click", () => {
+      if (isMobileViewport()) {
+        setMobileBuilderFiltersDrawerOpen(!appState.mobileFiltersDrawer.open);
+        return;
+      }
       setDesktopBuilderFiltersExpanded(!appState.desktopFiltersExpanded);
     });
   }
