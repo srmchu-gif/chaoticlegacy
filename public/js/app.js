@@ -1959,7 +1959,7 @@ function cardNode(card, buttons = [], options = {}) {
     image.style.display = "none";
   }
   const creatureStars = card?.type === "creatures"
-    ? creatureStarsLabelFromVariant(normalizeVariant(card?._scanVariant))
+    ? creatureStarsLabelFromVariant(normalizeVariant(card?._scanVariant || card?.variant))
     : "";
   node.querySelector("h4").textContent = creatureStars ? `${card.name} (${creatureStars})` : card.name;
   node.querySelector(".meta").textContent = `${TYPE_LABEL[card.type] || card.type} | ${card.set || "-"} | ${card.rarity || "-"}`;
@@ -2784,7 +2784,7 @@ function createStageCard(card, extraClass, removeHandler, options = {}) {
     ${removeButton}
   `;
   if (card?.type === "creatures") {
-    const starsLabel = creatureStarsLabelFromVariant(normalizeVariant(card?._scanVariant));
+    const starsLabel = creatureStarsLabelFromVariant(normalizeVariant(card?._scanVariant || card?.variant));
     if (starsLabel) {
       const badge = document.createElement("span");
       badge.className = "stage-stars-badge";
@@ -4381,13 +4381,16 @@ function renderMobileScanViewer() {
     el.mobileScanViewerEmpty.classList.add("hidden");
   }
   const starsLabel = card?.type === "creatures"
-    ? creatureStarsLabelFromVariant(normalizeVariant(card?._scanVariant))
+    ? creatureStarsLabelFromVariant(normalizeVariant(card?._scanVariant || card?.variant))
     : "-";
   if (el.mobileScanViewerName) {
     el.mobileScanViewerName.textContent = card?.name || "-";
   }
   if (el.mobileScanViewerMeta) {
-    el.mobileScanViewerMeta.textContent = `${TYPE_LABEL[card?.type] || card?.type || "-"} | ${card?.set || "-"} | ${card?.rarity || "-"}`;
+    const baseMeta = `${TYPE_LABEL[card?.type] || card?.type || "-"} | ${card?.set || "-"} | ${card?.rarity || "-"}`;
+    el.mobileScanViewerMeta.textContent = card?.type === "creatures" && starsLabel
+      ? `${baseMeta} | ${starsLabel}`
+      : baseMeta;
   }
   if (el.mobileScanViewerStars) {
     el.mobileScanViewerStars.textContent = `Estrelas: ${starsLabel || "-"}`;

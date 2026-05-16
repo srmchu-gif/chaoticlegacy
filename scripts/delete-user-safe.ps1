@@ -220,10 +220,12 @@ $script:LocationTribesCache = @()
 $script:LocationClimateRulesCache = @()
 $script:LocationLinksCache = @()
 $script:BattlegearSpawnRulesCache = @()
+$script:RankedBanlistsCache = @()
 $script:ScansCache = @()
 $script:ProfileRankedSnapshot = $null
 $script:PerimSnapshot = $null
 $script:PerimConfigSnapshot = $null
+$script:CurrentBanlistId = 0
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Painel Admin Local - Usuarios / Eventos / Quests"
@@ -329,6 +331,10 @@ $tab.Controls.Add($tabLocationLinks)
 $tabBattlegearSpawns = New-Object System.Windows.Forms.TabPage
 $tabBattlegearSpawns.Text = "Spawn Equipamentos"
 $tab.Controls.Add($tabBattlegearSpawns)
+
+$tabRankedBanlists = New-Object System.Windows.Forms.TabPage
+$tabRankedBanlists.Text = "Banlists Ranked"
+$tab.Controls.Add($tabRankedBanlists)
 
 $tabLogs = New-Object System.Windows.Forms.TabPage
 $tabLogs.Text = "Logs"
@@ -680,6 +686,130 @@ $locationTribesGrid.Columns[3].Name = "Atualizado"
 $locationTribesGrid.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 $eventsPanel.Controls.Add($locationTribesGrid)
 Apply-GridResponsiveStyle -Grid $locationTribesGrid
+
+# Banlists Ranked tab
+$banlistSplit = New-Object System.Windows.Forms.SplitContainer
+$banlistSplit.Dock = "Fill"
+$banlistSplit.Orientation = "Vertical"
+Set-SplitterLayoutSafe -Splitter $banlistSplit -Panel1Min 480 -Panel2Min 360 -PreferredDistance 700
+$banlistSplit.Panel1.Padding = New-Object System.Windows.Forms.Padding(4)
+$banlistSplit.Panel2.Padding = New-Object System.Windows.Forms.Padding(4)
+$tabRankedBanlists.Controls.Add($banlistSplit)
+
+$banlistsGrid = New-Object System.Windows.Forms.DataGridView
+$banlistsGrid.Dock = "Fill"
+$banlistsGrid.ReadOnly = $true
+$banlistsGrid.AllowUserToAddRows = $false
+$banlistsGrid.AllowUserToDeleteRows = $false
+$banlistsGrid.RowHeadersVisible = $false
+$banlistsGrid.SelectionMode = "FullRowSelect"
+$banlistsGrid.ColumnCount = 6
+$banlistsGrid.Columns[0].Name = "ID"
+$banlistsGrid.Columns[1].Name = "Nome"
+$banlistsGrid.Columns[2].Name = "Descricao"
+$banlistsGrid.Columns[3].Name = "Ativa"
+$banlistsGrid.Columns[4].Name = "Cartas"
+$banlistsGrid.Columns[5].Name = "Atualizado"
+$banlistSplit.Panel1.Controls.Add($banlistsGrid)
+Apply-GridResponsiveStyle -Grid $banlistsGrid
+
+$banlistPanel = New-Object System.Windows.Forms.Panel
+$banlistPanel.Dock = "Fill"
+$banlistPanel.AutoScroll = $true
+$banlistSplit.Panel2.Controls.Add($banlistPanel)
+
+$lblBanlistSelected = New-Object System.Windows.Forms.Label
+$lblBanlistSelected.Text = "Banlist selecionada: nova"
+$lblBanlistSelected.Location = New-Object System.Drawing.Point(12, 12)
+$lblBanlistSelected.Size = New-Object System.Drawing.Size(520, 22)
+$banlistPanel.Controls.Add($lblBanlistSelected)
+
+$lblBanlistName = New-Object System.Windows.Forms.Label
+$lblBanlistName.Text = "Nome:"
+$lblBanlistName.Location = New-Object System.Drawing.Point(12, 40)
+$lblBanlistName.Size = New-Object System.Drawing.Size(80, 20)
+$banlistPanel.Controls.Add($lblBanlistName)
+
+$txtBanlistName = New-Object System.Windows.Forms.TextBox
+$txtBanlistName.Location = New-Object System.Drawing.Point(12, 62)
+$txtBanlistName.Size = New-Object System.Drawing.Size(420, 24)
+$banlistPanel.Controls.Add($txtBanlistName)
+
+$lblBanlistDescription = New-Object System.Windows.Forms.Label
+$lblBanlistDescription.Text = "Descricao:"
+$lblBanlistDescription.Location = New-Object System.Drawing.Point(12, 92)
+$lblBanlistDescription.Size = New-Object System.Drawing.Size(100, 20)
+$banlistPanel.Controls.Add($lblBanlistDescription)
+
+$txtBanlistDescription = New-Object System.Windows.Forms.TextBox
+$txtBanlistDescription.Location = New-Object System.Drawing.Point(12, 114)
+$txtBanlistDescription.Size = New-Object System.Drawing.Size(420, 48)
+$txtBanlistDescription.Multiline = $true
+$banlistPanel.Controls.Add($txtBanlistDescription)
+
+$btnBanlistNew = New-Object System.Windows.Forms.Button
+$btnBanlistNew.Text = "Nova"
+$btnBanlistNew.Location = New-Object System.Drawing.Point(12, 170)
+$btnBanlistNew.Size = New-Object System.Drawing.Size(70, 30)
+$banlistPanel.Controls.Add($btnBanlistNew)
+
+$btnBanlistSave = New-Object System.Windows.Forms.Button
+$btnBanlistSave.Text = "Salvar"
+$btnBanlistSave.Location = New-Object System.Drawing.Point(88, 170)
+$btnBanlistSave.Size = New-Object System.Drawing.Size(70, 30)
+$banlistPanel.Controls.Add($btnBanlistSave)
+
+$btnBanlistDelete = New-Object System.Windows.Forms.Button
+$btnBanlistDelete.Text = "Excluir"
+$btnBanlistDelete.Location = New-Object System.Drawing.Point(164, 170)
+$btnBanlistDelete.Size = New-Object System.Drawing.Size(70, 30)
+$banlistPanel.Controls.Add($btnBanlistDelete)
+
+$btnBanlistActivate = New-Object System.Windows.Forms.Button
+$btnBanlistActivate.Text = "Ativar"
+$btnBanlistActivate.Location = New-Object System.Drawing.Point(240, 170)
+$btnBanlistActivate.Size = New-Object System.Drawing.Size(70, 30)
+$banlistPanel.Controls.Add($btnBanlistActivate)
+
+$btnBanlistRefresh = New-Object System.Windows.Forms.Button
+$btnBanlistRefresh.Text = "Atualizar"
+$btnBanlistRefresh.Location = New-Object System.Drawing.Point(316, 170)
+$btnBanlistRefresh.Size = New-Object System.Drawing.Size(80, 30)
+$banlistPanel.Controls.Add($btnBanlistRefresh)
+
+$lblBanlistCard = New-Object System.Windows.Forms.Label
+$lblBanlistCard.Text = "Carta (card_id):"
+$lblBanlistCard.Location = New-Object System.Drawing.Point(12, 208)
+$lblBanlistCard.Size = New-Object System.Drawing.Size(120, 20)
+$banlistPanel.Controls.Add($lblBanlistCard)
+
+$comboBanlistCard = New-Object System.Windows.Forms.ComboBox
+$comboBanlistCard.DropDownStyle = "DropDownList"
+$comboBanlistCard.Location = New-Object System.Drawing.Point(12, 230)
+$comboBanlistCard.Size = New-Object System.Drawing.Size(420, 28)
+$banlistPanel.Controls.Add($comboBanlistCard)
+
+$btnBanlistCardAdd = New-Object System.Windows.Forms.Button
+$btnBanlistCardAdd.Text = "Adicionar carta"
+$btnBanlistCardAdd.Location = New-Object System.Drawing.Point(12, 264)
+$btnBanlistCardAdd.Size = New-Object System.Drawing.Size(120, 30)
+$banlistPanel.Controls.Add($btnBanlistCardAdd)
+
+$btnBanlistCardRemove = New-Object System.Windows.Forms.Button
+$btnBanlistCardRemove.Text = "Remover carta"
+$btnBanlistCardRemove.Location = New-Object System.Drawing.Point(138, 264)
+$btnBanlistCardRemove.Size = New-Object System.Drawing.Size(120, 30)
+$banlistPanel.Controls.Add($btnBanlistCardRemove)
+
+$listBanlistCards = New-Object System.Windows.Forms.ListView
+$listBanlistCards.Location = New-Object System.Drawing.Point(12, 300)
+$listBanlistCards.Size = New-Object System.Drawing.Size(420, 240)
+$listBanlistCards.View = "Details"
+$listBanlistCards.FullRowSelect = $true
+$listBanlistCards.GridLines = $true
+[void]$listBanlistCards.Columns.Add("CardId", 190)
+[void]$listBanlistCards.Columns.Add("Carta", 210)
+$banlistPanel.Controls.Add($listBanlistCards)
 
 # Quests tab
 $questSplit = New-Object System.Windows.Forms.SplitContainer
@@ -2306,6 +2436,66 @@ function Load-Events {
   Set-Status "Eventos carregados."
 }
 
+function Get-SelectedBanlist {
+  $selectedId = [int]$script:CurrentBanlistId
+  if ($selectedId -le 0) { return $null }
+  return $script:RankedBanlistsCache | Where-Object { [int]$_.banlistId -eq $selectedId } | Select-Object -First 1
+}
+
+function Reset-BanlistForm {
+  $script:CurrentBanlistId = 0
+  $lblBanlistSelected.Text = "Banlist selecionada: nova"
+  $txtBanlistName.Text = ""
+  $txtBanlistDescription.Text = ""
+  $listBanlistCards.Items.Clear()
+}
+
+function Fill-BanlistFormById {
+  param([int]$BanlistId)
+  $entry = $script:RankedBanlistsCache | Where-Object { [int]$_.banlistId -eq $BanlistId } | Select-Object -First 1
+  if (-not $entry) { return }
+  $script:CurrentBanlistId = [int]$entry.banlistId
+  $activeLabel = if ([bool]$entry.isActive) { " (ATIVA)" } else { "" }
+  $lblBanlistSelected.Text = "Banlist selecionada: ID $($entry.banlistId)$activeLabel"
+  $txtBanlistName.Text = [string]$entry.name
+  $txtBanlistDescription.Text = [string]$entry.description
+  $listBanlistCards.Items.Clear()
+  foreach ($card in @($entry.cards)) {
+    $item = New-Object System.Windows.Forms.ListViewItem([string]$card.cardId)
+    [void]$item.SubItems.Add([string]$card.cardName)
+    [void]$listBanlistCards.Items.Add($item)
+  }
+}
+
+function Load-Banlists {
+  Set-Status "Carregando banlists ranked..."
+  $payload = Invoke-AdminEngine -Action "banlists-list"
+  $script:RankedBanlistsCache = @($payload.banlists)
+  $banlistsGrid.Rows.Clear()
+  foreach ($entry in $script:RankedBanlistsCache) {
+    $activeText = if ([bool]$entry.isActive) { "Sim" } else { "Nao" }
+    [void]$banlistsGrid.Rows.Add(
+      [string]$entry.banlistId,
+      [string]$entry.name,
+      [string]$entry.description,
+      $activeText,
+      [string]$entry.cardsCount,
+      [string]$entry.updatedAt
+    )
+  }
+  if ($script:CurrentBanlistId -gt 0) {
+    Fill-BanlistFormById -BanlistId ([int]$script:CurrentBanlistId)
+  } else {
+    $active = $script:RankedBanlistsCache | Where-Object { [bool]$_.isActive } | Select-Object -First 1
+    if ($active) {
+      Fill-BanlistFormById -BanlistId ([int]$active.banlistId)
+    } else {
+      Reset-BanlistForm
+    }
+  }
+  Set-Status "Banlists ranked carregadas."
+}
+
 function Fill-EventFormById {
   param([int]$EventId)
   $event = $script:EventsCache | Where-Object { [int]$_.id -eq $EventId } | Select-Object -First 1
@@ -3722,6 +3912,143 @@ $profileGridStats.Add_SelectionChanged({
   $numDromeLosses.Value = [decimal]([Math]::Max(0, $losses))
 })
 
+$banlistsGrid.Add_SelectionChanged({
+  if ($banlistsGrid.SelectedRows.Count -lt 1) { return }
+  $banlistId = [int]$banlistsGrid.SelectedRows[0].Cells[0].Value
+  if ($banlistId -gt 0) {
+    Fill-BanlistFormById -BanlistId $banlistId
+  }
+})
+
+$btnBanlistNew.Add_Click({
+  Reset-BanlistForm
+})
+
+$btnBanlistRefresh.Add_Click({
+  try {
+    Load-Banlists
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao carregar banlists: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnBanlistSave.Add_Click({
+  try {
+    $name = $txtBanlistName.Text.Trim()
+    if (-not $name) {
+      [System.Windows.Forms.MessageBox]::Show("Informe o nome da banlist.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $payload = @{
+      name = $name
+      description = $txtBanlistDescription.Text.Trim()
+    }
+    if ([int]$script:CurrentBanlistId -gt 0) {
+      $targetId = [int]$script:CurrentBanlistId
+      $op = Invoke-MutatingOperation -OperationName "banlist-update" -Target ("banlist:" + $targetId) -ActionBlock {
+        Invoke-AdminEngine -Action "banlist-update" -Id ([string]$targetId) -Payload $payload
+      }
+      [System.Windows.Forms.MessageBox]::Show("Banlist atualizada.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    } else {
+      $op = Invoke-MutatingOperation -OperationName "banlist-create" -Target "banlist:new" -ActionBlock {
+        Invoke-AdminEngine -Action "banlist-create" -Payload $payload
+      }
+      $script:CurrentBanlistId = [int]($op.result.createdBanlistId)
+      [System.Windows.Forms.MessageBox]::Show("Banlist criada.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    }
+    Load-Banlists
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao salvar banlist: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnBanlistDelete.Add_Click({
+  try {
+    $banlist = Get-SelectedBanlist
+    if (-not $banlist) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma banlist para excluir.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if (-not (Confirm-StrictDestructiveAction -Title "Excluir banlist" -Message "Excluir a banlist '$([string]$banlist.name)'?")) { return }
+    $targetId = [int]$banlist.banlistId
+    $op = Invoke-MutatingOperation -OperationName "banlist-delete" -Target ("banlist:" + $targetId) -ActionBlock {
+      Invoke-AdminEngine -Action "banlist-delete" -Id ([string]$targetId)
+    }
+    [System.Windows.Forms.MessageBox]::Show("Banlist excluida.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Reset-BanlistForm
+    Load-Banlists
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao excluir banlist: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnBanlistActivate.Add_Click({
+  try {
+    $banlist = Get-SelectedBanlist
+    if (-not $banlist) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma banlist para ativar.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $targetId = [int]$banlist.banlistId
+    $op = Invoke-MutatingOperation -OperationName "banlist-set-active" -Target ("banlist:" + $targetId) -ActionBlock {
+      Invoke-AdminEngine -Action "banlist-set-active" -Id ([string]$targetId)
+    }
+    [System.Windows.Forms.MessageBox]::Show("Banlist ativa atualizada.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-Banlists
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao ativar banlist: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnBanlistCardAdd.Add_Click({
+  try {
+    $banlist = Get-SelectedBanlist
+    if (-not $banlist) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma banlist antes de adicionar cartas.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $cardId = Get-SelectedValue -Combo $comboBanlistCard
+    if (-not $cardId) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma carta para banir.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $targetId = [int]$banlist.banlistId
+    $payload = @{ cardId = $cardId }
+    $op = Invoke-MutatingOperation -OperationName "banlist-card-add" -Target ("banlist:" + $targetId) -ActionBlock {
+      Invoke-AdminEngine -Action "banlist-card-add" -Id ([string]$targetId) -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Carta adicionada na banlist.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-Banlists
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao adicionar carta na banlist: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
+$btnBanlistCardRemove.Add_Click({
+  try {
+    $banlist = Get-SelectedBanlist
+    if (-not $banlist) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma banlist antes de remover cartas.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    if ($listBanlistCards.SelectedItems.Count -lt 1) {
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma carta da lista para remover.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      return
+    }
+    $cardId = [string]$listBanlistCards.SelectedItems[0].Text
+    if (-not $cardId) { return }
+    $targetId = [int]$banlist.banlistId
+    $payload = @{ cardId = $cardId }
+    $op = Invoke-MutatingOperation -OperationName "banlist-card-remove" -Target ("banlist:" + $targetId) -ActionBlock {
+      Invoke-AdminEngine -Action "banlist-card-remove" -Id ([string]$targetId) -Payload $payload
+    }
+    [System.Windows.Forms.MessageBox]::Show("Carta removida da banlist.`r`nBackup: $($op.backup)", "Sucesso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    Load-Banlists
+  } catch {
+    [System.Windows.Forms.MessageBox]::Show("Falha ao remover carta da banlist: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  }
+})
+
 $btnLogsRefresh.Add_Click({
   try { Load-Logs } catch {
     [System.Windows.Forms.MessageBox]::Show("Falha ao carregar logs: $($_.Exception.Message)", "Erro", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
@@ -3739,6 +4066,7 @@ function Apply-TabSplitLayoutDefaults {
   Set-SplitterLayoutSafe -Splitter $climateRulesSplit -Panel1Min 460 -Panel2Min 420 -PreferredDistance 640
   Set-SplitterLayoutSafe -Splitter $locationLinksSplit -Panel1Min 500 -Panel2Min 380 -PreferredDistance 700
   Set-SplitterLayoutSafe -Splitter $battlegearSpawnSplit -Panel1Min 520 -Panel2Min 380 -PreferredDistance 760
+  Set-SplitterLayoutSafe -Splitter $banlistSplit -Panel1Min 480 -Panel2Min 360 -PreferredDistance 700
 }
 
 $form.Add_Shown({ Apply-TabSplitLayoutDefaults })
@@ -3780,6 +4108,7 @@ try {
   Set-ComboItems -Combo $comboGrantCardType -Items $typeItems
   Set-ComboItems -Combo $comboProfileDrome -Items (Build-DromeItems)
   Set-ComboItems -Combo $comboPerimCampLocation -Items (Build-LocationItems)
+  Set-ComboItems -Combo $comboBanlistCard -Items (Build-CardItems -Type "")
   $txtProfileSeason.Text = (Get-Date).ToUniversalTime().ToString("yyyy-MM")
   Refresh-TypeCardCombos
   Refresh-GrantCardCombo
@@ -3798,6 +4127,7 @@ try {
   Load-LocationClimateRules
   Load-LocationLinks
   Load-BattlegearSpawnRules
+  Load-Banlists
   Load-Quests
   Load-PerimConfig
   Load-Logs

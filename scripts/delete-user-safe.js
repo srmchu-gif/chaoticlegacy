@@ -509,6 +509,99 @@ function ensurePerimDropEventTable(db) {
   db.exec("CREATE INDEX IF NOT EXISTS idx_perim_drop_events_active_window ON perim_drop_events(enabled, location_card_id, start_at, end_at);");
 }
 
+function ensureRankedBanlistTables(db) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ranked_banlists (
+      banlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL DEFAULT '',
+      is_active INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_ranked_banlists_active ON ranked_banlists(is_active, updated_at DESC);");
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ranked_banlist_cards (
+      banlist_id INTEGER NOT NULL,
+      card_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (banlist_id, card_id)
+    );
+  `);
+  db.exec("CREATE INDEX IF NOT EXISTS idx_ranked_banlist_cards_card ON ranked_banlist_cards(card_id, banlist_id);");
+  const hasAny = db.prepare("SELECT 1 AS ok FROM ranked_banlists LIMIT 1").get();
+  if (!hasAny) {
+    const now = nowIso();
+    db.prepare(`
+      INSERT INTO ranked_banlists (name, description, is_active, created_at, updated_at)
+      VALUES (?, ?, 1, ?, ?)
+    `).run("Ranked Default", "Banlist padrao do modo ranked.", now, now);
+  } else {
+    const activeCount = Number(db.prepare("SELECT COUNT(*) AS total FROM ranked_banlists WHERE is_active = 1").get()?.total || 0);
+    if (activeCount === 0) {
+      db.prepare(`
+        UPDATE ranked_banlists
+        SET is_active = 1, updated_at = ?
+        WHERE banlist_id = (
+          SELECT banlist_id FROM ranked_banlists
+          ORDER BY banlist_id ASC
+          LIMIT 1
+        )
+      `).run(nowIso());
+    }
+  }
+}
+
+function listRankedBanlists(db) {
+  ensureRankedBanlistTables(db);
+  const headers = db.prepare(`
+    SELECT banlist_id, name, description, is_active, created_at, updated_at
+    FROM ranked_banlists
+    ORDER BY is_active DESC, lower(name) ASC, banlist_id ASC
+  `).all();
+  const cards = db.prepare(`
+    SELECT bc.banlist_id, bc.card_id, COALESCE(cc.name, bc.card_id) AS card_name
+    FROM ranked_banlist_cards bc
+    LEFT JOIN card_catalog cc ON cc.id = bc.card_id
+    ORDER BY bc.banlist_id ASC, lower(COALESCE(cc.name, bc.card_id)) ASC, bc.card_id ASC
+  `).all();
+  const cardsByBanlist = new Map();
+  cards.forEach((row) => {
+    const banlistId = Number(row?.banlist_id || 0);
+    if (!cardsByBanlist.has(banlistId)) {
+      cardsByBanlist.set(banlistId, []);
+    }
+    cardsByBanlist.get(banlistId).push({
+      cardId: String(row?.card_id || ""),
+      cardName: String(row?.card_name || row?.card_id || ""),
+    });
+  });
+  return headers.map((row) => {
+    const banlistId = Number(row?.banlist_id || 0);
+    const banlistCards = cardsByBanlist.get(banlistId) || [];
+    return {
+      banlistId,
+      name: String(row?.name || ""),
+      description: String(row?.description || ""),
+      isActive: Number(row?.is_active || 0) === 1,
+      cardsCount: banlistCards.length,
+      cards: banlistCards,
+      createdAt: String(row?.created_at || ""),
+      updatedAt: String(row?.updated_at || ""),
+    };
+  });
+}
+
+function sanitizeBanlistPayload(raw) {
+  const name = String(raw?.name || "").trim().slice(0, 80);
+  const description = String(raw?.description || "").trim().slice(0, 500);
+  if (!name) {
+    throw new Error("Nome da banlist e obrigatorio.");
+  }
+  return { name, description };
+}
+
 function ensurePerimQuestTemplatesTable(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS perim_quest_templates (
@@ -2223,6 +2316,159 @@ function run() {
     if (args.action === "catalog-cards") {
       const cards = listCatalogCards(db, args.cardType);
       jsonOk({ cards });
+      return;
+    }
+
+    if (args.action === "banlists-list") {
+      jsonOk({ banlists: listRankedBanlists(db) });
+      return;
+    }
+
+    if (args.action === "banlist-create") {
+      ensureRankedBanlistTables(db);
+      const payload = decodePayload(args);
+      const sanitized = sanitizeBanlistPayload(payload);
+      const now = nowIso();
+      const createdId = withTransaction(db, () => {
+        const res = db.prepare(`
+          INSERT INTO ranked_banlists (name, description, is_active, created_at, updated_at)
+          VALUES (?, ?, 0, ?, ?)
+        `).run(sanitized.name, sanitized.description, now, now);
+        const id = Number(res?.lastInsertRowid || 0);
+        appendAuditLogEntry(db, "admin_banlist_create", "system", "Banlist ranked criada.", {
+          banlistId: id,
+          name: sanitized.name,
+        });
+        return id;
+      });
+      jsonOk({ createdBanlistId: createdId, banlists: listRankedBanlists(db) });
+      return;
+    }
+
+    if (args.action === "banlist-update") {
+      ensureRankedBanlistTables(db);
+      const banlistId = Number(args.id || 0);
+      if (!Number.isInteger(banlistId) || banlistId <= 0) {
+        throw new Error("Parametro --id invalido para banlist-update.");
+      }
+      const payload = decodePayload(args);
+      const sanitized = sanitizeBanlistPayload(payload);
+      const updatedAt = nowIso();
+      const changed = withTransaction(db, () => {
+        const result = db.prepare(`
+          UPDATE ranked_banlists
+          SET name = ?, description = ?, updated_at = ?
+          WHERE banlist_id = ?
+        `).run(sanitized.name, sanitized.description, updatedAt, banlistId);
+        appendAuditLogEntry(db, "admin_banlist_update", "system", "Banlist ranked atualizada.", {
+          banlistId,
+          name: sanitized.name,
+          changed: Number(result?.changes || 0) > 0,
+        });
+        return Number(result?.changes || 0) > 0;
+      });
+      jsonOk({ updatedBanlistId: banlistId, changed, banlists: listRankedBanlists(db) });
+      return;
+    }
+
+    if (args.action === "banlist-delete") {
+      ensureRankedBanlistTables(db);
+      const banlistId = Number(args.id || 0);
+      if (!Number.isInteger(banlistId) || banlistId <= 0) {
+        throw new Error("Parametro --id invalido para banlist-delete.");
+      }
+      const deleted = withTransaction(db, () => {
+        db.prepare("DELETE FROM ranked_banlist_cards WHERE banlist_id = ?").run(banlistId);
+        const result = db.prepare("DELETE FROM ranked_banlists WHERE banlist_id = ?").run(banlistId);
+        const activeCount = Number(db.prepare("SELECT COUNT(*) AS total FROM ranked_banlists WHERE is_active = 1").get()?.total || 0);
+        if (activeCount === 0) {
+          db.prepare(`
+            UPDATE ranked_banlists
+            SET is_active = 1, updated_at = ?
+            WHERE banlist_id = (
+              SELECT banlist_id FROM ranked_banlists ORDER BY banlist_id ASC LIMIT 1
+            )
+          `).run(nowIso());
+        }
+        appendAuditLogEntry(db, "admin_banlist_delete", "system", "Banlist ranked removida.", {
+          banlistId,
+          deleted: Number(result?.changes || 0) > 0,
+        });
+        return Number(result?.changes || 0) > 0;
+      });
+      jsonOk({ deletedBanlistId: banlistId, deleted, banlists: listRankedBanlists(db) });
+      return;
+    }
+
+    if (args.action === "banlist-set-active") {
+      ensureRankedBanlistTables(db);
+      const banlistId = Number(args.id || 0);
+      if (!Number.isInteger(banlistId) || banlistId <= 0) {
+        throw new Error("Parametro --id invalido para banlist-set-active.");
+      }
+      withTransaction(db, () => {
+        db.prepare("UPDATE ranked_banlists SET is_active = 0, updated_at = ?").run(nowIso());
+        const result = db.prepare("UPDATE ranked_banlists SET is_active = 1, updated_at = ? WHERE banlist_id = ?").run(nowIso(), banlistId);
+        if (Number(result?.changes || 0) <= 0) {
+          throw new Error(`Banlist nao encontrada: ${banlistId}`);
+        }
+        appendAuditLogEntry(db, "admin_banlist_set_active", "system", "Banlist ranked ativa alterada.", { banlistId });
+      });
+      jsonOk({ activeBanlistId: banlistId, banlists: listRankedBanlists(db) });
+      return;
+    }
+
+    if (args.action === "banlist-card-add") {
+      ensureRankedBanlistTables(db);
+      const banlistId = Number(args.id || 0);
+      if (!Number.isInteger(banlistId) || banlistId <= 0) {
+        throw new Error("Parametro --id invalido para banlist-card-add.");
+      }
+      const payload = decodePayload(args);
+      const cardId = String(payload?.cardId || "").trim();
+      if (!cardId) {
+        throw new Error("cardId e obrigatorio.");
+      }
+      const card = getCatalogCardById(db, cardId);
+      if (!card) {
+        throw new Error(`Carta nao encontrada: ${cardId}`);
+      }
+      withTransaction(db, () => {
+        db.prepare(`
+          INSERT INTO ranked_banlist_cards (banlist_id, card_id, created_at)
+          VALUES (?, ?, ?)
+          ON CONFLICT(banlist_id, card_id) DO NOTHING
+        `).run(banlistId, cardId, nowIso());
+        db.prepare("UPDATE ranked_banlists SET updated_at = ? WHERE banlist_id = ?").run(nowIso(), banlistId);
+        appendAuditLogEntry(db, "admin_banlist_card_add", "system", "Carta adicionada a banlist ranked.", {
+          banlistId,
+          cardId,
+        });
+      });
+      jsonOk({ banlistId, cardId, banlists: listRankedBanlists(db) });
+      return;
+    }
+
+    if (args.action === "banlist-card-remove") {
+      ensureRankedBanlistTables(db);
+      const banlistId = Number(args.id || 0);
+      if (!Number.isInteger(banlistId) || banlistId <= 0) {
+        throw new Error("Parametro --id invalido para banlist-card-remove.");
+      }
+      const payload = decodePayload(args);
+      const cardId = String(payload?.cardId || "").trim();
+      if (!cardId) {
+        throw new Error("cardId e obrigatorio.");
+      }
+      withTransaction(db, () => {
+        db.prepare("DELETE FROM ranked_banlist_cards WHERE banlist_id = ? AND card_id = ?").run(banlistId, cardId);
+        db.prepare("UPDATE ranked_banlists SET updated_at = ? WHERE banlist_id = ?").run(nowIso(), banlistId);
+        appendAuditLogEntry(db, "admin_banlist_card_remove", "system", "Carta removida da banlist ranked.", {
+          banlistId,
+          cardId,
+        });
+      });
+      jsonOk({ banlistId, cardId, banlists: listRankedBanlists(db) });
       return;
     }
 

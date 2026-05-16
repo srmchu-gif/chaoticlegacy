@@ -1,5 +1,5 @@
 PERIM - Acoes e Regras de Drops
-Gerado em: 2026-05-15T10:16:34.480Z
+Gerado em: 2026-05-15T23:26:59.630Z
 
 Acoes:
 - Explorar a Area (explore)
@@ -48,6 +48,8 @@ Regras gerais de drops:
 - Drop de Location usa chance por raridade do local e prioriza locais ligados.
 - Se local ligado nao cair, pode dropar o proprio local atual.
 - Se carta ja estiver no cap, ela e ignorada no roll.
+- Roleta diaria de clima: 10 climas com 5 efeitos cada, sorteio uniforme e snapshot por run.
+- Ataques rarissimos especiais: chance final de 0.01% por slot de ataque no Perim.
 
 Efeitos de Scanner por nivel:
 - Nivel 1: durationMultiplier=1, successBoostPercent=0, rareBoost=0

@@ -1336,7 +1336,7 @@ async function bindProfile(username, sessionData) {
         profileModalHistory.innerHTML = history
           .map((entry) => {
             const result = String(entry?.result || "").toLowerCase();
-            const resultLabel = result === "win" ? "VitÃ³ria" : result === "loss" ? "Derrota" : "Resultado";
+            const resultLabel = result === "win" ? "Vitória" : result === "loss" ? "Derrota" : "Resultado";
             const resultClass = result === "win" ? "result-win" : result === "loss" ? "result-loss" : "";
             const modeLabel = String(entry?.mode || "unknown");
             const opponent = String(entry?.opponent || "Oponente");

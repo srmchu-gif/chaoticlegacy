@@ -7,6 +7,12 @@ const nodemailer = require("nodemailer");
 const { URL, pathToFileURL } = require("url");
 const { buildLibrary, ensureCardCatalog, CARD_CATALOG_STORAGE } = require("./lib/library");
 const {
+  normalizeBattleIntent,
+  mapProtocolIntentToLegacyAction,
+  buildBattleStateView,
+  classifyActionFamily,
+} = require("./lib/battle-protocol");
+const {
   initializeCreatureDropTables,
   setCreatureDropSettings,
   setLocationAdjacencies,
@@ -80,6 +86,7 @@ const ATTACK_PENDING_FILE = path.join(PERSIST_DIR, "ataques_pendentes.txt");
 const CREATURE_PENDING_FILE = path.join(ROOT_DIR, "exports", "criaturas_pendentes.txt");
 const PERIM_ACTIONS_DROPS_REPORT_FILE = path.join(ROOT_DIR, "exports", "perim_acoes_drops.txt");
 const CREATURE_DROPS_ALIAS_REPORT_FILE = path.join(ROOT_DIR, "exports", "creature_drops_alias_report.txt");
+const PERIM_FIXED_CREATURE_SPAWN_REPORT_FILE = path.join(ROOT_DIR, "exports", "perim_fixed_creature_spawn_report.txt");
 const PERIM_DROP_TABLES_FILE = path.join(ROOT_DIR, "runtime", "perim-drop-tables.json");
 const ENGINE_FILE = path.join(ROOT_DIR, "public", "js", "battle", "engine.js");
 const DEFAULT_SQLITE_FILE = path.join(ROOT_DIR, "runtime", "chaotic.db");
@@ -129,6 +136,7 @@ const DROME_RANKED_WIN_SCORE = 24;
 const DROME_RANKED_LOSS_SCORE = -8;
 const CODEMASTER_WIN_BONUS_SCORE = 14;
 const DROME_CHALLENGE_INVITE_TTL_MS = 10 * 60 * 1000;
+const RANKED_BANLIST_DEFAULT_NAME = "Ranked Default";
 const GLOBAL_CHAT_RETENTION_DAYS = Math.max(1, Number(process.env.GLOBAL_CHAT_RETENTION_DAYS || 1));
 const GLOBAL_CHAT_MAX_MESSAGE_LENGTH = 240;
 const CHAT_TRANSLATION_CACHE_TTL_MS = Math.max(60 * 1000, Number(process.env.CHAT_TRANSLATION_CACHE_TTL_MS || 10 * 60 * 1000));
@@ -1135,6 +1143,26 @@ function createSqlV2Tables() {
     );
   `);
   sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS ranked_banlists (
+      banlist_id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL DEFAULT '',
+      is_active INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_ranked_banlists_active ON ranked_banlists(is_active, updated_at DESC);");
+  sqliteDb.exec(`
+    CREATE TABLE IF NOT EXISTS ranked_banlist_cards (
+      banlist_id INTEGER NOT NULL,
+      card_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (banlist_id, card_id)
+    );
+  `);
+  sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_ranked_banlist_cards_card ON ranked_banlist_cards(card_id, banlist_id);");
+  sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_group_rooms (
       room_code TEXT NOT NULL PRIMARY KEY,
       host_key TEXT NOT NULL,
@@ -1144,6 +1172,27 @@ function createSqlV2Tables() {
       updated_at TEXT NOT NULL
     );
   `);
+  const hasAnyBanlist = sqliteDb.prepare("SELECT 1 AS ok FROM ranked_banlists LIMIT 1").get();
+  if (!hasAnyBanlist) {
+    const now = nowIso();
+    sqliteDb.prepare(`
+      INSERT INTO ranked_banlists (name, description, is_active, created_at, updated_at)
+      VALUES (?, ?, 1, ?, ?)
+    `).run(RANKED_BANLIST_DEFAULT_NAME, "Banlist padrao do modo ranked.", now, now);
+  } else {
+    const activeCount = Number(sqliteDb.prepare("SELECT COUNT(*) AS total FROM ranked_banlists WHERE is_active = 1").get()?.total || 0);
+    if (activeCount === 0) {
+      sqliteDb.prepare(`
+        UPDATE ranked_banlists
+        SET is_active = 1, updated_at = ?
+        WHERE banlist_id = (
+          SELECT banlist_id FROM ranked_banlists
+          ORDER BY banlist_id ASC
+          LIMIT 1
+        )
+      `).run(nowIso());
+    }
+  }
 }
 
 function getSqlSchemaVersion() {
@@ -1864,16 +1913,18 @@ function listOnlinePresencePlayers(limitRaw = 50) {
         lower(u.username) AS owner_key,
         u.username AS username,
         COALESCE(p.avatar, '') AS avatar,
-        COALESCE(p.score, 1200) AS score,
+        COALESCE(rg.elo, p.score, 1200) AS score,
         sel.drome_id AS drome_id
       FROM users u
       LEFT JOIN player_profiles p
         ON p.owner_key = lower(u.username)
+      LEFT JOIN ranked_global rg
+        ON rg.owner_key = lower(u.username)
       LEFT JOIN ranked_drome_selection sel
         ON sel.owner_key = lower(u.username) AND sel.season_key = ?
       WHERE COALESCE(u.verified, 0) = 1
         AND lower(u.username) IN (${placeholders})
-      ORDER BY COALESCE(p.score, 1200) DESC, lower(u.username) ASC
+      ORDER BY COALESCE(rg.elo, p.score, 1200) DESC, lower(u.username) ASC
       LIMIT ?
     `)
     .all(seasonKey, ...activeKeys, limit);
@@ -2915,6 +2966,86 @@ function validateDeckForRulesMode(deckData, rulesMode = "competitive") {
     errors,
     counts,
     mode: modeKey,
+  };
+}
+
+function getActiveRankedBanlistSnapshot() {
+  if (!sqliteDb) {
+    return null;
+  }
+  const header = sqliteDb
+    .prepare(`
+      SELECT banlist_id, name, description, is_active, updated_at
+      FROM ranked_banlists
+      WHERE is_active = 1
+      ORDER BY updated_at DESC, banlist_id DESC
+      LIMIT 1
+    `)
+    .get();
+  if (!header) {
+    return null;
+  }
+  const banlistId = Number(header?.banlist_id || 0);
+  const rows = sqliteDb
+    .prepare(`
+      SELECT bc.card_id, COALESCE(cc.name, bc.card_id) AS card_name
+      FROM ranked_banlist_cards bc
+      LEFT JOIN card_catalog cc ON cc.id = bc.card_id
+      WHERE bc.banlist_id = ?
+      ORDER BY lower(COALESCE(cc.name, bc.card_id)) ASC, bc.card_id ASC
+    `)
+    .all(banlistId);
+  const cards = rows
+    .map((row) => ({
+      cardId: String(row?.card_id || "").trim(),
+      cardName: String(row?.card_name || row?.card_id || "").trim(),
+    }))
+    .filter((entry) => entry.cardId);
+  return {
+    banlistId,
+    name: String(header?.name || ""),
+    description: String(header?.description || ""),
+    isActive: Number(header?.is_active || 0) === 1,
+    updatedAt: String(header?.updated_at || ""),
+    cards,
+  };
+}
+
+function findBannedCardsInDeck(deckData, banlistSnapshot) {
+  if (!banlistSnapshot || !Array.isArray(banlistSnapshot.cards) || !banlistSnapshot.cards.length) {
+    return [];
+  }
+  const battleDeck = toBattleDeckFromStoredDeck(deckData);
+  const bannedMap = new Map(
+    banlistSnapshot.cards
+      .map((entry) => [String(entry?.cardId || "").trim(), String(entry?.cardName || entry?.cardId || "").trim()])
+      .filter(([cardId]) => cardId)
+  );
+  const matches = [];
+  Object.entries(battleDeck || {}).forEach(([type, cards]) => {
+    if (!Array.isArray(cards)) {
+      return;
+    }
+    cards.forEach((card) => {
+      const cardId = String(card?.id || "").trim();
+      if (!cardId || !bannedMap.has(cardId)) {
+        return;
+      }
+      matches.push({
+        cardId,
+        cardName: String(card?.name || bannedMap.get(cardId) || cardId),
+        cardType: String(type || card?.type || ""),
+      });
+    });
+  });
+  return matches;
+}
+
+function validateDeckAgainstRankedBanlist(deckData, banlistSnapshot) {
+  const bannedCards = findBannedCardsInDeck(deckData, banlistSnapshot);
+  return {
+    ok: bannedCards.length === 0,
+    bannedCards,
   };
 }
 
@@ -5164,6 +5295,74 @@ const PERIM_ATTACK_SLOT_OVERRIDE_NAMES = new Set([
   "whirlingwail",
   "deadwaterdevastation",
 ]);
+
+const PERIM_FIXED_CREATURE_LOCATION_RULES = [
+  { creatureNames: ["Xaerv"], locations: ["The Storm Tunnel"] },
+  { creatureNames: ["Xaerv, Monsoon Defender"], aliases: ["Xaerv Moonsor"], locations: ["The Storm Tunnel"] },
+  { creatureNames: ["Najarin"], locations: ["Lake Ken-I-Po"] },
+  { creatureNames: ["Najarin, High Muge of the Lake"], aliases: ["Najarin High Muge of the Lake"], locations: ["Lake Ken-I-Po"] },
+  { creatureNames: ["Mezzmarr"], locations: ["Lake Ken-I-Po"] },
+  { creatureNames: ["Porthyn"], locations: ["Lake Ken-I-Po"] },
+  { creatureNames: ["Relic"], locations: ["The Passage, OverWorld"] },
+  { creatureNames: ["Owis"], locations: ["Codarc Falls"] },
+  { creatureNames: ["Garv"], locations: ["Stronghold Morn"] },
+  { creatureNames: ["Blugon"], locations: ["Glacier Plains"] },
+  { creatureNames: ["Iparu"], locations: ["Iparu Jungle"] },
+  { creatureNames: ["Donmar"], locations: ["Runic Grove"] },
+  { creatureNames: ["Frafdo"], locations: ["Castle Bodhran"] },
+  { creatureNames: ["Frafdo, The Hero"], aliases: ["Frafdo Hero"], locations: ["Castle Bodhran"] },
+  { creatureNames: ["Crawsectus"], locations: ["Riverlands"] },
+  { creatureNames: ["Lomma"], locations: ["Forest of Life"] },
+  { creatureNames: ["Kinnianne, Ambassador to the Mipedians"], aliases: ["Kinniane"], locations: ["OverWorld Embassy at Mipedim Oasis"] },
+  {
+    creatureNames: ["Illexia, The Danian Queen", "Illexia, The Danian Queen (Misprint)"],
+    aliases: ["Illexia"],
+    locations: ["Queen's Gate"],
+  },
+  { creatureNames: ["Aszil, the Young Queen"], aliases: ["Aszil"], locations: ["Queen's Gate"] },
+  { creatureNames: ["Gorram, Danian General"], aliases: ["Gorram", "Danian General"], locations: ["Gorram's Briefing"] },
+  { creatureNames: ["Katharaz"], locations: ["Mount Pillar Reservoir"] },
+  { creatureNames: ["Lore"], locations: ["Grand Hall of Muge's Summit"] },
+  { creatureNames: ["Mhein"], locations: ["The Hive Gallery"] },
+  { creatureNames: ["Lore, Ancestral Caller"], aliases: ["Lore Ancestral Caller"], locations: ["Lore's Chamber of Recall"] },
+  { creatureNames: ["Melke"], locations: ["The Hunter's Perimeter"] },
+  { creatureNames: ["Owayki"], locations: ["The Hunter's Perimeter"] },
+  { creatureNames: ["Cerbie"], locations: ["The Passage, UnderWorld"] },
+  { creatureNames: ["Dyrtax"], locations: ["Jade Pillar"] },
+  { creatureNames: ["Kamangareth"], locations: ["Mount Pillar"] },
+  { creatureNames: ["Kopond"], locations: ["Lava Pond"] },
+  { creatureNames: ["Magmon"], locations: ["Lava Pond"] },
+  { creatureNames: ["Slufurah"], locations: ["Lava Pond"] },
+  { creatureNames: ["Magmon, Engulfed"], aliases: ["Magmon Engulfed"], locations: ["Lava Pond"] },
+  { creatureNames: ["Skithia"], locations: ["Gothos Tower"] },
+  { creatureNames: ["Lord Van Bloot"], locations: ["Gothos Tower", "UnderWorld City, During Van Bloot's Ascent"] },
+  { creatureNames: ["Nauthilax"], locations: ["Everrain"] },
+  { creatureNames: ["Phelphor"], locations: ["Doors of the Deepmines"] },
+  { creatureNames: ["Toxis"], locations: ["The Pits"] },
+  { creatureNames: ["Dardemus"], locations: ["Castle Pillar"] },
+  { creatureNames: ["Miklon"], locations: ["Castle Pillar"] },
+  { creatureNames: ["Rarran"], locations: ["Castle Pillar"] },
+  { creatureNames: ["Kopond, High Muge of the Hearth"], aliases: ["Kopond High Muge of the Hearth"], locations: ["Pyrogenousist's Hearth"] },
+  { creatureNames: ["Slufurah, Treacherous Translator"], aliases: ["Slufurah Treacherous Translator"], locations: ["Pyrogenousist's Hearth"] },
+  { creatureNames: ["Ghuul"], locations: ["Stone Pillar"] },
+  { creatureNames: ["Zamool, Lord Van Bloot's Enforcer"], locations: ["Van Bloot's Banquet"] },
+  { creatureNames: ["Lord Van Bloot, Servant of Aa'une"], locations: ["Van Bloot's Banquet"] },
+  { creatureNames: ["Najarin, Younger"], aliases: ["Najarin Younger"], locations: ["Dranakis Threshold, Portal to the Past"] },
+  { creatureNames: ["Kiru"], locations: ["Kiru Village"] },
+  { creatureNames: ["Vlar"], locations: ["Kiru Village"] },
+  { creatureNames: ["Kaal"], locations: ["Kiru Village"] },
+  { creatureNames: ["Skorblust"], locations: ["Kiru Village"] },
+  { creatureNames: ["Ixxik"], locations: ["Mipedim Tropics"] },
+  { creatureNames: ["Ajara"], locations: ["Mipedim Tropics"] },
+  { creatureNames: ["Proboscar"], locations: ["Mipedim Tropics"] },
+  { creatureNames: ["Afjak"], locations: ["Graalorn Forest"] },
+  { creatureNames: ["Korg"], locations: ["Graalorn Forest"] },
+  { creatureNames: ["Makromil"], aliases: ["Makromill"], locations: ["Graalorn Forest"] },
+  { creatureNames: ["Voorx"], locations: ["Graalorn Forest"] },
+  { creatureNames: ["Ursis"], locations: ["Prexxor Chasm"] },
+  { creatureNames: ["Cromaxx"], locations: ["Prexxor Chasm"] },
+  { creatureNames: ["Smildon"], locations: ["Prexxor Chasm"] },
+];
 
 function normalizePerimPlayerKey(value) {
   const fallback = "local-player";
@@ -9971,6 +10170,224 @@ function resolveCreaturePossibleLocations(creature, graph) {
   };
 }
 
+function buildPerimFixedCreatureRuleRuntime(graph, questExclusiveRewardCardKeys = null) {
+  const rules = Array.isArray(PERIM_FIXED_CREATURE_LOCATION_RULES) ? PERIM_FIXED_CREATURE_LOCATION_RULES : [];
+  const creatureCards = Array.isArray(library?.cardsByType?.creatures) ? library.cardsByType.creatures : [];
+  const creatureCardsByNameKey = new Map();
+  creatureCards.forEach((card) => {
+    const key = normalizePerimText(card?.name || "");
+    if (!key) {
+      return;
+    }
+    if (!creatureCardsByNameKey.has(key)) {
+      creatureCardsByNameKey.set(key, []);
+    }
+    creatureCardsByNameKey.get(key).push(card);
+  });
+
+  const locationKeysByNameKey = new Map();
+  if (graph?.locationKeys instanceof Set) {
+    graph.locationKeys.forEach((locationKey) => {
+      const normalized = normalizePerimText(locationKey);
+      if (!normalized) {
+        return;
+      }
+      if (!locationKeysByNameKey.has(normalized)) {
+        locationKeysByNameKey.set(normalized, new Set());
+      }
+      locationKeysByNameKey.get(normalized).add(locationKey);
+    });
+  }
+  if (graph?.displayNameByKey instanceof Map) {
+    graph.displayNameByKey.forEach((displayName, locationKey) => {
+      const normalized = normalizePerimText(displayName);
+      if (!normalized) {
+        return;
+      }
+      if (!locationKeysByNameKey.has(normalized)) {
+        locationKeysByNameKey.set(normalized, new Set());
+      }
+      locationKeysByNameKey.get(normalized).add(locationKey);
+    });
+  }
+
+  const questExclusiveSet = questExclusiveRewardCardKeys instanceof Set
+    ? questExclusiveRewardCardKeys
+    : getPerimQuestExclusiveRewardCardKeySet();
+
+  const byAliasKey = new Map();
+  const pendingMissingLocations = [];
+  const pendingMissingCreatures = [];
+  const questExclusiveIgnored = [];
+  let aliasBindings = 0;
+  const seenQuestExclusiveKeys = new Set();
+
+  rules.forEach((rule) => {
+    const creatureNames = [...new Set(
+      (Array.isArray(rule?.creatureNames) ? rule.creatureNames : [])
+        .map((name) => String(name || "").trim())
+        .filter(Boolean)
+    )];
+    const aliasNames = [...new Set(
+      (Array.isArray(rule?.aliases) ? rule.aliases : [])
+        .map((name) => String(name || "").trim())
+        .filter(Boolean)
+    )];
+    const locationNames = [...new Set(
+      (Array.isArray(rule?.locations) ? rule.locations : [])
+        .map((name) => String(name || "").trim())
+        .filter(Boolean)
+    )];
+    if (!creatureNames.length) {
+      return;
+    }
+    const creatureNameKeys = [...new Set(creatureNames.map((name) => normalizePerimText(name)).filter(Boolean))];
+    const matchedCards = [];
+    creatureNameKeys.forEach((nameKey) => {
+      (creatureCardsByNameKey.get(nameKey) || []).forEach((card) => matchedCards.push(card));
+    });
+    const isQuestExclusive = matchedCards.some((card) => questExclusiveSet.has(`creatures:${String(card?.id || "")}`));
+    if (!matchedCards.length) {
+      pendingMissingCreatures.push({
+        creatureNames,
+        aliases: aliasNames,
+        locations: locationNames,
+      });
+      return;
+    }
+    if (isQuestExclusive) {
+      const questKey = creatureNameKeys.join("|");
+      if (!seenQuestExclusiveKeys.has(questKey)) {
+        seenQuestExclusiveKeys.add(questKey);
+        questExclusiveIgnored.push({
+          creatureNames,
+          locations: locationNames,
+          cardIds: [...new Set(matchedCards.map((card) => String(card?.id || "")).filter(Boolean))],
+        });
+      }
+      return;
+    }
+
+    const resolvedLocationKeys = new Set();
+    const unresolvedLocationNames = [];
+    locationNames.forEach((locationName) => {
+      const locationNameKey = normalizePerimText(locationName);
+      const candidates = locationKeysByNameKey.get(locationNameKey) || null;
+      if (candidates && candidates.size) {
+        candidates.forEach((candidate) => resolvedLocationKeys.add(candidate));
+      } else {
+        unresolvedLocationNames.push(locationName);
+      }
+    });
+    if (!resolvedLocationKeys.size) {
+      pendingMissingLocations.push({
+        creatureNames,
+        locations: locationNames,
+        unresolvedLocations: unresolvedLocationNames.length ? unresolvedLocationNames : locationNames,
+      });
+      return;
+    }
+
+    const bindNames = [...new Set([...creatureNames, ...aliasNames])];
+    bindNames.forEach((name) => {
+      const aliasKey = normalizePerimText(name);
+      if (!aliasKey) {
+        return;
+      }
+      const existing = byAliasKey.get(aliasKey);
+      if (existing) {
+        resolvedLocationKeys.forEach((locationKey) => existing.locationKeys.add(locationKey));
+        creatureNames.forEach((creatureName) => existing.creatureNames.add(creatureName));
+        aliasNames.forEach((aliasName) => existing.aliases.add(aliasName));
+        locationNames.forEach((locationName) => existing.locationNames.add(locationName));
+        existing.cardIds = [...new Set([...existing.cardIds, ...matchedCards.map((card) => String(card?.id || "")).filter(Boolean)])];
+        return;
+      }
+      aliasBindings += 1;
+      byAliasKey.set(aliasKey, {
+        creatureNames: new Set(creatureNames),
+        aliases: new Set(aliasNames),
+        locationNames: new Set(locationNames),
+        locationKeys: new Set(resolvedLocationKeys),
+        cardIds: [...new Set(matchedCards.map((card) => String(card?.id || "")).filter(Boolean))],
+      });
+    });
+  });
+
+  return {
+    byAliasKey,
+    summary: {
+      totalRules: rules.length,
+      aliasBindings,
+      pendingMissingLocations,
+      pendingMissingCreatures,
+      questExclusiveIgnored,
+    },
+  };
+}
+
+function writePerimFixedCreatureSpawnReport(payload) {
+  const report = payload && typeof payload === "object" ? payload : {};
+  const lines = [];
+  lines.push("Perim Fixed Creature Spawn Report");
+  lines.push(`generated_at=${nowIso()}`);
+  lines.push(`date_key=${String(report.dateKey || todayDateKey())}`);
+  lines.push(`total_rules=${Number(report.totalRules || 0)}`);
+  lines.push(`alias_bindings=${Number(report.aliasBindings || 0)}`);
+  lines.push(`applied_rows=${Number(report.appliedRows || 0)}`);
+  lines.push(`ignored_quest_rows=${Number(report.ignoredQuestRows || 0)}`);
+  lines.push(`pending_missing_creatures=${Array.isArray(report.pendingMissingCreatures) ? report.pendingMissingCreatures.length : 0}`);
+  lines.push(`pending_missing_locations=${Array.isArray(report.pendingMissingLocations) ? report.pendingMissingLocations.length : 0}`);
+  lines.push("");
+
+  const questExclusiveIgnored = Array.isArray(report.questExclusiveIgnored) ? report.questExclusiveIgnored : [];
+  if (questExclusiveIgnored.length) {
+    lines.push("[quest_exclusive_ignored]");
+    questExclusiveIgnored.forEach((entry) => {
+      const creatureNames = Array.isArray(entry?.creatureNames) ? entry.creatureNames.join(" | ") : "";
+      const locations = Array.isArray(entry?.locations) ? entry.locations.join(" | ") : "";
+      const cardIds = Array.isArray(entry?.cardIds) ? entry.cardIds.join(", ") : "";
+      lines.push(`creatures=${creatureNames}`);
+      lines.push(`locations=${locations}`);
+      lines.push(`card_ids=${cardIds}`);
+      lines.push("");
+    });
+  }
+
+  const pendingMissingCreatures = Array.isArray(report.pendingMissingCreatures) ? report.pendingMissingCreatures : [];
+  if (pendingMissingCreatures.length) {
+    lines.push("[pending_missing_creatures]");
+    pendingMissingCreatures.forEach((entry) => {
+      const creatureNames = Array.isArray(entry?.creatureNames) ? entry.creatureNames.join(" | ") : "";
+      const aliases = Array.isArray(entry?.aliases) ? entry.aliases.join(" | ") : "";
+      const locations = Array.isArray(entry?.locations) ? entry.locations.join(" | ") : "";
+      lines.push(`creatures=${creatureNames}`);
+      if (aliases) {
+        lines.push(`aliases=${aliases}`);
+      }
+      lines.push(`locations=${locations}`);
+      lines.push("");
+    });
+  }
+
+  const pendingMissingLocations = Array.isArray(report.pendingMissingLocations) ? report.pendingMissingLocations : [];
+  if (pendingMissingLocations.length) {
+    lines.push("[pending_missing_locations]");
+    pendingMissingLocations.forEach((entry) => {
+      const creatureNames = Array.isArray(entry?.creatureNames) ? entry.creatureNames.join(" | ") : "";
+      const locations = Array.isArray(entry?.locations) ? entry.locations.join(" | ") : "";
+      const unresolvedLocations = Array.isArray(entry?.unresolvedLocations) ? entry.unresolvedLocations.join(" | ") : "";
+      lines.push(`creatures=${creatureNames}`);
+      lines.push(`locations=${locations}`);
+      lines.push(`unresolved=${unresolvedLocations}`);
+      lines.push("");
+    });
+  }
+
+  fs.mkdirSync(path.dirname(PERIM_FIXED_CREATURE_SPAWN_REPORT_FILE), { recursive: true });
+  fs.writeFileSync(PERIM_FIXED_CREATURE_SPAWN_REPORT_FILE, lines.join("\n"), "utf8");
+}
+
 function todayDateKey(nowDate = new Date()) {
   const year = nowDate.getFullYear();
   const month = String(nowDate.getMonth() + 1).padStart(2, "0");
@@ -10344,6 +10761,23 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
   let tribeFilteredLocationCandidates = 0;
   let tribeBlockedCreatureRows = 0;
   let tribeNoAdjacentStayCount = 0;
+  const questExclusiveRewardCardKeys = getPerimQuestExclusiveRewardCardKeySet();
+  const fixedRuleRuntime = buildPerimFixedCreatureRuleRuntime(graph, questExclusiveRewardCardKeys);
+  const fixedRuleSummary = {
+    appliedRows: 0,
+    ignoredQuestRows: 0,
+    totalRules: Number(fixedRuleRuntime?.summary?.totalRules || 0),
+    aliasBindings: Number(fixedRuleRuntime?.summary?.aliasBindings || 0),
+    pendingMissingCreatures: Array.isArray(fixedRuleRuntime?.summary?.pendingMissingCreatures)
+      ? fixedRuleRuntime.summary.pendingMissingCreatures
+      : [],
+    pendingMissingLocations: Array.isArray(fixedRuleRuntime?.summary?.pendingMissingLocations)
+      ? fixedRuleRuntime.summary.pendingMissingLocations
+      : [],
+    questExclusiveIgnored: Array.isArray(fixedRuleRuntime?.summary?.questExclusiveIgnored)
+      ? fixedRuleRuntime.summary.questExclusiveIgnored
+      : [],
+  };
 
   const resolveEffectiveLocationTribeForNameKey = (locationNameKeyRaw) => {
     const locationNameKey = normalizePerimText(locationNameKeyRaw);
@@ -10381,11 +10815,19 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
       unresolvedRefs,
       resolutionDetails,
     });
-    if (!possibleLocations.length) {
+    const creatureNameKey = normalizePerimText(creature?.name || "");
+    const fixedRuleEntry = creatureNameKey
+      ? fixedRuleRuntime?.byAliasKey?.get(creatureNameKey) || null
+      : null;
+    const forcedLocations = fixedRuleEntry?.locationKeys instanceof Set
+      ? [...fixedRuleEntry.locationKeys].filter((locationNameKey) => graph.locationKeys.has(locationNameKey))
+      : [];
+
+    if (!possibleLocations.length && !forcedLocations.length) {
       return;
     }
 
-    const filteredPossibleLocations = possibleLocations.filter((locationNameKey) => {
+    let filteredPossibleLocations = possibleLocations.filter((locationNameKey) => {
       const locationTribeKey = resolveEffectiveLocationTribeForNameKey(locationNameKey);
       return isPerimTribeMatchForCard(creature, locationTribeKey);
     });
@@ -10393,6 +10835,12 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
     if (filteredOutCount > 0) {
       tribeFilteredLocationCandidates += filteredOutCount;
     }
+
+    if (forcedLocations.length) {
+      filteredPossibleLocations = forcedLocations;
+      fixedRuleSummary.appliedRows += 1;
+    }
+
     if (!filteredPossibleLocations.length) {
       tribeBlockedCreatureRows += 1;
       return;
@@ -10405,10 +10853,15 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
     const previousLocationKey = normalizePerimText(previousPlacement?.locationNameKey || "");
 
     const rarityFactor = rarityPlacementWeight(creature.rarity);
-    let sourceRule = "weighted_pool";
+    let sourceRule = forcedLocations.length
+      ? "fixed_spawn_rule"
+      : "weighted_pool";
     let candidates = [];
 
     if (previousLocationKey && graph.locNameToAdjacent.has(previousLocationKey)) {
+      if (forcedLocations.length) {
+        // fixed rules keep the creature inside the fixed set only
+      } else {
       const adjacentCandidates = [...graph.locNameToAdjacent.get(previousLocationKey)]
         .filter((locKey) => possibleSet.has(locKey))
         .filter((locKey) => locKey !== previousLocationKey);
@@ -10419,18 +10872,23 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
           weight: ((somenteSet.has(locKey) ? 6 : 2) + Number(scoreByLocation?.get(locKey) || 0)) * rarityFactor,
         }));
       }
+      }
     }
 
     if (!candidates.length) {
       if (previousLocationKey && possibleSet.has(previousLocationKey)) {
-        sourceRule = "adjacent_hold";
-        tribeNoAdjacentStayCount += 1;
+        if (!forcedLocations.length) {
+          sourceRule = "adjacent_hold";
+          tribeNoAdjacentStayCount += 1;
+        }
         candidates = [{
           locationKey: previousLocationKey,
           weight: Math.max(0.1, rarityFactor),
         }];
       } else {
-        sourceRule = previousLocationKey ? "adjacent_relocate_by_tribe" : "weighted_pool";
+        sourceRule = forcedLocations.length
+          ? "fixed_spawn_rule"
+          : (previousLocationKey ? "adjacent_relocate_by_tribe" : "weighted_pool");
         candidates = filteredPossibleLocations.map((locKey) => ({
           locationKey: locKey,
           weight: ((somenteSet.has(locKey) ? 8 : 2.5) + Number(scoreByLocation?.get(locKey) || 0)) * rarityFactor,
@@ -10465,6 +10923,10 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
   });
 
   const aliasSummary = writeCreatureLocationAliasReport(aliasReportEntries);
+  writePerimFixedCreatureSpawnReport({
+    dateKey: key,
+    ...fixedRuleSummary,
+  });
 
   const payload = {
     dateKey: key,
@@ -10483,6 +10945,19 @@ function generateDailyCreatureLocations(dateKey = null, forceRegenerate = false)
   if (tribeFilteredLocationCandidates > 0 || tribeBlockedCreatureRows > 0 || tribeNoAdjacentStayCount > 0) {
     console.log(
       `[PERIM] Tribe-by-location filter (${key}): filteredCandidates=${tribeFilteredLocationCandidates}, blockedCreatures=${tribeBlockedCreatureRows}, heldByNoAdjacent=${tribeNoAdjacentStayCount}.`
+    );
+  }
+  if (
+    fixedRuleSummary.appliedRows > 0
+    || fixedRuleSummary.pendingMissingCreatures.length
+    || fixedRuleSummary.pendingMissingLocations.length
+    || fixedRuleSummary.questExclusiveIgnored.length
+  ) {
+    console.log(
+      `[PERIM] Fixed creature rules (${key}): appliedRows=${fixedRuleSummary.appliedRows}, ` +
+      `pendingCreatures=${fixedRuleSummary.pendingMissingCreatures.length}, ` +
+      `pendingLocations=${fixedRuleSummary.pendingMissingLocations.length}, ` +
+      `questExclusiveIgnored=${fixedRuleSummary.questExclusiveIgnored.length}.`
     );
   }
   console.log(`[PERIM] Generated ${dailyPlacements.length} creature placements for ${key}.`);
@@ -13243,7 +13718,18 @@ function upsertGlobalRankDelta(ownerKeyRaw, result) {
         updated_at = excluded.updated_at
     `)
     .run(ownerKey, 1200 + eloDelta, winsDelta, lossesDelta, nowIso());
-  return sqliteDb.prepare("SELECT owner_key, elo, wins, losses, updated_at FROM ranked_global WHERE owner_key = ?").get(ownerKey);
+  const row = sqliteDb.prepare("SELECT owner_key, elo, wins, losses, updated_at FROM ranked_global WHERE owner_key = ?").get(ownerKey);
+  const elo = Math.max(100, Number(row?.elo || 1200));
+  sqliteDb
+    .prepare(`
+      INSERT INTO player_profiles (owner_key, created_at, updated_at, score)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(owner_key) DO UPDATE SET
+        score = excluded.score,
+        updated_at = excluded.updated_at
+    `)
+    .run(ownerKey, nowIso(), nowIso(), elo);
+  return row;
 }
 
 function upsertDromeRankDelta(ownerKeyRaw, result, nowDate = new Date(), options = {}) {
@@ -13747,6 +14233,10 @@ function buildProfilePayload(usernameRaw) {
     writeProfilesData(profilesState, "profile_bootstrap");
   }
   const scansStats = aggregateProfileScans(key, cards);
+  const rankedGlobalRow = sqliteDb
+    ? sqliteDb.prepare("SELECT elo FROM ranked_global WHERE owner_key = ? LIMIT 1").get(key)
+    : null;
+  const unifiedScore = Math.max(0, Number(rankedGlobalRow?.elo || profile.score || 1200));
   const currentSeasonKey = seasonKeyFromDate(new Date());
   const currentDromeSelection = getDromeSelectionForSeason(key, currentSeasonKey);
   const currentTag = getCurrentSeasonTagForOwner(key, currentSeasonKey);
@@ -13756,7 +14246,7 @@ function buildProfilePayload(usernameRaw) {
     username: key,
     favoriteTribe: profile.favoriteTribe || "",
     avatar: profile.avatar || "",
-    score: Number(profile.score || 0),
+    score: unifiedScore,
     wins: Number(profile.wins || 0),
     losses: Number(profile.losses || 0),
     winRate: Number(profile.winRate || 0),
@@ -14094,7 +14584,7 @@ function getProfileSummaryByOwnerKey(ownerKeyRaw) {
       u.username AS username,
       ? AS owner_key,
       COALESCE(p.avatar, '') AS avatar,
-      COALESCE(p.score, 1200) AS score,
+      COALESCE(rg.elo, p.score, 1200) AS score,
       COALESCE(p.wins, 0) AS wins,
       COALESCE(p.losses, 0) AS losses,
       COALESCE(p.win_rate, 0) AS win_rate,
@@ -14102,6 +14592,7 @@ function getProfileSummaryByOwnerKey(ownerKeyRaw) {
       COALESCE(p.updated_at, u.updated_at, u.created_at, '') AS updated_at
     FROM users u
     LEFT JOIN player_profiles p ON p.owner_key = lower(u.username)
+    LEFT JOIN ranked_global rg ON rg.owner_key = lower(u.username)
     WHERE lower(u.username) = ?
     LIMIT 1
   `).get(ownerKey, ownerKey);
@@ -14142,7 +14633,7 @@ function listFriendSummaries(ownerKeyRaw) {
       u.username AS username,
       u.tribe AS tribe,
       p.avatar AS avatar,
-      p.score AS score,
+      COALESCE(rg.elo, p.score, 1200) AS score,
       p.wins AS wins,
       p.losses AS losses,
       p.win_rate AS win_rate,
@@ -14151,6 +14642,7 @@ function listFriendSummaries(ownerKeyRaw) {
     FROM friends f
     LEFT JOIN users u ON lower(u.username) = f.friend_key
     LEFT JOIN player_profiles p ON p.owner_key = f.friend_key
+    LEFT JOIN ranked_global rg ON rg.owner_key = f.friend_key
     WHERE f.owner_key = ?
     ORDER BY datetime(f.created_at) DESC, f.friend_key ASC
   `).all(ownerKey);
@@ -14172,12 +14664,14 @@ function listTopPlayers(metricRaw = "score", limitRaw = 50) {
         lower(u.username) AS owner_key,
         u.username AS username,
         COALESCE(p.avatar, '') AS avatar,
-        COALESCE(p.score, 1200) AS score,
+        COALESCE(rg.elo, p.score, 1200) AS score,
         COALESCE(scans.total_scans, 0) AS total_scans,
         sel.drome_id AS drome_id
       FROM users u
       LEFT JOIN player_profiles p
         ON p.owner_key = lower(u.username)
+      LEFT JOIN ranked_global rg
+        ON rg.owner_key = lower(u.username)
       LEFT JOIN (
         SELECT owner_key, SUM(total_cards) AS total_scans
         FROM (
@@ -14200,7 +14694,7 @@ function listTopPlayers(metricRaw = "score", limitRaw = 50) {
         ON sel.owner_key = lower(u.username) AND sel.season_key = ?
       WHERE COALESCE(u.verified, 0) = 1
       ORDER BY
-        CASE WHEN ? = 'scans' THEN COALESCE(scans.total_scans, 0) ELSE COALESCE(p.score, 1200) END DESC,
+        CASE WHEN ? = 'scans' THEN COALESCE(scans.total_scans, 0) ELSE COALESCE(rg.elo, p.score, 1200) END DESC,
         lower(u.username) ASC
       LIMIT ?
     `)
@@ -14531,7 +15025,14 @@ function listTradeOnlinePlayersForRequester(ownerKeyRaw) {
       ORDER BY username ASC
     `)
     .all(now);
-  const scoreStmt = sqliteDb.prepare("SELECT score FROM player_profiles WHERE owner_key = ?");
+  const scoreStmt = sqliteDb.prepare(`
+    SELECT COALESCE(rg.elo, p.score, 1200) AS score
+    FROM users u
+    LEFT JOIN player_profiles p ON p.owner_key = lower(u.username)
+    LEFT JOIN ranked_global rg ON rg.owner_key = lower(u.username)
+    WHERE lower(u.username) = ?
+    LIMIT 1
+  `);
   return rows
     .map((row) => {
       const username = normalizeUserKey(row?.username || "");
@@ -15818,6 +16319,10 @@ function createMultiplayerRoomRecord({
   const roomId = generateMultiplayerRoomId();
   const normalizedMatchType = normalizeMatchType(matchType);
   const normalizedDromeId = normalizeDromeId(dromeId);
+  const rankedBanlistSnapshot =
+    normalizedMatchType === MATCH_TYPE_RANKED_DROME || normalizedMatchType === MATCH_TYPE_CODEMASTER_CHALLENGE
+      ? getActiveRankedBanlistSnapshot()
+      : null;
   const room = {
     id: roomId,
     rulesMode: isValidRulesMode(rulesMode) ? rulesMode : "competitive",
@@ -15831,6 +16336,7 @@ function createMultiplayerRoomRecord({
           dromeId: normalizeDromeId(challengeMeta.dromeId || normalizedDromeId),
         }
       : null,
+    rankedBanlistSnapshot,
     reservedGuestKey: normalizeUserKey(reservedGuestKey || "", ""),
     phase: "lobby",
     players: {
@@ -15911,8 +16417,23 @@ function setRoomDeckForSeat(room, seat, deckName, deckSnapshot, rulesModeRaw) {
     return { ok: false, error: "Deck invalido." };
   }
   const validation = validateDeckForRulesMode(snapshot, mode);
+  const enforceBanlist = normalizeMatchType(room?.matchType || "") === MATCH_TYPE_RANKED_DROME
+    || normalizeMatchType(room?.matchType || "") === MATCH_TYPE_CODEMASTER_CHALLENGE;
+  const banlistValidation = enforceBanlist
+    ? validateDeckAgainstRankedBanlist(snapshot, room?.rankedBanlistSnapshot || null)
+    : { ok: true, bannedCards: [] };
   const errors = Array.isArray(validation?.errors) ? validation.errors : [];
-  const isValid = Boolean(validation?.ok);
+  if (!banlistValidation.ok) {
+    const bannedLabels = banlistValidation.bannedCards
+      .slice(0, 5)
+      .map((entry) => String(entry?.cardName || entry?.cardId || "").trim())
+      .filter(Boolean);
+    const suffix = banlistValidation.bannedCards.length > 5
+      ? ` (+${banlistValidation.bannedCards.length - 5} outras)`
+      : "";
+    errors.push(`Deck contem carta(s) banida(s): ${bannedLabels.join(", ")}${suffix}.`);
+  }
+  const isValid = Boolean(validation?.ok) && Boolean(banlistValidation.ok);
   if (!room.deckSelect || typeof room.deckSelect !== "object") {
     room.deckSelect = {};
   }
@@ -15957,18 +16478,42 @@ async function tryStartRoomBattleFromDeckSelect(room) {
   }
   const hostValidation = validateDeckForRulesMode(hostDeck, room.rulesMode || "competitive");
   const guestValidation = validateDeckForRulesMode(guestDeck, room.rulesMode || "competitive");
-  if (!hostValidation.ok || !guestValidation.ok) {
+  const enforceBanlist = normalizeMatchType(room?.matchType || "") === MATCH_TYPE_RANKED_DROME
+    || normalizeMatchType(room?.matchType || "") === MATCH_TYPE_CODEMASTER_CHALLENGE;
+  const hostBanlistValidation = enforceBanlist
+    ? validateDeckAgainstRankedBanlist(hostDeck, room?.rankedBanlistSnapshot || null)
+    : { ok: true, bannedCards: [] };
+  const guestBanlistValidation = enforceBanlist
+    ? validateDeckAgainstRankedBanlist(guestDeck, room?.rankedBanlistSnapshot || null)
+    : { ok: true, bannedCards: [] };
+  if (!hostValidation.ok || !guestValidation.ok || !hostBanlistValidation.ok || !guestBanlistValidation.ok) {
+    const hostErrors = Array.isArray(hostValidation.errors) ? hostValidation.errors.slice(0, 3) : [];
+    const guestErrors = Array.isArray(guestValidation.errors) ? guestValidation.errors.slice(0, 3) : [];
+    if (!hostBanlistValidation.ok) {
+      const hostBanned = hostBanlistValidation.bannedCards
+        .slice(0, 5)
+        .map((entry) => String(entry?.cardName || entry?.cardId || ""))
+        .filter(Boolean);
+      hostErrors.push(`Banlist: ${hostBanned.join(", ")}`);
+    }
+    if (!guestBanlistValidation.ok) {
+      const guestBanned = guestBanlistValidation.bannedCards
+        .slice(0, 5)
+        .map((entry) => String(entry?.cardName || entry?.cardId || ""))
+        .filter(Boolean);
+      guestErrors.push(`Banlist: ${guestBanned.join(", ")}`);
+    }
     room.deckSelect.host = {
       ...(room.deckSelect?.host || {}),
       ready: false,
       valid: Boolean(hostValidation.ok),
-      errors: hostValidation.errors.slice(0, 3),
+      errors: hostErrors.slice(0, 3),
     };
     room.deckSelect.guest = {
       ...(room.deckSelect?.guest || {}),
       ready: false,
       valid: Boolean(guestValidation.ok),
-      errors: guestValidation.errors.slice(0, 3),
+      errors: guestErrors.slice(0, 3),
     };
     return { started: false, error: "Deck invalido para iniciar combate." };
   }
@@ -16076,6 +16621,14 @@ function buildRoomStatePayload(room, seatToken = "") {
           dromeId: normalizeDromeId(room.challengeMeta.dromeId || ""),
         }
       : null,
+    rankedBanlist: room?.rankedBanlistSnapshot && typeof room.rankedBanlistSnapshot === "object"
+      ? {
+          banlistId: Number(room.rankedBanlistSnapshot.banlistId || 0),
+          name: String(room.rankedBanlistSnapshot.name || ""),
+          updatedAt: String(room.rankedBanlistSnapshot.updatedAt || ""),
+          cardsCount: Array.isArray(room.rankedBanlistSnapshot.cards) ? room.rankedBanlistSnapshot.cards.length : 0,
+        }
+      : null,
     battleState: battleState ? encodeRichValue(battleState) : null,
     updatedAt: room.updatedAt || nowIso(),
     lastActionSeq: Number(room.lastActionSeq || 0),
@@ -16093,6 +16646,47 @@ function sendRoomEvent(room, payload) {
   });
 }
 
+function createBattleTelemetrySnapshot(battleState) {
+  if (!battleState || typeof battleState !== "object") {
+    return null;
+  }
+  const board = battleState.board || {};
+  const activePlayerIndex = Number.isInteger(board.activePlayerIndex) ? board.activePlayerIndex : null;
+  const engagement = board.engagement || {};
+  return {
+    phase: battleState.phase || null,
+    turnStep: battleState.turnStep || null,
+    activePlayerIndex,
+    pendingActionType: battleState.pendingAction?.type || null,
+    burstSize: Array.isArray(battleState.burstStack) ? battleState.burstStack.length : 0,
+    combatStep: battleState.combatState?.step || null,
+    engagement: {
+      attackerSlot: Number.isInteger(engagement.attackerSlot) ? engagement.attackerSlot : null,
+      defenderSlot: Number.isInteger(engagement.defenderSlot) ? engagement.defenderSlot : null,
+      attackerLetter: engagement.attackerLetter || null,
+      defenderLetter: engagement.defenderLetter || null,
+    },
+    finished: Boolean(battleState.finished),
+    winner: battleState.winner || null,
+  };
+}
+
+function appendBattleActionTelemetry(room, payload = {}) {
+  if (!room || !room.id) {
+    return;
+  }
+  const logPayload = {
+    roomId: room.id,
+    rulesMode: room.rulesMode || "competitive",
+    matchType: normalizeMatchType(room?.matchType || ""),
+    ...payload,
+  };
+  appendAuditLog("battle_action_intent", {
+    userKey: payload?.actorKey || "",
+    metadata: logPayload,
+  });
+}
+
 function broadcastRoomSnapshot(room, reason = "update") {
   room.updatedAt = nowIso();
   room.clients.forEach((client) => {
@@ -16104,6 +16698,18 @@ function broadcastRoomSnapshot(room, reason = "update") {
     };
     try {
       client.res.write(`data: ${JSON.stringify(payload)}\n\n`);
+      if (snapshot?.battleState) {
+        const battleDecoded = decodeRichValue(snapshot.battleState);
+        const gameStatePayload = {
+          type: "game_state_update",
+          reason,
+          seq: Number(room.lastActionSeq || 0),
+          phase: snapshot?.phase || room.phase || "lobby",
+          battleStateView: buildBattleStateView(battleDecoded),
+          snapshot,
+        };
+        client.res.write(`data: ${JSON.stringify(gameStatePayload)}\n\n`);
+      }
     } catch {
       room.clients.delete(client);
     }
@@ -16280,7 +16886,9 @@ function settleRoomForfeit(room, loserSeat) {
 async function applyRoomAction(room, action, actingPlayerIndex, actingSeat) {
   const engine = await getBattleEngine();
   const battle = room.battleState;
-  const type = String(action?.type || "");
+  const mappedProtocol = mapProtocolIntentToLegacyAction(action, battle, actingPlayerIndex);
+  const resolvedAction = mappedProtocol || action;
+  const type = String(resolvedAction?.type || "");
   const allowsFinishedPhase = type === "request_rematch" || type === "respond_rematch";
   if (!battle || (room.phase !== "in_game" && !(allowsFinishedPhase && room.phase === "finished"))) {
     throw new Error("Partida ainda nao iniciou.");
@@ -16329,7 +16937,7 @@ async function applyRoomAction(room, action, actingPlayerIndex, actingSeat) {
     if (room.rematch.requestedBy === actingSeat) {
       throw new Error("Aguarde a resposta do oponente.");
     }
-    if (Boolean(action.accept)) {
+    if (Boolean(resolvedAction.accept)) {
       await startRoomBattle(room);
       room.lastActionSeq = Number(room.lastActionSeq || 0) + 1;
       sendRoomEvent(room, {
@@ -16356,7 +16964,7 @@ async function applyRoomAction(room, action, actingPlayerIndex, actingSeat) {
 
   switch (type) {
     case "choose_attack":
-      engine.chooseAttack(battle, actingPlayerIndex, Number(action.index));
+      engine.chooseAttack(battle, actingPlayerIndex, Number(resolvedAction.index));
       break;
     case "confirm_attack":
       engine.advanceBattle(battle, false);
@@ -16366,31 +16974,89 @@ async function applyRoomAction(room, action, actingPlayerIndex, actingSeat) {
       engine.advanceBattle(battle, false);
       break;
     case "choose_mugic":
-      engine.chooseMugic(battle, action.value ?? null, null);
+      if (resolvedAction?.value && typeof resolvedAction.value === "object") {
+        engine.chooseMugic(
+          battle,
+          Number.isInteger(Number(resolvedAction.value.mugicIndex)) ? Number(resolvedAction.value.mugicIndex) : null,
+          resolvedAction.value.casterUnitId || null
+        );
+      } else {
+        engine.chooseMugic(battle, resolvedAction.value ?? null, null);
+      }
       engine.advanceBattle(battle, false);
       break;
     case "choose_mugic_caster":
-      engine.chooseMugic(battle, action.value ?? null, null);
+      engine.chooseMugic(battle, resolvedAction.value ?? null, null);
       engine.advanceBattle(battle, false);
       break;
     case "choose_ability":
-      engine.chooseActivatedAbility(battle, action.value ?? null);
+      if (resolvedAction?.value && typeof resolvedAction.value === "object") {
+        engine.chooseActivatedAbility(
+          battle,
+          Number.isInteger(Number(resolvedAction.value.optionIndex)) ? Number(resolvedAction.value.optionIndex) : null
+        );
+      } else {
+        engine.chooseActivatedAbility(battle, resolvedAction.value ?? null);
+      }
       engine.advanceBattle(battle, false);
       break;
     case "choose_target":
-      engine.chooseEffectTarget(battle, action.value ?? null);
+      if (Array.isArray(resolvedAction.value) && resolvedAction.value.length && battle.pendingAction?.type === "target_select") {
+        const matchCandidateId = (selection) => {
+          const step = battle.pendingAction?.targetSteps?.[battle.pendingAction?.currentStep];
+          const candidates = Array.isArray(step?.candidates) ? step.candidates : [];
+          const rawKind = String(selection?.kind || "").toLowerCase();
+          const rawId = String(selection?.id || "");
+          const numericId = Number(selection?.numericId);
+          const direct = candidates.find((candidate) => String(candidate?.id || "") === rawId);
+          if (direct?.id) {
+            return direct.id;
+          }
+          const matched = candidates.find((candidate) => {
+            if (rawKind && String(candidate?.type || "").toLowerCase() !== rawKind) {
+              return false;
+            }
+            if (rawId && String(candidate?.unitId || "") === rawId) return true;
+            if (rawId && String(candidate?.slot || "") === rawId) return true;
+            if (rawId && String(candidate?.stackIndex || "") === rawId) return true;
+            if (rawId && String(candidate?.playerIndex || "") === rawId) return true;
+            if (rawId && String(candidate?.mugicIndex || "") === rawId) return true;
+            if (rawId && String(candidate?.discardIndex || "") === rawId) return true;
+            if (rawId && String(candidate?.id || "").endsWith(`:${rawId}`)) return true;
+            if (Number.isInteger(numericId) && Number(candidate?.unitId) === numericId) return true;
+            if (Number.isInteger(numericId) && Number(candidate?.slot) === numericId) return true;
+            if (Number.isInteger(numericId) && Number(candidate?.stackIndex) === numericId) return true;
+            if (Number.isInteger(numericId) && Number(candidate?.mugicIndex) === numericId) return true;
+            if (Number.isInteger(numericId) && Number(candidate?.discardIndex) === numericId) return true;
+            return false;
+          });
+          return matched?.id || null;
+        };
+        for (const selection of resolvedAction.value) {
+          if (battle.pendingAction?.type !== "target_select") {
+            break;
+          }
+          const candidateId = matchCandidateId(selection);
+          if (!candidateId) {
+            continue;
+          }
+          engine.chooseEffectTarget(battle, candidateId);
+        }
+      } else {
+        engine.chooseEffectTarget(battle, resolvedAction.value ?? null);
+      }
       engine.advanceBattle(battle, false);
       break;
     case "choose_choice":
-      engine.chooseEffectChoice(battle, action.value ?? null);
+      engine.chooseEffectChoice(battle, resolvedAction.value ?? null);
       engine.advanceBattle(battle, false);
       break;
     case "choose_defender":
-      engine.chooseDefenderRedirect(battle, action.value ?? null);
+      engine.chooseDefenderRedirect(battle, resolvedAction.value ?? null);
       engine.advanceBattle(battle, false);
       break;
     case "declare_move": {
-      const moved = engine.declareMove(battle, Number(action.fromSlot), action.toLetter);
+      const moved = engine.declareMove(battle, Number(resolvedAction.fromSlot), resolvedAction.toLetter);
       if (moved) {
         const attacker = battle.board?.engagement?.attackerSlot;
         const defender = battle.board?.engagement?.defenderSlot;
@@ -17266,7 +17932,18 @@ async function handleRequest(request, response) {
         ORDER BY username ASC
       `)
       .all(now);
-    const scoreStmt = sqliteDb.prepare("SELECT score, wins, losses, updated_at FROM player_profiles WHERE owner_key = ?");
+    const scoreStmt = sqliteDb.prepare(`
+      SELECT
+        COALESCE(rg.elo, p.score, 1200) AS score,
+        COALESCE(p.wins, 0) AS wins,
+        COALESCE(p.losses, 0) AS losses,
+        COALESCE(p.updated_at, rg.updated_at, '') AS updated_at
+      FROM users u
+      LEFT JOIN player_profiles p ON p.owner_key = lower(u.username)
+      LEFT JOIN ranked_global rg ON rg.owner_key = lower(u.username)
+      WHERE lower(u.username) = ?
+      LIMIT 1
+    `);
     const scansStmt = sqliteDb.prepare("SELECT card_type, COUNT(*) AS total FROM scan_entries WHERE owner_key = ? GROUP BY card_type");
     const players = rows.map((row) => {
       const ownerKey = normalizeUserKey(row?.username);
@@ -19102,13 +19779,17 @@ async function handleRequest(request, response) {
       scoreLoss: 10,
     });
     writeProfilesData(profilesState, "profile_battle_result");
+    let globalRankRow = null;
     if (isRankedMatch) {
       upsertSeasonPlayerDelta(username, {
         score: result === "win" ? 20 : -5,
         wins: result === "win" ? 1 : 0,
         losses: result === "loss" ? 1 : 0,
       });
-      upsertGlobalRankDelta(username, result);
+      globalRankRow = upsertGlobalRankDelta(username, result);
+      if (globalRankRow) {
+        profile.score = Math.max(100, Number(globalRankRow?.elo || profile.score || 1200));
+      }
     }
     if (matchType === MATCH_TYPE_RANKED_DROME) {
       upsertDromeRankDelta(username, result, new Date(), {
@@ -19157,6 +19838,9 @@ async function handleRequest(request, response) {
           roomIdRaw: challengeRoomId,
         });
       }
+    }
+    if (isRankedMatch) {
+      writeProfilesData(profilesState, "profile_battle_result_ranked_sync");
     }
     invalidateUserCaches(username);
     sendJson(response, 200, { ok: true, profile: buildProfilePayload(username) });
@@ -19816,6 +20500,24 @@ async function handleRequest(request, response) {
       sendJson(response, 403, { error: "O deck selecionado pertence a outro jogador." });
       return;
     }
+    const activeBanlist = getActiveRankedBanlistSnapshot();
+    const banlistValidation = validateDeckAgainstRankedBanlist(deckData, activeBanlist);
+    if (!banlistValidation.ok) {
+      const blocked = banlistValidation.bannedCards
+        .slice(0, 6)
+        .map((entry) => String(entry?.cardName || entry?.cardId || ""))
+        .filter(Boolean);
+      sendJson(response, 400, {
+        error: `Deck contem carta(s) banida(s) no ranked: ${blocked.join(", ")}.`,
+        details: {
+          banlist: activeBanlist
+            ? { banlistId: activeBanlist.banlistId, name: activeBanlist.name }
+            : null,
+          blockedCards: banlistValidation.bannedCards,
+        },
+      });
+      return;
+    }
     sqliteDb
       .prepare(`
         UPDATE drome_codemasters
@@ -20039,12 +20741,17 @@ async function handleRequest(request, response) {
     }
     const hostDeckValidation = validateDeckForRulesMode(hostDeck, "competitive");
     const guestDeckValidation = validateDeckForRulesMode(guestDeck, "competitive");
-    if (!hostDeckValidation.ok || !guestDeckValidation.ok) {
+    const activeBanlist = getActiveRankedBanlistSnapshot();
+    const hostBanlistValidation = validateDeckAgainstRankedBanlist(hostDeck, activeBanlist);
+    const guestBanlistValidation = validateDeckAgainstRankedBanlist(guestDeck, activeBanlist);
+    if (!hostDeckValidation.ok || !guestDeckValidation.ok || !hostBanlistValidation.ok || !guestBanlistValidation.ok) {
       sendJson(response, 400, {
         error: "Deck invalido para desafio competitivo.",
         details: {
           codemaster: hostDeckValidation.errors || [],
           challenger: guestDeckValidation.errors || [],
+          codemasterBanlist: hostBanlistValidation.bannedCards || [],
+          challengerBanlist: guestBanlistValidation.bannedCards || [],
         },
       });
       return;
@@ -21451,17 +22158,32 @@ async function handleRequest(request, response) {
           return sendJson(response, 400, { error: "Selecione seu deck antes de marcar pronto." });
         }
         const validation = validateDeckForRulesMode(ownDeck, room.rulesMode || "competitive");
+        const enforceBanlist = normalizeMatchType(room?.matchType || "") === MATCH_TYPE_RANKED_DROME
+          || normalizeMatchType(room?.matchType || "") === MATCH_TYPE_CODEMASTER_CHALLENGE;
+        const banlistValidation = enforceBanlist
+          ? validateDeckAgainstRankedBanlist(ownDeck, room?.rankedBanlistSnapshot || null)
+          : { ok: true, bannedCards: [] };
+        const extraErrors = [];
+        if (!banlistValidation.ok) {
+          const bannedLabels = banlistValidation.bannedCards
+            .slice(0, 5)
+            .map((entry) => String(entry?.cardName || entry?.cardId || ""))
+            .filter(Boolean);
+          extraErrors.push(`Banlist: ${bannedLabels.join(", ")}`);
+        }
+        const combinedErrors = [...(Array.isArray(validation.errors) ? validation.errors : []), ...extraErrors];
+        const isValid = Boolean(validation.ok) && Boolean(banlistValidation.ok);
         room.deckSelect[seatInfo.seat] = {
           ...(room.deckSelect[seatInfo.seat] || {}),
           deckName: String(room.players?.[seatInfo.seat]?.deckName || ""),
-          valid: Boolean(validation.ok),
-          errors: Array.isArray(validation.errors) ? validation.errors.slice(0, 3) : [],
-          ready: Boolean(validation.ok),
+          valid: isValid,
+          errors: combinedErrors.slice(0, 3),
+          ready: isValid,
         };
-        if (!validation.ok) {
+        if (!isValid) {
           room.updatedAt = nowIso();
           broadcastRoomSnapshot(room, "deck_select_update");
-          return sendJson(response, 400, { error: `Deck invalido para modo ${room.rulesMode}: ${validation.errors.slice(0, 3).join(" | ")}` });
+          return sendJson(response, 400, { error: `Deck invalido para modo ${room.rulesMode}: ${combinedErrors.slice(0, 3).join(" | ")}` });
         }
       } else {
         room.deckSelect[seatInfo.seat] = {
@@ -21517,7 +22239,20 @@ async function handleRequest(request, response) {
         return;
       }
       const decodedAction = decodeRichValue(payload.action || {});
-      const actionType = String(decodedAction?.type || "");
+      const decodedIntent = decodeRichValue(payload.intent ?? null);
+      let resolvedAction = decodedAction;
+      if (decodedIntent !== null && decodedIntent !== undefined) {
+        const normalizedIntent = normalizeBattleIntent(decodedIntent, decodedAction);
+        if (!normalizedIntent) {
+          return sendJson(response, 400, { error: "Intent de batalha invalido." });
+        }
+        const mappedAction = mapProtocolIntentToLegacyAction(normalizedIntent, room.battleState, seatInfo.playerIndex);
+        if (!mappedAction) {
+          return sendJson(response, 400, { error: "Intent nao permitido para a fase atual." });
+        }
+        resolvedAction = mappedAction;
+      }
+      const actionType = String(resolvedAction?.type || "");
       const bypassTurnValidation = actionType === "forfeit" || actionType === "request_rematch" || actionType === "respond_rematch";
       const allowsFinishedPhase = actionType === "request_rematch" || actionType === "respond_rematch";
       if (!room.battleState || (room.phase !== "in_game" && !(allowsFinishedPhase && room.phase === "finished"))) {
@@ -21532,8 +22267,12 @@ async function handleRequest(request, response) {
           return sendJson(response, 409, { error: "Nao e o seu turno." });
         }
       }
+      const stateBefore = createBattleTelemetrySnapshot(room.battleState);
+      const actorKey = seatInfo.seat === "host"
+        ? normalizeUserKey(room.players?.host?.username || room.players?.host?.name || "host")
+        : normalizeUserKey(room.players?.guest?.username || room.players?.guest?.name || "guest");
       try {
-        await applyRoomAction(room, decodedAction, seatInfo.playerIndex, seatInfo.seat);
+        await applyRoomAction(room, resolvedAction, seatInfo.playerIndex, seatInfo.seat);
       } catch (error) {
         return sendJson(response, 400, { error: error?.message || "Falha ao aplicar acao." });
       }
@@ -21545,6 +22284,25 @@ async function handleRequest(request, response) {
         clearAllDisconnectTimers(room);
       }
       room.updatedAt = nowIso();
+      const stateAfter = createBattleTelemetrySnapshot(room.battleState);
+      appendBattleActionTelemetry(room, {
+        actorKey,
+        actorSeat: seatInfo.seat,
+        playerIndex: Number(seatInfo.playerIndex),
+        intent: normalizeBattleIntent(decodedIntent, resolvedAction),
+        action: resolvedAction,
+        actionFamily: classifyActionFamily(resolvedAction),
+        state_before: stateBefore,
+        state_after: stateAfter,
+        effects_resolved: Array.isArray(room.battleState?.effectLog)
+          ? room.battleState.effectLog.slice(-5).map((entry) => ({
+              type: entry?.type || null,
+              effectKind: entry?.effectKind || null,
+              source: entry?.source || null,
+              result: entry?.result || null,
+            }))
+          : [],
+      });
       if (!bypassTurnValidation) {
         broadcastRoomSnapshot(room, "action_applied");
       }
@@ -21586,6 +22344,17 @@ async function handleRequest(request, response) {
       }
       const snapshot = buildRoomStatePayload(room, seatToken);
       response.write(`data: ${JSON.stringify({ type: "room_snapshot", reason: "initial", snapshot })}\n\n`);
+      if (snapshot?.battleState) {
+        const battleDecoded = decodeRichValue(snapshot.battleState);
+        response.write(`data: ${JSON.stringify({
+          type: "game_state_update",
+          reason: "initial",
+          seq: Number(room.lastActionSeq || 0),
+          phase: snapshot?.phase || room.phase || "lobby",
+          battleStateView: buildBattleStateView(battleDecoded),
+          snapshot,
+        })}\n\n`);
+      }
 
       request.on("close", () => {
         room.clients.delete(client);
