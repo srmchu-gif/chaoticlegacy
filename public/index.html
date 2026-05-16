@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/styles.css?v=10" />
+    <link rel="stylesheet" href="css/styles.css?v=11" />
     <link rel="stylesheet" href="css/music.css?v=7" />
     <script src="config.js"></script>
     <script>
@@ -58,9 +58,7 @@
                   </div>
                 </div>
                 <div class="builder-filters">
-                <article class="builder-filter-card">
-                  <h3>Busca &amp; Tipo</h3>
-                  <div class="builder-filter-row">
+                  <div class="builder-filters-main">
                     <input id="card-search" type="search" placeholder="Buscar carta..." />
                     <select id="card-type-filter">
                       <option value="all">Todos Tipos</option>
@@ -70,76 +68,6 @@
                       <option value="mugic">Mugic</option>
                       <option value="attacks">Attacks</option>
                     </select>
-                    <button id="clear-library-filters" type="button" class="ghost-btn">Limpar Filtros</button>
-                  </div>
-                </article>
-                <article class="builder-filter-card">
-                  <h3>Classificacao</h3>
-                  <div class="builder-filter-row">
-                    <select id="element-filter">
-                      <option value="">Todos Elementos</option>
-                      <option value="fire">Fire</option>
-                      <option value="air">Air</option>
-                      <option value="earth">Earth</option>
-                      <option value="water">Water</option>
-                    </select>
-                    <select id="tribe-filter">
-                      <option value="">Todas Tribos</option>
-                      <option value="overworld">OverWorld</option>
-                      <option value="underworld">UnderWorld</option>
-                      <option value="mipedian">Mipedian</option>
-                      <option value="danian">Danian</option>
-                      <option value="marrillian">Marrillian</option>
-                    </select>
-                  </div>
-                  <div class="builder-flag-grid">
-                    <label class="flag-filter">
-                      <input id="flag-alpha" type="checkbox" />
-                      Alpha
-                    </label>
-                    <label class="flag-filter">
-                      <input id="flag-promo" type="checkbox" />
-                      Promo
-                    </label>
-                    <label class="flag-filter">
-                      <input id="flag-unused" type="checkbox" />
-                      Unused
-                    </label>
-                    <label class="flag-filter">
-                      <input id="flag-other" type="checkbox" />
-                      Outras
-                    </label>
-                  </div>
-                </article>
-                <article class="builder-filter-card">
-                  <h3>Raridade &amp; Progressao</h3>
-                  <div class="builder-filter-grid-2">
-                    <label class="builder-filter-field">
-                      <span id="set-filter-title" class="filter-title-inline">Sets (multiselecao)</span>
-                      <select id="set-filter" multiple size="4" title="Filtro de sets"></select>
-                    </label>
-                    <label class="builder-filter-field">
-                      <span id="stars-filter-title" class="filter-title-inline">Estrelas (criaturas)</span>
-                      <select id="stars-filter" multiple size="4" title="Filtro de estrelas">
-                        <option value="">Todas as estrelas</option>
-                        <option value="0.0">0.0★</option>
-                        <option value="0.5">0.5★</option>
-                        <option value="1.0">1.0★</option>
-                        <option value="1.5">1.5★</option>
-                        <option value="2.0">2.0★</option>
-                        <option value="2.5">2.5★</option>
-                        <option value="3.0">3.0★</option>
-                        <option value="3.5">3.5★</option>
-                        <option value="4.0">4.0★</option>
-                        <option value="4.5">4.5★</option>
-                        <option value="5.0">5.0★</option>
-                      </select>
-                    </label>
-                  </div>
-                </article>
-                <article class="builder-filter-card">
-                  <h3>Ordenacao</h3>
-                  <div class="builder-filter-row">
                     <select id="sort-field-filter">
                       <option value="name">Ordenar: Nome</option>
                       <option value="set">Ordenar: Set</option>
@@ -151,18 +79,77 @@
                       <option value="asc">Crescente</option>
                       <option value="desc">Decrescente</option>
                     </select>
+                    <button id="desktop-builder-filters-toggle" type="button" class="ghost-btn" aria-expanded="false">Mais filtros</button>
+                    <button id="clear-library-filters" type="button" class="ghost-btn">Limpar Filtros</button>
                   </div>
-                </article>
-                <article class="builder-filter-card">
-                  <h3>Disciplinas Minimas</h3>
-                  <div class="builder-filter-row builder-filter-stats">
-                    <input id="courage-min" type="number" min="0" placeholder="C>= " />
-                    <input id="power-min" type="number" min="0" placeholder="P>= " />
-                    <input id="wisdom-min" type="number" min="0" placeholder="W>= " />
-                    <input id="speed-min" type="number" min="0" placeholder="S>= " />
+
+                  <div id="builder-filters-advanced" class="builder-filters-advanced is-collapsed">
+                    <div class="builder-filter-row builder-filter-grid-2">
+                      <select id="element-filter">
+                        <option value="">Todos Elementos</option>
+                        <option value="fire">Fire</option>
+                        <option value="air">Air</option>
+                        <option value="earth">Earth</option>
+                        <option value="water">Water</option>
+                      </select>
+                      <select id="tribe-filter">
+                        <option value="">Todas Tribos</option>
+                        <option value="overworld">OverWorld</option>
+                        <option value="underworld">UnderWorld</option>
+                        <option value="mipedian">Mipedian</option>
+                        <option value="danian">Danian</option>
+                        <option value="marrillian">Marrillian</option>
+                      </select>
+                    </div>
+                    <div class="builder-flag-grid">
+                      <label class="flag-filter">
+                        <input id="flag-alpha" type="checkbox" />
+                        Alpha
+                      </label>
+                      <label class="flag-filter">
+                        <input id="flag-promo" type="checkbox" />
+                        Promo
+                      </label>
+                      <label class="flag-filter">
+                        <input id="flag-unused" type="checkbox" />
+                        Unused
+                      </label>
+                      <label class="flag-filter">
+                        <input id="flag-other" type="checkbox" />
+                        Outras
+                      </label>
+                    </div>
+                    <div class="builder-filter-grid-2">
+                      <label class="builder-filter-field">
+                        <span id="set-filter-title" class="filter-title-inline">Sets (multiselecao)</span>
+                        <select id="set-filter" multiple size="4" title="Filtro de sets"></select>
+                      </label>
+                      <label class="builder-filter-field">
+                        <span id="stars-filter-title" class="filter-title-inline">Estrelas (criaturas)</span>
+                        <select id="stars-filter" multiple size="4" title="Filtro de estrelas">
+                          <option value="">Todas as estrelas</option>
+                          <option value="0.0">0.0★</option>
+                          <option value="0.5">0.5★</option>
+                          <option value="1.0">1.0★</option>
+                          <option value="1.5">1.5★</option>
+                          <option value="2.0">2.0★</option>
+                          <option value="2.5">2.5★</option>
+                          <option value="3.0">3.0★</option>
+                          <option value="3.5">3.5★</option>
+                          <option value="4.0">4.0★</option>
+                          <option value="4.5">4.5★</option>
+                          <option value="5.0">5.0★</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="builder-filter-row builder-filter-stats">
+                      <input id="courage-min" type="number" min="0" placeholder="C>= " />
+                      <input id="power-min" type="number" min="0" placeholder="P>= " />
+                      <input id="wisdom-min" type="number" min="0" placeholder="W>= " />
+                      <input id="speed-min" type="number" min="0" placeholder="S>= " />
+                    </div>
                   </div>
-                </article>
-              </div>
+                </div>
               </div>
             </div>
             <div id="card-library" class="card-list"></div>
@@ -572,7 +559,7 @@
     <div id="hover-preview" class="hover-preview"></div>
     <div id="fps-counter" class="fps-counter hidden" aria-live="polite">FPS: --</div>
 
-    <script type="module" src="js/app.js?v=11"></script>
+    <script type="module" src="js/app.js?v=12"></script>
   </body>
 </html>
 

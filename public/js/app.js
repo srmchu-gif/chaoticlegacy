@@ -115,6 +115,8 @@ const UI_LANGUAGE_LABELS = {
     mobileFiltersToggle: "Filtros",
     mobileFiltersClose: "Fechar",
     mobileFiltersApply: "Aplicar",
+    desktopFiltersMore: "Mais filtros",
+    desktopFiltersLess: "Menos filtros",
     libraryTitle: "Scans",
     libraryViewLibrary: "Biblioteca",
     libraryViewScans: "Scans",
@@ -159,6 +161,8 @@ const UI_LANGUAGE_LABELS = {
     mobileFiltersToggle: "Filters",
     mobileFiltersClose: "Close",
     mobileFiltersApply: "Apply",
+    desktopFiltersMore: "More filters",
+    desktopFiltersLess: "Fewer filters",
     libraryTitle: "Scans",
     libraryViewLibrary: "Library",
     libraryViewScans: "Scans",
@@ -203,6 +207,8 @@ const UI_LANGUAGE_LABELS = {
     mobileFiltersToggle: "Filtros",
     mobileFiltersClose: "Cerrar",
     mobileFiltersApply: "Aplicar",
+    desktopFiltersMore: "Mas filtros",
+    desktopFiltersLess: "Menos filtros",
     libraryTitle: "Scans",
     libraryViewLibrary: "Biblioteca",
     libraryViewScans: "Scans",
@@ -529,6 +535,7 @@ const appState = {
   mobileFiltersDrawer: {
     open: false,
   },
+  desktopFiltersExpanded: false,
   scans: {
     cards: {
       creatures: [],
@@ -699,6 +706,8 @@ const el = {
   builderFiltersDrawerBackdrop: document.querySelector("#builder-filters-drawer-backdrop"),
   builderFiltersDrawerClose: document.querySelector("#builder-filters-drawer-close"),
   builderFiltersDrawerApply: document.querySelector("#builder-filters-drawer-apply"),
+  desktopBuilderFiltersToggle: document.querySelector("#desktop-builder-filters-toggle"),
+  builderFiltersAdvanced: document.querySelector("#builder-filters-advanced"),
   deckMode: document.querySelector("#deck-mode"),
   deckName: document.querySelector("#deck-name"),
   saveDeck: document.querySelector("#save-deck"),
@@ -3605,6 +3614,7 @@ function applyInterfaceLanguage() {
       }
     });
   }
+  renderDesktopBuilderFilters();
   updateScansStockSummaryFromAvailable();
 }
 
@@ -4252,7 +4262,11 @@ function switchTab(target = "builder") {
     appState.mobileViewer.active = false;
     appState.mobileFiltersDrawer.open = false;
   }
+  if (tab === "builder" && !isMobileViewport()) {
+    appState.desktopFiltersExpanded = false;
+  }
   syncTopbarButtons();
+  renderDesktopBuilderFilters();
   renderMobileBuilderFiltersDrawer();
   renderMobileScanViewer();
 }
@@ -4280,6 +4294,32 @@ function syncTopbarButtons() {
     el.mobileScanViewerToggle.classList.toggle("hidden", !canUseMobileViewer);
     el.mobileScanViewerToggle.classList.toggle("active", Boolean(appState.mobileViewer.active && canUseMobileViewer));
   }
+}
+
+function renderDesktopBuilderFilters() {
+  const isDesktopBuilder = appState.currentTab === "builder" && !isMobileViewport();
+  const isExpanded = Boolean(isDesktopBuilder && appState.desktopFiltersExpanded);
+  if (el.builderFiltersAdvanced) {
+    el.builderFiltersAdvanced.classList.toggle("is-collapsed", isDesktopBuilder && !isExpanded);
+  }
+  if (el.desktopBuilderFiltersToggle) {
+    const language = normalizeLanguage(appState.settings.language.ui);
+    const dictionary = UI_LANGUAGE_LABELS[language] || UI_LANGUAGE_LABELS.pt;
+    el.desktopBuilderFiltersToggle.classList.toggle("hidden", !isDesktopBuilder);
+    el.desktopBuilderFiltersToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+    el.desktopBuilderFiltersToggle.textContent = isExpanded
+      ? String(dictionary.desktopFiltersLess || "Menos filtros")
+      : String(dictionary.desktopFiltersMore || "Mais filtros");
+  }
+}
+
+function setDesktopBuilderFiltersExpanded(expanded) {
+  if (isMobileViewport()) {
+    appState.desktopFiltersExpanded = false;
+  } else {
+    appState.desktopFiltersExpanded = Boolean(expanded);
+  }
+  renderDesktopBuilderFilters();
 }
 
 function setMobileBuilderFiltersDrawerOpen(open) {
@@ -6789,6 +6829,11 @@ function bindEvents() {
       setMobileBuilderFiltersDrawerOpen(!appState.mobileFiltersDrawer.open);
     });
   }
+  if (el.desktopBuilderFiltersToggle) {
+    el.desktopBuilderFiltersToggle.addEventListener("click", () => {
+      setDesktopBuilderFiltersExpanded(!appState.desktopFiltersExpanded);
+    });
+  }
   if (el.builderFiltersDrawerBackdrop) {
     el.builderFiltersDrawerBackdrop.addEventListener("click", () => {
       setMobileBuilderFiltersDrawerOpen(false);
@@ -7367,7 +7412,11 @@ async function init() {
     if (!isMobileViewport() && appState.mobileFiltersDrawer.open) {
       appState.mobileFiltersDrawer.open = false;
     }
+    if (!isMobileViewport() && appState.currentTab === "builder") {
+      appState.desktopFiltersExpanded = false;
+    }
     syncTopbarButtons();
+    renderDesktopBuilderFilters();
     renderMobileBuilderFiltersDrawer();
     renderMobileScanViewer();
   });
