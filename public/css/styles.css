@@ -266,6 +266,12 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
   column-gap:.55rem;
   row-gap:.5rem;
 }
+#deck-builder .library-panel,
+#deck-builder .deck-panel,
+#deck-builder .builder-filters,
+#deck-builder .builder-filters-main{
+  min-width:0;
+}
 #deck-builder #builder-filters-drawer{
   flex:1 0 100%;
   min-width:0;
