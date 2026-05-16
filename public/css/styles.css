@@ -289,10 +289,11 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
 }
 #deck-builder .builder-filters-main{
   display:grid;
-  grid-template-columns:minmax(180px,1.25fr) minmax(140px,.9fr) minmax(170px,1fr);
+  grid-template-columns:repeat(2,minmax(0,1fr));
   grid-template-areas:
-    "search type sort"
-    "direction more clear";
+    "search type"
+    "sort direction"
+    "more clear";
   gap:.42rem;
   align-items:center;
 }
@@ -328,6 +329,7 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
   font-size:.72rem;
   min-height:1.86rem;
   border-radius:8px;
+  width:100%;
 }
 #deck-builder .builder-filters #clear-library-filters{
   justify-self:stretch;
@@ -457,10 +459,11 @@ input,select{min-height:1.9rem;border:1px solid var(--border);border-radius:4px;
 }
 @media (max-width:1100px){
   #deck-builder .builder-filters-main{
-    grid-template-columns:minmax(165px,1.2fr) minmax(130px,.88fr) minmax(150px,1fr);
+    grid-template-columns:repeat(2,minmax(0,1fr));
     grid-template-areas:
-      "search type sort"
-      "direction more clear";
+      "search type"
+      "sort direction"
+      "more clear";
   }
   #deck-builder .builder-filters #desktop-builder-filters-toggle,
   #deck-builder .builder-filters #clear-library-filters{
