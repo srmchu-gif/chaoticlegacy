@@ -3065,7 +3065,7 @@ function bindDromos(username) {
     const rows = [
       `Temporada: ${escapeHtml(overview.seasonKey || "-")}`,
       `Dromo selecionado: ${escapeHtml(selection?.dromeName || selection?.dromeId || "-")}`,
-      `Pontuacao atual: ${myStats ? Number(myStats.score || 0) : 0}`,
+      `Elo global atual: ${myStats ? Number(myStats.score || 0) : 0}`,
       `W/L: ${myStats ? `${Number(myStats.wins || 0)} / ${Number(myStats.losses || 0)}` : "0 / 0"}`,
       `Tag atual: ${escapeHtml(tagLabel)}`,
     ];
@@ -3188,7 +3188,7 @@ function bindDromos(username) {
         blocks.push(...entries.map((entry) => `
           <div class="dromos-row">
             <strong>#${Number(entry.rank || 0)} ${escapeHtml(entry.username || "-")}</strong>
-            <span>Score ${Number(entry.score || 0)} • W/L ${Number(entry.wins || 0)}/${Number(entry.losses || 0)}</span>
+            <span>Elo global ${Number(entry.score || 0)} • W/L ${Number(entry.wins || 0)}/${Number(entry.losses || 0)}</span>
             <span>${escapeHtml(entry.title || "-")}</span>
           </div>
         `));
@@ -3223,7 +3223,7 @@ function bindDromos(username) {
               <img src="${escapeAttr(entry.hostAvatar || "/fundo%20cartas.png")}" alt="${escapeAttr(entry.hostName || "Host")}" />
               <div>
                 <strong>${escapeHtml(entry.hostName || "Host")}</strong>
-                <span>Score ${Number(entry.hostScore || 0)} • ${escapeHtml(entry.hostDeckName || "-")}</span>
+                <span>Elo global ${Number(entry.hostScore || 0)} • ${escapeHtml(entry.hostDeckName || "-")}</span>
                 <span>${escapeHtml(entry.hostMessage || `${entry.hostName || "Host"} esta jogando de ${entry.hostDeckName || "-"}`)}</span>
               </div>
             </div>
@@ -3232,7 +3232,7 @@ function bindDromos(username) {
               <img src="${escapeAttr(entry.guestAvatar || "/fundo%20cartas.png")}" alt="${escapeAttr(entry.guestName || "Guest")}" />
               <div>
                 <strong>${escapeHtml(entry.guestName || "Guest")}</strong>
-                <span>Score ${Number(entry.guestScore || 0)} • ${escapeHtml(entry.guestDeckName || "-")}</span>
+                <span>Elo global ${Number(entry.guestScore || 0)} • ${escapeHtml(entry.guestDeckName || "-")}</span>
                 <span>${escapeHtml(entry.guestMessage || `${entry.guestName || "Guest"} esta jogando de ${entry.guestDeckName || "-"}`)}</span>
               </div>
             </div>

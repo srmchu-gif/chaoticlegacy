@@ -136,9 +136,6 @@ const USERNAME_MAX_LENGTH = 30;
 const STRICT_USERNAME_REGEX = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/;
 const USERNAME_ALIAS_NAMESPACE = "auth_username_alias";
 const DROME_BASE_SCORE = 1200;
-const DROME_RANKED_WIN_SCORE = 24;
-const DROME_RANKED_LOSS_SCORE = -8;
-const CODEMASTER_WIN_BONUS_SCORE = 14;
 const DROME_CHALLENGE_INVITE_TTL_MS = 10 * 60 * 1000;
 const RANKED_BANLIST_DEFAULT_NAME = "Ranked Default";
 const GLOBAL_CHAT_RETENTION_DAYS = Math.max(1, Number(process.env.GLOBAL_CHAT_RETENTION_DAYS || 1));
@@ -1076,6 +1073,31 @@ function createSqlV2Tables() {
       losses INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL
     );
+  `);
+  const rankedGlobalBackfillNow = nowIso();
+  sqliteDb
+    .prepare(`
+      INSERT OR IGNORE INTO ranked_global (owner_key, elo, wins, losses, updated_at)
+      SELECT
+        lower(u.username) AS owner_key,
+        MAX(100, CAST(COALESCE(p.score, 1200) AS INTEGER)) AS elo,
+        MAX(0, CAST(COALESCE(p.wins, 0) AS INTEGER)) AS wins,
+        MAX(0, CAST(COALESCE(p.losses, 0) AS INTEGER)) AS losses,
+        ? AS updated_at
+      FROM users u
+      LEFT JOIN player_profiles p
+        ON p.owner_key = lower(u.username)
+      WHERE trim(COALESCE(u.username, '')) != ''
+    `)
+    .run(rankedGlobalBackfillNow);
+  sqliteDb.exec(`
+    UPDATE player_profiles
+    SET score = COALESCE(
+      (SELECT rg.elo FROM ranked_global rg WHERE rg.owner_key = player_profiles.owner_key LIMIT 1),
+      score
+    )
+    WHERE owner_key IN (SELECT owner_key FROM ranked_global)
+      AND score != COALESCE((SELECT rg.elo FROM ranked_global rg WHERE rg.owner_key = player_profiles.owner_key LIMIT 1), score);
   `);
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS ranked_drome_selection (
@@ -13557,10 +13579,14 @@ function getDromeRankPosition(seasonKeyRaw, dromeIdRaw, ownerKeyRaw) {
   }
   const rows = sqliteDb
     .prepare(`
-      SELECT owner_key
-      FROM ranked_drome_stats
-      WHERE season_key = ? AND drome_id = ?
-      ORDER BY score DESC, wins DESC, losses ASC, owner_key ASC
+      SELECT ds.owner_key
+      FROM ranked_drome_stats ds
+      LEFT JOIN ranked_global rg
+        ON rg.owner_key = ds.owner_key
+      LEFT JOIN player_profiles p
+        ON p.owner_key = ds.owner_key
+      WHERE ds.season_key = ? AND ds.drome_id = ?
+      ORDER BY COALESCE(rg.elo, p.score, 1200) DESC, ds.wins DESC, ds.losses ASC, ds.owner_key ASC
     `)
     .all(seasonKey, dromeId);
   if (!rows.length) {
@@ -13591,29 +13617,31 @@ function buildFallbackDromeTag(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDate(new
   return `${dromeTagPrefixById(selection.dromeId)}${Number(rank)}`;
 }
 
-function getCurrentDromeScore(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDate(new Date()), dromeIdRaw = "") {
+function getCurrentGlobalScore(ownerKeyRaw, fallbackScore = 1200) {
   if (!sqliteDb) {
-    return DROME_BASE_SCORE;
+    return Math.max(100, Number(fallbackScore || 1200));
   }
   const ownerKey = normalizeUserKey(ownerKeyRaw, "");
-  const seasonKey = String(seasonKeyRaw || "").trim();
-  if (!ownerKey || !seasonKey) {
-    return DROME_BASE_SCORE;
+  if (!ownerKey) {
+    return Math.max(100, Number(fallbackScore || 1200));
   }
-  const dromeId = normalizeDromeId(dromeIdRaw || getDromeSelectionForSeason(ownerKey, seasonKey)?.dromeId || "");
-  if (!dromeId) {
-    return DROME_BASE_SCORE;
-  }
-  ensureDromeBaselineRow(ownerKey, dromeId, seasonKey);
   const row = sqliteDb
     .prepare(`
-      SELECT score
-      FROM ranked_drome_stats
-      WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+      SELECT COALESCE(rg.elo, p.score, 1200) AS score
+      FROM users u
+      LEFT JOIN ranked_global rg
+        ON rg.owner_key = lower(u.username)
+      LEFT JOIN player_profiles p
+        ON p.owner_key = lower(u.username)
+      WHERE lower(u.username) = ?
       LIMIT 1
     `)
-    .get(seasonKey, dromeId, ownerKey);
-  return Math.max(0, Number(row?.score || DROME_BASE_SCORE));
+    .get(ownerKey);
+  return Math.max(100, Number(row?.score || fallbackScore || 1200));
+}
+
+function getCurrentDromeScore(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDate(new Date()), dromeIdRaw = "") {
+  return getCurrentGlobalScore(ownerKeyRaw, DROME_BASE_SCORE);
 }
 
 function getDromeSelectionForSeason(ownerKeyRaw, seasonKeyRaw = seasonKeyFromDate(new Date())) {
@@ -13670,10 +13698,18 @@ function ensureDromeSeasonCycle(nowDate = new Date()) {
       const dromeName = String(entry.name || dromeId || "Dromo");
       const rows = sqliteDb
         .prepare(`
-          SELECT owner_key, score, wins, losses
-          FROM ranked_drome_stats
-          WHERE season_key = ? AND drome_id = ?
-          ORDER BY score DESC, wins DESC, losses ASC
+          SELECT
+            ds.owner_key,
+            COALESCE(rg.elo, p.score, 1200) AS score,
+            ds.wins AS wins,
+            ds.losses AS losses
+          FROM ranked_drome_stats ds
+          LEFT JOIN ranked_global rg
+            ON rg.owner_key = ds.owner_key
+          LEFT JOIN player_profiles p
+            ON p.owner_key = ds.owner_key
+          WHERE ds.season_key = ? AND ds.drome_id = ?
+          ORDER BY COALESCE(rg.elo, p.score, 1200) DESC, ds.wins DESC, ds.losses ASC
           LIMIT 5
         `)
         .all(previousSeasonKey, dromeId);
@@ -13844,22 +13880,18 @@ function upsertDromeRankDelta(ownerKeyRaw, result, nowDate = new Date(), options
   ensureDromeBaselineRow(ownerKey, selected.dromeId, seasonKey);
   const isWin = String(result || "").toLowerCase() === "win";
   const isLoss = String(result || "").toLowerCase() === "loss";
-  const defaultWin = Number(options?.winScore ?? DROME_RANKED_WIN_SCORE);
-  const defaultLoss = Number(options?.lossScore ?? DROME_RANKED_LOSS_SCORE);
-  const scoreDelta = isWin ? defaultWin : isLoss ? defaultLoss : 0;
   const winsDelta = isWin ? 1 : 0;
   const lossesDelta = isLoss ? 1 : 0;
   sqliteDb
     .prepare(`
       UPDATE ranked_drome_stats
       SET
-        score = MAX(0, score + ?),
         wins = wins + ?,
         losses = losses + ?,
         updated_at = ?
       WHERE season_key = ? AND drome_id = ? AND owner_key = ?
     `)
-    .run(scoreDelta, winsDelta, lossesDelta, nowIso(), seasonKey, selected.dromeId, ownerKey);
+    .run(winsDelta, lossesDelta, nowIso(), seasonKey, selected.dromeId, ownerKey);
 
   const streakRow = sqliteDb
     .prepare(`
@@ -13882,18 +13914,28 @@ function upsertDromeRankDelta(ownerKeyRaw, result, nowDate = new Date(), options
         updated_at = excluded.updated_at
     `)
     .run(seasonKey, selected.dromeId, ownerKey, nextCurrentStreak, nextBestStreak, nowIso());
-  return sqliteDb
+  const row = sqliteDb
     .prepare("SELECT season_key, drome_id, owner_key, score, wins, losses, updated_at FROM ranked_drome_stats WHERE season_key = ? AND drome_id = ? AND owner_key = ?")
     .get(seasonKey, selected.dromeId, ownerKey);
+  const globalScore = getCurrentGlobalScore(ownerKey, DROME_BASE_SCORE);
+  return {
+    ...row,
+    score: globalScore,
+    globalScore,
+  };
 }
 
 function dromeRankRowWithTitle(row, rank, dromeName) {
   const ownerKey = normalizeUserKey(row?.owner_key || "", "");
   const tribe = resolveFavoriteTribeFromUserRecord(ownerKey);
+  const globalScore = Math.max(100, Number(row?.global_score ?? row?.score ?? DROME_BASE_SCORE));
+  const dromeScore = Math.max(0, Number(row?.drome_score ?? row?.score ?? 0));
   return {
     rank,
     username: ownerKey,
-    score: Math.max(0, Number(row?.score || 0)),
+    score: globalScore,
+    globalScore,
+    dromeScore,
     wins: Math.max(0, Number(row?.wins || 0)),
     losses: Math.max(0, Number(row?.losses || 0)),
     title: titleForDromePlacement(rank, dromeName, tribe),
@@ -19913,7 +19955,7 @@ async function handleRequest(request, response) {
     const profilesState = loadProfilesData();
     const { profile } = getOrCreateProfile(profilesState, username);
     applyBattleResultToProfile(profile, payload, {
-      affectScore: isRankedMatch,
+      affectScore: false,
       scoreWin: 20,
       scoreLoss: 10,
     });
@@ -19936,12 +19978,9 @@ async function handleRequest(request, response) {
       });
     } else if (matchType === MATCH_TYPE_CODEMASTER_CHALLENGE) {
       const callerKey = normalizeUserKey(username, "");
-      const codemasterWinScore = DROME_RANKED_WIN_SCORE + CODEMASTER_WIN_BONUS_SCORE;
       const isCallerCodemaster = callerKey === challengeCodemasterKey;
       upsertDromeRankDelta(username, result, new Date(), {
         forcedDromeId: challengeDromeId,
-        winScore: isCallerCodemaster ? codemasterWinScore : DROME_RANKED_WIN_SCORE,
-        lossScore: DROME_RANKED_LOSS_SCORE,
       });
 
       const winnerKey = result === "win"
@@ -20273,10 +20312,20 @@ async function handleRequest(request, response) {
       const codemaster = getCurrentCodemasterByDrome(entry.id, seasonKey);
       const topRow = sqliteDb
         .prepare(`
-          SELECT owner_key, score, wins, losses, updated_at
-          FROM ranked_drome_stats
-          WHERE season_key = ? AND drome_id = ?
-          ORDER BY score DESC, wins DESC, losses ASC
+          SELECT
+            ds.owner_key AS owner_key,
+            COALESCE(rg.elo, p.score, 1200) AS global_score,
+            ds.score AS drome_score,
+            ds.wins AS wins,
+            ds.losses AS losses,
+            ds.updated_at AS updated_at
+          FROM ranked_drome_stats ds
+          LEFT JOIN ranked_global rg
+            ON rg.owner_key = ds.owner_key
+          LEFT JOIN player_profiles p
+            ON p.owner_key = ds.owner_key
+          WHERE ds.season_key = ? AND ds.drome_id = ?
+          ORDER BY COALESCE(rg.elo, p.score, 1200) DESC, ds.wins DESC, ds.losses ASC
           LIMIT 1
         `)
         .get(seasonKey, entry.id);
@@ -20287,7 +20336,9 @@ async function handleRequest(request, response) {
         liveTop: topRow
           ? {
               username: normalizeUserKey(topRow?.owner_key || ""),
-              score: Math.max(0, Number(topRow?.score || 0)),
+              score: Math.max(100, Number(topRow?.global_score || 1200)),
+              globalScore: Math.max(100, Number(topRow?.global_score || 1200)),
+              dromeScore: Math.max(0, Number(topRow?.drome_score || 0)),
               wins: Math.max(0, Number(topRow?.wins || 0)),
               losses: Math.max(0, Number(topRow?.losses || 0)),
               updatedAt: String(topRow?.updated_at || ""),
@@ -20298,9 +20349,18 @@ async function handleRequest(request, response) {
     const selectedStats = selection?.dromeId
       ? sqliteDb
         .prepare(`
-          SELECT score, wins, losses, updated_at
-          FROM ranked_drome_stats
-          WHERE season_key = ? AND drome_id = ? AND owner_key = ?
+          SELECT
+            COALESCE(rg.elo, p.score, 1200) AS global_score,
+            ds.score AS drome_score,
+            ds.wins AS wins,
+            ds.losses AS losses,
+            ds.updated_at AS updated_at
+          FROM ranked_drome_stats ds
+          LEFT JOIN ranked_global rg
+            ON rg.owner_key = ds.owner_key
+          LEFT JOIN player_profiles p
+            ON p.owner_key = ds.owner_key
+          WHERE ds.season_key = ? AND ds.drome_id = ? AND ds.owner_key = ?
           LIMIT 1
         `)
         .get(seasonKey, selection.dromeId, ownerKey)
@@ -20317,7 +20377,9 @@ async function handleRequest(request, response) {
       myFallbackTag: currentTag?.title ? "" : buildFallbackDromeTag(ownerKey, seasonKey),
       mySelectedStats: selectedStats
         ? {
-            score: Math.max(0, Number(selectedStats?.score || DROME_BASE_SCORE)),
+            score: Math.max(100, Number(selectedStats?.global_score || DROME_BASE_SCORE)),
+            globalScore: Math.max(100, Number(selectedStats?.global_score || DROME_BASE_SCORE)),
+            dromeScore: Math.max(0, Number(selectedStats?.drome_score || 0)),
             wins: Math.max(0, Number(selectedStats?.wins || 0)),
             losses: Math.max(0, Number(selectedStats?.losses || 0)),
             updatedAt: String(selectedStats?.updated_at || ""),
@@ -20491,10 +20553,20 @@ async function handleRequest(request, response) {
     const limit = Math.max(1, Math.min(maxLimit, Number.isFinite(requestedLimit) ? Math.floor(requestedLimit) : 10));
     const rows = sqliteDb
       .prepare(`
-        SELECT owner_key, score, wins, losses, updated_at
-        FROM ranked_drome_stats
-        WHERE season_key = ? AND drome_id = ?
-        ORDER BY score DESC, wins DESC, losses ASC
+        SELECT
+          ds.owner_key AS owner_key,
+          COALESCE(rg.elo, p.score, 1200) AS global_score,
+          ds.score AS drome_score,
+          ds.wins AS wins,
+          ds.losses AS losses,
+          ds.updated_at AS updated_at
+        FROM ranked_drome_stats ds
+        LEFT JOIN ranked_global rg
+          ON rg.owner_key = ds.owner_key
+        LEFT JOIN player_profiles p
+          ON p.owner_key = ds.owner_key
+        WHERE ds.season_key = ? AND ds.drome_id = ?
+        ORDER BY COALESCE(rg.elo, p.score, 1200) DESC, ds.wins DESC, ds.losses ASC
         LIMIT ?
       `)
       .all(seasonKey, dromeId, limit);
