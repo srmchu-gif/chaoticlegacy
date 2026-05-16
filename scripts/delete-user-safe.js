@@ -525,10 +525,17 @@ function ensureRankedBanlistTables(db) {
     CREATE TABLE IF NOT EXISTS ranked_banlist_cards (
       banlist_id INTEGER NOT NULL,
       card_id TEXT NOT NULL,
+      allowed_copies INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       PRIMARY KEY (banlist_id, card_id)
     );
   `);
+  const rankedBanlistCardColumns = db.prepare("PRAGMA table_info(ranked_banlist_cards)").all();
+  const rankedBanlistCardColumnSet = new Set(rankedBanlistCardColumns.map((entry) => String(entry?.name || "").toLowerCase()));
+  if (!rankedBanlistCardColumnSet.has("allowed_copies")) {
+    db.exec("ALTER TABLE ranked_banlist_cards ADD COLUMN allowed_copies INTEGER NOT NULL DEFAULT 0;");
+  }
+  db.exec("UPDATE ranked_banlist_cards SET allowed_copies = 0 WHERE allowed_copies IS NULL OR allowed_copies < 0 OR allowed_copies > 3;");
   db.exec("CREATE INDEX IF NOT EXISTS idx_ranked_banlist_cards_card ON ranked_banlist_cards(card_id, banlist_id);");
   const hasAny = db.prepare("SELECT 1 AS ok FROM ranked_banlists LIMIT 1").get();
   if (!hasAny) {
@@ -561,7 +568,7 @@ function listRankedBanlists(db) {
     ORDER BY is_active DESC, lower(name) ASC, banlist_id ASC
   `).all();
   const cards = db.prepare(`
-    SELECT bc.banlist_id, bc.card_id, COALESCE(cc.name, bc.card_id) AS card_name
+    SELECT bc.banlist_id, bc.card_id, bc.allowed_copies, COALESCE(cc.name, bc.card_id) AS card_name
     FROM ranked_banlist_cards bc
     LEFT JOIN card_catalog cc ON cc.id = bc.card_id
     ORDER BY bc.banlist_id ASC, lower(COALESCE(cc.name, bc.card_id)) ASC, bc.card_id ASC
@@ -575,6 +582,7 @@ function listRankedBanlists(db) {
     cardsByBanlist.get(banlistId).push({
       cardId: String(row?.card_id || ""),
       cardName: String(row?.card_name || row?.card_id || ""),
+      allowedCopies: Math.max(0, Math.min(3, Number.isFinite(Number(row?.allowed_copies)) ? Number(row.allowed_copies) : 0)),
     });
   });
   return headers.map((row) => {
@@ -639,6 +647,34 @@ function ensurePerimQuestTemplatesTable(db) {
   `);
   db.exec("UPDATE perim_quest_templates SET difficulty_key = 'ok' WHERE trim(COALESCE(difficulty_key, '')) = '';");
   db.exec("UPDATE perim_quest_templates SET is_draft = 0 WHERE is_draft IS NULL;");
+  try {
+    const rows = db
+      .prepare(`
+        SELECT quest_key, target_location_card_id, anomaly_location_ids_json
+        FROM perim_quest_templates
+      `)
+      .all();
+    const backfill = db.prepare(`
+      UPDATE perim_quest_templates
+      SET anomaly_location_ids_json = ?, updated_at = ?
+      WHERE quest_key = ?
+    `);
+    const updatedAt = nowIso();
+    rows.forEach((row) => {
+      const questKey = String(row?.quest_key || "").trim();
+      const targetLocationCardId = String(row?.target_location_card_id || "").trim();
+      if (!questKey || !targetLocationCardId) {
+        return;
+      }
+      const anomalyLocationIds = safeJsonArray(row?.anomaly_location_ids_json)
+        .map((entry) => String(entry || "").trim())
+        .filter(Boolean);
+      if (anomalyLocationIds.length) {
+        return;
+      }
+      backfill.run(JSON.stringify([targetLocationCardId]), updatedAt, questKey);
+    });
+  } catch {}
 }
 
 function ensurePerimLocationTribesTable(db) {
@@ -1699,8 +1735,11 @@ function sanitizeQuestPayload(db, raw, isUpdate = false) {
       }
     });
   }
+  const anomalyLocationIdsFinal = (!isDraft && enabled === 1 && !anomalyLocationIds.length && targetLocationIdFinal)
+    ? [targetLocationIdFinal]
+    : anomalyLocationIds;
   const requirements = sanitizeQuestRequirements(db, raw?.requirements, { allowEmpty: isDraft || enabled !== 1 });
-  if (!isDraft && enabled === 1 && !anomalyLocationIds.length) {
+  if (!isDraft && enabled === 1 && !anomalyLocationIdsFinal.length) {
     throw new Error("A quest ativa precisa de ao menos 1 local de anomalia.");
   }
 
@@ -1714,7 +1753,7 @@ function sanitizeQuestPayload(db, raw, isUpdate = false) {
     difficultyKey: QUEST_DIFFICULTY_KEYS.has(difficultyKey) ? difficultyKey : "ok",
     isDraft: isDraft ? 1 : 0,
     targetLocationCardId: targetLocationIdFinal,
-    anomalyLocationIds,
+    anomalyLocationIds: anomalyLocationIdsFinal,
     requirements,
     enabled
   };
@@ -2433,19 +2472,26 @@ function run() {
       if (!card) {
         throw new Error(`Carta nao encontrada: ${cardId}`);
       }
+      const allowedCopiesRaw = Number(payload?.allowedCopies);
+      const allowedCopies = Math.max(
+        0,
+        Math.min(3, Number.isFinite(allowedCopiesRaw) ? Math.floor(allowedCopiesRaw) : 0)
+      );
       withTransaction(db, () => {
         db.prepare(`
-          INSERT INTO ranked_banlist_cards (banlist_id, card_id, created_at)
-          VALUES (?, ?, ?)
-          ON CONFLICT(banlist_id, card_id) DO NOTHING
-        `).run(banlistId, cardId, nowIso());
+          INSERT INTO ranked_banlist_cards (banlist_id, card_id, allowed_copies, created_at)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(banlist_id, card_id) DO UPDATE SET
+            allowed_copies = excluded.allowed_copies
+        `).run(banlistId, cardId, allowedCopies, nowIso());
         db.prepare("UPDATE ranked_banlists SET updated_at = ? WHERE banlist_id = ?").run(nowIso(), banlistId);
         appendAuditLogEntry(db, "admin_banlist_card_add", "system", "Carta adicionada a banlist ranked.", {
           banlistId,
           cardId,
+          allowedCopies,
         });
       });
-      jsonOk({ banlistId, cardId, banlists: listRankedBanlists(db) });
+      jsonOk({ banlistId, cardId, allowedCopies, banlists: listRankedBanlists(db) });
       return;
     }
 

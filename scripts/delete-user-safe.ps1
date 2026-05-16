@@ -786,8 +786,20 @@ $banlistPanel.Controls.Add($lblBanlistCard)
 $comboBanlistCard = New-Object System.Windows.Forms.ComboBox
 $comboBanlistCard.DropDownStyle = "DropDownList"
 $comboBanlistCard.Location = New-Object System.Drawing.Point(12, 230)
-$comboBanlistCard.Size = New-Object System.Drawing.Size(420, 28)
+$comboBanlistCard.Size = New-Object System.Drawing.Size(300, 28)
 $banlistPanel.Controls.Add($comboBanlistCard)
+
+$lblBanlistAllowedCopies = New-Object System.Windows.Forms.Label
+$lblBanlistAllowedCopies.Text = "Permitido:"
+$lblBanlistAllowedCopies.Location = New-Object System.Drawing.Point(318, 208)
+$lblBanlistAllowedCopies.Size = New-Object System.Drawing.Size(90, 20)
+$banlistPanel.Controls.Add($lblBanlistAllowedCopies)
+
+$comboBanlistAllowedCopies = New-Object System.Windows.Forms.ComboBox
+$comboBanlistAllowedCopies.DropDownStyle = "DropDownList"
+$comboBanlistAllowedCopies.Location = New-Object System.Drawing.Point(318, 230)
+$comboBanlistAllowedCopies.Size = New-Object System.Drawing.Size(114, 28)
+$banlistPanel.Controls.Add($comboBanlistAllowedCopies)
 
 $btnBanlistCardAdd = New-Object System.Windows.Forms.Button
 $btnBanlistCardAdd.Text = "Adicionar carta"
@@ -808,7 +820,8 @@ $listBanlistCards.View = "Details"
 $listBanlistCards.FullRowSelect = $true
 $listBanlistCards.GridLines = $true
 [void]$listBanlistCards.Columns.Add("CardId", 190)
-[void]$listBanlistCards.Columns.Add("Carta", 210)
+[void]$listBanlistCards.Columns.Add("Carta", 150)
+[void]$listBanlistCards.Columns.Add("Permitido", 70)
 $banlistPanel.Controls.Add($listBanlistCards)
 
 # Quests tab
@@ -2447,6 +2460,9 @@ function Reset-BanlistForm {
   $lblBanlistSelected.Text = "Banlist selecionada: nova"
   $txtBanlistName.Text = ""
   $txtBanlistDescription.Text = ""
+  if ($comboBanlistAllowedCopies.Items.Count -gt 0) {
+    $comboBanlistAllowedCopies.SelectedIndex = 0
+  }
   $listBanlistCards.Items.Clear()
 }
 
@@ -2463,6 +2479,9 @@ function Fill-BanlistFormById {
   foreach ($card in @($entry.cards)) {
     $item = New-Object System.Windows.Forms.ListViewItem([string]$card.cardId)
     [void]$item.SubItems.Add([string]$card.cardName)
+    $allowedValue = if ($null -eq $card.allowedCopies) { 0 } else { [int]$card.allowedCopies }
+    $allowedText = [string]$allowedValue
+    [void]$item.SubItems.Add($allowedText)
     [void]$listBanlistCards.Items.Add($item)
   }
 }
@@ -4009,11 +4028,23 @@ $btnBanlistCardAdd.Add_Click({
     }
     $cardId = Get-SelectedValue -Combo $comboBanlistCard
     if (-not $cardId) {
-      [System.Windows.Forms.MessageBox]::Show("Selecione uma carta para banir.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+      [System.Windows.Forms.MessageBox]::Show("Selecione uma carta para configurar.", "Aviso", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
       return
     }
+    $allowedCopiesRaw = $comboBanlistAllowedCopies.SelectedItem
+    $allowedCopies = 0
+    if ($null -ne $allowedCopiesRaw) {
+      try {
+        $allowedCopies = [int]$allowedCopiesRaw
+      } catch {
+        $allowedCopies = 0
+      }
+    }
     $targetId = [int]$banlist.banlistId
-    $payload = @{ cardId = $cardId }
+    $payload = @{
+      cardId = $cardId
+      allowedCopies = $allowedCopies
+    }
     $op = Invoke-MutatingOperation -OperationName "banlist-card-add" -Target ("banlist:" + $targetId) -ActionBlock {
       Invoke-AdminEngine -Action "banlist-card-add" -Id ([string]$targetId) -Payload $payload
     }
@@ -4109,6 +4140,12 @@ try {
   Set-ComboItems -Combo $comboProfileDrome -Items (Build-DromeItems)
   Set-ComboItems -Combo $comboPerimCampLocation -Items (Build-LocationItems)
   Set-ComboItems -Combo $comboBanlistCard -Items (Build-CardItems -Type "")
+  $comboBanlistAllowedCopies.Items.Clear()
+  [void]$comboBanlistAllowedCopies.Items.Add("0")
+  [void]$comboBanlistAllowedCopies.Items.Add("1")
+  [void]$comboBanlistAllowedCopies.Items.Add("2")
+  [void]$comboBanlistAllowedCopies.Items.Add("3")
+  $comboBanlistAllowedCopies.SelectedIndex = 0
   $txtProfileSeason.Text = (Get-Date).ToUniversalTime().ToString("yyyy-MM")
   Refresh-TypeCardCombos
   Refresh-GrantCardCombo

@@ -1,0 +1,55 @@
+Perim Fixed Creature Spawn Report
+generated_at=2026-05-16T15:00:12.810Z
+date_key=2026-05-16
+total_rules=61
+alias_bindings=59
+applied_rows=57
+ignored_quest_rows=0
+pending_missing_creatures=1
+pending_missing_locations=1
+
+[quest_exclusive_ignored]
+creatures=Najarin, High Muge of the Lake
+locations=Lake Ken-I-Po
+card_ids=creatures:au:najarin-high-muge-of-the-lake:628
+
+creatures=Illexia, The Danian Queen | Illexia, The Danian Queen (Misprint)
+locations=Queen's Gate
+card_ids=creatures:zoth:illexia-the-danian-queen:916, creatures:pe1:illexia-the-danian-queen-misprint:509
+
+creatures=Aszil, the Young Queen
+locations=Queen's Gate
+card_ids=creatures:fas:aszil-the-young-queen:585
+
+creatures=Lore, Ancestral Caller
+locations=Lore's Chamber of Recall
+card_ids=creatures:fun:lore-ancestral-caller:689
+
+creatures=Owayki
+locations=The Hunter's Perimeter
+card_ids=creatures:mi:owayki:814
+
+creatures=Lord Van Bloot
+locations=Gothos Tower | UnderWorld City, During Van Bloot's Ascent
+card_ids=creatures:dop:lord-van-bloot:978, creatures:pe1:lord-van-bloot:499
+
+creatures=Kopond, High Muge of the Hearth
+locations=Pyrogenousist's Hearth
+card_ids=creatures:au:kopond-high-muge-of-the-hearth:639
+
+creatures=Zamool, Lord Van Bloot's Enforcer
+locations=Van Bloot's Banquet
+card_ids=creatures:au:zamool-lord-van-bloots-enforcer:588
+
+creatures=Lord Van Bloot, Servant of Aa'une
+locations=Van Bloot's Banquet
+card_ids=creatures:tott:lord-van-bloot-servant-of-aaune:729
+
+[pending_missing_creatures]
+creatures=Relic
+locations=The Passage, OverWorld
+
+[pending_missing_locations]
+creatures=Owis
+locations=Codarc Falls
+unresolved=Codarc Falls

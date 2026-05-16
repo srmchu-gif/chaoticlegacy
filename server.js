@@ -13,6 +13,10 @@ const {
   classifyActionFamily,
 } = require("./lib/battle-protocol");
 const {
+  safeDecodeURIComponent,
+  createSqliteVacuumSnapshot,
+} = require("./lib/reliability");
+const {
   initializeCreatureDropTables,
   setCreatureDropSettings,
   setLocationAdjacencies,
@@ -763,6 +767,35 @@ function createSqlV2Tables() {
   `);
   sqliteDb.exec("UPDATE perim_quest_templates SET difficulty_key = 'ok' WHERE trim(COALESCE(difficulty_key, '')) = '';");
   sqliteDb.exec("UPDATE perim_quest_templates SET is_draft = 0 WHERE is_draft IS NULL;");
+  try {
+    const rows = sqliteDb
+      .prepare(`
+        SELECT quest_key, target_location_card_id, anomaly_location_ids_json
+        FROM perim_quest_templates
+      `)
+      .all();
+    const backfill = sqliteDb.prepare(`
+      UPDATE perim_quest_templates
+      SET anomaly_location_ids_json = ?, updated_at = ?
+      WHERE quest_key = ?
+    `);
+    const updatedAt = nowIso();
+    rows.forEach((row) => {
+      const questKey = String(row?.quest_key || "").trim();
+      const targetLocationCardId = String(row?.target_location_card_id || "").trim();
+      if (!questKey || !targetLocationCardId) {
+        return;
+      }
+      const parsed = parseJsonText(row?.anomaly_location_ids_json, []);
+      const anomalyLocationIds = Array.isArray(parsed)
+        ? parsed.map((value) => String(value || "").trim()).filter(Boolean)
+        : [];
+      if (anomalyLocationIds.length) {
+        return;
+      }
+      backfill.run(JSON.stringify([targetLocationCardId]), updatedAt, questKey);
+    });
+  } catch {}
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_quest_templates_enabled ON perim_quest_templates(enabled, reward_type);");
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_perim_quest_templates_runtime ON perim_quest_templates(enabled, is_draft, quest_set_key);");
   sqliteDb.exec(`
@@ -1157,10 +1190,17 @@ function createSqlV2Tables() {
     CREATE TABLE IF NOT EXISTS ranked_banlist_cards (
       banlist_id INTEGER NOT NULL,
       card_id TEXT NOT NULL,
+      allowed_copies INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       PRIMARY KEY (banlist_id, card_id)
     );
   `);
+  const rankedBanlistCardColumns = sqliteDb.prepare("PRAGMA table_info(ranked_banlist_cards)").all();
+  const rankedBanlistCardColumnSet = new Set(rankedBanlistCardColumns.map((entry) => String(entry?.name || "").toLowerCase()));
+  if (!rankedBanlistCardColumnSet.has("allowed_copies")) {
+    sqliteDb.exec("ALTER TABLE ranked_banlist_cards ADD COLUMN allowed_copies INTEGER NOT NULL DEFAULT 0;");
+  }
+  sqliteDb.exec("UPDATE ranked_banlist_cards SET allowed_copies = 0 WHERE allowed_copies IS NULL OR allowed_copies < 0 OR allowed_copies > 3;");
   sqliteDb.exec("CREATE INDEX IF NOT EXISTS idx_ranked_banlist_cards_card ON ranked_banlist_cards(card_id, banlist_id);");
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS perim_group_rooms (
@@ -2988,7 +3028,7 @@ function getActiveRankedBanlistSnapshot() {
   const banlistId = Number(header?.banlist_id || 0);
   const rows = sqliteDb
     .prepare(`
-      SELECT bc.card_id, COALESCE(cc.name, bc.card_id) AS card_name
+      SELECT bc.card_id, bc.allowed_copies, COALESCE(cc.name, bc.card_id) AS card_name
       FROM ranked_banlist_cards bc
       LEFT JOIN card_catalog cc ON cc.id = bc.card_id
       WHERE bc.banlist_id = ?
@@ -2999,6 +3039,7 @@ function getActiveRankedBanlistSnapshot() {
     .map((row) => ({
       cardId: String(row?.card_id || "").trim(),
       cardName: String(row?.card_name || row?.card_id || "").trim(),
+      allowedCopies: Math.max(0, Math.min(3, Number.isFinite(Number(row?.allowed_copies)) ? Number(row.allowed_copies) : 0)),
     }))
     .filter((entry) => entry.cardId);
   return {
@@ -3016,29 +3057,65 @@ function findBannedCardsInDeck(deckData, banlistSnapshot) {
     return [];
   }
   const battleDeck = toBattleDeckFromStoredDeck(deckData);
-  const bannedMap = new Map(
+  const banlistRuleMap = new Map(
     banlistSnapshot.cards
-      .map((entry) => [String(entry?.cardId || "").trim(), String(entry?.cardName || entry?.cardId || "").trim()])
+      .map((entry) => [
+        String(entry?.cardId || "").trim(),
+        {
+          cardName: String(entry?.cardName || entry?.cardId || "").trim(),
+          allowedCopies: Math.max(0, Math.min(3, Number.isFinite(Number(entry?.allowedCopies)) ? Number(entry.allowedCopies) : 0)),
+        },
+      ])
       .filter(([cardId]) => cardId)
   );
-  const matches = [];
+  const deckCountMap = new Map();
+  const cardTypeMap = new Map();
   Object.entries(battleDeck || {}).forEach(([type, cards]) => {
     if (!Array.isArray(cards)) {
       return;
     }
     cards.forEach((card) => {
       const cardId = String(card?.id || "").trim();
-      if (!cardId || !bannedMap.has(cardId)) {
+      if (!cardId || !banlistRuleMap.has(cardId)) {
         return;
       }
-      matches.push({
+      deckCountMap.set(cardId, Number(deckCountMap.get(cardId) || 0) + 1);
+      if (!cardTypeMap.has(cardId)) {
+        cardTypeMap.set(cardId, new Set());
+      }
+      cardTypeMap.get(cardId).add(String(type || card?.type || ""));
+    });
+  });
+  const matches = [];
+  deckCountMap.forEach((copiesInDeck, cardId) => {
+    const rule = banlistRuleMap.get(cardId);
+    const allowedCopies = Math.max(0, Math.min(3, Number(rule?.allowedCopies || 0)));
+    if (copiesInDeck <= allowedCopies) {
+      return;
+    }
+    matches.push({
         cardId,
-        cardName: String(card?.name || bannedMap.get(cardId) || cardId),
-        cardType: String(type || card?.type || ""),
-      });
+      cardName: String(rule?.cardName || cardId),
+      cardType: Array.from(cardTypeMap.get(cardId) || []).join(","),
+      copiesInDeck,
+      allowedCopies,
+      exceededBy: Math.max(0, copiesInDeck - allowedCopies),
     });
   });
   return matches;
+}
+
+function formatBanlistViolationSummary(violations = []) {
+  const list = Array.isArray(violations) ? violations : [];
+  return list
+    .slice(0, 5)
+    .map((entry) => {
+      const name = String(entry?.cardName || entry?.cardId || "");
+      const current = Number(entry?.copiesInDeck || 0);
+      const allowed = Number(entry?.allowedCopies || 0);
+      return `${name} (${current}/${allowed})`;
+    })
+    .filter(Boolean);
 }
 
 function validateDeckAgainstRankedBanlist(deckData, banlistSnapshot) {
@@ -3046,6 +3123,7 @@ function validateDeckAgainstRankedBanlist(deckData, banlistSnapshot) {
   return {
     ok: bannedCards.length === 0,
     bannedCards,
+    violations: bannedCards,
   };
 }
 
@@ -11210,13 +11288,26 @@ function createRuntimeDbSnapshot(reason = "manual") {
     if (!fs.existsSync(SQLITE_FILE)) {
       throw new Error(`SQLite nao encontrado em ${SQLITE_FILE}`);
     }
+    if (!sqliteDb) {
+      throw new Error("SQLite runtime indisponivel para snapshot.");
+    }
     const stamp = new Date()
       .toISOString()
       .replace(/[-:]/g, "")
       .replace(/\..+$/, "")
       .replace("T", "-");
-    const backupPath = path.join(BACKUPS_DIR, `chaotic-${stamp}.db`);
-    fs.copyFileSync(SQLITE_FILE, backupPath);
+    let backupPath = path.join(BACKUPS_DIR, `chaotic-${stamp}.db`);
+    if (fs.existsSync(backupPath)) {
+      let suffix = 1;
+      while (fs.existsSync(path.join(BACKUPS_DIR, `chaotic-${stamp}-${suffix}.db`))) {
+        suffix += 1;
+      }
+      backupPath = path.join(BACKUPS_DIR, `chaotic-${stamp}-${suffix}.db`);
+    }
+    const snapshot = createSqliteVacuumSnapshot(sqliteDb, backupPath);
+    if (!snapshot.ok) {
+      throw new Error(snapshot.error || "snapshot_failed");
+    }
     cleanupOldDbBackups(DB_BACKUP_RETENTION_DAYS);
     runtimeMetrics.backups.lastSuccessAt = nowIso();
     runtimeMetrics.backups.lastError = "";
@@ -16407,6 +16498,23 @@ function cloneDeckSnapshot(deckRaw) {
   return safeJsonParse(JSON.stringify(deckRaw), null);
 }
 
+function isRankedBanlistEnforcedForRoom(room) {
+  const matchType = normalizeMatchType(room?.matchType || "");
+  return matchType === MATCH_TYPE_RANKED_DROME || matchType === MATCH_TYPE_CODEMASTER_CHALLENGE;
+}
+
+function refreshRoomRankedBanlistSnapshot(room) {
+  if (!room || typeof room !== "object") {
+    return null;
+  }
+  if (!isRankedBanlistEnforcedForRoom(room)) {
+    room.rankedBanlistSnapshot = null;
+    return null;
+  }
+  room.rankedBanlistSnapshot = getActiveRankedBanlistSnapshot();
+  return room.rankedBanlistSnapshot;
+}
+
 function setRoomDeckForSeat(room, seat, deckName, deckSnapshot, rulesModeRaw) {
   if (!room || (seat !== "host" && seat !== "guest")) {
     return { ok: false, error: "Assento invalido para deck." };
@@ -16417,21 +16525,18 @@ function setRoomDeckForSeat(room, seat, deckName, deckSnapshot, rulesModeRaw) {
     return { ok: false, error: "Deck invalido." };
   }
   const validation = validateDeckForRulesMode(snapshot, mode);
-  const enforceBanlist = normalizeMatchType(room?.matchType || "") === MATCH_TYPE_RANKED_DROME
-    || normalizeMatchType(room?.matchType || "") === MATCH_TYPE_CODEMASTER_CHALLENGE;
+  const enforceBanlist = isRankedBanlistEnforcedForRoom(room);
+  const activeBanlist = enforceBanlist ? refreshRoomRankedBanlistSnapshot(room) : null;
   const banlistValidation = enforceBanlist
-    ? validateDeckAgainstRankedBanlist(snapshot, room?.rankedBanlistSnapshot || null)
-    : { ok: true, bannedCards: [] };
+    ? validateDeckAgainstRankedBanlist(snapshot, activeBanlist)
+    : { ok: true, bannedCards: [], violations: [] };
   const errors = Array.isArray(validation?.errors) ? validation.errors : [];
   if (!banlistValidation.ok) {
-    const bannedLabels = banlistValidation.bannedCards
-      .slice(0, 5)
-      .map((entry) => String(entry?.cardName || entry?.cardId || "").trim())
-      .filter(Boolean);
-    const suffix = banlistValidation.bannedCards.length > 5
-      ? ` (+${banlistValidation.bannedCards.length - 5} outras)`
+    const violationSummary = formatBanlistViolationSummary(banlistValidation.violations || banlistValidation.bannedCards);
+    const suffix = (banlistValidation.violations || banlistValidation.bannedCards || []).length > 5
+      ? ` (+${(banlistValidation.violations || banlistValidation.bannedCards || []).length - 5} outras)`
       : "";
-    errors.push(`Deck contem carta(s) banida(s): ${bannedLabels.join(", ")}${suffix}.`);
+    errors.push(`Deck excede limite da banlist ativa: ${violationSummary.join(", ")}${suffix}.`);
   }
   const isValid = Boolean(validation?.ok) && Boolean(banlistValidation.ok);
   if (!room.deckSelect || typeof room.deckSelect !== "object") {
@@ -16478,41 +16583,39 @@ async function tryStartRoomBattleFromDeckSelect(room) {
   }
   const hostValidation = validateDeckForRulesMode(hostDeck, room.rulesMode || "competitive");
   const guestValidation = validateDeckForRulesMode(guestDeck, room.rulesMode || "competitive");
-  const enforceBanlist = normalizeMatchType(room?.matchType || "") === MATCH_TYPE_RANKED_DROME
-    || normalizeMatchType(room?.matchType || "") === MATCH_TYPE_CODEMASTER_CHALLENGE;
+  const enforceBanlist = isRankedBanlistEnforcedForRoom(room);
+  const activeBanlist = enforceBanlist ? refreshRoomRankedBanlistSnapshot(room) : null;
   const hostBanlistValidation = enforceBanlist
-    ? validateDeckAgainstRankedBanlist(hostDeck, room?.rankedBanlistSnapshot || null)
-    : { ok: true, bannedCards: [] };
+    ? validateDeckAgainstRankedBanlist(hostDeck, activeBanlist)
+    : { ok: true, bannedCards: [], violations: [] };
   const guestBanlistValidation = enforceBanlist
-    ? validateDeckAgainstRankedBanlist(guestDeck, room?.rankedBanlistSnapshot || null)
-    : { ok: true, bannedCards: [] };
+    ? validateDeckAgainstRankedBanlist(guestDeck, activeBanlist)
+    : { ok: true, bannedCards: [], violations: [] };
   if (!hostValidation.ok || !guestValidation.ok || !hostBanlistValidation.ok || !guestBanlistValidation.ok) {
     const hostErrors = Array.isArray(hostValidation.errors) ? hostValidation.errors.slice(0, 3) : [];
     const guestErrors = Array.isArray(guestValidation.errors) ? guestValidation.errors.slice(0, 3) : [];
     if (!hostBanlistValidation.ok) {
-      const hostBanned = hostBanlistValidation.bannedCards
-        .slice(0, 5)
-        .map((entry) => String(entry?.cardName || entry?.cardId || ""))
-        .filter(Boolean);
-      hostErrors.push(`Banlist: ${hostBanned.join(", ")}`);
+      const hostViolations = hostBanlistValidation.violations || hostBanlistValidation.bannedCards || [];
+      const hostSummary = formatBanlistViolationSummary(hostViolations);
+      const suffix = hostViolations.length > 5 ? ` (+${hostViolations.length - 5} outras)` : "";
+      hostErrors.push(`Banlist: ${hostSummary.join(", ")}${suffix}`);
     }
     if (!guestBanlistValidation.ok) {
-      const guestBanned = guestBanlistValidation.bannedCards
-        .slice(0, 5)
-        .map((entry) => String(entry?.cardName || entry?.cardId || ""))
-        .filter(Boolean);
-      guestErrors.push(`Banlist: ${guestBanned.join(", ")}`);
+      const guestViolations = guestBanlistValidation.violations || guestBanlistValidation.bannedCards || [];
+      const guestSummary = formatBanlistViolationSummary(guestViolations);
+      const suffix = guestViolations.length > 5 ? ` (+${guestViolations.length - 5} outras)` : "";
+      guestErrors.push(`Banlist: ${guestSummary.join(", ")}${suffix}`);
     }
     room.deckSelect.host = {
       ...(room.deckSelect?.host || {}),
       ready: false,
-      valid: Boolean(hostValidation.ok),
+      valid: Boolean(hostValidation.ok) && Boolean(hostBanlistValidation.ok),
       errors: hostErrors.slice(0, 3),
     };
     room.deckSelect.guest = {
       ...(room.deckSelect?.guest || {}),
       ready: false,
-      valid: Boolean(guestValidation.ok),
+      valid: Boolean(guestValidation.ok) && Boolean(guestBanlistValidation.ok),
       errors: guestErrors.slice(0, 3),
     };
     return { started: false, error: "Deck invalido para iniciar combate." };
@@ -17755,7 +17858,12 @@ function serveStatic(requestPath, response) {
   }
 
   if (requestPath.startsWith("/downloads/")) {
-    const decoded = decodeURIComponent(requestPath);
+    const decodedResult = safeDecodeURIComponent(requestPath);
+    if (!decodedResult.ok) {
+      sendText(response, 400, "Bad request");
+      return;
+    }
+    const decoded = decodedResult.value;
     const target = path.resolve(ROOT_DIR, `.${decoded}`);
     if (!isPathInside(DOWNLOADS_DIR, target)) {
       sendText(response, 403, "Forbidden");
@@ -17766,7 +17874,12 @@ function serveStatic(requestPath, response) {
   }
 
   if (requestPath.startsWith("/music/")) {
-    const decoded = decodeURIComponent(requestPath);
+    const decodedResult = safeDecodeURIComponent(requestPath);
+    if (!decodedResult.ok) {
+      sendText(response, 400, "Bad request");
+      return;
+    }
+    const decoded = decodedResult.value;
     const relativeMusicPath = decoded.replace(/^\/music\//i, "");
     const target = resolveMusicFilePath(relativeMusicPath);
     if (!target) {
@@ -17779,7 +17892,12 @@ function serveStatic(requestPath, response) {
   }
 
   const basePath = requestPath === "/" ? "/auth.html" : requestPath;
-  const decoded = decodeURIComponent(basePath);
+  const decodedResult = safeDecodeURIComponent(basePath);
+  if (!decodedResult.ok) {
+    sendText(response, 400, "Bad request");
+    return;
+  }
+  const decoded = decodedResult.value;
   const target = path.resolve(PUBLIC_DIR, `.${decoded}`);
   if (!isPathInside(PUBLIC_DIR, target)) {
     sendText(response, 403, "Forbidden");
@@ -17795,7 +17913,18 @@ function serveStatic(requestPath, response) {
 }
 
 async function handleRequest(request, response) {
-  const parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+  } catch {
+    const rawUrl = String(request?.url || "");
+    if (rawUrl.startsWith("/api/")) {
+      sendJson(response, 400, { error: "URL malformada." });
+      return;
+    }
+    sendText(response, 400, "Bad request");
+    return;
+  }
   const pathname = parsedUrl.pathname;
   applySecurityHeaders(request, response);
   applyCorsHeaders(request, response);
@@ -18667,7 +18796,12 @@ async function handleRequest(request, response) {
 
   if (pathname.startsWith("/api/perim/locations/")) {
     const parts = pathname.split("/");
-    const locationId = decodeURIComponent(parts[4] || "").trim();
+    const locationDecode = safeDecodeURIComponent(parts[4] || "");
+    if (!locationDecode.ok) {
+      sendJson(response, 400, { error: "URL malformada." });
+      return;
+    }
+    const locationId = String(locationDecode.value || "").trim();
     const chatSegment = String(parts[5] || "").trim().toLowerCase();
     const chatSubsegment = String(parts[6] || "").trim().toLowerCase();
     if (!locationId || chatSegment !== "chat") {
@@ -19218,7 +19352,12 @@ async function handleRequest(request, response) {
     }
     const ownerKey = normalizeUserKey(authUser.username || "");
     const parts = pathname.split("/");
-    const friendUsername = decodeURIComponent(parts[4] || "").trim();
+    const friendDecode = safeDecodeURIComponent(parts[4] || "");
+    if (!friendDecode.ok) {
+      sendJson(response, 400, { error: "URL malformada." });
+      return;
+    }
+    const friendUsername = String(friendDecode.value || "").trim();
     if (!friendUsername) {
       sendJson(response, 400, { error: "Username do amigo invalido." });
       return;
@@ -20503,17 +20642,16 @@ async function handleRequest(request, response) {
     const activeBanlist = getActiveRankedBanlistSnapshot();
     const banlistValidation = validateDeckAgainstRankedBanlist(deckData, activeBanlist);
     if (!banlistValidation.ok) {
-      const blocked = banlistValidation.bannedCards
-        .slice(0, 6)
-        .map((entry) => String(entry?.cardName || entry?.cardId || ""))
-        .filter(Boolean);
+      const blockedCards = banlistValidation.violations || banlistValidation.bannedCards || [];
+      const blocked = formatBanlistViolationSummary(blockedCards);
+      const suffix = blockedCards.length > 6 ? ` (+${blockedCards.length - 6} outras)` : "";
       sendJson(response, 400, {
-        error: `Deck contem carta(s) banida(s) no ranked: ${blocked.join(", ")}.`,
+        error: `Deck excede limite da banlist ativa: ${blocked.join(", ")}${suffix}.`,
         details: {
           banlist: activeBanlist
             ? { banlistId: activeBanlist.banlistId, name: activeBanlist.name }
             : null,
-          blockedCards: banlistValidation.bannedCards,
+          blockedCards,
         },
       });
       return;
@@ -20750,8 +20888,8 @@ async function handleRequest(request, response) {
         details: {
           codemaster: hostDeckValidation.errors || [],
           challenger: guestDeckValidation.errors || [],
-          codemasterBanlist: hostBanlistValidation.bannedCards || [],
-          challengerBanlist: guestBanlistValidation.bannedCards || [],
+          codemasterBanlist: hostBanlistValidation.violations || hostBanlistValidation.bannedCards || [],
+          challengerBanlist: guestBanlistValidation.violations || guestBanlistValidation.bannedCards || [],
         },
       });
       return;
@@ -22158,18 +22296,17 @@ async function handleRequest(request, response) {
           return sendJson(response, 400, { error: "Selecione seu deck antes de marcar pronto." });
         }
         const validation = validateDeckForRulesMode(ownDeck, room.rulesMode || "competitive");
-        const enforceBanlist = normalizeMatchType(room?.matchType || "") === MATCH_TYPE_RANKED_DROME
-          || normalizeMatchType(room?.matchType || "") === MATCH_TYPE_CODEMASTER_CHALLENGE;
+        const enforceBanlist = isRankedBanlistEnforcedForRoom(room);
+        const activeBanlist = enforceBanlist ? refreshRoomRankedBanlistSnapshot(room) : null;
         const banlistValidation = enforceBanlist
-          ? validateDeckAgainstRankedBanlist(ownDeck, room?.rankedBanlistSnapshot || null)
-          : { ok: true, bannedCards: [] };
+          ? validateDeckAgainstRankedBanlist(ownDeck, activeBanlist)
+          : { ok: true, bannedCards: [], violations: [] };
         const extraErrors = [];
         if (!banlistValidation.ok) {
-          const bannedLabels = banlistValidation.bannedCards
-            .slice(0, 5)
-            .map((entry) => String(entry?.cardName || entry?.cardId || ""))
-            .filter(Boolean);
-          extraErrors.push(`Banlist: ${bannedLabels.join(", ")}`);
+          const violations = banlistValidation.violations || banlistValidation.bannedCards || [];
+          const summary = formatBanlistViolationSummary(violations);
+          const suffix = violations.length > 5 ? ` (+${violations.length - 5} outras)` : "";
+          extraErrors.push(`Banlist: ${summary.join(", ")}${suffix}`);
         }
         const combinedErrors = [...(Array.isArray(validation.errors) ? validation.errors : []), ...extraErrors];
         const isValid = Boolean(validation.ok) && Boolean(banlistValidation.ok);
@@ -22589,12 +22726,17 @@ async function handleRequest(request, response) {
   }
 
   if (pathname.startsWith("/api/decks/")) {
+    const rawNameResult = safeDecodeURIComponent(pathname.replace("/api/decks/", ""));
+    if (!rawNameResult.ok) {
+      sendJson(response, 400, { error: "URL malformada." });
+      return;
+    }
+    const rawName = rawNameResult.value;
     const authUser = requireAuthenticatedUser(request, response);
     if (!authUser) {
       return;
     }
     const requesterKey = normalizeUserKey(authUser.username || "local-player");
-    const rawName = decodeURIComponent(pathname.replace("/api/decks/", ""));
     const normalizedName = normalizeDeckName(rawName);
     if (!normalizedName) {
       sendJson(response, 400, { error: "Nome de deck invalido." });
@@ -22672,6 +22814,26 @@ async function handleRequest(request, response) {
         });
         return;
       }
+      const modeKey = String(deckData?.mode || "").trim().toLowerCase();
+      if (modeKey === "competitive") {
+        const activeBanlist = getActiveRankedBanlistSnapshot();
+        const banlistValidation = validateDeckAgainstRankedBanlist(deckData, activeBanlist);
+        if (!banlistValidation.ok) {
+          const violations = banlistValidation.violations || banlistValidation.bannedCards || [];
+          const blockedSummary = formatBanlistViolationSummary(violations);
+          const suffix = violations.length > 5 ? ` (+${violations.length - 5} outras)` : "";
+          sendJson(response, 400, {
+            error: `Deck competitivo excede limite da banlist ativa: ${blockedSummary.join(", ")}${suffix}.`,
+            details: {
+              banlist: activeBanlist
+                ? { banlistId: activeBanlist.banlistId, name: activeBanlist.name }
+                : null,
+              blockedCards: violations,
+            },
+          });
+          return;
+        }
+      }
 
       writeDeckStored(requestedDeckName, deckData);
       if (editingDeckAnchor && editingDeckAnchor !== requestedDeckName && existingDeck) {
@@ -22716,7 +22878,12 @@ async function handleRequest(request, response) {
   // GET /api/creature-drops/location/:locationName
   // Obtem criaturas disponiveis em um local especifico hoje.
   if (request.method === "GET" && pathname.startsWith("/api/creature-drops/location/")) {
-    const locationName = decodeURIComponent(pathname.replace("/api/creature-drops/location/", ""));
+    const locationDecode = safeDecodeURIComponent(pathname.replace("/api/creature-drops/location/", ""));
+    if (!locationDecode.ok) {
+      sendJson(response, 400, { error: "URL malformada." });
+      return;
+    }
+    const locationName = locationDecode.value;
     const creatures = getCreaturesAtLocation(locationName);
     sendJson(response, 200, { location: locationName, creatures });
     return;
@@ -22725,7 +22892,12 @@ async function handleRequest(request, response) {
   // GET /api/creature-drops/world-type/:worldType
   // Obtem criaturas disponiveis em um tipo de mundo hoje.
   if (request.method === "GET" && pathname.startsWith("/api/creature-drops/world-type/")) {
-    const worldType = decodeURIComponent(pathname.replace("/api/creature-drops/world-type/", ""));
+    const worldTypeDecode = safeDecodeURIComponent(pathname.replace("/api/creature-drops/world-type/", ""));
+    if (!worldTypeDecode.ok) {
+      sendJson(response, 400, { error: "URL malformada." });
+      return;
+    }
+    const worldType = worldTypeDecode.value;
     const creatures = getCreaturesForWorldType(worldType);
     sendJson(response, 200, { worldType, creatures, date: new Date().toISOString().split("T")[0] });
     return;
@@ -22734,7 +22906,12 @@ async function handleRequest(request, response) {
   // GET /api/creature-drops/news-ticker/:locationName
   // Obtem dados formatados para news ticker (types + flavortexts).
   if (request.method === "GET" && pathname.startsWith("/api/creature-drops/news-ticker/")) {
-    const locationName = decodeURIComponent(pathname.replace("/api/creature-drops/news-ticker/", ""));
+    const locationDecode = safeDecodeURIComponent(pathname.replace("/api/creature-drops/news-ticker/", ""));
+    if (!locationDecode.ok) {
+      sendJson(response, 400, { error: "URL malformada." });
+      return;
+    }
+    const locationName = locationDecode.value;
     const globalCreatures = getGlobalDailyCreatures();
     const newsItems = buildTickerNewsItems(globalCreatures, 32);
     sendJson(response, 200, {
