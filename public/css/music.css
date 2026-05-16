@@ -106,7 +106,7 @@ body[data-theme="light"] .music-floating-btn{
 }
 
 /* â”€â”€â”€ BUILDER â”€â”€â”€ */
-.builder-layout{display:grid;gap:.6rem;grid-template-columns:minmax(290px,.76fr) minmax(0,2.24fr)}
+.builder-layout{display:grid;gap:.6rem;grid-template-columns:minmax(270px,.68fr) minmax(0,2.32fr)}
 .card-panel{border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:.55rem}
 .card-list,.hand-list,.battle-log{margin-top:.5rem;display:grid;gap:.4rem;max-height:76vh;overflow:auto;padding-right:.2rem}
 .library-panel .card-list{max-height:73vh}
@@ -397,7 +397,7 @@ body[data-theme="light"] .keybind-row{background:#eef3fb}
 @keyframes engageGlow{0%{box-shadow:0 0 6px var(--accent-glow)}100%{box-shadow:0 0 16px var(--accent-glow),0 0 30px rgba(33,150,243,.1)}}
 
 /* â”€â”€â”€ RESPONSIVE â”€â”€â”€ */
-@media(max-width:1320px){
+@media(max-width:1024px){
   .builder-layout{grid-template-columns:1fr}
   #deck-board{grid-template-columns:1fr;height:auto;min-height:30.5rem}
   .stage-center{min-height:24rem}
